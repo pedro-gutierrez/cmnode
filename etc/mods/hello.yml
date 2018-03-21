@@ -1,0 +1,10 @@
+version: 1.0
+type: module
+placement: server
+name: hello
+spec:
+  effects:
+  decoders:
+  encoders:
+  init:
+  update:

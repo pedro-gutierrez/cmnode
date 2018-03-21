@@ -1,0 +1,8 @@
+version: 1.0
+type: template
+name: welcome
+spec:
+  contents: |
+    Hello {{ name | capfirst }}!
+
+    This is a test

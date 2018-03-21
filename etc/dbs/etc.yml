@@ -1,0 +1,7 @@
+version: 1.0
+type: bucket
+name: etc
+spec:
+  storage: memory
+  hosts: 
+    - Pedros-MacBook-Pro
