@@ -1,6 +1,6 @@
 -sname cmnode
-
--setcookie cmnode_cookie
-
+-setcookie cm
+-smp enable
++pc unicode
 +K true
 +A30
