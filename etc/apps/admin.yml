@@ -1,6 +1,6 @@
 version: 1.0
 type: app
-placement: server
+category: api
 name: admin 
 spec:
   port: 8080

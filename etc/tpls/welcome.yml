@@ -2,6 +2,11 @@ version: 1.0
 type: template
 name: welcome
 spec:
+  params:
+    object:
+      name: 
+        type: text
+  
   contents: |
     Hello {{ name | capfirst }}!
 
