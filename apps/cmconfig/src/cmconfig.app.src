@@ -1,8 +1,8 @@
-{application, cmetc,
+{application, cmconfig,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { cmetc_app, []}},
+  {mod, { cmconfig_app, []}},
   {applications,
    [kernel,
     stdlib

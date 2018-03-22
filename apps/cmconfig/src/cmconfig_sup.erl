@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc cmetc top level supervisor.
+%% @doc cmconfig top level supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module(cmetc_sup).
+-module(cmconfig_sup).
 
 -behaviour(supervisor).
 

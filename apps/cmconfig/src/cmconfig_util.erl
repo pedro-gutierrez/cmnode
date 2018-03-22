@@ -1,4 +1,4 @@
--module(cmetc_util).
+-module(cmconfig_util).
 -export([
          compile_template/1,
          compile_module/1,
@@ -19,7 +19,7 @@ compile_template(#{ <<"name">> := Name,
 
     #{ name => cmkit:to_atom(Name),
          contents => Contents,
-         params => cmetc_util:compile_term(ParamsSpec) }.
+         params => cmconfig_util:compile_term(ParamsSpec) }.
 
 
 compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
@@ -31,11 +31,11 @@ compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
 
     #{ name => cmkit:to_atom(Name),
          type => module,
-         category => cmetc_util:compile_keyword(Cat),
-         decoders => cmetc_util:compile_decoders(Decoders),
-         encoders => cmetc_util:compile_encoders(Encoders),
-         init => cmetc_util:compile_updates(Init),
-         updates => cmetc_util:compile_updates(Update) }.
+         category => cmconfig_util:compile_keyword(Cat),
+         decoders => cmconfig_util:compile_decoders(Decoders),
+         encoders => cmconfig_util:compile_encoders(Encoders),
+         init => cmconfig_util:compile_updates(Init),
+         updates => cmconfig_util:compile_updates(Update) }.
 
 
 compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
@@ -46,10 +46,10 @@ compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
 
     #{ name => cmkit:to_atom(Name),
        type => app,
-       category => cmetc_util:compile_keyword(Cat),
+       category => cmconfig_util:compile_keyword(Cat),
        port  => Port,
        acceptors => Acceptors,
-       modules  => cmetc_util:resolve_modules(Modules, Mods)
+       modules  => cmconfig_util:resolve_modules(Modules, Mods)
      }.
 
 

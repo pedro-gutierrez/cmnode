@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc cmetc public API
+%% @doc cmconfig public API
 %% @end
 %%%-------------------------------------------------------------------
 
--module(cmetc_app).
+-module(cmconfig_app).
 
 -behaviour(application).
 
@@ -15,7 +15,7 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-    cmetc_sup:start_link().
+    cmconfig_sup:start_link().
 
 %%--------------------------------------------------------------------
 stop(_State) ->
