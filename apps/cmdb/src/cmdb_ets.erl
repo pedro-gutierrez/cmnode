@@ -38,22 +38,33 @@ offline({call, From}, Msg, #data{name=Name}=Data) ->
     Res = {error, offline},
     {keep_state, Data, {reply, From, Res}}.
 
-ready({call, From}, {get, K}, #data{tid=Tid}=Data) ->
-    Res = case ets:lookup(Tid, K) of 
+ready({call, From}, {find, Type}, #data{tid=Tid}=Data) ->
+    Res = case ets:match(Tid, {{Type, '_'}, '$1'}) of 
         {error, R} -> {error, R};
-        Objs -> Objs
+        Objs when is_list(Objs) -> {ok, lists:flatten(Objs)}
     end,
     {keep_state, Data, {reply, From, Res}};
 
-ready({call, From}, {put, K, V}, #data{tid=Tid}=Data) ->
-    Res = case ets:insert(Tid, {K, V}) of 
-              true -> ok;
-              Other -> Other
-        end,
+ready({call, From}, {get, K}, #data{tid=Tid}=Data) ->
+    Res = case ets:lookup(Tid, K) of 
+        {error, R} -> {error, R};
+        [] -> not_found;
+        Objs -> {ok, lists:map(fun({_, V}) -> V end, Objs)}
+    end,
     {keep_state, Data, {reply, From, Res}};
 
 ready({call, From}, {put, Pairs}, #data{tid=Tid}=Data) ->
-    Res = dets:insert(Tid, Pairs),
+    Res = case ets:insert(Tid, Pairs) of 
+        true -> ok;
+        _ -> error
+    end,
+    {keep_state, Data, {reply, From, Res}};
+
+ready({call, From}, {put_new, Pairs}, #data{tid=Tid}=Data) ->
+    Res = case ets:insert_new(Tid, Pairs) of 
+        true -> ok;
+        _ -> error
+    end,
     {keep_state, Data, {reply, From, Res}};
 
 ready({call, From}, backup, Data) ->

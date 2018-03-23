@@ -2,25 +2,31 @@
 -export([init/2,
          info/3]).
 
-init(Req, State) ->
-     {cowboy_loop, Req, State, hibernate}.
+init(Req, #{app := App}=State) ->
+    case request_body(Req) of 
+        {error, _} -> 
+            reply(invalid, json, #{ error => json }, Req, State);
+        {ok, Data, Req2} ->
+            {ok, Session } = cmsession:new(App),
+            ok = cmcore:init(Data, Session),
+            {cowboy_loop, Req2, State, hibernate}
+    end.
 
 info(#{ type := Type, 
         status := Status, 
         body := Body }, Req, State) ->
-    
     reply(Status, Type, Body, Req, State);
 
-info(_, Req, State) ->
-    reply(error, json, #{ error => unknown }, Req, State).
+info(Data, Req, State) ->
+    reply(error, json, #{ error => Data }, Req, State).
 
 reply(Status, Type, Body, Req, State) ->
-    {Code, Headers, Body} = reply(Status, Type, Body),
-    cowboy_req:reply(Code, Headers, Body, Req),
+    {Code, Headers, EncodedBody} = reply(Status, Type, Body),
+    cowboy_req:reply(Code, Headers, EncodedBody, Req),
     {stop, Req, State}.
 
 reply(Status, Type, Body) ->
-    {status(Status), headers(Type), body(Type, Body)}.
+    {status(Status), headers(Type), response_body(Type, Body)}.
 
 status(ok) -> 200;
 status(invalid) -> 400;
@@ -29,11 +35,33 @@ status(forbidden) -> 401;
 status(_) -> 500.
 
 headers(json) -> 
-    #{ <<"content-type">> => <<"application/json">> };
+    H = headers(),
+    H#{ <<"content-type">> => <<"application/json">> };
 
 headers(text) ->
-    #{ <<"content-type">> => <<"text/plain">> }.
+    H = headers(),
+    H#{ <<"content-type">> => <<"text/plain">> }.
+
+headers() ->
+    #{ <<"server">> => <<"cmnode">>, 
+       <<"hostname">> => cmkit:host() }.
 
 
-body(json, Body) -> cmkit:jsone(Body);
-body(_, Body) -> Body.
+response_body(json, Body) -> cmkit:jsone(Body);
+response_body(_, Body) -> Body.
+
+request_body(Req) ->
+    case cowboy_req:has_body(Req) of 
+        false -> 
+            {ok, #{}, Req};
+        true ->
+            CT = cowboy_req:header(<<"content-type">>, Req, <<"application/json">>),
+            {ok, Raw, Req2} = cowboy_req:read_body(Req),
+            case request_body(CT, Raw) of 
+                {ok, Decoded} -> {ok, Decoded, Req2};
+                {error, E} -> {error, E}
+            end
+    end.
+
+request_body(<<"application/json">>, Raw) ->
+    cmkit:jsond(Raw).

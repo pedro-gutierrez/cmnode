@@ -1,23 +1,15 @@
 -module(cmdb).
 -export([
          ping/1,
-         write/2,
-         write/3,
-         read/2,
+         find/2,
+         put/2,
+         put_new/2,
+         put/3,
+         put_new/3,
+         get/2,
          backup/1,
-         restore/2,
-         buckets/0
+         restore/2
         ]).
-
-buckets() ->
-    [ #{ name => cmkit:to_atom(Name),
-         storage =>  cmkit:to_atom(Storage),
-         hosts => Hosts } 
-      || {ok, #{ <<"name">> := Name,
-            <<"spec">> := #{ <<"hosts">> := Hosts,
-                             <<"storage">> := Storage 
-                           }}
-          } <- cmyamls:of_type(bucket) ].
 
 ping(Host) ->
     case cmkit:node_for_host(Host) of 
@@ -28,13 +20,22 @@ ping(Host) ->
     end.
 
 
-write(Db, Pairs) -> 
+find(Db, Type) ->
+    in( node_for(Db), Db, {find, Type}).
+
+put(Db, Pairs) -> 
     in( node_for(Db), Db, {put, Pairs}).
 
-write(Db, K, V) ->
-    in( node_for(Db), Db, {put, K, V}).
+put_new(Db, Pairs) -> 
+    in( node_for(Db), Db, {put_new, Pairs}).
 
-read(Db, K) ->
+put(Db, K, V) ->
+    cmdb:put(Db, [{K, V}]).
+
+put_new(Db, K, V) ->
+    cmdb:put_new(Db, [{K, V}]).
+
+get(Db, K) ->
     in( node_for(Db), Db, {get, K}).
 
 backup(Db) -> 

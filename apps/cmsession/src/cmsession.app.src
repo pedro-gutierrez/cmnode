@@ -1,14 +1,11 @@
-{application, cmweb,
+{application, cmsession,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { cmweb_app, []}},
+  {mod, { cmsession_app, []}},
   {applications,
    [kernel,
-    stdlib,
-    cmconfig,
-    cmsession,
-    cmcore
+    stdlib
    ]},
   {env,[]},
   {modules, []},
