@@ -9,6 +9,7 @@ spec:
     - hello
   assets:
     app.scm:
-      type: app
-      name: app
-      placement: client
+      path: "/scm"
+      spec:
+        type: app
+        name: appui

@@ -1,5 +1,6 @@
 -module(cmconfig_util).
 -export([
+         compile_port/1,
          compile_template/1,
          compile_module/1,
          compile_app/2,
@@ -9,8 +10,36 @@
          compile_encoders/1,
          compile_updates/1,
          compile_term/1,
-         resolve_modules/2
+         resolve_modules/2,
+         compile_assets/1
         ]).
+
+compile_port(#{ <<"name">> := Name,
+                <<"spec">> := #{
+                    <<"port">> := Port,
+                    <<"acceptors">> := Acceptors,
+                    <<"apps">> := Apps }}) ->
+    
+    #{ name => compile_keyword(Name),
+       port  => Port,
+       acceptors => Acceptors,
+       apps => compile_port_apps(Apps) }.
+
+compile_port_apps(Apps) ->
+    maps:fold(fun(Name, Mounts, List) ->
+        [compile_port_app(Name, Mounts)|List]
+               end, [], Apps).
+
+compile_port_app(Name, Mounts) ->
+    #{ name => compile_keyword(Name),
+       mounts => compile_port_app_mounts(Mounts) }.
+
+compile_port_app_mounts(Mounts) when is_map(Mounts) ->
+    maps:fold(fun(Transport, Path, List) ->
+                       [#{ transport => compile_keyword(Transport),
+                         path => cmkit:to_list(Path) }|List]
+               end, [], Mounts).
+
 
 compile_template(#{ <<"name">> := Name,
                     <<"spec">> := #{
@@ -42,14 +71,26 @@ compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
             <<"spec">> := #{
                 <<"port">> := Port,
                 <<"acceptors">> := Acceptors,
-                <<"modules">> := Modules  }}, Mods) ->
+                <<"modules">> := Modules 
+               }=Spec}, Mods) ->
+        
+    Assets = cmconfig_util:compile_assets(maps:get(<<"assets">>, Spec, #{})),
 
     #{ name => cmkit:to_atom(Name),
        type => app,
        category => cmconfig_util:compile_keyword(Cat),
        port  => Port,
        acceptors => Acceptors,
-       modules  => cmconfig_util:resolve_modules(Modules, Mods)
+       modules  => cmconfig_util:resolve_modules(Modules, Mods),
+       assets => Assets
+     };
+
+compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
+            <<"spec">> := #{}=_Spec}, _Mods) ->
+        
+    #{ name => cmkit:to_atom(Name),
+       type => app,
+       category => cmconfig_util:compile_keyword(Cat)
      }.
 
 
@@ -167,5 +208,22 @@ resolve_module(Name, [#{ name := Name2}=Mod|Rest]) ->
     end.
     
 
+compile_assets(Assets) when is_map(Assets) ->
+compile_assets(maps:keys(Assets), Assets, []).
+compile_assets([], _, Out) -> Out;
+compile_assets([K|Rem], Assets, Out) ->
+    Asset = compile_asset(K, maps:get(K, Assets)),
+    compile_assets(Rem, Assets, [Asset|Out]). 
+
+compile_asset(Filename, #{ 
+                <<"path">> := Path,
+                <<"spec">> := #{
+                    <<"type">> := Type, 
+                    <<"name">> := Name }}) ->
+    #{ type => compile_keyword(Type),
+       name => compile_keyword(Name),
+       path => filename:join([cmkit:to_list(Path),
+                              cmkit:to_list(Filename)])
+     }.
 
 

@@ -1,0 +1,14 @@
+version: 1.0
+type: port
+name: admin
+spec:
+  port: 8080
+  acceptors: 1
+  apps:
+    api:
+      ws: "/ws"
+      http: "/api"
+    upload:
+      http: "/files"
+    ui:
+      http: "/scm/app.scm"
