@@ -1,14 +1,14 @@
-{application, cmcore,
+{application, cmeffect,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { cmcore_app, []}},
+  {mod, { cmeffect_app, []}},
   {applications,
    [kernel,
     stdlib,
+    cmconfig,
     cmdb,
-    cmsession,
-    cmeffect
+    cmsession
    ]},
   {env,[]},
   {modules, []},

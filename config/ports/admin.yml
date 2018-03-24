@@ -5,10 +5,10 @@ spec:
   port: 8080
   acceptors: 1
   apps:
-    api:
+    admin_api:
       ws: "/ws"
       http: "/api"
     upload:
       http: "/files"
-    ui:
+    admin_ui:
       http: "/scm/app.scm"

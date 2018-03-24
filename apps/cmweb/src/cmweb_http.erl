@@ -12,10 +12,11 @@ init(Req, #{app := App}=State) ->
             {cowboy_loop, Req2, State, hibernate}
     end.
 
-info(#{ type := Type, 
-        status := Status, 
-        body := Body }, Req, State) ->
-    reply(Status, Type, Body, Req, State);
+info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
+    reply(Status, json, Body, Req, State);
+
+info(Body, Req, State) when is_binary(Body) ->
+    reply(ok, binary, Body, Req, State);
 
 info(Data, Req, State) ->
     reply(error, json, #{ error => Data }, Req, State).
@@ -38,7 +39,7 @@ headers(json) ->
     H = headers(),
     H#{ <<"content-type">> => <<"application/json">> };
 
-headers(text) ->
+headers(_) ->
     H = headers(),
     H#{ <<"content-type">> => <<"text/plain">> }.
 

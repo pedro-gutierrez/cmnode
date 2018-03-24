@@ -5,7 +5,7 @@ log(Data)->
     io:format("[LOG] ~p~n", [Data]).
 
 home() -> env("CMNODE_HOME").
-etc() -> filename:join([home(), "etc"]).
+etc() -> filename:join([home(), "config"]).
 
 env(Key) -> os:getenv(Key).
 

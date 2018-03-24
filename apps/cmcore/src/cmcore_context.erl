@@ -19,10 +19,17 @@ init([#{ id := Id, app := App }=Session]) ->
     cmkit:log({cmcore, init, App, Id}),
     {ok, initializing, Session}.
 
-initializing({call, From}, {init, Data},  #{id := SessionId}=State) ->
-    cmkit:log({cmcore, init, Data}),
-    cmsession:tell(SessionId, #{ msg => hello }),
-    {keep_state, State, {reply, From, ok}}.
+initializing({call, From}, {init, _Data},  #{app := App}=Session) ->
+    cmkit:log({cmcore, init, Session}),
+    case cmconfig:app(App) of 
+        {ok, Spec} ->
+            cmeffect:apply(notify, #{ status => ok,
+                                      spec => Spec }, Session);
+        {error, E} ->
+            cmeffect:apply(notify, #{ status => error,
+                                      data => #{ E => App }}, Session)
+    end,
+    {keep_state, Session, {reply, From, ok}}.
 
 terminate(Reason, _, #{ app := App, id := Id}) ->
     cmkit:log({cmcore, App, Id, node(), terminated, Reason}),

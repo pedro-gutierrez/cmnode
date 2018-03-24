@@ -1,0 +1,34 @@
+version: 1.0
+type: module
+category: client
+name: admin_scm 
+spec:
+  init:
+    cmds:
+      - effect: template
+        encoder: template
+  update:
+    scheme:
+      model:
+        scheme: from_data
+      cmds:
+        - effect: notify
+          encoder: scheme
+  encoders:
+    template:
+      object:
+        template:
+          keyword: app_scm
+        data:
+          spec:
+            init: {}
+            decoders: {}
+            encoders: {}
+            update: {}
+            views: {}
+    scheme:
+      data: 
+        from: scheme
+  decoders:
+    scheme:
+      data: any

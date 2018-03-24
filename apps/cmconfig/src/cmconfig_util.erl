@@ -52,11 +52,12 @@ compile_template(#{ <<"name">> := Name,
 
 
 compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
-            <<"spec">> := #{
-                <<"decoders">> := Decoders,
-                <<"encoders">> := Encoders,
-                <<"init">> := Init,
-                <<"update">> := Update }}) ->
+            <<"spec">> := Spec }) ->
+
+    Decoders = maps:get(<<"decoders">>, Spec, #{}),
+    Encoders = maps:get(<<"encoders">>, Spec, #{}),
+    Init = maps:get(<<"init">>, Spec, #{}),
+    Update = maps:get(<<"update">>, Spec, #{}),
 
     #{ name => cmkit:to_atom(Name),
          type => module,
@@ -69,30 +70,14 @@ compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
 
 compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
             <<"spec">> := #{
-                <<"port">> := Port,
-                <<"acceptors">> := Acceptors,
                 <<"modules">> := Modules 
-               }=Spec}, Mods) ->
+               }}, Mods) ->
         
-    Assets = cmconfig_util:compile_assets(maps:get(<<"assets">>, Spec, #{})),
-
     #{ name => cmkit:to_atom(Name),
        type => app,
        category => cmconfig_util:compile_keyword(Cat),
-       port  => Port,
-       acceptors => Acceptors,
-       modules  => cmconfig_util:resolve_modules(Modules, Mods),
-       assets => Assets
-     };
-
-compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
-            <<"spec">> := #{}=_Spec}, _Mods) ->
-        
-    #{ name => cmkit:to_atom(Name),
-       type => app,
-       category => cmconfig_util:compile_keyword(Cat)
+       modules  => cmconfig_util:resolve_modules(Modules, Mods)
      }.
-
 
 compile_bucket(#{ <<"name">> := Name,
                   <<"spec">> := #{ <<"hosts">> := Hosts,
@@ -104,6 +89,22 @@ compile_bucket(#{ <<"name">> := Name,
        hosts => Hosts }.
 
 
+compile_spec(Spec) ->
+    Decoders = compile_decoders(maps:get(<<"decoders">>, Spec, #{})),
+    Encoders = compile_decoders(maps:get(<<"encoders">>, Spec, #{})),
+    Init = compile_decoders(maps:get(<<"init">>, Spec, #{})),
+    Update = compile_decoders(maps:get(<<"update">>, Spec, #{})),
+    Views = compile_decoders(maps:get(<<"views">>, Spec, #{})),
+
+    #{ spec => #{ decoders => Decoders,
+                  encoders => Encoders,
+                  init => Init,
+                  update => Update,
+                  views => Views }}.
+
+compile_term(#{ <<"data">> := _ }) ->
+    #{ type => data };
+
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
 
@@ -111,6 +112,9 @@ compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
     #{ type => list,
        value => lists:map( fun compile_term/1, Items) 
      };
+
+compile_term(#{ <<"spec">> := Spec }) ->
+   compile_spec(Spec); 
 
 compile_term(#{ <<"type">> := Type}) ->
     compile_keyword(Type);
