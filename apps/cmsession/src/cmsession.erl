@@ -1,5 +1,5 @@
 -module(cmsession).
--export([new/1, attach/3, tell/2]).
+-export([new/1, attach/3, retrieve/2, tell/2]).
 
 new(App) ->
     Conn = self(),
@@ -12,7 +12,10 @@ new(App) ->
     {ok, Session}.
 
 attach(Id, Type, Val) ->
-    cmdb:put_new(sessions, {Type, Id}, Val).
+    cmdb:put(sessions, {Type, Id}, Val).
+
+retrieve(Id, Type) ->
+    cmdb:get(sessions, {Type, Id}).
 
 conns(Id) ->
     {ok, [Conns]} = cmdb:get(sessions, {connections, Id}),

@@ -4,12 +4,9 @@
 apply(Effect, Data, Session) ->
     case erlang:whereis(Effect) of 
         undefined ->
-            cmkit:log({effect, Effect, undefined}),
+            cmkit:log({no_such_effect, Effect}),
             not_found;
         Pid ->
             gen_server:cast(Pid, {apply, Data, Session}),
             ok
     end.
-
-
-

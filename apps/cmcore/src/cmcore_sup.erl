@@ -12,7 +12,7 @@ init([]) ->
     Spec = cmkit:child_spec(cmcore_context,
                             cmcore_context,
                             [],
-                            transient,
+                            temporary,
                             worker),
     
     {ok, { {simple_one_for_one, 0, 1}, [Spec]}}.

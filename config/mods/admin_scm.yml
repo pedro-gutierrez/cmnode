@@ -4,31 +4,71 @@ category: client
 name: admin_scm 
 spec:
   init:
+    model:
+      scheme:
+        text: 
+          literal: "Hello" 
     cmds:
       - effect: template
         encoder: template
   update:
     scheme:
       model:
-        scheme: from_data
+        scheme:
+          from: data
       cmds:
         - effect: notify
           encoder: scheme
+    not_found:
+      cmds:
+        - effect: notify
+          encoder: not_found
   encoders:
+    not_found:
+      object:
+        status: 
+          keyword: not_found
+        template:
+          keyword: app_scm
     template:
       object:
         template:
           keyword: app_scm
         data:
           spec:
-            init: {}
-            decoders: {}
-            encoders: {}
-            update: {}
-            views: {}
+            update:
+              connected:
+                model:
+                  state:
+                    keyword: connected
+            decoders:
+              connected:
+                text:
+                  literal: "open"
+            views:
+              connected:
+                h1:
+                  attrs:
+                    class: title
+                  children:
+                    - text: 
+                        literal: "It works"
+
     scheme:
       data: 
         from: scheme
   decoders:
     scheme:
-      data: any
+      object:
+        template:
+          keyword: app_scm
+        status:
+          keyword: ok
+        data:
+          text: any
+    not_found:
+      object:
+        template:
+          keyword: app_scm
+        reason:
+          keyword: not_found

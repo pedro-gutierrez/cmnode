@@ -32,7 +32,8 @@ spec:
   init:
     model:
       prop1: 
-        text: "Hello" 
+        text: 
+          literal: "Hello" 
       prop2: 
         list: []
     cmds:

@@ -1,6 +1,6 @@
 version: 1.0
 type: template
-name: welcome
+name: app_scm
 spec:
   params:
     object:
@@ -8,6 +8,6 @@ spec:
         type: text
   
   contents: |
-    Hello {{ name | capfirst }}!
+    Hello Pedro!
 
     This is a test

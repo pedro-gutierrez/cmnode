@@ -345,16 +345,17 @@ uniconvert(String) ->
   end.
 
 bin_join([], _Sep) ->
-  <<>>;
+    <<>>;
 bin_join([Part], _Sep) ->
-  Part;
+    to_bin(Part);
 bin_join(List, Sep) ->
-  lists:foldr(fun (A, B) ->
-    if
-      bit_size(B) > 0 -> <<A/binary, Sep/binary, B/binary>>;
-      true -> A
-    end
-  end, <<>>, List).
+    lists:foldr(fun (A, B) ->
+                        A2 = to_bin(A),
+                        if
+                            bit_size(B) > 0 -> <<A2/binary, Sep/binary, B/binary>>;
+                            true -> A2
+                        end
+                end, <<>>, List).
 
 to_list(L) when is_list(L) -> 
     L;

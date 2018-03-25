@@ -54,19 +54,13 @@ compile_template(#{ <<"name">> := Name,
 compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
             <<"spec">> := Spec }) ->
 
-    Decoders = maps:get(<<"decoders">>, Spec, #{}),
-    Encoders = maps:get(<<"encoders">>, Spec, #{}),
-    Init = maps:get(<<"init">>, Spec, #{}),
-    Update = maps:get(<<"update">>, Spec, #{}),
-
-    #{ name => cmkit:to_atom(Name),
-         type => module,
-         category => cmconfig_util:compile_keyword(Cat),
-         decoders => cmconfig_util:compile_decoders(Decoders),
-         encoders => cmconfig_util:compile_encoders(Encoders),
-         init => cmconfig_util:compile_updates(Init),
-         updates => cmconfig_util:compile_updates(Update) }.
-
+    
+    #{ spec := CompiledSpec } = compile_spec(Spec),
+    maps:merge(CompiledSpec,  #{
+                 name => cmkit:to_atom(Name),
+                 type => module,
+                 category => cmconfig_util:compile_keyword(Cat)
+    }).
 
 compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
             <<"spec">> := #{
@@ -90,20 +84,43 @@ compile_bucket(#{ <<"name">> := Name,
 
 
 compile_spec(Spec) ->
-    Decoders = compile_decoders(maps:get(<<"decoders">>, Spec, #{})),
-    Encoders = compile_decoders(maps:get(<<"encoders">>, Spec, #{})),
-    Init = compile_decoders(maps:get(<<"init">>, Spec, #{})),
-    Update = compile_decoders(maps:get(<<"update">>, Spec, #{})),
-    Views = compile_decoders(maps:get(<<"views">>, Spec, #{})),
+    
+    Keys = [<<"decoders">>, <<"encoders">>, <<"init">>,
+            <<"update">>, <<"views">> ],
+    
+    Contents = lists:foldl(fun(Key, C0) ->
+                                   Term = #{ Key => maps:get(Key, Spec, #{})},
+                                   case compile_term(Term) of 
+                                        [] -> C0;
+                                        [_|_]=Other -> C0#{ compile_keyword(Key) => Other };
+                                        Map when map_size(Map) =:= 0 -> C0;
+                                        Other -> C0#{ compile_keyword(Key) => Other }
+                                   end
+                           end, #{}, Keys),
+    #{ spec => Contents }.
 
-    #{ spec => #{ decoders => Decoders,
-                  encoders => Encoders,
-                  init => Init,
-                  update => Update,
-                  views => Views }}.
+compile_term(#{ <<"decoders">> := Decs }) ->
+    compile_decoders(Decs);
 
-compile_term(#{ <<"data">> := _ }) ->
+compile_term(#{ <<"encoders">> := Encs }) ->
+    compile_encoders(Encs);
+
+compile_term(#{ <<"init">> := Init }) ->
+    compile_init(Init);
+
+compile_term(#{ <<"update">> := Update }) ->
+    compile_updates(Update);
+
+compile_term(#{ <<"views">> := Views }) ->
+    compile_views(Views);
+
+compile_term(#{ <<"data">> := <<"any">> }) ->
     #{ type => data };
+
+
+compile_term(#{ <<"data">> := Spec }) ->
+    maps:merge(#{ type => data},
+               compile_term(Spec));
 
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
@@ -126,23 +143,35 @@ compile_term(#{ <<"keyword">> := Keyword }) ->
 compile_term(#{ <<"number">> := _ }) ->
     #{ type => number };
 
-compile_term(#{ <<"text">> := _ }) ->
+compile_term(#{ <<"literal">> := Text }) ->
+    #{ value => Text };
+
+compile_term(#{ <<"text">> := <<"any">> }) ->
     #{ type => text };
 
+compile_term(#{ <<"text">> := Spec }) ->
+    maps:merge(#{ type => text},
+               compile_term(Spec));
+    
 compile_term(#{ <<"from">> := From,
                 <<"at">> := At }) ->
     #{ from => compile_from(From),
        at => compile_keyword(At) };
 
+compile_term(<<"from_data">>) -> from_data;
+
 compile_term(#{ <<"from">> := From  }) ->
     #{ from => compile_from(From) }.
+
+
 
 compile_from(From) when is_binary(From)-> compile_keyword(From);
 compile_from(From) when is_map(From) ->
     compile_term(From).
 
 compile_object(Map) when is_map(Map) ->
-    compile_object(maps:keys(Map), Map, #{}).
+    #{ type => object,
+       spec => compile_object(maps:keys(Map), Map, #{}) }.
 
 compile_object([], _, Out) -> Out;
 compile_object([K|Rem], Map, Out) ->
@@ -160,7 +189,7 @@ compile_decoders([K|Rem], Decs, Out) ->
     Msg = compile_keyword(K),
     Dec = compile_term(maps:get(K, Decs)),
     compile_decoders(Rem, Decs, [#{ msg => Msg,
-                                    decoder => Dec}|Out]). 
+                                    spec => Dec}|Out]). 
 
 compile_encoders(Encs) ->
     compile_encoders(maps:keys(Encs), Encs, #{}).
@@ -171,18 +200,31 @@ compile_encoders([K|Rem], Encs, Out) ->
     Enc = compile_term(maps:get(K, Encs)),
     compile_encoders(Rem, Encs, Out#{ Name => Enc}). 
 
-compile_updates(#{ <<"model">> := Model,
-                <<"cmds">> := Cmds }) ->
+
+compile_updates(Updates) -> 
+    compile_updates(maps:keys(Updates), Updates, #{}).
+
+compile_updates([], _, Out) -> Out;
+compile_updates([K|Rem], Updates, Out) ->
+    Name = compile_keyword(K),
+    Init = compile_init(maps:get(K, Updates)),
+    compile_updates(Rem, Updates, Out#{ Name => Init }).
+
+compile_init(#{ <<"model">> := Model,
+                   <<"cmds">> := Cmds }) ->
     #{ model => compile_model(Model),
        cmds => compile_cmds(Cmds) };
 
-compile_updates(#{ <<"model">> := Model }) ->
+compile_init(#{ <<"model">> := Model }) ->
     #{ model =>  compile_model(Model) };
 
-compile_updates(#{ <<"cmds">> := Cmds }) ->
+compile_init(#{ <<"cmds">> := Cmds }) ->
     #{ cmds =>  compile_cmds(Cmds) };
 
-compile_updates(#{}) -> #{}.
+compile_init(_) -> #{}.
+
+compile_views(_) -> #{}.
+
 
 compile_model(Map) -> compile_object(Map).
 
