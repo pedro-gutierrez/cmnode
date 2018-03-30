@@ -11,7 +11,8 @@
          compile_updates/1,
          compile_term/1,
          resolve_modules/2,
-         compile_assets/1
+         compile_assets/1,
+         compile_effects/1
         ]).
 
 compile_port(#{ <<"name">> := Name,
@@ -86,7 +87,7 @@ compile_bucket(#{ <<"name">> := Name,
 compile_spec(Spec) ->
     
     Keys = [<<"decoders">>, <<"encoders">>, <<"init">>,
-            <<"update">>, <<"views">> ],
+            <<"update">>, <<"views">>, <<"effects">> ],
     
     Contents = lists:foldl(fun(Key, C0) ->
                                    Term = #{ Key => maps:get(Key, Spec, #{})},
@@ -114,6 +115,9 @@ compile_term(#{ <<"update">> := Update }) ->
 compile_term(#{ <<"views">> := Views }) ->
     compile_views(Views);
 
+compile_term(#{ <<"effects">> := Effects }) ->
+    compile_effects(Effects);
+
 compile_term(#{ <<"data">> := <<"any">> }) ->
     #{ type => data };
 
@@ -124,6 +128,14 @@ compile_term(#{ <<"data">> := Spec }) ->
 
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
+
+compile_term(#{ <<"view">> := View }) ->
+    #{ type => view ,
+       spec => compile_view(View)
+     };
+
+compile_term(#{ <<"list">> := <<"any">>}) ->
+    #{ type => list };
 
 compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
     #{ type => list,
@@ -168,6 +180,9 @@ compile_term(#{ <<"from">> := From  }) ->
 compile_from(From) when is_binary(From)-> compile_keyword(From);
 compile_from(From) when is_map(From) ->
     compile_term(From).
+
+compile_object(<<"any">>) -> 
+    #{ type => object };
 
 compile_object(Map) when is_map(Map) ->
     #{ type => object,
@@ -223,8 +238,52 @@ compile_init(#{ <<"cmds">> := Cmds }) ->
 
 compile_init(_) -> #{}.
 
-compile_views(_) -> #{}.
+compile_views(Views) ->
+    compile_views(maps:keys(Views), Views, #{}).
 
+compile_views([], _, Out) -> Out;
+compile_views([K|Rem], Views, Out) ->
+    Name = compile_keyword(K),
+    View = compile_view(maps:get(K, Views)),
+    compile_views(Rem, Views, Out#{ Name => View }).
+
+
+compile_view(#{ <<"view">> := View,
+                <<"when">> := When }) ->
+    
+    #{ view => compile_keyword(View),
+       condition => compile_condition(When) };
+
+
+compile_view(#{ <<"tag">> := Tag,
+                <<"attrs">> := Attrs,
+                <<"children">> := Children }) ->
+    #{ tag => Tag,
+       attrs => Attrs,
+       children => lists:map(fun compile_view/1, Children) };
+
+compile_view(#{ <<"tag">> := _ ,
+                <<"children">> := _ }=View) ->
+    compile_view(View#{ <<"attrs">> => #{}});
+
+compile_view(#{ <<"tag">> := _ ,
+                <<"attrs">> := _ }=View) ->
+    compile_view(View#{ <<"children">> => []});
+
+compile_view(#{ <<"tag">> := _ }=View) ->
+    compile_view(View#{ 
+                   <<"attrs">> => #{},
+                   <<"children">> => []});
+
+compile_view(#{ <<"text">> := Text}) when is_binary(Text) ->
+    #{ text => #{ literal => Text }};
+
+compile_view(#{ <<"text">> := Spec}) ->
+    #{ text => compile_term(Spec) }.
+
+
+compile_condition(Prop) when is_binary(Prop) ->
+    #{ is_set => Prop }.
 
 compile_model(Map) -> compile_object(Map).
 
@@ -272,4 +331,18 @@ compile_asset(Filename, #{
                               cmkit:to_list(Filename)])
      }.
 
+compile_effects(Effects) ->
+    compile_effects(maps:keys(Effects), Effects, #{}).
 
+compile_effects([], _, Out) -> Out;
+compile_effects([K|Rem], Effects, Out) ->
+    Name = compile_keyword(K),
+    compile_effects(Rem, Effects, Out#{ Name => compile_effect(Name, maps:get(K, Effects)) }).
+
+compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}) ->
+    #{ type => effect,
+       name => Name,
+       class => Type,
+       settings => Settings };
+
+compile_effect(Name, #{ <<"type">> := _ }=Effect) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}).

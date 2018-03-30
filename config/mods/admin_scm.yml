@@ -9,66 +9,103 @@ spec:
         text: 
           literal: "Hello" 
     cmds:
-      - effect: template
-        encoder: template
+      - effect: scheme
+        encoder: app
   update:
     scheme:
       model:
-        scheme:
-          from: data
+        scheme: 
+          from: source 
       cmds:
         - effect: notify
           encoder: scheme
-    not_found:
-      cmds:
-        - effect: notify
-          encoder: not_found
   encoders:
-    not_found:
+    app:
       object:
-        status: 
-          keyword: not_found
-        template:
-          keyword: app_scm
-    template:
-      object:
-        template:
-          keyword: app_scm
-        data:
-          spec:
+        app:
+          spec: 
+            init:
+              model:
+                state: 
+                  keyword: init
+                message:
+                  literal: "Jellow"
+              cmds:
+                - effect: ws
+                  encoder: login
+                - effect: ui 
+                  encoder: connected 
+
             update:
               connected:
                 model:
                   state:
                     keyword: connected
-            decoders:
-              connected:
-                text:
-                  literal: "open"
-            views:
-              connected:
-                h1:
-                  attrs:
-                    class: title
+            encoders:
+              login:
+                object:
+                  username: 
+                    from: username
+                  password:
+                    from: password
+              user_message:
+                view:
+                  tag: div
+                  attrs: 
+                    key: user-message
+                    class: warning
                   children:
                     - text: 
-                        literal: "It works"
-
+                        from: message 
+              connected:
+                view:
+                  tag: div 
+                  attrs:
+                    class: container
+                  children:
+                    - tag: h1
+                      attrs:
+                        key: title
+                      children:
+                        - text: "Welcome"
+                    - view: user_message
+                      when: message
+                    - tag: div
+                      attrs:
+                        key: subtitle
+                      children:
+                        - text: "This is the subtitle"
+                    - tag: a
+                      attrs:
+                        key: link
+                        href: "#"
+                      children:
+                        - text: "this is a link"
+            
+            decoders:
+              connected:
+                object:
+                  event:
+                    literal: "open"
+                  source:
+                    keyword: ws
+            effects:
+              ui:
+                type: elementary-ui
+              ws:
+                type: elementary-ws
+                settings:
+                  url: ws://localhost:8080/ws 
+          
     scheme:
       data: 
         from: scheme
   decoders:
     scheme:
       object:
-        template:
-          keyword: app_scm
+        language:
+          keyword: scheme
         status:
           keyword: ok
-        data:
+        source:
           text: any
-    not_found:
-      object:
-        template:
-          keyword: app_scm
-        reason:
-          keyword: not_found

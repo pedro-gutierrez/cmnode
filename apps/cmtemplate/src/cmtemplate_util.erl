@@ -18,7 +18,7 @@ reload([#{ contents := Data, name := Name }|Rem]) ->
     reload(Rem).
 
 compile(Template, Mod) ->
-    case erlydtl:compile_template(Template, Mod) of 
+    case erlydtl:compile_template(Template, Mod, [{auto_escape, false}]) of 
         {ok, Mod} -> ok;
         {ok, Mod, Warnings} ->
             cmkit:log({template, Mod, Warnings});

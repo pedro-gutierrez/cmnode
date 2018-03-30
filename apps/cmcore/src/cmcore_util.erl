@@ -116,12 +116,13 @@ resolve_value(#{ spec := Spec}, _) ->
     Spec.
 
 
+
 cmds([], _, _) -> ok;
 cmds([#{ effect := Effect, 
          encoder := Spec }|Rem], Model, Session) ->
     case encode(Spec, Model) of 
         {error, Error} ->
-            cmkit:log({nkcore, Effect, Spec, Error});
+            cmkit:log({cmcore, Effect, Spec, Error});
         {ok, Data} ->
             cmeffect:apply(Effect, Data, Session)
     end,

@@ -1,13 +1,9 @@
 version: 1.0
 type: template
-name: app_scm
+name: scheme_case
 spec:
   params:
     object:
       name: 
         type: text
-  
-  contents: |
-    Hello Pedro!
-
-    This is a test
+  contents: ({{ match }} {{expression}})

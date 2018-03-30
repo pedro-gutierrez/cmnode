@@ -25,6 +25,8 @@ decode_object([Key|Rem], Spec, Data, Out) ->
 decode_term(#{ type := keyword, value := Exp}, Exp) when is_atom(Exp) -> {ok, Exp};
 decode_term(#{ type := keyword, value := _}, _) -> no_match;
 decode_term(#{ type := text}, Text) when is_binary(Text) -> {ok, Text};
+decode_term(#{ type := list}, List) when is_list(List) -> {ok, List};
+
 
 decode_term(Spec, Data) -> 
     cmkit:log({cmdecode, not_implemented, Spec, Data}),
