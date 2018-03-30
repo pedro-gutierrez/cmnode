@@ -200,7 +200,7 @@ compile_keyword(K) -> cmkit:to_atom(K).
 compile_decoders(Decs) ->
     compile_decoders(maps:keys(Decs), Decs, []).
 
-compile_decoders([], _, Out) -> Out;
+compile_decoders([], _, Out) -> lists:reverse(Out);
 compile_decoders([K|Rem], Decs, Out) ->
     Msg = compile_keyword(K),
     Dec = compile_term(maps:get(K, Decs)),

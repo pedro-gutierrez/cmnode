@@ -30,18 +30,25 @@ spec:
                   keyword: init
               cmds:
                 - effect: ui 
-                  encoder: login 
-
+                  encoder: login_view
             update:
-              connected:
+              email_changed:
                 model:
-                  state:
-                    keyword: connected
+                  email:
+                    from: value
+              password_changed:
+                model:
+                  password:
+                    from: value
+              send_login:
+                cmds:
+                  - effect: ws
+                    encoder: login
             encoders:
               login:
                 object:
                   username: 
-                    from: username
+                    from: email 
                   password:
                     from: password
               user_message:
@@ -77,6 +84,8 @@ spec:
                           from: id
                         placeholder: 
                           from: title
+                        onchange:
+                          from: id
               password:
                 view:
                   tag: div
@@ -101,20 +110,26 @@ spec:
                           from: id
                         placeholder: 
                           from: title
+                        onchange:
+                          from: id
               button:
                 view:
-                  tag: button
-                  attrs:
-                    class: "btn btn-primary"
-                    onclick:
-                      from: click
+                  tag: div
                   children:
-                    - text:
-                        from: title
+                    - tag: button
+                      attrs:
+                        class: "btn btn-primary"
+                        onclick:
+                          from: click
+                      children:
+                        - text:
+                            from: title
               link:
                 view:
                   tag: div
                   attrs:
+                    onclick:
+                      from: click
                     key: 
                       from: id
                   children:
@@ -124,7 +139,7 @@ spec:
                       children:
                         - text: 
                             from: title
-              login:
+              login_view:
                 view:
                   tag: div 
                   attrs:
@@ -151,20 +166,20 @@ spec:
                             literal: "password"
                           title:
                             literal: "Password"
-                    - tag: div
-                      children:
-                        - view: button
-                          params:
-                            object:
-                              click:
-                                keyword: replop 
-                              title:
-                                literal: "Login"
+                    - view: button
+                      params:
+                        object:
+                          click:
+                            keyword: send_login
+                          title:
+                            literal: "Login"
                     - view: link
                       params:
                         object:
                           id: 
                             literal: recover_password 
+                          click:
+                            keyword: show_recover_password
                           title:
                             literal: "Recover password"
                     - view: link
@@ -172,18 +187,51 @@ spec:
                         object:
                           id: 
                             literal: signup
+                          click:
+                            keyword: show_signup
                           title:
                             literal: "Create an account"
                       
 
             
             decoders:
-              connected:
+              show_signup:
                 object:
+                  effect:
+                    keyword: ui
                   event:
-                    literal: "open"
-                  source:
-                    keyword: ws
+                    keyword: show_signup
+              show_recover_password:
+                object:
+                  effect:
+                    keyword: ui
+                  event:
+                    keyword: show_recover_password
+              email_changed:
+                object:
+                  effect:
+                    keyword: ui
+                  event:
+                    text:
+                      literal: email
+                  value:
+                    text: any
+              password_changed:
+                object:
+                  effect:
+                    keyword: ui
+                  event:
+                    text:
+                      literal: password
+                  value:
+                    text: any
+              send_login:
+                object:     
+                  effect:
+                    keyword: ui
+                  event:
+                    keyword: send_login
+
             effects:
               ui:
                 type: elementary-ui

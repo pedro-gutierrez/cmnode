@@ -43,13 +43,15 @@ init(Model, Cmds) ->
 
 model(#{ type := object, spec := Spec}) ->
     Args = model(maps:keys(Spec), Spec, []), 
-    cmscheme_ast:call(list, Args).
+    cmscheme_ast:call(list, Args);
 
+
+model(#{}) -> 
+    cmscheme_ast:call(list, []).
 
 model([], _, Out) -> Out;
 model([K|Rem], Spec, Out) ->
     model(Rem, Spec, [term(K, maps:get(K, Spec))|Out]).
-
 
 cmds(Cmds) ->
     cmscheme_ast:call(list, lists:map(fun cmd/1, Cmds)).
@@ -113,6 +115,14 @@ term(K, #{ type := keyword, value := V}) when is_atom(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:sym(V)]);
 
+term(K, #{ type := text }) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(text),
+                                                      cmscheme_ast:sym(any)
+                                                     ])
+                            ]);
+
 term(K, #{ from := From }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
                              cmscheme_ast:call(list, [
@@ -137,7 +147,7 @@ term(K, V) when is_atom(K) and is_binary(V) ->
 terms(Map) when is_map(Map) ->
     terms(maps:keys(Map), Map, []).
 
-terms([], _, Out) -> Out;
+terms([], _, Out) -> lists:reverse(Out);
 terms([K|Rem], Terms, Out) ->
     terms(Rem, Terms, [term(K, maps:get(K, Terms))|Out]).
 

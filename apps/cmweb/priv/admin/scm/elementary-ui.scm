@@ -56,7 +56,7 @@
               (v (attr-value (car (cdr attr)) ctx)))
           (case n
             ((string "onclick")
-             (let ((fn (js-lambda (lambda () (send-event v '())))))
+             (let ((fn (js-lambda (lambda (args) (send-event v '())))))
                (list "onclick" fn )))
             ((string "onchange")
              (let ((fn (js-lambda (lambda (args)
@@ -67,6 +67,7 @@
             (else (list n v)))))
       
     (define (render-elem elem ctx)
+;      (console-log "rendering elem" elem)
       (case (length elem)
         ('3
          (let* ((tag (car elem))
@@ -133,7 +134,8 @@
       (hashtable-set! state 'view enc)
       (hashtable-set! state 'views encs)
       (hashtable-set! state 'model m)
-      (schedule-render))
+      (schedule-render)
+      )
     
     (mount-projector (lambda () (render-view)))
 
