@@ -28,13 +28,9 @@ spec:
               model:
                 state: 
                   keyword: init
-                message:
-                  literal: "Jellow"
               cmds:
-                - effect: ws
-                  encoder: login
                 - effect: ui 
-                  encoder: connected 
+                  encoder: login 
 
             update:
               connected:
@@ -57,7 +53,78 @@ spec:
                   children:
                     - text: 
                         from: message 
-              connected:
+              input:
+                view:
+                  tag: div
+                  attrs:
+                    key: 
+                      from: id
+                    class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
+                  children:
+                    - tag: label
+                      attrs:
+                        class: "form-label"
+                        for: 
+                          from: id
+                      children:
+                        - text: 
+                            from: title
+                    - tag: input
+                      attrs:
+                        class: "form-input"
+                        type: "text"
+                        id: 
+                          from: id
+                        placeholder: 
+                          from: title
+              password:
+                view:
+                  tag: div
+                  attrs:
+                    key: 
+                      from: id
+                    class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
+                  children:
+                    - tag: label
+                      attrs:
+                        class: "form-label"
+                        for: 
+                          from: id
+                      children:
+                        - text: 
+                            from: title
+                    - tag: input
+                      attrs:
+                        class: "form-input"
+                        type: "password"
+                        id: 
+                          from: id
+                        placeholder: 
+                          from: title
+              button:
+                view:
+                  tag: button
+                  attrs:
+                    class: "btn btn-primary"
+                    onclick:
+                      from: click
+                  children:
+                    - text:
+                        from: title
+              link:
+                view:
+                  tag: div
+                  attrs:
+                    key: 
+                      from: id
+                  children:
+                    - tag: a
+                      attrs:
+                        href: "#"
+                      children:
+                        - text: 
+                            from: title
+              login:
                 view:
                   tag: div 
                   attrs:
@@ -70,17 +137,45 @@ spec:
                         - text: "Welcome"
                     - view: user_message
                       when: message
+                    - view: input
+                      params:
+                        object:
+                          id: 
+                            literal: "email"
+                          title:
+                            literal: "Email"
+                    - view: password 
+                      params:
+                        object:
+                          id: 
+                            literal: "password"
+                          title:
+                            literal: "Password"
                     - tag: div
-                      attrs:
-                        key: subtitle
                       children:
-                        - text: "This is the subtitle"
-                    - tag: a
-                      attrs:
-                        key: link
-                        href: "#"
-                      children:
-                        - text: "this is a link"
+                        - view: button
+                          params:
+                            object:
+                              click:
+                                keyword: replop 
+                              title:
+                                literal: "Login"
+                    - view: link
+                      params:
+                        object:
+                          id: 
+                            literal: recover_password 
+                          title:
+                            literal: "Recover password"
+                    - view: link
+                      params:
+                        object:
+                          id: 
+                            literal: signup
+                          title:
+                            literal: "Create an account"
+                      
+
             
             decoders:
               connected:

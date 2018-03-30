@@ -173,8 +173,9 @@ compile_term(#{ <<"from">> := From,
 compile_term(<<"from_data">>) -> from_data;
 
 compile_term(#{ <<"from">> := From  }) ->
-    #{ from => compile_from(From) }.
+    #{ from => compile_from(From) };
 
+compile_term(Any) -> Any.
 
 
 compile_from(From) when is_binary(From)-> compile_keyword(From);
@@ -249,17 +250,31 @@ compile_views([K|Rem], Views, Out) ->
 
 
 compile_view(#{ <<"view">> := View,
+                <<"params">> := Params,
+                <<"when">> := When }) ->
+    
+    #{ view => compile_keyword(View),
+       params => compile_term(Params),
+       condition => compile_condition(When) };
+
+compile_view(#{ <<"view">> := View,
                 <<"when">> := When }) ->
     
     #{ view => compile_keyword(View),
        condition => compile_condition(When) };
+    
 
+compile_view(#{ <<"view">> := View,
+                <<"params">> := Params }) ->
+    
+    #{ view => compile_keyword(View),
+       params  => compile_term(Params) };
 
 compile_view(#{ <<"tag">> := Tag,
                 <<"attrs">> := Attrs,
                 <<"children">> := Children }) ->
     #{ tag => Tag,
-       attrs => Attrs,
+       attrs => compile_view_attrs(Attrs),
        children => lists:map(fun compile_view/1, Children) };
 
 compile_view(#{ <<"tag">> := _ ,
@@ -282,8 +297,16 @@ compile_view(#{ <<"text">> := Spec}) ->
     #{ text => compile_term(Spec) }.
 
 
+compile_view_attrs(Attrs) when is_map(Attrs) ->
+    maps:fold(fun(K, V, Attrs2) ->
+                      Attrs2#{ compile_keyword(K) => compile_term(V) }
+              end, #{}, Attrs). 
+
 compile_condition(Prop) when is_binary(Prop) ->
-    #{ is_set => Prop }.
+    #{ is_set => Prop };
+
+compile_condition(#{}) -> true.
+
 
 compile_model(Map) -> compile_object(Map).
 

@@ -7,7 +7,6 @@
     (define (load-effects effs registry)
         (case (length effs)
           ('0 
-           (console-log "all effects loaded")
            registry)
           (else 
             (let ((eff (car effs)))
@@ -32,8 +31,7 @@
             (let ((eff-send (apply (eval eff-class) (list eff-name eff-settings effect-recv)))
                   (eff-state (make-eq-hashtable)))
               (hashtable-set! eff-state 'send (car (cdr eff-send)))
-              (hashtable-set! registry eff-name eff-state)
-              (console-log "loaded effect" eff-name))))  
+              (hashtable-set! registry eff-name eff-state))))  
     
     (define (effect eff-name) (map-get eff-name effects-registry)) 
 
@@ -42,14 +40,12 @@
         (s encs enc m)))
 
     (define (effect-recv data)
-      (console-log "received" data))
+      (console-log "received2" data))
     
 
     (define (load-encoders encs registry)
         (case (length encs)
-          ('0
-           (console-log "all encoders loaded")
-           registry)
+          ('0 registry)
           (else
             (let ((enc (car encs)))
               (case (length enc)
@@ -68,7 +64,6 @@
         spec)
 
     (define (apply-cmd spec m)
-      (console-log "applying cmd" spec)
       (case (length spec)
         ('2 
          (let* ((eff-name (car spec))
@@ -85,11 +80,8 @@
         (else (console-error "invalid cmd" spec))))
 
     (define (apply-cmds cmds m)
-      (console-log "applying cmds" cmds)
       (case (length cmds)
-        ('0 
-         (console-log "all cmds done")
-         m)
+        ('0 m)
         (else 
           (apply-cmd (car cmds) m)
           (apply-cmds (cdr cmds) m))))
@@ -117,4 +109,4 @@
     
     (hashtable-set! state 'model (apply-update (init) '() '())) 
 
-    (apply (eval 'console-log) (list "it works"))))
+))
