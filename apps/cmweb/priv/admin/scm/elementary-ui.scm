@@ -6,7 +6,6 @@
     (define maquette (js-eval "maquette"))
     (define projector (js-invoke maquette "createProjector" ))
     (define h* (js-ref maquette "h"))
-    (define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))
 
     (define (flatten l)
       (cond

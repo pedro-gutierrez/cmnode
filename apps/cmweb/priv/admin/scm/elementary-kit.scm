@@ -37,3 +37,5 @@
                (else (list 'ok v))))) 
           (else '(error invalid-spec))))
        ('#f '(error invalid-spec))))))
+    
+(define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))

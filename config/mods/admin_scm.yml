@@ -32,6 +32,30 @@ spec:
                 - effect: ui 
                   encoder: login_view
             update:
+              ws_connected:
+                model:
+                  message:
+                    text:
+                      literal: "Server reachable"
+                cmds:
+                  - effect: ui
+                    encoder: login_view
+              ws_disconnected:
+                model:
+                  message:
+                    text:
+                      literal: "Disconnected from server" 
+                cmds:
+                  - effect: ui
+                    encoder: login_view
+              ws_error:
+                model:
+                  message:
+                    text:
+                      literal: "Server connection error"
+                cmds:
+                  - effect: ui
+                    encoder: login_view
               email_changed:
                 model:
                   email:
@@ -195,6 +219,24 @@ spec:
 
             
             decoders:
+              ws_connected:
+                object:
+                  effect:
+                    keyword: ws
+                  event:
+                    keyword: connected
+              ws_disconnected:
+                object:
+                  effect:
+                    keyword: ws
+                  event:
+                    keyword: disconnected
+              ws_error:
+                object:
+                  effect:
+                    keyword: ws
+                  event:
+                    keyword: error
               show_signup:
                 object:
                   effect:

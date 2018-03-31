@@ -82,8 +82,8 @@
               (else decoded))))))
 
     (define (try-decoders decs data)
-      (case (length decs)
-        ('0 '(error no-decoder))
+      (case (or (eq? 'undef decs) (= 0 (length decs)))
+        ('#t '(error no-decoder))
         (else
           (let* ((dec (car decs))
                  (decoded (try-decoder (car dec) (car (cdr dec)) data '())))
