@@ -37,7 +37,6 @@
                (k (car spec))
                (value-spec (car (cdr spec)))
                (value (extract-value value-spec in)))
-          (console-log "extracted value" value)
           (case (car value)
             ('ok (extract-values (cdr enc) in (set k (car (cdr value)) out)))
             (else value))))))
