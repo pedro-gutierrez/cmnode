@@ -17,14 +17,20 @@ context(SessionId) ->
 init(Modules) ->
     init(Modules, { #{}, []}).
 
-init([], Init) -> Init;
+init([], {Model, Cmds}) -> {ok, Model, Cmds};
 init([#{ init := Spec }|Rem]=Modules, Init) ->
-    Init2 = update(Modules, Spec, #{}, Init),
-    init(Rem, Init2).
+    case update(Modules, Spec, #{}, Init) of 
+        {ok, Model, Cmds} ->
+            init(Rem, {Model, Cmds});
+        Other -> Other
+    end;
+
+init([_|Rem], Init) ->
+    init(Rem, Init).
 
 update_spec([], _, Msg) -> 
-    Error = #{ msg => Msg,
-               status => undefined },
+    Error = #{  update => not_implemented,
+                msg => Msg },
     {error, Error};
 
 update_spec([Mod|Rem], #{ update := Update}, Msg) ->
@@ -53,7 +59,8 @@ decode([#{ decoders := Decoders }=Mod|Rem], Data) ->
 decode([_|Rem], Data) -> decode(Rem, Data).
 
 match([], _) -> {error, no_match};
-match([#{ msg := Msg, spec := Spec}|Rem], Data) ->
+match([#{ msg := Msg, spec := Spec}=Dec|Rem], Data) ->
+    cmkit:log({cmcore, match, Dec, Data}),
     case cmdecode:decode(Spec, Data) of
         no_match -> 
             match(Rem, Data);
@@ -64,29 +71,45 @@ match([#{ msg := Msg, spec := Spec}|Rem], Data) ->
 match([_|Rem], Data) -> match(Rem, Data).
 
 update(Modules, #{ model := M, cmds := C }, In, {Model, Cmds}) ->
-    { update_model(M, In, Model), Cmds ++ resolve_cmds(Modules, C) };
+    case update_model(M, In, Model) of 
+        {ok, M2} -> 
+            case resolve_cmds(Modules, C) of 
+                {ok, C2} ->
+                    {ok, M2, Cmds ++ C2};
+                {error, E} -> 
+                    {error, E}
+            end;
+        {error, E} -> {error, E}
+    end;
         
-update(_, #{ model := M }, In, {Model, Cmds}) ->
-    { update_model(M, In, Model), Cmds };    
-
-update(Modules, #{ cmds := C }, _, {Model, Cmds}) ->
-    { Model, Cmds ++ resolve_cmds(Modules, C) };
-
-update(_ ,_, _, Out) -> Out.
+update(_ ,_, _, _) -> {error, unknown_update_spec}.
 
 resolve_cmds(Modules, Cmds) ->
-    lists:map(fun(Cmd) ->
-                      resolve_cmd(Modules, Cmd)
-              end, Cmds).
+    resolve_cmds(Modules, Cmds, []).
 
-resolve_cmd([], Cmd) -> Cmd;
+resolve_cmds(_, [], Out) -> {ok, lists:reverse(Out)};
+resolve_cmds(Modules, [Cmd|Rem], Out) ->
+    case resolve_cmd(Modules, Cmd) of 
+        {ok, Cmd2} ->
+            resolve_cmds(Modules, Rem, [Cmd2|Out]);
+        {error, E} -> {error, E}
+    end.
+
+resolve_cmd([], Cmd) -> 
+    {error, #{ status => no_such_encoder,
+               cmd => Cmd}
+    };
+
 resolve_cmd([#{ encoders := Encoders }|Rem], #{ encoder := Enc }=Cmd) ->
     case maps:get(Enc, Encoders, undef) of
         undef ->
             resolve_cmd(Rem, Cmd);
         Encoder ->
-            Cmd#{ encoder => Encoder }
+            {ok, Cmd#{ encoder => Encoder }}
     end;
+
+resolve_cmd(_, #{ effect := _ }=Cmd) ->
+    {ok, Cmd };
 
 resolve_cmd([_|Rem], Cmd) -> resolve_cmd(Rem, Cmd).
 
@@ -94,28 +117,46 @@ update_model(Spec, In, Out) ->
     resolve(Spec, In, Out).
 
 resolve(#{ type := object, spec := Spec}, In, Out) ->
-    maps:fold( fun(K, V, Out2) ->
-                       Out2#{ K => resolve_value(V, In) }
-               end, Out, Spec);
+    resolve_object_values(maps:keys(Spec), Spec, In, Out); 
 
 resolve(#{ type := data, from := Key}, In, _) when is_atom(Key) ->
-    maps:get(Key, In).
+    resolve_value_at(Key, In);
+
+resolve(Enc, _, _) when is_atom(Enc) ->
+    {error, #{ encoder => Enc,
+               status => not_implemented }}.
+
+resolve_object_values([], _, _, Out) -> {ok, Out};
+resolve_object_values([K|Rem], Spec, In, Out) ->
+    case resolve_value(maps:get(K, Spec), In) of 
+        {ok, V} ->
+            resolve_object_values(Rem, Spec, In, Out#{ K => V });
+        Other -> Other
+    end.
+
+resolve_value_at(Key, In) ->
+    case cmkit:value_at(Key, In) of
+       undef ->
+           {error, #{ status => missing_key,
+                      key => Key,
+                      data => In }};
+       V ->
+           {ok, V}
+   end.
 
 resolve_value(#{ from := Key}, In) when is_atom(Key) -> 
-    maps:get(Key, In, undefined);
+    resolve_value_at(Key, In);
 
 resolve_value(#{ type := text,
                  value := Value }, _) ->
-    cmkit:to_bin(Value);
+    {ok, cmkit:to_bin(Value) };
 
 resolve_value(#{ type := keyword,
                  value := Value }, _) when is_atom(Value) ->
-    Value;
+    {ok, Value};
 
 resolve_value(#{ spec := Spec}, _) ->
-    Spec.
-
-
+    {ok, Spec}.
 
 cmds([], _, _) -> ok;
 cmds([#{ effect := Effect, 
@@ -130,9 +171,4 @@ cmds([#{ effect := Effect,
 
 
 encode(Spec, Model) ->
-    {ok, resolve(Spec, Model, #{})}.
-
-
-
-
-
+    resolve(Spec, Model, #{}).

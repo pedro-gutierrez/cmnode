@@ -24,13 +24,18 @@ initializing(cast, {init, _Data},  #{app := App, id := Id}=Session) ->
     cmkit:log({cmcore, init, App, Id}),
     case cmconfig:app(App) of 
         {ok, #{ modules := Modules }} ->
-            { Model, Cmds } = cmcore_util:init(Modules),
-            case cmsession:attach(Id, model, Model) of
-                ok ->
-                    cmcore_util:cmds(Cmds, Model, Session),
-                    {next_state, ready, Session#{ model => Model, 
-                                                  modules => Modules }};
-                {error, E} ->
+            case cmcore_util:init(Modules) of 
+                {ok, Model, Cmds} -> 
+                    case cmsession:attach(Id, model, Model) of
+                        ok ->
+                            cmcore_util:cmds(Cmds, Model, Session),
+                            {next_state, ready, Session#{ model => Model, 
+                                                          modules => Modules }};
+                        {error, E} ->
+                            Error = server_error(App, Session, init, E),
+                            {stop, Error}
+                    end;
+                {error, E} -> 
                     Error = server_error(App, Session, init, E),
                     {stop, Error}
             end;
@@ -41,16 +46,21 @@ initializing(cast, {init, _Data},  #{app := App, id := Id}=Session) ->
 
 
 ready(cast, {update, Data}, #{app := App, id := Id, model := Model, modules := Modules}=Session) ->
-    cmkit:log({cmcore, update, App, Id}),
+    cmkit:log({cmcore, update, App, Id, Data}),
     case cmcore_util:decode(Modules, Data) of 
         {ok, Module, Msg, Decoded} ->
             case cmcore_util:update_spec(Modules, Module, Msg) of 
                 {ok, Spec} ->
-                    { Model2, Cmds } = cmcore_util:update(Modules, Spec, Decoded, {Model, []}),
-                    case cmsession:attach(Id, model, Model2) of
-                        ok ->
-                            cmcore_util:cmds(Cmds, Model2, Session),
-                            {keep_state, Session#{ model => Model}};
+                    case cmcore_util:update(Modules, Spec, Decoded, {Model, []}) of
+                        {ok, Model2, Cmds } ->
+                            case cmsession:attach(Id, model, Model2) of
+                                ok ->
+                                    cmcore_util:cmds(Cmds, Model2, Session),
+                                    {keep_state, Session#{ model => Model}};
+                                {error, E} ->
+                                    Error = server_error(App, Session, update, E),
+                                    {stop, Error}
+                            end;
                         {error, E} ->
                             Error = server_error(App, Session, update, E),
                             {stop, Error}

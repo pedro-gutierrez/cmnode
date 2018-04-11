@@ -1,0 +1,31 @@
+version: 1.0
+type: module
+category: server
+name: account 
+spec:
+  decoders:
+    login:
+      object:
+        username:
+          text: any
+        password:
+          text: any
+  encoders:
+    encoder1:
+      object:
+        prop1:
+          from: user
+        prop2:
+          from:
+            from: status
+            key: key
+  update:
+    login:
+      model:
+        email:
+          from: username
+        password:
+          from: password
+      cmds:
+        - effect: db_get
+          encoder: user_lookup

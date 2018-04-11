@@ -1,5 +1,5 @@
 -module(cmsession).
--export([new/1, attach/3, retrieve/2, tell/2]).
+-export([new/1, attach/3, retrieve/2, conns/1, tell/2]).
 
 new(App) ->
     Conn = self(),
@@ -9,6 +9,7 @@ new(App) ->
                {{connections, Id}, [Conn]},
                {{connection, Conn}, #{ pid => Conn, session => Id }}],
     ok = cmdb:put_new(sessions, Entries),
+    cmkit:log({cmsession, new, App, Id, Conn}),
     {ok, Session}.
 
 attach(Id, Type, Val) ->

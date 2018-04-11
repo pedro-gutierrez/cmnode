@@ -50,5 +50,5 @@ node_for(Db) ->
 in({ok, N}, Db, Op) ->
     gen_statem:call({Db, N}, Op);
 
-in(_, _, _) ->
-    {error, unavailable}.
+in({error, E}, _, _) ->
+    {error, E}.

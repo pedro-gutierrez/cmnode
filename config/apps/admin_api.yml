@@ -1,0 +1,7 @@
+version: 1.0
+type: app
+category: api
+name: admin_api
+spec: 
+  modules:
+    - account

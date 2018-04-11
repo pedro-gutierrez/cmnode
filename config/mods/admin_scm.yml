@@ -84,6 +84,10 @@ spec:
                 cmds:
                   - effect: ws
                     encoder: signup 
+              recover_password:
+                cmds:
+                  - effect: ws
+                    encoder: recover_password 
               show_recover_password:
                 cmds:
                   - effect: ui
@@ -115,6 +119,10 @@ spec:
                     from: first
                   last: 
                     from: last
+              recover_password:
+                object:
+                  username: 
+                    from: email 
               user_message:
                 view:
                   tag: div
@@ -328,6 +336,51 @@ spec:
                             keyword: show_login
                           title:
                             literal: "Login"
+              recover_password_view:
+                view:
+                  tag: div 
+                  attrs:
+                    class: container
+                  children:
+                    - tag: h1
+                      attrs:
+                        key: title
+                      children:
+                        - text: "Recover password"
+                    - view: user_message
+                      when: message
+                    - view: input
+                      params:
+                        object:
+                          id: 
+                            literal: "email"
+                          title:
+                            literal: "Email"
+                    - view: button
+                      params:
+                        object:
+                          click:
+                            keyword: recover_password
+                          title:
+                            literal: "Recover password"
+                    - view: link
+                      params:
+                        object:
+                          id: 
+                            literal: signin
+                          click:
+                            keyword: show_login
+                          title:
+                            literal: "Login"
+                    - view: link
+                      params:
+                        object:
+                          id: 
+                            literal: signup
+                          click:
+                            keyword: show_signup
+                          title:
+                            literal: "Create an account"
             
             decoders:
               ws_connected:
@@ -423,6 +476,12 @@ spec:
                     keyword: ui
                   event:
                     keyword: send_signup
+              recover_password:
+                object:     
+                  effect:
+                    keyword: ui
+                  event:
+                    keyword: recover_password
             effects:
               ui:
                 type: elementary-ui

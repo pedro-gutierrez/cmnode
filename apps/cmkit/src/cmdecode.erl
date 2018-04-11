@@ -15,7 +15,7 @@ decode_object(Spec, Data, Out) ->
 decode_object([], _, _, Out) -> {ok, Out};
 decode_object([Key|Rem], Spec, Data, Out) ->
     KeySpec = maps:get(Key, Spec),
-    Value = maps:get(Key, Data, undef),
+    Value = cmkit:value_at(Key, Data),
     case decode_term(KeySpec, Value) of 
         {ok, Decoded} ->
             decode_object(Rem, Spec, Data, Out#{ Key => Decoded});
