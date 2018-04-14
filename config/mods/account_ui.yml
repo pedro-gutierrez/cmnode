@@ -1,0 +1,469 @@
+version: 1.0
+type: module
+category: client
+name: account_ui 
+spec:
+  init:
+    model:
+      state: 
+        keyword: init
+    cmds:
+      - effect: ui 
+        encoder: login_view
+  update:
+    ws_connected:
+      model:
+        message:
+          text:
+            literal: "Server reachable"
+      cmds:
+        - effect: ui
+          encoder: login_view
+    ws_disconnected:
+      model:
+        message:
+          text:
+            literal: "Disconnected from server" 
+      cmds:
+        - effect: ui
+          encoder: login_view
+    ws_error:
+      model:
+        message:
+          text:
+            literal: "Server connection error"
+      cmds:
+        - effect: ui
+          encoder: login_view
+    email_changed:
+      model:
+        email:
+          from: value
+    password_changed:
+      model:
+        password:
+          from: value
+    first_changed:
+      model:
+        first:
+          from: value
+    last_changed:
+      model:
+        last:
+          from: value
+    password_confirm_changed:
+      model:
+        password_confirm:
+          from: value
+    send_login:
+      cmds:
+        - effect: ws
+          encoder: login
+    send_signup:
+      cmds:
+        - effect: ws
+          encoder: signup 
+    recover_password:
+      cmds:
+        - effect: ws
+          encoder: recover_password 
+    show_recover_password:
+      cmds:
+        - effect: ui
+          encoder: recover_password_view
+    show_signup:
+      cmds:
+        - effect: ui
+          encoder: signup_view
+    show_login:
+      cmds:
+        - effect: ui
+          encoder: login_view
+  encoders:
+    login:
+      object:
+        username: 
+          from: email 
+        password:
+          from: password
+    signup:
+      object:
+        username:
+          from: email 
+        password:
+          from: password
+        password_confirm:
+          from: password_confirm
+        first:
+          from: first
+        last: 
+          from: last
+    recover_password:
+      object:
+        username: 
+          from: email 
+    user_message:
+      view:
+        tag: div
+        attrs: 
+          key: user-message
+          class: warning
+        children:
+          - text: 
+              from: message 
+    input:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: id
+          class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
+        children:
+          - tag: label
+            attrs:
+              class: "form-label"
+              for: 
+                from: id
+            children:
+              - text: 
+                  from: title
+              - tag: input
+                attrs:
+                  class: "form-input"
+                  type: "text"
+                  id: 
+                    from: id
+                  placeholder: 
+                    from: title
+                  onchange:
+                    from: id
+    password:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: id
+          class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
+        children:
+          - tag: label
+            attrs:
+              class: "form-label"
+              for: 
+                from: id
+            children:
+              - text: 
+                  from: title
+              - tag: input
+                attrs:
+                  class: "form-input"
+                  type: "password"
+                  id: 
+                    from: id
+                  placeholder: 
+                    from: title
+                  onchange:
+                    from: id
+    button:
+      view:
+        tag: div
+        children:
+          - tag: button
+            attrs:
+              class: "btn btn-primary"
+              onclick:
+                from: click
+            children:
+              - text:
+                  from: title
+    link:
+      view:
+        tag: div
+        attrs:
+          onclick:
+            from: click
+          key: 
+            from: id
+        children:
+          - tag: a
+            attrs:
+              href: "#"
+            children:
+              - text: 
+                  from: title
+    login_view:
+      view:
+        tag: div 
+        attrs:
+          class: container
+        children:
+          - tag: h1
+            attrs:
+              key: title
+            children:
+              - text: "Welcome"
+          - view: user_message
+            when: message
+          - view: input
+            params:
+              object:
+                id: 
+                  literal: "email"
+                title:
+                  literal: "Email"
+          - view: password 
+            params:
+              object:
+                id: 
+                  literal: "password"
+                title:
+                  literal: "Password"
+          - view: button
+            params:
+              object:
+                click:
+                  keyword: send_login
+                title:
+                  literal: "Login"
+          - view: link
+            params:
+              object:
+                id: 
+                  literal: recover_password 
+                click:
+                  keyword: show_recover_password
+                title:
+                  literal: "Recover password"
+          - view: link
+            params:
+              object:
+                id: 
+                  literal: signup
+                click:
+                  keyword: show_signup
+                title:
+                  literal: "Create an account"
+    signup_view:
+      view:
+        tag: div
+        attrs:
+         class: container
+        children:
+          - tag: h1
+            attrs:
+              key: title
+            children:
+              - text: "Create an account"
+          - view: user_message
+            when: message
+          - view: input
+            params:
+              object:
+                id: 
+                  literal: "first"
+                title:
+                  literal: "First name"
+          - view: input
+            params:
+              object:
+                id: 
+                  literal: "last"
+                title:
+                  literal: "Last name"
+          - view: input
+            params:
+              object:
+                id: 
+                  literal: "email"
+                title:
+                  literal: "Email"
+          - view: password 
+            params:
+              object:
+                id: 
+                  literal: "password"
+                title:
+                  literal: "Password"
+          - view: password 
+            params:
+              object:
+                id:
+                  literal: "password_confirm"
+                title:
+                  literal: "Password (again)"
+          - view: button
+            params:
+              object:
+                click:
+                  keyword: send_signup
+                title:
+                  literal: "Signup"
+          - view: link
+            params:
+              object:
+                id: 
+                  literal: recover_password 
+                click:
+                  keyword: show_recover_password
+                title:
+                  literal: "Recover password"
+          - view: link
+            params:
+              object:
+                id: 
+                  literal: signin
+                click:
+                  keyword: show_login
+                title:
+                  literal: "Login"
+    recover_password_view:
+      view:
+        tag: div 
+        attrs:
+          class: container
+        children:
+          - tag: h1
+            attrs:
+              key: title
+            children:
+              - text: "Recover password"
+          - view: user_message
+            when: message
+          - view: input
+            params:
+              object:
+                id: 
+                  literal: "email"
+                title:
+                  literal: "Email"
+          - view: button
+            params:
+              object:
+                click:
+                  keyword: recover_password
+                title:
+                  literal: "Recover password"
+          - view: link
+            params:
+              object:
+                id: 
+                  literal: signin
+                click:
+                  keyword: show_login
+                title:
+                  literal: "Login"
+          - view: link
+            params:
+              object:
+                id: 
+                  literal: signup
+                click:
+                  keyword: show_signup
+                title:
+                  literal: "Create an account"
+  decoders:
+    ws_connected:
+      object:
+        effect:
+          keyword: ws
+        event:
+          keyword: connected
+    ws_disconnected:
+      object:
+        effect:
+          keyword: ws
+        event:
+          keyword: disconnected
+    ws_error:
+      object:
+        effect:
+          keyword: ws
+        event:
+          keyword: error
+    show_login:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: show_login
+    show_signup:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: show_signup
+    show_recover_password:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: show_recover_password
+    email_changed:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: email
+        value:
+          text: any
+    password_changed:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: password
+        value:
+          text: any
+    first_changed:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: first 
+        value:
+          text: any
+    last_changed:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: last
+        value:
+          text: any
+    password_confirm_changed:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: password_confirm 
+        value:
+          text: any
+    send_login:
+      object:     
+        effect:
+          keyword: ui
+        event:
+          keyword: send_login
+    send_signup:
+      object:     
+        effect:
+          keyword: ui
+        event:
+          keyword: send_signup
+    recover_password:
+      object:     
+        effect:
+          keyword: ui
+        event:
+          keyword: recover_password
+  effects:
+    ui:
+      type: elementary-ui
+    ws:
+      type: elementary-ws
+      settings:
+        url: ws://localhost:8080/ws 

@@ -59,11 +59,17 @@ yamld(Bin) when is_binary(Bin) ->
     yamld(binary_to_list(Bin));    
 
 yamld(Str) when is_list(Str) ->
-    case yamerl:decode(Str, [{map_node_format, map}, str_node_as_binary]) of 
-        [_|_]=Docs ->
-            {ok, Docs};
-        Other ->
-            {error, Other}
+    try 
+        case yamerl:decode(Str, [{map_node_format, map}, str_node_as_binary]) of 
+            [_|_]=Docs ->
+                {ok, Docs};
+            Other ->
+                {error, Other}
+        end
+    catch
+        _:Error ->
+            cmkit:log({yaml, invalid, Error, Str}),
+            {error, {invalid_yaml, Str}}
     end.
 
 jsond(Bin) when is_binary(Bin) ->
@@ -282,7 +288,10 @@ to_bin({_, _, _, _}=Ip) ->
     to_bin(inet:ntoa(Ip)).
 
 to_atom(Bin) when is_binary(Bin) ->
-    binary_to_atom(Bin, latin1).
+    binary_to_atom(Bin, latin1);
+
+to_atom(A) when is_atom(A) ->
+    A.
 
 sname() -> 
     [Sname, _] = binary:split(to_bin(node()), <<"@">>),

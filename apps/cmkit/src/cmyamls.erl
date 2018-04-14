@@ -1,5 +1,5 @@
 -module(cmyamls).
--export([all/0, of_type/1, of_cat/1, of_type_cat/2]).
+-export([all/0, of_type/1, of_cat/1, of_type_cat/2, of_type_name/2]).
 
 filenames() ->
     cmkit:files(cmkit:etc(), ".yml").
@@ -15,6 +15,13 @@ all() ->
             Other -> Other
         end
     end, filenames()).
+
+of_type_name(Type, Name) ->
+    TypeBin = cmkit:to_bin(Type),
+    NameBin = cmkit:to_bin(Name),
+    lists:filter(fun({ok, #{ <<"type">> := Type2, <<"name">> := Name2}}) -> 
+                         (Type2 =:= TypeBin) and (Name2 =:= NameBin) ;
+                    (_) -> false end, all()).
 
 of_type(Type) ->
     TypeBin = cmkit:to_bin(Type),

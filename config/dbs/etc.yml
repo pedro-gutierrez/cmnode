@@ -4,5 +4,4 @@ name: sessions
 spec:
   storage: memory
   hosts: 
-  #- Pedros-MacBook-Pro
-    - pc67 
+    - Pedros-MacBook-Pro

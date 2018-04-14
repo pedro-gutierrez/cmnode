@@ -83,6 +83,9 @@ compile_bucket(#{ <<"name">> := Name,
        storage =>  cmkit:to_atom(Storage),
        hosts => Hosts }.
 
+compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
+    Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
+    Out;
 
 compile_spec(Spec) ->
     
@@ -99,6 +102,32 @@ compile_spec(Spec) ->
                                    end
                            end, #{}, Keys),
     #{ spec => Contents }.
+
+compile_modules([], Spec) -> Spec;
+compile_modules([{ok, ModSpec}|Rest], Spec) ->
+    compile_modules(Rest, merge_spec([decoders, 
+                                      encoders, 
+                                      init, 
+                                      update, 
+                                      views, 
+                                      effects
+                                     ], ModSpec, Spec));
+
+compile_modules([_|Rest], Spec) -> 
+    compile_modules(Rest, Spec).
+
+
+merge_spec([], _, Spec) -> Spec;
+merge_spec([decoders|Rem], Spec, Spec0) ->
+    Decs0 = maps:get(decoders, Spec0, []),
+    Decs = maps:get(decoders, Spec, []),
+    merge_spec(Rem, Spec, maps:put(decoders, Decs ++ Decs0, Spec0));
+
+merge_spec([Key|Rem], Spec, Spec0) ->
+    merge_spec(Rem, Spec, 
+               maps:put(Key, maps:merge(maps:get(Key, Spec0, #{}),  maps:get(Key, Spec, #{})), Spec0)).
+
+
 
 compile_term(#{ <<"decoders">> := Decs }) ->
     compile_decoders(Decs);

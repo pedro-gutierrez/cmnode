@@ -2,7 +2,8 @@
 -export([
          buckets/0, 
          templates/0, 
-         modules/0, 
+         modules/0,
+         module/1,
          ports/0,
          apps/0,
          app/1,
@@ -21,6 +22,13 @@ templates() ->
 modules() ->
     [ cmconfig_util:compile_module(Spec) 
       || {ok, Spec } <- cmyamls:of_type(module) ].
+
+module(Name) ->
+    case cmyamls:of_type_name(module, Name) of 
+        [{ok, Spec}] -> {ok, cmconfig_util:compile_module(Spec)};
+        [] -> {error, not_found};
+        Other -> {error, Other}
+    end.
 
 apps() ->
     Mods = modules(),
