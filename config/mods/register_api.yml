@@ -26,6 +26,18 @@ spec:
           keyword: register
         error:
           keyword: not_found
+    uuid:
+      object:
+        uuid:
+          text: any
+    registered:
+      object:
+        context:
+          keyword: register
+        bucket: 
+          keyword: users
+        status:
+          keyword: ok
   encoders:
     register_user_lookup:
       object:
@@ -40,7 +52,54 @@ spec:
     ok:
       object:
         status:
-          keyword: ok 
+          keyword: ok
+    register_data:
+      object:
+        context:
+          keyword: register
+        bucket:
+          keyword: users
+        items:
+          list:
+            - object: 
+                type: 
+                  keyword: email
+                id: 
+                  from: email
+                value:
+                  from: uuid
+            - object:
+                type: 
+                  keyword: password
+                id: 
+                  from: uuid
+                value:
+                  from: password
+            - object:
+                type:
+                  keyword: user
+                id:
+                  from: uuid
+                value:
+                  object:
+                    first: 
+                      from: first
+                    last: 
+                      from: last
+                    email:
+                      from: email
+                    id:
+                      from: uuid
+    user_data:
+      object:
+        id: 
+          from: uuid
+        first:
+          from: first
+        last: 
+          from: last
+        email:
+          from: email
   update:
     register:
       model:
@@ -57,5 +116,15 @@ spec:
           encoder: register_user_lookup
     not_found:
       cmds:
+        - effect: uuid
+    uuid:
+      model:
+        uuid:
+          from: uuid
+      cmds:
+        - effect: db_put_all
+          encoder: register_data
+    registered:
+      cmds:
         - effect: notify
-          encoder: ok
+          encoder: user_data

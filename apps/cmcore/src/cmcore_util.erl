@@ -154,6 +154,10 @@ resolve_value(#{ type := keyword,
                  value := Value }, _) when is_atom(Value) ->
     {ok, Value};
 
+resolve_value(#{ type := object,
+                 spec := Spec }, In) ->
+    resolve_object_values(maps:keys(Spec), Spec, In, #{});
+
 resolve_value(#{ type := list,
                  value := List }, In) when is_list(List)->
     {ok, lists:map(fun(V) ->
@@ -173,6 +177,10 @@ cmds([#{ effect := Effect,
         {ok, Data} ->
             cmeffect:apply(Effect, Data, Session)
     end,
+    cmds(Rem, Model, Session);
+
+cmds([#{ effect := Effect}|Rem], Model, Session) ->
+    cmeffect:apply(Effect, nothing, Session),
     cmds(Rem, Model, Session).
 
 encode(Spec, Model) ->

@@ -58,7 +58,7 @@ ready(cast, {update, Data}, #{ app := App, id := Id, modules := Modules, model :
                             case cmsession:attach(Id, model, Model2) of
                                 ok ->
                                     cmcore_util:cmds(Cmds, Model2, Session),
-                                    {keep_state, Session#{ model => Model}};
+                                    {keep_state, Session#{ model => Model2 }};
                                 {error, E} ->
                                     Error = server_error(App, Session, update, E),
                                     {stop, Error}
