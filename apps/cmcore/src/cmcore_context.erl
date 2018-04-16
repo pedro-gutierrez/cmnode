@@ -45,12 +45,14 @@ initializing(cast, {init, _Data},  #{app := App, id := Id}=Session) ->
     end.
 
 
-ready(cast, {update, Data}, #{app := App, id := Id, model := Model, modules := Modules}=Session) ->
+ready(cast, {update, Data}, #{ app := App, id := Id, modules := Modules, model := Model }=Session) ->
     cmkit:log({cmcore, update, App, Id, Data}),
     case cmcore_util:decode(Modules, Data) of 
-        {ok, Module, Msg, Decoded} ->
+        {ok, #{ name := ModName }=Module, Msg, Decoded} ->
+            cmkit:log({cmcore, match, ModName, Msg, Decoded}),
             case cmcore_util:update_spec(Modules, Module, Msg) of 
                 {ok, Spec} ->
+                    cmkit:log({cmcore, spec, Spec}),
                     case cmcore_util:update(Modules, Spec, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
                             case cmsession:attach(Id, model, Model2) of
@@ -69,12 +71,27 @@ ready(cast, {update, Data}, #{app := App, id := Id, model := Model, modules := M
                     Error = server_error(App, Session, update, E),
                     {stop, Error}
             end;
-        {error, E} ->
-            server_error(App, Session, update, E),
-            {keep_state, Session}
+        {error, #{ status := no_match }=E} ->
+            % TODO: let the app designer customize the handling of
+            % unmatched messages. But this needs to be done taking care 
+            % of potential infinite loops. For now, we send back an 
+            % arbitrary 'invalid' message to the client
+            client_error(App, Session, invalid, E),
+            {keep_state, Session};
+
+        {error, E} -> 
+            Error = server_error(App, Session, update, E),
+            {stop, Error}
+
     end.
 
-server_error(App, Session, Phase, Reason) ->
+client_error(App, #{ id := Id }= Session, Type, Reason) ->
+    cmkit:log({cmcore, client_error, App, Id, Reason}),
+    Data = #{ error => Type },
+    cmeffect:apply(notify, Data, Session),
+    Data.
+
+server_error(App, #{ id := Id} = Session, Phase, Reason) ->
     Data = #{ status => error,
               data => #{
                 app => App,
@@ -82,10 +99,9 @@ server_error(App, Session, Phase, Reason) ->
                 phase => Phase
                }
             },
-    cmkit:log({cmcore, Data}),
+    cmkit:log({cmcore, server_error, App, Id, Reason}),
     cmeffect:apply(notify, Data, Session),
     Data.
-
 
 terminate(Reason, _, #{ app := App, id := Id}) ->
     cmkit:log({cmcore, App, Id, node(), terminated, Reason}),

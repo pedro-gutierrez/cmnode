@@ -24,4 +24,5 @@ conns(Id) ->
     
 tell(Id, Data) ->
     {ok, Conns} = conns(Id),
+    cmkit:log({cmsession, tell, Conns, Data}),
     [ C ! Data || C <- Conns ].

@@ -59,8 +59,7 @@ decode([#{ decoders := Decoders }=Mod|Rem], Data) ->
 decode([_|Rem], Data) -> decode(Rem, Data).
 
 match([], _) -> {error, no_match};
-match([#{ msg := Msg, spec := Spec}=Dec|Rem], Data) ->
-    cmkit:log({cmcore, match, Dec, Data}),
+match([#{ msg := Msg, spec := Spec}|Rem], Data) ->
     case cmdecode:decode(Spec, Data) of
         no_match -> 
             match(Rem, Data);
@@ -155,6 +154,13 @@ resolve_value(#{ type := keyword,
                  value := Value }, _) when is_atom(Value) ->
     {ok, Value};
 
+resolve_value(#{ type := list,
+                 value := List }, In) when is_list(List)->
+    {ok, lists:map(fun(V) ->
+                           {ok, V2} = resolve_value(V, In),
+                           V2 
+                   end, List)};
+
 resolve_value(#{ spec := Spec}, _) ->
     {ok, Spec}.
 
@@ -168,7 +174,6 @@ cmds([#{ effect := Effect,
             cmeffect:apply(Effect, Data, Session)
     end,
     cmds(Rem, Model, Session).
-
 
 encode(Spec, Model) ->
     resolve(Spec, Model, #{}).

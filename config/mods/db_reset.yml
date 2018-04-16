@@ -1,0 +1,37 @@
+version: 1.0
+type: module
+category: server
+name: db_reset 
+spec:
+  decoders:
+    reset:
+      object:
+        action:
+          text: 
+            literal: "reset"
+        token:
+          text:
+            literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
+    success:
+      object:
+        all_deleted:
+          keyword: true 
+  encoders:
+    buckets:
+      object:
+        buckets:
+          list: 
+            - keyword: users
+    success:
+      object:
+        status:
+          keyword: ok 
+  update:
+    reset:
+      cmds:
+        - effect: db_reset
+          encoder: buckets
+    success:
+      cmds:
+        - effect: notify
+          encoder: success

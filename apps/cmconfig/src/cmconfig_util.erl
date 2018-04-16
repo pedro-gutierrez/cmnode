@@ -187,6 +187,11 @@ compile_term(#{ <<"number">> := _ }) ->
 compile_term(#{ <<"literal">> := Text }) ->
     #{ value => Text };
 
+compile_term(#{ <<"same_as">> := Prop }) ->
+    #{ constraint => equal, 
+       relates_to => cmkit:to_atom(Prop) 
+     };
+
 compile_term(#{ <<"text">> := <<"any">> }) ->
     #{ type => text };
 
@@ -260,13 +265,13 @@ compile_init(#{ <<"model">> := Model,
     #{ model => compile_model(Model),
        cmds => compile_cmds(Cmds) };
 
-compile_init(#{ <<"model">> := Model }) ->
-    #{ model =>  compile_model(Model) };
+compile_init(#{ <<"model">> := _}=Spec) ->
+    compile_init(Spec#{ <<"cmds">> => [] });
 
-compile_init(#{ <<"cmds">> := Cmds }) ->
-    #{ cmds =>  compile_cmds(Cmds) };
+compile_init(#{ <<"cmds">> := _ }=Spec) ->
+    compile_init(Spec#{ <<"model">> => #{} });
 
-compile_init(_) -> #{}.
+compile_init(Spec) -> compile_init(Spec#{ <<"model">> => #{}, <<"cmds">> => []}).
 
 compile_views(Views) ->
     compile_views(maps:keys(Views), Views, #{}).

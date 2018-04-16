@@ -1,0 +1,52 @@
+version: 1.0
+type: module
+category: server
+name: login_api
+spec:
+  decoders:
+    login:
+      object:
+        action:
+          text: 
+            literal: "login"
+        username:
+          text: any
+        password:
+          text: any
+    not_found:
+      object:
+        context:
+          keyword: login
+        error:
+          keyword: not_found
+  encoders:
+    login_user_lookup:
+      object:
+        context:
+          keyword: login
+        bucket:
+          keyword: users
+        type:
+          keyword: email
+        id: 
+          from: email
+    not_found:
+      object:
+        context:
+          keyword: login
+        error:
+          keyword: not_found
+  update:
+    login:
+      model:
+        email:
+          from: username
+        password:
+          from: password
+      cmds:
+        - effect: db_get
+          encoder: login_user_lookup
+    not_found:
+      cmds:
+        - effect: notify
+          encoder: not_found

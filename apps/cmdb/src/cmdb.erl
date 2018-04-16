@@ -8,7 +8,8 @@
          put_new/3,
          get/2,
          backup/1,
-         restore/2
+         restore/2,
+         reset/1
         ]).
 
 ping(Host) ->
@@ -43,6 +44,9 @@ backup(Db) ->
 
 restore(Db, Name) -> 
     in( node_for(Db), Db, {restore, Name}).
+
+reset(Db) ->
+    in( node_for(Db), Db, reset).
 
 node_for(Db) -> 
     gen_statem:call({cmdb_cloud, node()}, {node, Db}).

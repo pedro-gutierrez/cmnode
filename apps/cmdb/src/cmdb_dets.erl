@@ -44,6 +44,13 @@ offline({call, From}, Msg, #data{name=Name}=Data) ->
     Res = {error, offline},
     {keep_state, Data, {reply, From, Res}}.
 
+ready({call, From}, reset, #data{name=Name}=Data) ->
+    Res = case dets:delete_all_objects(Name) of 
+        {error, R} -> {error, R};
+        true -> ok
+    end,
+    {keep_state, Data, {reply, From, Res}};
+
 ready({call, From}, {get, K}, #data{name=Name}=Data) ->
     Res = case dets:lookup(Name, K) of 
         {error, R} -> {error, R};

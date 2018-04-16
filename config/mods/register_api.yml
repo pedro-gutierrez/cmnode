@@ -1,0 +1,61 @@
+version: 1.0
+type: module
+category: server
+name: register_api 
+spec:
+  decoders:
+    register:
+      object:
+        action:
+          text:
+            literal: "register"
+        first:
+          text: any
+        last:
+          text: any
+        username:
+          text: any
+        password:
+          text: any
+        password_confirm:
+          text:
+            same_as: password
+    not_found:
+      object:
+        context:
+          keyword: register
+        error:
+          keyword: not_found
+  encoders:
+    register_user_lookup:
+      object:
+        context:
+          keyword: register
+        bucket:
+          keyword: users
+        type:
+          keyword: email
+        id: 
+          from: email
+    ok:
+      object:
+        status:
+          keyword: ok 
+  update:
+    register:
+      model:
+        first: 
+          from: first
+        last: 
+          from: last
+        email:
+          from: username
+        password:
+          from: password
+      cmds:
+        - effect: db_get
+          encoder: register_user_lookup
+    not_found:
+      cmds:
+        - effect: notify
+          encoder: ok

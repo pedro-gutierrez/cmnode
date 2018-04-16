@@ -4,4 +4,6 @@ category: api
 name: admin_api
 spec: 
   modules:
-    - account
+    - db_reset
+    - login_api
+    - register_api

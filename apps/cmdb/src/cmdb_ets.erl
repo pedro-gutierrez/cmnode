@@ -38,6 +38,13 @@ offline({call, From}, Msg, #data{name=Name}=Data) ->
     Res = {error, offline},
     {keep_state, Data, {reply, From, Res}}.
 
+ready({call, From}, reset, #data{tid=Tid}=Data) ->
+    Res = case ets:delete_all_objects(Tid) of 
+        {error, R} -> {error, R};
+        true -> ok
+    end,
+    {keep_state, Data, {reply, From, Res}};
+
 ready({call, From}, {find, Type}, #data{tid=Tid}=Data) ->
     Res = case ets:match(Tid, {{Type, '_'}, '$1'}) of 
         {error, R} -> {error, R};
