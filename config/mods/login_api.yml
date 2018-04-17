@@ -13,29 +13,117 @@ spec:
           text: any
         password:
           text: any
-    not_found:
+    email_not_found:
       object:
         context:
-          keyword: login
+          keyword: login_email
         error:
           keyword: not_found
-  encoders:
-    login_user_lookup:
+    user_not_found:
       object:
         context:
-          keyword: login
+          keyword: login_user
+        error:
+          keyword: not_found
+    user_found:
+      object:
+        context:
+          keyword: login_user
+        value:
+          object:
+            first:
+              text: any
+            last:
+              text: any
+            email:
+              text: any
+            id:
+              text: any
+    password_found:
+      object:
+        context:
+          keyword: password
+        value:
+          text: any
+    email_found:
+      object:
+        context:
+          keyword: login_email
+        value:
+          text: any
+    password_ok:
+      object:
+        context:
+          keyword: password_check
+        verified:
+          keyword: true
+    password_mismatch:
+      object:
+        context:
+          keyword: password_check
+        verified:
+          keyword: false
+  encoders:
+    login_email_lookup:
+      object:
+        context:
+          keyword: login_email 
         bucket:
           keyword: users
         type:
           keyword: email
         id: 
           from: email
-    not_found:
+    login_user_lookup:
       object:
         context:
-          keyword: login
+          keyword: login_user
+        bucket:
+          keyword: users
+        type:
+          keyword: user 
+        id: 
+          from: uuid
+    user_password_lookup:
+      object:
+        context: 
+          keyword: password
+        bucket:
+          keyword: users
+        type: 
+          keyword: password
+        id:
+          from: uuid
+    not_found:
+      object:
         error:
           keyword: not_found
+    forbidden:
+      object:
+        error:
+          keyword: forbidden 
+    password_check:
+      object:
+        context:
+          keyword: password_check
+        hash:
+          from: password_in_db
+        clear:
+          from: password
+    login_user_data:
+      object:
+        first:
+          from: first
+          at: user
+        last:
+          from: last
+          at: user
+        email:
+          from: email
+          at: user
+        id: 
+          from: id
+          at: user
   update:
     login:
       model:
@@ -45,8 +133,41 @@ spec:
           from: password
       cmds:
         - effect: db_get
-          encoder: login_user_lookup
-    not_found:
+          encoder: login_email_lookup
+    email_not_found:
       cmds:
         - effect: notify
           encoder: not_found
+    user_not_found:
+      cmds:
+        - effect: notify
+          encoder: not_found
+    email_found:
+      model:
+        uuid:
+          from: value 
+      cmds:
+        - effect: db_get
+          encoder: user_password_lookup
+    user_found:
+      model:
+        user:
+          from: value
+      cmds:
+        - effect: notify
+          encoder: login_user_data
+    password_found:
+      model:
+        password_in_db:
+          from: value
+      cmds:
+        - effect: crypt_verify
+          encoder: password_check
+    password_mismatch:
+      cmds: 
+        - effect: notify
+          encoder: forbidden
+    password_ok:
+      cmds:
+        - effect: db_get
+          encoder: login_user_lookup

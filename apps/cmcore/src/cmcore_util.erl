@@ -143,8 +143,26 @@ resolve_value_at(Key, In) ->
            {ok, V}
    end.
 
+resolve_value(#{ from := Key, at := At }, In) when is_atom(Key) and is_atom(At) -> 
+    case resolve_value_at(At, In) of 
+        {ok, In2} ->
+            resolve_value_at(Key, In2);
+        Other -> 
+            Other
+    end;
+
+resolve_value(#{ from := Key, at := At }, In) when is_atom(Key) and is_map(At) -> 
+    case resolve_value(At, In) of 
+        {ok, In2} ->
+            resolve_value_at(Key, In2);
+        Other -> 
+            Other
+    end;
+
+
 resolve_value(#{ from := Key}, In) when is_atom(Key) -> 
     resolve_value_at(Key, In);
+
 
 resolve_value(#{ type := text,
                  value := Value }, _) ->

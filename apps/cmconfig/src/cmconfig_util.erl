@@ -195,6 +195,9 @@ compile_term(#{ <<"same_as">> := Prop }) ->
 compile_term(#{ <<"text">> := <<"any">> }) ->
     #{ type => text };
 
+compile_term(#{ <<"email">> := <<"any">> }) ->
+    #{ type => email };
+
 compile_term(#{ <<"text">> := Spec }) ->
     maps:merge(#{ type => text},
                compile_term(Spec));
@@ -209,8 +212,7 @@ compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from">> := From  }) ->
     #{ from => compile_from(From) };
 
-compile_term(Any) -> Any.
-
+compile_term(Text) when is_binary(Text) -> Text.
 
 compile_from(From) when is_binary(From)-> compile_keyword(From);
 compile_from(From) when is_map(From) ->

@@ -44,6 +44,14 @@ decode_term(#{ type := text, value := Text}, Text) when is_binary(Text) -> {ok, 
 decode_term(#{ type := text, value := _}, Text) when is_binary(Text) -> no_match;
 decode_term(#{ type := text}, Text) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := list}, List) when is_list(List) -> {ok, List};
+decode_term(#{ type := email}, Email) ->
+    case cmkit:is_email(Email) of 
+        true -> {ok, Email};
+        false -> no_match
+    end;
+
+decode_term(#{ type := object, spec := Spec}, In) when is_map(In) ->
+    decode_object(Spec, In, #{});
 
 decode_term(Spec, Data) -> 
     cmkit:log({cmdecode, not_implemented, Spec, Data}),
