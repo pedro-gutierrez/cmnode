@@ -187,7 +187,9 @@ term(#{ view := View, params := Params}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(view),
                              cmscheme_ast:call(list, [
                                 cmscheme_ast:call(list, [cmscheme_ast:sym(name), cmscheme_ast:sym(View)]),
-                                cmscheme_ast:call(list, [cmscheme_ast:sym(params), term(Params)])
+                                cmscheme_ast:call(list, [
+                                                         cmscheme_ast:sym(params), 
+                                                         term(Params)])
                                                      ])
                             ]);
 
@@ -200,7 +202,10 @@ term(#{ view := View, condition := _}) ->
                             ]);
 
 term(#{ type := object, spec := Spec}) ->
-    cmscheme_ast:call(list, terms(Spec));
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(object),
+                             cmscheme_ast:call(list, terms(Spec))
+                            ]);
     
 term(#{ text := #{ literal := Text}}) ->
     cmscheme_ast:call(list, [cmscheme_ast:str(Text)]);

@@ -51,7 +51,7 @@
           ('from 
            (let* ((v (get value-spec input)))
              (case v 
-               ('undef '(error missing-value))
+               ('undef (list 'error 'missing-key value-spec input))
                (else (list 'ok v)))))
           ('object (encode-object value-spec input '()))
           (else
@@ -79,7 +79,6 @@
      ('#t (list (car spec) (car (cdr spec))))))
 
 (define (decode-term spec in)
-  (console-log "decoding term" spec)
   (let* ((decoded-spec (decode-v-spec spec))
          (type-spec (car decoded-spec))
          (value-spec (car (cdr decoded-spec))))
@@ -105,7 +104,6 @@
           (else decoded))))))
 
 (define (decode spec in)
-  (console-log "decoding spec" spec)
   (case (car spec)
     ('object (decode-object (car (cdr spec)) in '()))
     (else

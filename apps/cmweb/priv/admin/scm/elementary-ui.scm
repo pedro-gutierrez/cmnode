@@ -7,14 +7,6 @@
     (define projector (js-invoke maquette "createProjector" ))
     (define h* (js-ref maquette "h"))
 
-    (define (flatten l)
-      (cond
-        [(null? l) '()]
-        [(list? l)
-         (append (flatten (car l))
-                 (flatten (cdr l)))]
-        [else (list l)]))
-    
     (define (encode-attrs attrs obj)
       (case (length attrs)
         ('0 obj)
@@ -23,9 +15,7 @@
             (js-set! obj (car attr) (car (cdr attr)))
             (encode-attrs (cdr attrs) obj)))))
 
-
     (define (h elem attrs children)
-        ;(let ((attrs2 (apply js-obj (encode-attrs attrs)))
         (let ((attrs2 (encode-attrs attrs (js-obj)))
               (children2 (list->js-array children)))
           (js-call h* elem attrs2 children2)))
@@ -49,31 +39,25 @@
         ('#t (symbol->string attr))
         ('#f attr)))
 
-    (define (attr-value spec ctx)
-      (case (list? spec)
-        ('#f spec)
-        ('#t
-         (case (length spec)
-           ('2 
-            (case (car spec)
-              ('from (ctx-value (car (cdr spec)) ctx))
-              (else (console-error "attribute spec not supported yet" spec))))
-           (else (console-error "invalid attribute spec" spec))))))
-
     (define (render-attr attr ctx)
         (let ((n (attr-name (car attr)))
-              (v (attr-value (car (cdr attr)) ctx)))
-          (case n
-            ((string "onclick")
-             (let ((fn (js-lambda (lambda (args) (send-event v '())))))
-               (list "onclick" fn )))
-            ((string "onchange")
-             (let ((fn (js-lambda (lambda (args)
-                                    (let* ((ev (car args))
-                                           (value (js-ref (js-ref ev "target") "value")))
-                                      (send-event v value))))))
-               (list "oninput" fn)))
-            (else (list n v)))))
+              (v (encode (car (cdr attr)) ctx)))
+          (case (car v)
+            ('ok
+              (case n
+                ((string "onclick")
+                 (let ((fn (js-lambda (lambda (args) (send-event (car (cdr v)) '())))))
+                   (list "onclick" fn )))
+                ((string "onchange")
+                 (let ((fn (js-lambda (lambda (args)
+                                        (let* ((ev (car args))
+                                               (value (js-ref (js-ref ev "target") "value")))
+                                          (send-event (car (cdr v)) value))))))
+                   (list "oninput" fn)))
+                (else (list n (car (cdr v))))))
+            (else 
+              (console-error "error encoding attribute value" v)
+              v))))
       
     (define (render-elem elem ctx)
       (case (length elem)
@@ -90,22 +74,19 @@
                (value (car (cdr elem))))
            (case kind
              ('view (render-subview value ctx))
-             ('from (ctx-value value ctx))
+             ('from 
+              (let ((encoded (encode elem ctx)))
+                (case (car encoded)
+                  ('ok (car (cdr encoded)))
+                  (else (console-error "unable to render text" encoded))))) 
              (else (console-error "unknown directive" elem)))))
         ('1 (car elem))
         (else (console-error "unknown html"))))
      
-    (define (merged-ctx ctx params) 
-      (case params
-        ('undef ctx)
-        (else
-          (case (length params)
-            ('0 ctx)
-            (else 
-              (let* ((first (car params))
-                     (name (car first))
-                     (val (car (cdr first))))
-                (merged-ctx (set name val ctx) (cdr params))))))))
+    (define (subview-ctx spec in) 
+      (case spec
+        ('undef (list 'ok '()))
+        (else (encode spec in))))
 
     (define (render-subview spec ctx)
       (let ((view-name (get 'name spec)))
@@ -115,8 +96,14 @@
             (let ((subview (get view-name (views))))
               (case subview
                 ('undef (console-error "unknown view" view-name))
-                (else 
-                  (render-elem subview (merged-ctx ctx (get 'params spec))))))))))
+                (else
+                  (let ((sub-ctx (subview-ctx (get 'params spec) ctx)))
+                    (case (car sub-ctx)
+                      ('ok
+                       (render-elem subview (car (cdr sub-ctx))))
+                      (else 
+                        (console-error "invalid context for subview" (list spec sub-ctx))
+                        sub-ctx))))))))))
 
     (define (default-view)
       (list "div" '() (list (list "nothing to render"))))
@@ -124,12 +111,6 @@
     (define (views) (hashtable-ref state 'views '()))
     (define (model) (hashtable-ref state 'model '()))
     
-    (define (ctx-value k ctx) 
-      (let ((v (get k ctx)))
-        (case v
-          ('undef "")
-          (else v))))
-
     (define (view) 
       (let ((v (hashtable-ref state 'view '())))
         (case (null? v)
@@ -137,14 +118,19 @@
           ('#f v))))
 
     (define (render-view)(render-elem (list "div" '() (list (view))) (model)))
+    
+    (define (update-view encs enc) 
+      (case enc
+        ('nil 'ok)
+        (else 
+          (hashtable-set! state 'view enc)
+          (hashtable-set! state 'views encs))))
+
 
     (define (recv encs enc m)
-      (console-log "received view" enc)
-      (hashtable-set! state 'view enc)
-      (hashtable-set! state 'views encs)
       (hashtable-set! state 'model m)
-      (schedule-render)
-      )
+      (update-view encs enc)
+      (schedule-render))
     
     (mount-projector (lambda () (render-view)))
 

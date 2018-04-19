@@ -47,9 +47,7 @@
              (else (try-decoders (map-get eff decoders-registry) data)))))))
 
     (define (effect-recv data)
-      (console-log "decoding" data)
       (let ((decoded (decode-data data)))
-        (console-log "decoded" decoded)
         (case (car decoded)
           ('ok 
            (let* ((msg (car (cdr decoded)))
@@ -142,6 +140,12 @@
     
     (define (apply-cmd spec m)
       (case (length spec)
+        ('1 
+         (let* ((eff-name (car spec))
+                (eff (effect eff-name)))
+           (case eff
+             ('undef (console-error "no such effect" eff-name))
+             (else (effect-send eff 'nil 'nil m)))))
         ('2 
          (let* ((eff-name (car spec))
                 (enc-name (car (cdr spec)))
@@ -183,7 +187,6 @@
         ('2 
          (let* ((model-spec (car spec))
                 (m2 (apply-model-spec model-spec msg m)))
-           (console-log "update" spec)
            (case (car m2)
              ('ok (apply-cmds (car (cdr spec)) (car (cdr m2))))
              (else (console-error "invalid update spec" model-spec)))))

@@ -5,6 +5,24 @@ name: account_ui
 spec:
   init:
     model:
+      message:
+        text:
+          literal: ""
+      email: 
+        text:
+          literal: ""
+      password:
+        text:
+          literal: ""
+      password_confirm:
+        text:
+          literal: ""
+      first:
+        text:
+          literal: ""
+      last:
+        text:
+          literal: ""
       state: 
         keyword: init
     cmds:
@@ -39,22 +57,32 @@ spec:
       model:
         email:
           from: value
+      cmds:
+        - effect: ui
     password_changed:
       model:
         password:
           from: value
+      cmds:
+        - effect: ui
     first_changed:
       model:
         first:
           from: value
+      cmds:
+        - effect: ui
     last_changed:
       model:
         last:
           from: value
+      cmds:
+        - effect: ui
     password_confirm_changed:
       model:
         password_confirm:
           from: value
+      cmds:
+        - effect: ui
     send_login:
       cmds:
         - effect: ws
@@ -83,10 +111,10 @@ spec:
       model:
         password:
           text: 
-            literal: "ploppppp"
+            literal: ""
         password_confirm:
           text: 
-            literal: "dsasdad"
+            literal: ""
         message:
           text:
             literal: "Now please login with your new account"
@@ -147,18 +175,18 @@ spec:
             children:
               - text: 
                   from: title
-              - tag: input
-                attrs:
-                  class: "form-input"
-                  type: "text"
-                  id: 
-                    from: id
-                  placeholder: 
-                    from: title
-                  onchange:
-                    from: id
-                  value:
-                    from: value
+          - tag: input
+            attrs:
+              class: "form-input"
+              type: "text"
+              id: 
+                from: id
+              placeholder: 
+                from: title
+              onchange:
+                from: id
+              value:
+                from: value
     password:
       view:
         tag: div
@@ -175,18 +203,18 @@ spec:
             children:
               - text: 
                   from: title
-              - tag: input
-                attrs:
-                  class: "form-input"
-                  type: "password"
-                  id: 
-                    from: id
-                  placeholder: 
-                    from: title
-                  onchange:
-                    from: id
-                  value:
-                    from: value
+          - tag: input
+            attrs:
+              class: "form-input"
+              type: "password"
+              id: 
+                from: id
+              placeholder: 
+                from: title
+              onchange:
+                from: id
+              value:
+                from: value
 
     button:
       view:
@@ -227,6 +255,10 @@ spec:
             children:
               - text: "Welcome"
           - view: user_message
+            params:
+              object:
+                message:
+                  from: message
             when: message
           - view: input
             params:
@@ -283,7 +315,10 @@ spec:
             children:
               - text: "Create an account"
           - view: user_message
-            when: message
+            params:
+              object:
+                message:
+                  from: message
           - view: input
             params:
               object:
@@ -291,6 +326,8 @@ spec:
                   literal: "first"
                 title:
                   literal: "First name"
+                value:
+                  from: first
           - view: input
             params:
               object:
@@ -298,6 +335,8 @@ spec:
                   literal: "last"
                 title:
                   literal: "Last name"
+                value:
+                  from: last
           - view: input
             params:
               object:
@@ -305,6 +344,8 @@ spec:
                   literal: "email"
                 title:
                   literal: "Email"
+                value:
+                  from: email
           - view: password 
             params:
               object:
@@ -312,6 +353,8 @@ spec:
                   literal: "password"
                 title:
                   literal: "Password"
+                value:
+                  from: password
           - view: password 
             params:
               object:
@@ -319,6 +362,8 @@ spec:
                   literal: "password_confirm"
                 title:
                   literal: "Password (again)"
+                value:
+                  from: password_confirm
           - view: button
             params:
               object:
@@ -356,7 +401,10 @@ spec:
             children:
               - text: "Recover password"
           - view: user_message
-            when: message
+            params:
+              object:
+                message:
+                  from: message
           - view: input
             params:
               object:
@@ -364,6 +412,8 @@ spec:
                   literal: "email"
                 title:
                   literal: "Email"
+                value:
+                  from: email
           - view: button
             params:
               object:
