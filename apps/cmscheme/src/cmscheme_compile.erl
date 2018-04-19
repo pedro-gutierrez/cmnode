@@ -103,17 +103,20 @@ term(K, #{ model := _}=Spec) ->
 term(K, #{ cmds := _}=Spec) -> 
     term(K, Spec#{ model => #{}});
 
-term(K, #{ value := V }) when is_binary(V) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
-
 
 term(K, #{ type := object, spec := Spec}) when is_map(Spec) ->
-    ObjectAst = cmscheme_ast:call(list, terms(Spec)), 
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K), ObjectAst]);
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(object),
+                                                      cmscheme_ast:call(list, terms(Spec))
+                                                     ])
+                            ]);
 
 term(K, #{ type := keyword, value := V}) when is_atom(V) -> 
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
-                             cmscheme_ast:sym(V)]);
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:sym(V)]);
+
+term(K, #{ type := text, value := V  }) when is_binary(V) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
 
 term(K, #{ type := text }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
@@ -122,6 +125,23 @@ term(K, #{ type := text }) ->
                                                       cmscheme_ast:sym(any)
                                                      ])
                             ]);
+
+term(K, #{ type := number }) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(number),
+                                                      cmscheme_ast:sym(any)
+                                                     ])
+                            ]);
+
+term(K, #{ type := list }) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(number),
+                                                      cmscheme_ast:sym(any)
+                                                     ])
+                            ]);
+
 
 term(K, #{ from := From }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
@@ -140,6 +160,10 @@ term(K, #{ type := effect, class := Class,  name := K,  settings := Settings}) -
                              cmscheme_ast:sym(Class),
                              effect_settings(Settings)
                             ]);
+
+term(K, #{ value := V }) when is_binary(V) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
+
 
 term(K, V) when is_atom(K) and is_binary(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]).

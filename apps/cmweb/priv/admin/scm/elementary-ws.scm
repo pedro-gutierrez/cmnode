@@ -31,7 +31,7 @@
           (let* ((k (car keys))
                 (v (js-ref obj k))
                 (decoded-v (json-decode-value v)))
-            (json-decode (cdr keys) obj (set k decoded-v out)))))) 
+            (json-decode (cdr keys) obj (set (string->symbol k) decoded-v out)))))) 
       
     (define (js-key k)
       (case (symbol? k)
@@ -98,20 +98,9 @@
 
               ws)))))
 
-    (define (extract-values enc in out)
-      (case (length enc)
-        ('0 (list 'ok out))
-        (else 
-          (let* ((spec (car enc))
-                   (k (car spec))
-                   (value-spec (car (cdr spec)))
-                   (value (extract-value value-spec in)))
-            (case (car value)
-              ('ok (extract-values (cdr enc) in (set k (car (cdr value)) out)))
-              (else value))))))
-
     (define (recv encs enc m) 
-      (let ((encoded (extract-values enc m '())))
+      (console-log "ws encoding" enc)
+      (let ((encoded (encode enc m)))
         (case (car encoded)
           ('ok 
            (ws-send (car (cdr encoded))))

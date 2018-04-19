@@ -79,15 +79,35 @@ spec:
       cmds:
         - effect: ui
           encoder: login_view
+    registered:
+      model:
+        password:
+          text: 
+            literal: "ploppppp"
+        password_confirm:
+          text: 
+            literal: "dsasdad"
+        message:
+          text:
+            literal: "Now please login with your new account"
+      cmds:
+        - effect: ui
+          encoder: login_view
   encoders:
     login:
       object:
+        action:
+          text:
+            literal: "login"
         username: 
           from: email 
         password:
           from: password
     signup:
       object:
+        action:
+          text: 
+            literal: "register"
         username:
           from: email 
         password:
@@ -137,6 +157,8 @@ spec:
                     from: title
                   onchange:
                     from: id
+                  value:
+                    from: value
     password:
       view:
         tag: div
@@ -163,6 +185,9 @@ spec:
                     from: title
                   onchange:
                     from: id
+                  value:
+                    from: value
+
     button:
       view:
         tag: div
@@ -210,6 +235,8 @@ spec:
                   literal: "email"
                 title:
                   literal: "Email"
+                value:
+                  from: email
           - view: password 
             params:
               object:
@@ -217,6 +244,8 @@ spec:
                   literal: "password"
                 title:
                   literal: "Password"
+                value:
+                  from: password
           - view: button
             params:
               object:
@@ -460,6 +489,14 @@ spec:
           keyword: ui
         event:
           keyword: recover_password
+    registered:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            id:
+              text: any
   effects:
     ui:
       type: elementary-ui

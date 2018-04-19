@@ -14,9 +14,19 @@
          (append (flatten (car l))
                  (flatten (cdr l)))]
         [else (list l)]))
+    
+    (define (encode-attrs attrs obj)
+      (case (length attrs)
+        ('0 obj)
+        (else 
+          (let* ((attr (car attrs)))
+            (js-set! obj (car attr) (car (cdr attr)))
+            (encode-attrs (cdr attrs) obj)))))
+
 
     (define (h elem attrs children)
-        (let ((attrs2 (apply js-obj (flatten attrs)))
+        ;(let ((attrs2 (apply js-obj (encode-attrs attrs)))
+        (let ((attrs2 (encode-attrs attrs (js-obj)))
               (children2 (list->js-array children)))
           (js-call h* elem attrs2 children2)))
 
@@ -66,7 +76,6 @@
             (else (list n v)))))
       
     (define (render-elem elem ctx)
-;      (console-log "rendering elem" elem)
       (case (length elem)
         ('3
          (let* ((tag (car elem))
@@ -130,6 +139,7 @@
     (define (render-view)(render-elem (list "div" '() (list (view))) (model)))
 
     (define (recv encs enc m)
+      (console-log "received view" enc)
       (hashtable-set! state 'view enc)
       (hashtable-set! state 'views encs)
       (hashtable-set! state 'model m)
