@@ -66,7 +66,6 @@
     (define (ws-send data)
       (let* ((js (list->js data (js-obj)))
              (str (json-encode js)))
-        (console-log "ws" js)
         (js-invoke (conn) "send" str)))
 
     (define (ws-on socket event fn)
@@ -99,7 +98,6 @@
               ws)))))
 
     (define (recv encs enc m) 
-      (console-log "ws encoding" enc)
       (let ((encoded (encode enc m)))
         (case (car encoded)
           ('ok 

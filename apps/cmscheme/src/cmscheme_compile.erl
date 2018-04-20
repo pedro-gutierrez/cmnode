@@ -20,26 +20,8 @@ app(#{ init := Init,
          ])}.
 
 
-init(#{ model := Model, cmds := Cmds }) ->
-    init(Model, Cmds);
-
-init(#{ model := _ }=Spec) ->
-    init(Spec#{ cmds => []});
-
-init(#{ cmds := _ }=Spec) ->
-    init(Spec#{ model => #{}});
-
-init(_) -> 
-    init(#{ model => #{}, cmds => []}).
-
-init(Model, Cmds) ->
-    EncodedModel = model(Model),
-    EncodedCmds = cmds(Cmds),
-    cmscheme_ast:def(<<"init">>, 
-                     cmscheme_ast:call(list, [
-                                              EncodedModel, 
-                                              EncodedCmds
-                                             ])).
+init(Spec) ->
+    cmscheme_ast:def(<<"init">>, term(Spec)).
 
 model(#{ type := object, spec := Spec}) ->
     Args = model(maps:keys(Spec), Spec, []), 
@@ -65,6 +47,20 @@ cmd(#{ effect := Effect }) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(Effect) ]).
 
 
+condition(#{ op := present, params := Keys }) ->
+    cmscheme_ast:call(list, [ 
+                             cmscheme_ast:sym(present),
+                             cmscheme_ast:call(list, 
+                                               lists:map(fun cmscheme_ast:sym/1, Keys))
+                            ]);
+
+condition(#{ op := true }) ->
+    cmscheme_ast:call(list, [ cmscheme_ast:sym(true) ]);
+
+condition(_) ->
+    cmscheme_ast:call(list, [ cmscheme_ast:sym(false) ]).
+
+
 update(Update) ->
     UpdateAst = update(maps:keys(Update), Update, []),
     cmscheme_ast:def(<<"update">>, cmscheme_ast:call(list, UpdateAst)).
@@ -86,22 +82,6 @@ decoders(Decoders) ->
 decoder(#{ msg := Msg, 
            spec := Spec }) ->
     term(Msg, Spec).
-
-
-term(K, #{ model := Model, cmds := Cmds }) ->
-    cmscheme_ast:call(list, [
-                             cmscheme_ast:sym(K),
-                             cmscheme_ast:call(list, [
-                                                      model(Model),
-                                                      cmds(Cmds)
-                                                     ])
-                            ]);
-
-term(K, #{ model := _}=Spec) -> 
-    term(K, Spec#{ cmds => []});
-
-term(K, #{ cmds := _}=Spec) -> 
-    term(K, Spec#{ model => #{}});
 
 
 term(K, #{ type := object, spec := Spec}) when is_map(Spec) ->
@@ -166,7 +146,20 @@ term(K, #{ value := V }) when is_binary(V) ->
 
 
 term(K, V) when is_atom(K) and is_binary(V) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]).
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
+
+term(K, V) when is_list(V) ->
+    cmscheme_ast:call(list, [
+                               cmscheme_ast:sym(K),
+                               cmscheme_ast:call(list, lists:map(fun term/1, V))
+                            ]);
+
+term(K, V) ->
+    cmscheme_ast:call(list, [
+                               cmscheme_ast:sym(K),
+                                term(V)
+                            ]).
+
 
 terms(Map) when is_map(Map) ->
     terms(maps:keys(Map), Map, []).
@@ -175,6 +168,20 @@ terms([], _, Out) -> lists:reverse(Out);
 terms([K|Rem], Terms, Out) ->
     terms(Rem, Terms, [term(K, maps:get(K, Terms))|Out]).
 
+
+term(#{ model := Model, condition := Cond, cmds := Cmds }) ->
+    cmscheme_ast:call(list, [
+                             condition(Cond),
+                             model(Model),
+                             cmds(Cmds)
+                            ]);
+
+term(#{ model := Model, cmds := Cmds }) ->
+    cmscheme_ast:call(list, [
+                             condition(#{ op => true }),
+                             model(Model),
+                             cmds(Cmds)
+                            ]);
 
 
 term(#{ tag := Tag, attrs := Attrs, children := Children }) ->

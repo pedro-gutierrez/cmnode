@@ -14,65 +14,55 @@ context(SessionId) ->
         Other -> Other
     end.
 
-init(Modules) ->
-    init(Modules, { #{}, []}).
+init(#{ init := Init }=App) -> update(App, Init);
+init(_) -> {#{}, []}.
 
-init([], {Model, Cmds}) -> {ok, Model, Cmds};
-init([#{ init := Spec }|Rem]=Modules, Init) ->
-    case update(Modules, Spec, #{}, Init) of 
-        {ok, Model, Cmds} ->
-            init(Rem, {Model, Cmds});
-        Other -> Other
+update_spec(#{ update := Updates}, Msg, Model) ->
+    case maps:get(Msg, Updates, undef) of
+        undef -> 
+            {error, #{  update => not_implemented, msg => Msg }};
+        Specs ->
+            case first_spec(Specs, Model) of 
+                none -> 
+                    {error, #{  update => none_applies, msg => Msg }};
+                Spec ->
+                    {ok, Spec}
+            end
     end;
 
-init([_|Rem], Init) ->
-    init(Rem, Init).
+update_spec(_, Msg, _) ->
+    {error, #{ update => not_implemented, msg => Msg }}.
 
-update_spec([], _, Msg) -> 
-    Error = #{  update => not_implemented,
-                msg => Msg },
-    {error, Error};
+first_spec([], _) -> none;
+first_spec([#{ condition := Cond}=Spec|Rem], Model) ->
+    case cmeval:eval(Cond, Model) of 
+        true -> Spec;
+        false -> first_spec(Rem, Model)
+    end.
 
-update_spec([Mod|Rem], #{ update := Update}, Msg) ->
-    case maps:get(Msg, Update, undefined) of
-        undefined ->
-            update_spec(Rem, Mod, Msg);    
-        Spec -> {ok, Spec}
-    end;
+decode(#{ decoders := Decoders }, Data) ->
+    decode(Decoders, Data);
 
-update_spec([Mod|Rem], _, Msg) ->
-    update_spec(Rem, Mod, Msg).
+decode([], _) -> {error, no_match};
 
-decode([], Data) -> 
-    Error = #{ status => no_match,
-               data => Data },
-    {error, Error};
-
-decode([#{ decoders := Decoders }=Mod|Rem], Data) ->
-    case match(Decoders, Data) of 
-        {error, no_match} -> 
-            decode(Rem, Data);
-        {ok, Msg, Decoded} -> 
-            {ok, Mod, Msg, Decoded}
-    end;
-
-decode([_|Rem], Data) -> decode(Rem, Data).
-
-match([], _) -> {error, no_match};
-match([#{ msg := Msg, spec := Spec}|Rem], Data) ->
+decode([#{ msg := Msg, spec := Spec}|Rem], Data) ->
     case cmdecode:decode(Spec, Data) of
         no_match -> 
-            match(Rem, Data);
+            decode(Rem, Data);
         {ok, Decoded} ->
             {ok, Msg, Decoded}
     end;
 
-match([_|Rem], Data) -> match(Rem, Data).
+decode(_, _) -> {error, no_match}.
 
-update(Modules, #{ model := M, cmds := C }, In, {Model, Cmds}) ->
+update(App, Spec) -> update(App, Spec, #{}).
+
+update(App, Spec, In) -> update(App, Spec, In, {#{}, []}).
+
+update(App, #{ model := M, cmds := C }, In, {Model, Cmds}) ->
     case update_model(M, In, Model) of 
         {ok, M2} -> 
-            case resolve_cmds(Modules, C) of 
+            case resolve_cmds(App, C) of 
                 {ok, C2} ->
                     {ok, M2, Cmds ++ C2};
                 {error, E} -> 
@@ -80,37 +70,42 @@ update(Modules, #{ model := M, cmds := C }, In, {Model, Cmds}) ->
             end;
         {error, E} -> {error, E}
     end;
-        
-update(_ ,_, _, _) -> {error, unknown_update_spec}.
 
-resolve_cmds(Modules, Cmds) ->
-    resolve_cmds(Modules, Cmds, []).
+update(_, Spec, _, _) -> {error, {invalid_update, Spec}}.
+
+
+
+resolve_cmds(App, Cmds) ->
+    resolve_cmds(App, Cmds, []).
 
 resolve_cmds(_, [], Out) -> {ok, lists:reverse(Out)};
-resolve_cmds(Modules, [Cmd|Rem], Out) ->
-    case resolve_cmd(Modules, Cmd) of 
+resolve_cmds(App, [Cmd|Rem], Out) ->
+    case resolve_cmd(App, Cmd) of 
         {ok, Cmd2} ->
-            resolve_cmds(Modules, Rem, [Cmd2|Out]);
+            resolve_cmds(App, Rem, [Cmd2|Out]);
         {error, E} -> {error, E}
     end.
 
-resolve_cmd([], Cmd) -> 
-    {error, #{ status => no_such_encoder,
-               cmd => Cmd}
-    };
-
-resolve_cmd([#{ encoders := Encoders }|Rem], #{ encoder := Enc }=Cmd) ->
+resolve_cmd(#{ encoders := Encoders }, #{ encoder := Enc }=Cmd) ->
     case maps:get(Enc, Encoders, undef) of
         undef ->
-            resolve_cmd(Rem, Cmd);
+            {error, {no_such_encoder, Enc}};
         Encoder ->
             {ok, Cmd#{ encoder => Encoder }}
     end;
 
+resolve_cmd(_, #{ encoder := Enc }) ->
+    {error, {no_such_encoder, Enc}};
+
 resolve_cmd(_, #{ effect := _ }=Cmd) ->
     {ok, Cmd };
 
-resolve_cmd([_|Rem], Cmd) -> resolve_cmd(Rem, Cmd).
+resolve_cmd(_, Cmd) ->
+    {error, {invalid_cmd, Cmd}}.
+
+
+
+
 
 update_model(Spec, In, Out) ->
     resolve(Spec, In, Out).

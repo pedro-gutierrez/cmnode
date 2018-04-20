@@ -24,7 +24,7 @@ spec:
         text:
           literal: ""
       state: 
-        keyword: init
+        keyword: login 
     cmds:
       - effect: ui 
         encoder: login_view
@@ -84,9 +84,13 @@ spec:
       cmds:
         - effect: ui
     send_login:
+      model:
+        state: 
+          keyword: logging_in
       cmds:
         - effect: ws
           encoder: login
+        - effect: ui
     send_signup:
       cmds:
         - effect: ws
@@ -121,6 +125,20 @@ spec:
       cmds:
         - effect: ui
           encoder: login_view
+    not_found:
+      - when:
+          state:
+            eq: 
+              keyword: logging_in
+        model: 
+          state: 
+            keyword: login
+          message:
+            text:
+              literal: "Invalid credentials"
+        cmds:
+          - effect: ui
+            encoder: login_view
   encoders:
     login:
       object:
@@ -547,6 +565,15 @@ spec:
           object:
             id:
               text: any
+    not_found:
+      object:
+        effect: 
+          keyword: ws
+        data:
+          object:
+            error:
+              text:
+                literal: not_found
   effects:
     ui:
       type: elementary-ui

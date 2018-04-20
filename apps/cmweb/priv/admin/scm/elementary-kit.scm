@@ -1,3 +1,5 @@
+(define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))
+
 (define (set k v m)
   (cons (list k v) m))
 
@@ -110,7 +112,6 @@
       (console-error "unsupported decode spec" spec)
       '(error unknown-spec))))
 
-
 (define (inspect-basic-type v) 
   (case (symbol? v)
     ('#t 'symbol)
@@ -123,5 +124,12 @@
           (else 
             (console-error "unsupported basic type" v))))))))
 
+(define (eval-condition spec in)
+  (case (car spec)
+    ('true '#t)
+    ('false '#f)
+    (else 
+      (console-error "unsupported condition" spec)
+      '#f)))
+    
 
-(define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))

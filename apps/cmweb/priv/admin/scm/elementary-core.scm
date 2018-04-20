@@ -6,6 +6,15 @@
     
     (define (model) (hashtable-ref state 'model '()))
     
+    (define (load-update-specs ev specs registry)
+      (case (length specs)
+        ('0 registry)
+        (else 
+          (let ((spec (car specs)))
+            (case (length spec)
+              ('3 (load-update-specs ev (cdr specs) (load-update ev spec registry)))
+              (else  (console-error "invalid update spec" (list (length spec) spec))))))))
+
     (define (load-updates upds registry)
       (case (length upds)
         ('0 registry)
@@ -14,14 +23,15 @@
               (case (length upd)
                 ('2
                  (let* ((upd-event (car upd))
-                        (upd-spec (car (cdr upd))))
-                   (case (length upd-spec)
-                     ('2 (load-updates (cdr upds) (load-update upd-event upd-spec registry)))
-                     (else (console-error "invalid update spec" upd-spec )))))
-                (else (console-error "invalid update" upd)))))))
+                        (upd-specs (car (cdr upd))))
+                    (load-updates (cdr upds) (load-update-specs upd-event upd-specs registry)))))))))
     
     (define (load-update upd-event upd-spec registry)
-      (set upd-event upd-spec registry))
+      (let ((updates-for-event (get upd-event registry)))
+        (case updates-for-event
+          ('undef (set upd-event (list upd-spec) registry))
+          (else 
+            (set upd-event (cons upd-spec updates-for-event) registry)))))
     
     (hashtable-set! state 'updates (load-updates (update) '()))
     
@@ -52,10 +62,10 @@
           ('ok 
            (let* ((msg (car (cdr decoded)))
                   (data (car (cdr (cdr decoded))))
-                  (update-spec (update-for msg)))
-             (case update-spec
-               ('undef (console-error "no such update spec" msg))
-               (else (apply-update update-spec data (model))))))
+                  (update-specs (update-for msg)))
+             (case (or (eq? 'undef update-specs) (= 0 (length update-specs)))
+               ('#t (console-error "no such update spec" (list msg update-specs)))
+               (else (try-update update-specs data (model))))))
           (else (console-error "no decoder for" data)))))
     
     (define (load-decoders decs registry)
@@ -181,14 +191,29 @@
             (case (car resolved) 
               ('ok (apply-model-spec (cdr spec) msg (set k (car (cdr resolved)) m)))
               (else '(error bad-spec)))))))
+        
+    (define (try-update specs msg m)
+      (case (length specs)
+        ('0 
+         (console-error "all conditions failed" specs)
+         '(error all-conditions-failed))
+        (else 
+          (let* ((spec (car specs))
+                 (condition (car spec))
+                 (verified (eval-condition condition m)))
+            (case verified
+              ('#t (apply-update spec msg m))
+              ('#f (try-update (cdr specs) msg m)))))))
 
     (define (apply-update spec msg m)
       (case (length spec)
-        ('2 
-         (let* ((model-spec (car spec))
+        ('3 
+         (let* ((condition (car spec))
+                (model-spec (car (cdr spec)))
+                (cmds (car (cdr (cdr spec))))
                 (m2 (apply-model-spec model-spec msg m)))
            (case (car m2)
-             ('ok (apply-cmds (car (cdr spec)) (car (cdr m2))))
+             ('ok (apply-cmds cmds (car (cdr m2))))
              (else (console-error "invalid update spec" model-spec)))))
         (else (console-error "invalid update spec" spec))))
         

@@ -71,7 +71,7 @@ compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
     #{ name => cmkit:to_atom(Name),
        type => app,
        category => cmconfig_util:compile_keyword(Cat),
-       modules  => cmconfig_util:resolve_modules(Modules, Mods)
+       spec => compile_modules(cmconfig_util:resolve_modules(Modules, Mods), #{})
      }.
 
 compile_bucket(#{ <<"name">> := Name,
@@ -105,6 +105,9 @@ compile_spec(Spec) ->
 
 compile_modules([], Spec) -> Spec;
 compile_modules([{ok, ModSpec}|Rest], Spec) ->
+    compile_modules([ModSpec|Rest], Spec);
+
+compile_modules([ModSpec|Rest], Spec) when is_map(ModSpec) ->
     compile_modules(Rest, merge_spec([decoders, 
                                       encoders, 
                                       init, 
@@ -112,6 +115,7 @@ compile_modules([{ok, ModSpec}|Rest], Spec) ->
                                       views, 
                                       effects
                                      ], ModSpec, Spec));
+    
 
 compile_modules([_|Rest], Spec) -> 
     compile_modules(Rest, Spec).
@@ -123,11 +127,46 @@ merge_spec([decoders|Rem], Spec, Spec0) ->
     Decs = maps:get(decoders, Spec, []),
     merge_spec(Rem, Spec, maps:put(decoders, Decs ++ Decs0, Spec0));
 
+merge_spec([init|Rem], 
+           #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, 
+           #{ init := #{ model := Model0, cmds := Cmds0 }}=Spec0) ->
+           merge_spec(Rem, Spec, 
+                      maps:put(init, #{ model => merge_model_spec(Model, Model0),
+                                        cmds => merge_cmds_spec(Cmds, Cmds0) 
+                                      }, Spec0));
+
+merge_spec([init|Rem], 
+           #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, Spec0) ->
+           merge_spec(Rem, Spec, 
+                      maps:put(init, #{ model => Model, 
+                                        cmds => Cmds 
+                                      }, Spec0));
+
+merge_spec([update|Rem], Spec, Spec0) ->
+           merge_spec(Rem, Spec, 
+                      maps:put(update, merge_updates_spec( 
+                                         maps:get(update, Spec, #{}), 
+                                         maps:get(update, Spec0, #{})), Spec0));
+
 merge_spec([Key|Rem], Spec, Spec0) ->
     merge_spec(Rem, Spec, 
                maps:put(Key, maps:merge(maps:get(Key, Spec0, #{}),  maps:get(Key, Spec, #{})), Spec0)).
 
+merge_model_spec(#{ spec := S1 }, #{ spec := S2}) -> 
+    #{ type => object,
+       spec => maps:merge(S2, S1) 
+     }.
 
+merge_cmds_spec(Cmds1, Cmds2) -> Cmds1 ++ Cmds2. 
+
+merge_updates_spec(Updates1, Updates2) when map_size(Updates2) =:= 0 -> Updates1;
+merge_updates_spec(Updates1, Updates2) ->
+    merge_updates_spec(maps:keys(Updates1), Updates1, Updates2).
+
+merge_updates_spec([], _, Out) -> Out;
+merge_updates_spec([K|Rem], U1, U2) ->
+    merge_updates_spec(Rem, U1, 
+                       maps:put(K, maps:get(K, U2, []) ++ maps:get(K, U1), U2)).
 
 compile_term(#{ <<"decoders">> := Decs }) ->
     compile_decoders(Decs);
@@ -262,18 +301,17 @@ compile_updates([K|Rem], Updates, Out) ->
     Init = compile_init(maps:get(K, Updates)),
     compile_updates(Rem, Updates, Out#{ Name => Init }).
 
-compile_init(#{ <<"model">> := Model,
-                   <<"cmds">> := Cmds }) ->
-    #{ model => compile_model(Model),
-       cmds => compile_cmds(Cmds) };
+compile_update_spec(Spec) when is_map(Spec) -> 
+    #{ condition => compile_condition(maps:get(<<"when">>, Spec, [])), 
+       model => compile_model(maps:get(<<"model">>, Spec, #{})),
+       cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
+     }.
 
-compile_init(#{ <<"model">> := _}=Spec) ->
-    compile_init(Spec#{ <<"cmds">> => [] });
+compile_init(Spec) when is_map(Spec) ->
+    compile_init([Spec]);
 
-compile_init(#{ <<"cmds">> := _ }=Spec) ->
-    compile_init(Spec#{ <<"model">> => #{} });
-
-compile_init(Spec) -> compile_init(Spec#{ <<"model">> => #{}, <<"cmds">> => []}).
+compile_init(Specs) when is_list(Specs) -> 
+    lists:map(fun compile_update_spec/1, Specs).
 
 compile_views(Views) ->
     compile_views(maps:keys(Views), Views, #{}).
@@ -339,10 +377,11 @@ compile_view_attrs(Attrs) when is_map(Attrs) ->
               end, #{}, Attrs). 
 
 compile_condition(Prop) when is_binary(Prop) ->
-    #{ is_set => Prop };
+    #{ op => present,
+       params => [ compile_keyword(Prop) ] };
 
-compile_condition(#{}) -> true.
-
+compile_condition(_) -> 
+    #{ op => true }.
 
 compile_model(Map) -> compile_object(Map).
 
