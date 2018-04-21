@@ -94,16 +94,19 @@
         '(error invalid-type-spec)))))
         
 (define (decode-object spec in out)
-  (case (length spec)
-    ('0 (list 'ok out))
-    (else 
-      (let* ((entry-spec (car spec))
-             (k (car entry-spec))
-             (v-spec (car (cdr entry-spec)))
-             (decoded (decode-term v-spec (get k in))))
-        (case (car decoded)
-          ('ok (decode-object (cdr spec) in (set k (car (cdr decoded)) out)))
-          (else decoded))))))
+  (case in 
+    ('undef '(error not-an-object in))
+    (else
+      (case (length spec)
+        ('0 (list 'ok out))
+        (else 
+          (let* ((entry-spec (car spec))
+                 (k (car entry-spec))
+                 (v-spec (car (cdr entry-spec)))
+                 (decoded (decode-term v-spec (get k in))))
+            (case (car decoded)
+              ('ok (decode-object (cdr spec) in (set k (car (cdr decoded)) out)))
+              (else decoded))))))))
 
 (define (decode spec in)
   (case (car spec)
