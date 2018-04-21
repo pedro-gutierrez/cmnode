@@ -7,6 +7,9 @@ decode(#{ type := data }, Data) when is_binary(Data) ->
 decode(#{ type := object, spec := Spec }, Data) ->
     decode_object(Spec, Data, #{});
 
+decode(#{ type := object }, Data) when is_map(Data) -> 
+    {ok, Data};
+
 decode(_, _) ->  no_match.
 
 decode_object(Spec, Data, Out) ->

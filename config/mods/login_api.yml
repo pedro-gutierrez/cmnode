@@ -4,6 +4,9 @@ category: server
 name: login_api
 spec:
   decoders:
+    invalid:
+      priority: lowest
+      object: any
     login:
       object:
         action:
@@ -94,6 +97,10 @@ spec:
           keyword: password
         id:
           from: uuid
+    invalid:
+      object:
+        error:
+          keyword: invalid
     not_found:
       object:
         error:
@@ -125,6 +132,10 @@ spec:
           from: id
           at: user
   update:
+    invalid:
+      cmds:
+        - effect: notify
+          encoder: invalid
     login:
       model:
         email:

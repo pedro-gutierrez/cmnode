@@ -71,25 +71,11 @@ ready(cast, {update, Data}, #{ app := App, id := Id, spec := Spec, model := Mode
                     Error = server_error(App, Session, update, E),
                     {stop, Error}
             end;
-        {error, #{ status := no_match }=E} ->
-            % TODO: let the app designer customize the handling of
-            % unmatched messages. But this needs to be done taking care 
-            % of potential infinite loops. For now, we send back an 
-            % arbitrary 'invalid' message to the client
-            client_error(App, Session, invalid, E),
-            {keep_state, Session};
-
         {error, E} -> 
             Error = server_error(App, Session, update, E),
             {stop, Error}
 
     end.
-
-client_error(App, #{ id := Id }= Session, Type, Reason) ->
-    cmkit:log({cmcore, client_error, App, Id, Reason}),
-    Data = #{ error => Type },
-    cmeffect:apply(notify, Data, Session),
-    Data.
 
 server_error(App, #{ id := Id} = Session, Phase, Reason) ->
     Data = #{ status => error,

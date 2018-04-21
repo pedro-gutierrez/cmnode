@@ -103,7 +103,11 @@ compile_spec(Spec) ->
                            end, #{}, Keys),
     #{ spec => Contents }.
 
+compile_modules([], #{ decoders := Decs }=Spec) -> 
+    Spec#{ decoders => sort_decoders(Decs) };
+
 compile_modules([], Spec) -> Spec;
+    
 compile_modules([{ok, ModSpec}|Rest], Spec) ->
     compile_modules([ModSpec|Rest], Spec);
 
@@ -275,12 +279,30 @@ compile_keyword(K) -> cmkit:to_atom(K).
 compile_decoders(Decs) ->
     compile_decoders(maps:keys(Decs), Decs, []).
 
-compile_decoders([], _, Out) -> lists:reverse(Out);
+compile_decoders([], _, Out) -> sort_decoders(Out);
 compile_decoders([K|Rem], Decs, Out) ->
     Msg = compile_keyword(K),
-    Dec = compile_term(maps:get(K, Decs)),
+    Dec = maps:get(K, Decs),
+    Spec = compile_term(Dec),
     compile_decoders(Rem, Decs, [#{ msg => Msg,
-                                    spec => Dec}|Out]). 
+                                    priority => compile_priority(Dec),
+                                    spec => Spec}|Out]). 
+
+compile_priority(#{ <<"priority">> := P }) ->
+    compile_keyword(P);
+
+compile_priority(_) ->
+    compile_keyword(normal).
+
+
+sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
+
+compare_priorities(#{ priority := _ }, #{ priority := lowest }) -> true;
+compare_priorities(#{ priority := lowest }, #{ priority := _ }) -> false;
+compare_priorities(#{ priority := _ }, #{ priority := _ }) -> true.
+
+
+
 
 compile_encoders(Encs) ->
     compile_encoders(maps:keys(Encs), Encs, #{}).
