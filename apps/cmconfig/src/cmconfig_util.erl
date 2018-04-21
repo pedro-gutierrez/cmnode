@@ -399,11 +399,21 @@ compile_view_attrs(Attrs) when is_map(Attrs) ->
               end, #{}, Attrs). 
 
 compile_condition(Prop) when is_binary(Prop) ->
-    #{ op => present,
-       params => [ compile_keyword(Prop) ] };
+    #{ type => present,
+       spec => [ compile_keyword(Prop) ] };
+
+compile_condition(#{ <<"eq">> := Spec }) ->
+    #{ type => equal,
+       spec => compile_object(maps:keys(Spec), Spec, #{}) 
+     };
+
+compile_condition(#{ <<"all">> := Conds }) ->
+    #{ type => all,
+       spec => lists:map(fun compile_condition/1, Conds) 
+     };
 
 compile_condition(_) -> 
-    #{ op => true }.
+    #{ type => true }.
 
 compile_model(Map) -> compile_object(Map).
 

@@ -195,7 +195,7 @@
     (define (try-update specs msg m)
       (case (length specs)
         ('0 
-         (console-error "all conditions failed" specs)
+         (console-error "all conditions failed")
          '(error all-conditions-failed))
         (else 
           (let* ((spec (car specs))

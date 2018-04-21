@@ -131,6 +131,10 @@
   (case (car spec)
     ('true '#t)
     ('false '#f)
+    ('equal
+     (let* ((object-spec (car (cdr spec)))
+            (decoded (decode-object object-spec in '())))
+       (eq? 'ok (car decoded))))
     (else 
       (console-error "unsupported condition" spec)
       '#f)))

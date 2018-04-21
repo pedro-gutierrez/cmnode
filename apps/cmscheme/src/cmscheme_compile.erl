@@ -47,19 +47,24 @@ cmd(#{ effect := Effect }) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(Effect) ]).
 
 
-condition(#{ op := present, params := Keys }) ->
+condition(#{ type := present, spec := Keys }) ->
     cmscheme_ast:call(list, [ 
                              cmscheme_ast:sym(present),
                              cmscheme_ast:call(list, 
                                                lists:map(fun cmscheme_ast:sym/1, Keys))
                             ]);
 
-condition(#{ op := true }) ->
+condition(#{ type := equal, spec := Spec }) ->
+    cmscheme_ast:call(list, [ 
+                             cmscheme_ast:sym(equal),
+                             cmscheme_ast:call(list, terms(Spec))
+                            ]);
+
+condition(#{ type := true }) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(true) ]);
 
-condition(_) ->
-    cmscheme_ast:call(list, [ cmscheme_ast:sym(false) ]).
-
+condition(#{ type := false }) ->
+    cmscheme_ast:call(list, [ cmscheme_ast:sym(false)]).
 
 update(Update) ->
     UpdateAst = update(maps:keys(Update), Update, []),
@@ -178,7 +183,7 @@ term(#{ model := Model, condition := Cond, cmds := Cmds }) ->
 
 term(#{ model := Model, cmds := Cmds }) ->
     cmscheme_ast:call(list, [
-                             condition(#{ op => true }),
+                             condition(#{ type => true }),
                              model(Model),
                              cmds(Cmds)
                             ]);
