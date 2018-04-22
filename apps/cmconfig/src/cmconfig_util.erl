@@ -473,6 +473,7 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}) ->
     #{ type => effect,
        name => Name,
        class => Type,
-       settings => Settings };
+       settings => compile_object(maps:keys(Settings), Settings, #{}) 
+     };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}).

@@ -62,27 +62,41 @@
 
     (define (ws-connect url)
       (js-new "WebSocket" url))
-       
+    
+    (define (ws-send-str str)
+      (js-invoke (conn) "send" str))
+
     (define (ws-send data)
       (let* ((js (list->js data (js-obj)))
              (str (json-encode js)))
-        (js-invoke (conn) "send" str)))
+        (ws-send-str str)))
 
     (define (ws-on socket event fn)
       (js-set! socket event (js-lambda fn)))
 
     (define (ws-url) (get 'url effect-settings))
-
+    (define (ws-persistent?)
+      (eq? 'true (get 'persistent effect-settings)))
+    
+    (define ws-ping 
+      (let ((ping (encode (get 'ping effect-settings) '())))
+        (case (car ping)
+          ('ok (car (cdr ping)))
+          (else '((action ping))))))
+    
     (define (connect)
       (let ((url (ws-url)))
         (case url
           ('undef (console-error "no websocket url in settings" effect-settings))
           (else 
             (let ((ws (ws-connect url)))
-              (ws-on ws "onopen" (lambda (socket) (send (list (list 'effect effect-name) 
+              (ws-on ws "onopen" (lambda (socket) 
+                                   (start-keep-alive?)
+                                   (send (list (list 'effect effect-name) 
                                                                 (list 'event 'connected)))))
               (ws-on ws "onclose" (lambda (socket) 
-                                      (send (list (list 'effect effect-name) 
+                                        (start-new-ws?)
+                                        (send (list (list 'effect effect-name) 
                                                   (list 'event 'disconnected)))))
               (ws-on ws "onerror" (lambda (socket) 
                                       (send (list (list 'effect effect-name)
@@ -103,7 +117,30 @@
           ('ok 
            (ws-send (car (cdr encoded))))
           (else (console-error "decode error" (list enc m))))))
-      
-    (hashtable-set! state 'ws (connect))
+    
+    (define (start-new-ws)
+        (hashtable-set! state 'ws (connect)))
+    
+    (define (start-new-ws?)
+      (case (ws-persistent?)
+        ('#t 
+         (console-log "reconnecting" (ws-url))
+         (start-new-ws))))
+    
+    (define (start-keep-alive?)
+      (case (ws-persistent?)
+        ('#t (keep-alive))))
+
+    (define (keep-alive)
+      (ws-send ws-ping)
+      (hashtable-set! state 'timer (timer keep-alive 20)))
+
+    (define (cancel-keep-alive)
+      (let ((timer (hashtable-ref state 'timer 'undef)))
+        (case timer
+          ('undef 'no-timer)
+          (else (clear-timer! timer)))))
+
+    (start-new-ws)
 
     (list 'ok recv)))

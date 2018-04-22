@@ -4,6 +4,7 @@ category: api
 name: admin_api
 spec: 
   modules:
+    - ping
     - db_reset
     - login_api
     - register_api

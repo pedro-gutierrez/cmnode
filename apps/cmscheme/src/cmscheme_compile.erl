@@ -143,7 +143,7 @@ term(K, #{ type := effect, class := Class,  name := K,  settings := Settings}) -
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(K),
                              cmscheme_ast:sym(Class),
-                             effect_settings(Settings)
+                             cmscheme_ast:call(list, terms(Settings))
                             ]);
 
 term(K, #{ value := V }) when is_binary(V) ->
@@ -238,12 +238,3 @@ view_children([Spec|Rem], Out) ->
 effects(Effects) ->
     EffectsAst = cmscheme_ast:call(list, terms(maps:keys(Effects), Effects, [])),
     cmscheme_ast:def(<<"effects">>, EffectsAst).
-
-effect_settings(Settings) ->
-    cmscheme_ast:call(list, effect_settings(maps:keys(Settings), Settings, [])).
-
-effect_settings([], _, Out) -> Out;
-effect_settings([K|Rem],  Settings, Out) ->
-    effect_settings(Rem, Settings, [cmscheme_ast:call(list, [cmscheme_ast:sym(K),
-                                                             cmscheme_ast:str(maps:get(K, Settings))
-                                                            ])|Out]).

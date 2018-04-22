@@ -1,0 +1,21 @@
+version: 1.0
+type: module
+category: server
+name: ping
+spec:
+  decoders:
+    ping:
+      object:
+        action: 
+          text: 
+            literal: "ping"
+  encoders:
+    pong:
+      object:
+        action:
+          keyword: pong
+  update:
+    ping:
+      cmds:
+        - effect: notify
+          encoder: pong

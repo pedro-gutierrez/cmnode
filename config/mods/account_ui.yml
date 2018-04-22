@@ -53,6 +53,11 @@ spec:
       cmds:
         - effect: ui
           encoder: login_view
+    ws_pong:
+      model:
+        pong:
+          text:
+            literal: ""
     email_changed:
       model:
         email:
@@ -510,6 +515,15 @@ spec:
           keyword: ws
         event:
           keyword: error
+    ws_pong:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            action:
+              text:
+                literal: "pong"
     show_login:
       object:
         effect:
@@ -620,4 +634,12 @@ spec:
     ws:
       type: elementary-ws
       settings:
-        url: ws://localhost:8080/ws 
+        url:
+          text:
+            literal: "ws://localhost:8080/ws"
+        persistent: 
+          keyword: true
+        ping:
+          object:
+            action:
+              keyword: ping
