@@ -9,7 +9,6 @@ new(App) ->
                {{connections, Id}, [Conn]},
                {{connection, Conn}, #{ pid => Conn, session => Id }}],
     ok = cmdb:put_new(sessions, Entries),
-    cmkit:log({cmsession, new, App, Id, Conn}),
     {ok, Session}.
 
 attach(Id, Type, Val) ->
@@ -24,5 +23,4 @@ conns(Id) ->
     
 tell(Id, Data) ->
     {ok, Conns} = conns(Id),
-    cmkit:log({cmsession, tell, Conns, Data}),
     [ C ! Data || C <- Conns ].

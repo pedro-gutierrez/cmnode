@@ -1,6 +1,6 @@
 -module(cmcore_sup).
 -behaviour(supervisor).
--export([start_link/0, start_context/1]).
+-export([start_link/0, start_context/2]).
 -export([init/1]).
 -define(SERVER, ?MODULE).
 
@@ -17,5 +17,5 @@ init([]) ->
     
     {ok, { {simple_one_for_one, 0, 1}, [Spec]}}.
 
-start_context(Session) ->
-    supervisor:start_child(?MODULE, [Session]).
+start_context(Spec, Session) ->
+    supervisor:start_child(?MODULE, [Spec, Session]).

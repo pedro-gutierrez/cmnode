@@ -1,10 +1,8 @@
 -module(cmcore).
--export([init/2, update/2]).
+-export([init/3, update/2]).
 
-init(Data, #{ app := _, id := _}=Session) ->
-    {ok, Context} = cmcore_sup:start_context(Session),
-    
-    cmkit:log({cmcore, context, Context}),
+init(Data, Spec, #{ app := _, id := _}=Session) ->
+    {ok, Context} = cmcore_sup:start_context(Spec, Session),
     gen_statem:cast(Context, {init, Data}).
 
 update(Id, Data) when is_binary(Id) ->

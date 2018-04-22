@@ -15,7 +15,7 @@ context(SessionId) ->
     end.
 
 init(#{ init := Init }=App) -> update(App, Init);
-init(_) -> {#{}, []}.
+init(_) -> {ok, #{}, []}.
 
 update_spec(#{ update := Updates}, Msg, Model) ->
     case maps:get(Msg, Updates, undef) of

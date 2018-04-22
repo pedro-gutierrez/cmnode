@@ -63,13 +63,16 @@ compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
                  category => cmconfig_util:compile_keyword(Cat)
     }).
 
-compile_app(#{ <<"name">> := Name, <<"category">> := Cat,
-            <<"spec">> := #{
-                <<"modules">> := Modules 
-               }}, Mods) ->
+compile_app(#{ <<"name">> := Name, 
+               <<"category">> := Cat,
+               <<"spec">> := #{
+                   <<"modules">> := Modules 
+                  } = Spec
+             }, Mods) ->
         
     #{ name => cmkit:to_atom(Name),
        type => app,
+       debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
        category => cmconfig_util:compile_keyword(Cat),
        spec => compile_modules(cmconfig_util:resolve_modules(Modules, Mods), #{})
      }.
@@ -214,15 +217,28 @@ compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
        value => lists:map( fun compile_term/1, Items) 
      };
 
+compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
+    #{ type => list,
+       spec => compile_term(Spec)
+     };
+
 compile_term(#{ <<"spec">> := Spec }) ->
    compile_spec(Spec); 
 
 compile_term(#{ <<"type">> := Type}) ->
     compile_keyword(Type);
 
-compile_term(#{ <<"keyword">> := Keyword }) ->
+compile_term(#{ <<"keyword">> := Keyword }) when is_binary(Keyword) ->
     #{ type => keyword,
        value => cmkit:to_atom(Keyword) };
+
+compile_term(#{ <<"keyword">> := Keyword }) when is_atom(Keyword) ->
+    #{ type => keyword,
+       value => Keyword };
+
+compile_term(#{ <<"keyword">> := Spec }) when is_map(Spec) ->
+    #{ type => keyword,
+       spec => compile_term(Spec) };
 
 compile_term(#{ <<"number">> := _ }) ->
     #{ type => number };
@@ -238,8 +254,17 @@ compile_term(#{ <<"same_as">> := Prop }) ->
 compile_term(#{ <<"text">> := <<"any">> }) ->
     #{ type => text };
 
+compile_term(#{ <<"any">> := <<"tetx">> }) ->
+    #{ type => text };
+
 compile_term(#{ <<"email">> := <<"any">> }) ->
     #{ type => email };
+
+compile_term(#{ <<"any">> := <<"email">> }) ->
+    #{ type => email };
+
+compile_term(#{ <<"any">> := <<"keyword">> }) ->
+    #{ type => keyword };
 
 compile_term(#{ <<"text">> := Spec }) ->
     maps:merge(#{ type => text},
@@ -254,6 +279,9 @@ compile_term(<<"from_data">>) -> from_data;
 
 compile_term(#{ <<"from">> := From  }) ->
     #{ from => compile_from(From) };
+
+compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
+    #{ one_of => lists:map(fun compile_term/1, Specs) }; 
 
 compile_term(Text) when is_binary(Text) -> Text.
 

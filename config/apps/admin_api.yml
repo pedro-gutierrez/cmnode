@@ -2,9 +2,11 @@ version: 1.0
 type: app
 category: api
 name: admin_api
-spec: 
+spec:
+  debug: true 
   modules:
     - ping
     - db_reset
     - login_api
     - register_api
+    - apps
