@@ -435,12 +435,17 @@ compile_condition(#{ <<"eq">> := Spec }) ->
        spec => compile_object(maps:keys(Spec), Spec, #{}) 
      };
 
+compile_condition(#{ <<"member">> := Spec }) ->
+    #{ type => member,
+       spec => compile_object(maps:keys(Spec), Spec, #{}) 
+     };
+
 compile_condition(#{ <<"all">> := Conds }) ->
     #{ type => all,
        spec => lists:map(fun compile_condition/1, Conds) 
      };
 
-compile_condition(_) -> 
+compile_condition([]) -> 
     #{ type => true }.
 
 compile_model(Map) -> compile_object(Map).

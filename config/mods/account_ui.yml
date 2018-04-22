@@ -150,8 +150,8 @@ spec:
             encoder: home_view
     not_found:
       - when:
-          state:
-            eq: 
+          eq:
+            state:
               keyword: logging_in
         model: 
           state: 

@@ -3,13 +3,20 @@
          info/3]).
 
 init(Req, #{app := App}=State) ->
-    case request_body(Req) of 
-        {error, _} -> 
-            reply(invalid, json, #{ error => json }, Req, State);
-        {ok, Data, Req2} ->
-            {ok, Session } = cmsession:new(App),
-            ok = cmcore:init(Data, Session),
-            {cowboy_loop, Req2, State, hibernate}
+    case cmconfig:app(App) of
+        {ok, #{ debug := Debug }=Spec} -> 
+            Log = cmkit:log_fun(Debug),
+            case request_body(Req) of 
+                {error, _} -> 
+                    reply(invalid, json, #{ error => json }, Req, State);
+                {ok, Data, Req2} ->
+                    {ok, Session } = cmsession:new(App),
+                    ok = cmcore:init(Data, Spec, Session),
+                    {cowboy_loop, Req2, State#{ log => Log }, hibernate}
+            end;
+        {error, E} -> 
+            cmkit:log({http, new, invalid_app, App, E}),
+            {stop, E}
     end.
 
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->

@@ -86,6 +86,14 @@ spec:
                 value:
                   from: password
             - object:
+                type: 
+                  keyword: roles
+                id: 
+                  from: uuid
+                value: 
+                  list:
+                    - keyword: admin
+            - object:
                 type:
                   keyword: user
                 id:

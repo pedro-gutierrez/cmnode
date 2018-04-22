@@ -10,11 +10,8 @@ decode(#{ type := object, spec := Spec }, Data) ->
 decode(#{ type := object }, Data) when is_map(Data) -> 
     {ok, Data};
 
-decode(#{ type := list, spec := Spec }, Data) when is_list(Data) -> 
-    decode_list(Spec, Data);
-
-decode(#{ type := list }, Data) when is_list(Data) -> 
-    {ok, Data};
+decode(#{ type := list } = Spec, Data) -> 
+    decode_term(Spec, Data);
 
 decode(_, _) ->  no_match.
 
@@ -70,6 +67,14 @@ decode_term(#{ type := text, value := _}, Text) when is_binary(Text) -> no_match
 decode_term(#{ type := text}, Text) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := list, spec := Spec }, Data) when is_list(Data) -> 
     decode_list(Spec, Data);
+
+decode_term(#{ type := list, with := Member }, Data) when is_list(Data) ->
+    cmkit:log({cmdecode, list, member, Member, Data}),
+    case lists:member(Member, Data) of
+        true -> {ok, Data};
+        false -> no_match
+    end;
+
 decode_term(#{ type := list}, List) when is_list(List) -> {ok, List};
 decode_term(#{ type := email}, Email) ->
     case cmkit:is_email(Email) of 

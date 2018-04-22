@@ -3,6 +3,10 @@ type: module
 category: server
 name: login_api
 spec:
+  init:
+    model:
+      roles:
+        list: [] 
   decoders:
     invalid:
       priority: lowest
@@ -42,6 +46,22 @@ spec:
               text: any
             id:
               text: any
+    roles_found:
+      object:
+        bucket:
+          keyword: users
+        type:
+          keyword: roles
+        value:
+          list: any 
+    roles_not_found:
+      object:
+        bucket:
+          keyword: users
+        type:
+          keyword: roles
+        error:
+          keyword: not_found 
     password_found:
       object:
         context:
@@ -85,6 +105,16 @@ spec:
           keyword: users
         type:
           keyword: user 
+        id: 
+          from: uuid
+    login_roles_lookup:
+      object:
+        context:
+          keyword: login_roles
+        bucket:
+          keyword: users
+        type:
+          keyword: roles 
         id: 
           from: uuid
     user_password_lookup:
@@ -131,6 +161,8 @@ spec:
         id: 
           from: id
           at: user
+        roles:
+          from: roles
   update:
     invalid:
       cmds:
@@ -163,6 +195,17 @@ spec:
     user_found:
       model:
         user:
+          from: value
+      cmds:
+        - effect: db_get
+          encoder: login_roles_lookup
+    roles_not_found:
+      cmds:
+        - effect: notify
+          encoder: login_user_data
+    roles_found:
+      model:
+        roles:
           from: value
       cmds:
         - effect: notify

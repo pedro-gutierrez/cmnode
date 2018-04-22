@@ -34,9 +34,16 @@ spec:
           from: apps
   update:
     list:
-      cmds:
-        - effect: config 
-          encoder: apps_query
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        cmds:
+          - effect: config 
+            encoder: apps_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
     apps:
       model:
         apps:
