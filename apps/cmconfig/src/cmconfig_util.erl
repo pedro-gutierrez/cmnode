@@ -69,9 +69,12 @@ compile_app(#{ <<"name">> := Name,
                    <<"modules">> := Modules 
                   } = Spec
              }, Mods) ->
+
+
         
     #{ name => cmkit:to_atom(Name),
        type => app,
+       config => compile_config(maps:get(<<"config">>, Spec, #{})),
        debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
        category => cmconfig_util:compile_keyword(Cat),
        spec => compile_modules(cmconfig_util:resolve_modules(Modules, Mods), #{})
@@ -90,6 +93,7 @@ compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
     Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
     Out;
 
+
 compile_spec(Spec) ->
     
     Keys = [<<"decoders">>, <<"encoders">>, <<"init">>,
@@ -105,6 +109,14 @@ compile_spec(Spec) ->
                                    end
                            end, #{}, Keys),
     #{ spec => Contents }.
+
+compile_config(Spec) -> 
+    case cmencode:encode(compile_object(Spec)) of 
+        {ok, Config} -> Config;
+        {error, E} -> 
+            cmkit:log({cmconfig, invalid_config, Spec, E}),
+            #{}
+    end.
 
 compile_modules([], #{ decoders := Decs }=Spec) -> 
     Spec#{ decoders => sort_decoders(Decs) };
@@ -200,6 +212,11 @@ compile_term(#{ <<"data">> := <<"any">> }) ->
 compile_term(#{ <<"data">> := Spec }) ->
     maps:merge(#{ type => data},
                compile_term(Spec));
+
+compile_term(#{ <<"config">> := Key }) ->
+    #{ type => config,
+       spec => compile_keyword(Key) 
+     };
 
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);

@@ -16,20 +16,22 @@ start_link(Spec, Session) ->
     gen_statem:start_link(?MODULE, [Spec, Session], []).
 
 init([#{ debug := Debug, 
+         config := Config,
          spec := Spec }, #{ id := Id, app := App }=Session]) ->
     ok = cmsession:attach(Id, context, self()),
     Log = cmkit:log_fun(Debug),
     Log({ cmcore_context, App, Id, self() }),
-    {ok, initializing, Session#{ spec => Spec, log => Log }}.
+    {ok, initializing, Session#{ spec => Spec, config => Config, log => Log }}.
 
-initializing(cast, {init, _Data},  #{app := App, 
+initializing(cast, {init, _Data},  #{app := App,
+                                     config := Config,
                                      spec := Spec, 
                                      id := Id}=Session) ->
-    case cmcore_util:init(Spec) of 
+    case cmcore_util:init(Spec, Config) of 
         {ok, Model, Cmds} -> 
             case cmsession:attach(Id, model, Model) of
                 ok ->
-                    cmcore_util:cmds(Cmds, Model, Session),
+                    cmcore_util:cmds(Cmds, Model, Config, Session),
                     {next_state, ready, Session#{ model => Model }};
                 {error, E} ->
                     Error = server_error(App, Session, init, E),
@@ -43,6 +45,7 @@ initializing(cast, {init, _Data},  #{app := App,
 ready(cast, {update, Data}, #{ app := App, 
                                id := Id, 
                                spec := Spec, 
+                               config := Config,
                                model := Model, 
                                log := Log }=Session) ->
     Log({cmcore_context, data, Data, App, Id}),
@@ -52,12 +55,12 @@ ready(cast, {update, Data}, #{ app := App,
             case cmcore_util:update_spec(Spec, Msg, Model) of 
                 {ok, UpdateSpec} ->
                     Log({cmcore_context, update, UpdateSpec, App, Id}),
-                    case cmcore_util:update(Spec, UpdateSpec, Decoded, {Model, []}) of
+                    case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
                             Log({cmcore_context, model_cmd, Model2, Cmds, App, Id}),
                             case cmsession:attach(Id, model, Model2) of
                                 ok ->
-                                    cmcore_util:cmds(Cmds, Model2, Session),
+                                    cmcore_util:cmds(Cmds, Model2, Config, Session),
                                     {keep_state, Session#{ model => Model2 }};
                                 {error, E} ->
                                     server_error(App, Session, update, E),

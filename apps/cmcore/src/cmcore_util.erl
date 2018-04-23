@@ -1,9 +1,9 @@
 -module(cmcore_util).
 -export([
-         init/1,
-         cmds/3,
+         init/2,
+         cmds/4,
          context/1,
-         update/4,
+         update/5,
          update_spec/3,
          decode/2
         ]).
@@ -14,8 +14,8 @@ context(SessionId) ->
         Other -> Other
     end.
 
-init(#{ init := Init }=App) -> update(App, Init);
-init(_) -> {ok, #{}, []}.
+init(#{ init := Init }=App, Config) -> update(App, Init, Config);
+init(_, _) -> {ok, #{}, []}.
 
 update_spec(#{ update := Updates}, Msg, Model) ->
     case maps:get(Msg, Updates, undef) of
@@ -55,12 +55,12 @@ decode([#{ msg := Msg, spec := Spec}|Rem], Data) ->
 
 decode(_, _) -> {error, no_match}.
 
-update(App, Spec) -> update(App, Spec, #{}).
+update(App, Spec, Config) -> update(App, Spec, Config, #{}).
 
-update(App, Spec, In) -> update(App, Spec, In, {#{}, []}).
+update(App, Spec, Config, In) -> update(App, Spec, Config, In, {#{}, []}).
 
-update(App, #{ model := M, cmds := C }, In, {Model, Cmds}) ->
-    case update_model(M, In, Model) of 
+update(App, #{ model := M, cmds := C }, Config, In, {Model, Cmds}) ->
+    case update_model(M, In, Config, Model) of 
         {ok, M2} -> 
             case resolve_cmds(App, C) of 
                 {ok, C2} ->
@@ -71,9 +71,7 @@ update(App, #{ model := M, cmds := C }, In, {Model, Cmds}) ->
         {error, E} -> {error, E}
     end;
 
-update(_, Spec, _, _) -> {error, {invalid_update, Spec}}.
-
-
+update(_, Spec, _, _, _) -> {error, {invalid_update, Spec}}.
 
 resolve_cmds(App, Cmds) ->
     resolve_cmds(App, Cmds, []).
@@ -103,98 +101,20 @@ resolve_cmd(_, #{ effect := _ }=Cmd) ->
 resolve_cmd(_, Cmd) ->
     {error, {invalid_cmd, Cmd}}.
 
+update_model(Spec, In, Config, Out) ->
+    cmencode:encode(Spec, In, Config, Out).
 
-
-
-
-update_model(Spec, In, Out) ->
-    resolve(Spec, In, Out).
-
-resolve(#{ type := object, spec := Spec}, In, Out) ->
-    resolve_object_values(maps:keys(Spec), Spec, In, Out); 
-
-resolve(#{ type := data, from := Key}, In, _) when is_atom(Key) ->
-    resolve_value_at(Key, In);
-
-resolve(Enc, _, _) when is_atom(Enc) ->
-    {error, #{ encoder => Enc,
-               status => not_implemented }}.
-
-resolve_object_values([], _, _, Out) -> {ok, Out};
-resolve_object_values([K|Rem], Spec, In, Out) ->
-    case resolve_value(maps:get(K, Spec), In) of 
-        {ok, V} ->
-            resolve_object_values(Rem, Spec, In, Out#{ K => V });
-        Other -> Other
-    end.
-
-resolve_value_at(Key, In) ->
-    case cmkit:value_at(Key, In) of
-       undef ->
-           {error, #{ status => missing_key,
-                      key => Key,
-                      data => In }};
-       V ->
-           {ok, V}
-   end.
-
-resolve_value(#{ from := Key, at := At }, In) when is_atom(Key) and is_atom(At) -> 
-    case resolve_value_at(At, In) of 
-        {ok, In2} ->
-            resolve_value_at(Key, In2);
-        Other -> 
-            Other
-    end;
-
-resolve_value(#{ from := Key, at := At }, In) when is_atom(Key) and is_map(At) -> 
-    case resolve_value(At, In) of 
-        {ok, In2} ->
-            resolve_value_at(Key, In2);
-        Other -> 
-            Other
-    end;
-
-
-resolve_value(#{ from := Key}, In) when is_atom(Key) -> 
-    resolve_value_at(Key, In);
-
-
-resolve_value(#{ type := text,
-                 value := Value }, _) ->
-    {ok, cmkit:to_bin(Value) };
-
-resolve_value(#{ type := keyword,
-                 value := Value }, _) when is_atom(Value) ->
-    {ok, Value};
-
-resolve_value(#{ type := object,
-                 spec := Spec }, In) ->
-    resolve_object_values(maps:keys(Spec), Spec, In, #{});
-
-resolve_value(#{ type := list,
-                 value := List }, In) when is_list(List)->
-    {ok, lists:map(fun(V) ->
-                           {ok, V2} = resolve_value(V, In),
-                           V2 
-                   end, List)};
-
-resolve_value(#{ spec := Spec}, _) ->
-    {ok, Spec}.
-
-cmds([], _, _) -> ok;
+cmds([], _, _, _) -> ok;
 cmds([#{ effect := Effect, 
-         encoder := Spec }|Rem], Model, Session) ->
-    case encode(Spec, Model) of 
+         encoder := Spec }|Rem], Model, Config, Session) ->
+    case cmencode:encode(Spec, Model, Config) of 
         {error, Error} ->
             cmkit:log({cmcore, Effect, Spec, Error});
         {ok, Data} ->
             cmeffect:apply(Effect, Data, Session)
     end,
-    cmds(Rem, Model, Session);
+    cmds(Rem, Model, Config, Session);
 
-cmds([#{ effect := Effect}|Rem], Model, Session) ->
+cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
     cmeffect:apply(Effect, nothing, Session),
-    cmds(Rem, Model, Session).
-
-encode(Spec, Model) ->
-    resolve(Spec, Model, #{}).
+    cmds(Rem, Model, Config, Session).

@@ -10,3 +10,6 @@ spec:
     - login_api
     - register_api
     - apps
+  config:
+    role:
+      keyword: admin

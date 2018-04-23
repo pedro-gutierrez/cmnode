@@ -92,7 +92,7 @@ spec:
                   from: uuid
                 value: 
                   list:
-                    - keyword: admin
+                    - config: role 
             - object:
                 type:
                   keyword: user
