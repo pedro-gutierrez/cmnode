@@ -11,6 +11,8 @@ encode(Spec, In, Config) -> encode(Spec, In, Config, #{}).
 encode(#{ type := object, spec := Spec}, In, Config, Out) ->
     encode(maps:keys(Spec), Spec, In, Config, Out);
 
+
+
 encode(#{ type := data, from := Key}, In, Config, Out) when is_atom(Key) ->
     encode(Key, In, Config, Out);
 
@@ -64,7 +66,9 @@ encode(#{ type := list,
 
 encode(#{ type := config,
           spec := Key }, _, Config, _) ->
-    {ok, maps:get(Key, Config)}.
+    {ok, maps:get(Key, Config)};
+
+encode(#{ spec := Spec }, _, _, _) -> {ok, Spec}.
 
 encode([], _, _, _, Out) -> {ok, Out};
 encode([K|Rem], Spec, In, Config, Out) ->
