@@ -288,9 +288,16 @@ compile_term(#{ <<"text">> := Spec }) ->
                compile_term(Spec));
     
 compile_term(#{ <<"from">> := From,
-                <<"at">> := At }) ->
+                <<"at">> := At }) when is_binary(At) ->
     #{ from => compile_from(From),
        at => compile_keyword(At) };
+
+compile_term(#{ <<"from">> := From,
+                <<"at">> := At }) when is_map(At) ->
+    #{ from => compile_from(From),
+       at => compile_term(At) };
+
+
 
 compile_term(<<"from_data">>) -> from_data;
 
@@ -435,7 +442,13 @@ compile_view(#{ <<"text">> := Text}) when is_binary(Text) ->
     #{ text => #{ literal => Text }};
 
 compile_view(#{ <<"text">> := Spec}) ->
-    #{ text => compile_term(Spec) }.
+    #{ text => compile_term(Spec) };
+
+
+compile_view(#{ <<"iterate">> := From,
+                <<"using">> := ItemView }) ->
+    #{ iterate => compile_term(From), 
+       using => compile_keyword(ItemView) }.
 
 
 compile_view_attrs(Attrs) when is_map(Attrs) ->

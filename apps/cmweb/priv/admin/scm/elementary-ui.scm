@@ -34,77 +34,9 @@
                           (list 'event ev-name)
                           (list 'value ev-value))))))
 
-    (define (attr-name attr)
-      (case (symbol? attr)
-        ('#t (symbol->string attr))
-        ('#f attr)))
 
-    (define (render-attr attr ctx)
-        (let ((n (attr-name (car attr)))
-              (v (encode (car (cdr attr)) ctx)))
-          (case (car v)
-            ('ok
-              (case n
-                ((string "onclick")
-                 (let ((fn (js-lambda (lambda (args) (send-event (car (cdr v)) '())))))
-                   (list "onclick" fn )))
-                ((string "onchange")
-                 (let ((fn (js-lambda (lambda (args)
-                                        (let* ((ev (car args))
-                                               (value (js-ref (js-ref ev "target") "value")))
-                                          (send-event (car (cdr v)) value))))))
-                   (list "oninput" fn)))
-                (else (list n (car (cdr v))))))
-            (else 
-              (console-error "error encoding attribute value" v)
-              v))))
       
-    (define (render-elem elem ctx)
-      (case (length elem)
-        ('3
-         (let* ((tag (car elem))
-                (args (cdr elem))
-                (attrs (car args))
-                (children (car (cdr args)))
-                (render-attr-fn (lambda (a) (render-attr a ctx)))
-                (render-child-fn (lambda (c) (render-elem c ctx))))
-           (h tag (map render-attr-fn attrs) (map render-child-fn children))))
-        ('2
-         (let ((kind (car elem))
-               (value (car (cdr elem))))
-           (case kind
-             ('view (render-subview value ctx))
-             ('from 
-              (let ((encoded (encode elem ctx)))
-                (case (car encoded)
-                  ('ok (car (cdr encoded)))
-                  (else (console-error "unable to render text" encoded))))) 
-             (else (console-error "unknown directive" elem)))))
-        ('1 (car elem))
-        (else (console-error "unknown html"))))
      
-    (define (subview-ctx spec in) 
-      (case spec
-        ('undef (list 'ok '()))
-        (else (encode spec in))))
-
-    (define (render-subview spec ctx)
-      (let ((view-name (get 'name spec)))
-        (case view-name
-          ('undef (console-error "invalid subview spec" spec))
-          (else
-            (let ((subview (get view-name (views))))
-              (case subview
-                ('undef (console-error "unknown view" view-name))
-                (else
-                  (let ((sub-ctx (subview-ctx (get 'params spec) ctx)))
-                    (case (car sub-ctx)
-                      ('ok
-                       (render-elem subview (car (cdr sub-ctx))))
-                      (else 
-                        (console-error "invalid context for subview" (list spec sub-ctx))
-                        sub-ctx))))))))))
-
     (define (default-view)
       (list "div" '() (list (list "nothing to render"))))
     
@@ -117,8 +49,112 @@
           ('#t (default-view))
           ('#f v))))
 
-    (define (render-view)(render-elem (list "div" '() (list (view))) (model)))
+    (define (render-view)
+      (let ((v (compile-view (list "div" '() (list (view))) (model))))
+        (render-elem v)))
     
+    (define (render-elem elem)
+      (case (length elem)
+        ('3
+         (let* ((tag (car elem))
+                (args (cdr elem))
+                (attrs (car args))
+                (children (car (cdr args))))
+           (h tag attrs (map render-elem children))))
+        ('1 (car elem))))
+    
+    (define (view-ctx spec in) 
+      (case spec
+        ('undef (list 'ok '()))
+        (else (encode spec in))))
+    
+    (define (resolve-view spec)
+      (let ((view-name (get 'name spec)))
+        (case view-name
+          ('undef (console-error "invalid subview spec" spec))
+          (else
+            (let ((v (get view-name (views))))
+              (case v
+                ('undef (list 'error 'no-view view-name))
+                (else (list 'ok v))))))))
+    
+    (define (compile-view-ref spec ctx)
+      (let ((v (resolve-view spec)))
+        (case (car v)
+          ('ok  
+           (let ((v-ctx (view-ctx (get 'params spec) ctx)))
+            (case (car v-ctx)
+              ('ok (compile-view (car (cdr v)) (car (cdr v-ctx))))
+              (else (console-error "invalid context for subview" (list spec v-ctx))))))
+          (else (console-error "no such view" spec)))))
+    
+    (define (compile-views spec ctx)
+      (let ((v (resolve-view spec)))
+        (case (car v)
+          ('ok
+           (let ((v-ctx (view-ctx (get 'params spec) ctx)))
+            (case (car v-ctx)
+              ('ok
+               (let ((items (encode (get 'items spec) ctx))
+                     (item-view (car (cdr v))))
+                 (case (car items)
+                   ('ok (list "div" '() (map (lambda (item)
+                               (let ((v-ctx2 (set 'item item (car (cdr v-ctx)))))
+                                (compile-view item-view v-ctx2)))  (car (cdr items))))) 
+                   (else (console-error "unable to convert spec into a list of items" spec)))))
+              (else (console-error "invalid context for subview" (list spec v-ctx))))))
+          (else (console-error "no such view" spec)))))
+    
+    (define (attr-name attr)
+      (case (symbol? attr)
+        ('#t (symbol->string attr))
+        ('#f attr)))
+    
+    (define (compile-attr attr ctx)
+      (let ((n (attr-name (car attr)))
+            (v (encode (car (cdr attr)) ctx)))
+        (case (car v)
+          ('ok
+           (case n
+             ((string "onclick")
+              (let ((fn (js-lambda (lambda (args) (send-event (car (cdr v)) '())))))
+                (list "onclick" fn )))
+             ((string "onchange")
+              (let ((fn (js-lambda (lambda (args)
+                                     (let* ((ev (car args))
+                                            (value (js-ref (js-ref ev "target") "value")))
+                                       (send-event (car (cdr v)) value))))))
+                (list "oninput" fn)))
+             (else (list n (car (cdr v))))))
+          (else 
+            (console-error "error encoding attribute value" v)
+            v))))
+   
+    (define (compile-view v ctx)
+      (case (length v)
+        ('3
+         (let* ((tag (car v))
+                (args (cdr v))
+                (attrs (car args))
+                (children (car (cdr args)))
+                (compile-attr-fn (lambda (a) (compile-attr a ctx)))
+                (compile-child-fn (lambda (c) (compile-view c ctx))))
+           (list tag (map compile-attr-fn attrs) (map compile-child-fn children))))
+        ('2
+         (let ((kind (car v))
+               (value (car (cdr v))))
+           (case kind
+             ('view (compile-view-ref value ctx))
+             ('from
+              (let ((encoded (encode v ctx)))
+                (case (car encoded)
+                  ('ok (cdr encoded))
+                  (else (console-error "unable to compile text" encoded)))))
+             ('iterate (compile-views value ctx)) 
+             (else (console-error "unknown directive" v)))))
+        ('1 v)
+        (else (console-error "unknown view" v ))))
+
     (define (update-view encs enc) 
       (case enc
         ('nil 'ok)

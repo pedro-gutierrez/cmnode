@@ -1,0 +1,115 @@
+version: 1.0
+type: module
+category: ui
+name: apps_ui
+spec:
+  init:
+    model:
+      apps: 
+        list: []
+  update:
+    ready:
+      cmds:
+        - effect: ui
+          encoder: home_view
+        - effect: ws
+          encoder: apps
+    apps:
+      model:
+        apps:
+          from: data
+          at: 
+            from: data
+      cmds:
+        - effect: ui
+          encoder: apps_view
+  encoders:
+    home_view:
+      view:
+        tag: div
+        attrs:
+          class: container
+        children:
+          - tag: h1
+            attrs:
+              key: title
+            children:
+              - text: "Hello"
+          - view: user_message
+            params:
+              object:
+                message:
+                  from: message
+    app_item_view:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: name
+            at: item
+        children:
+          - tag: p
+            children:
+              - text:
+                  from: name
+                  at: item
+    apps_collection_view:
+      view:
+        tag: div
+        attrs:
+          key: "apps-collection"
+        children:
+          - text:
+              literal: "apps collection view"
+          - iterate:
+              from: items 
+            using: app_item_view
+    apps_view: 
+      view:
+        tag: div
+        attrs:
+          class: container
+        children:
+          - tag: h1
+            attrs:
+              key: title
+            children:
+              - text: "Applications"
+          - view: user_message
+            params:
+              object:
+                message:
+                  from: message
+          - view: apps_collection_view 
+            params:
+              object:
+                items:
+                  from: apps
+
+    apps:
+      object: 
+        action:
+          keyword: apps
+  decoders:
+    ready:
+      object:
+        effect:
+          keyword: events
+        event:
+          keyword: user_logged_in
+    apps:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            type: 
+              text: 
+                literal: apps
+            data:
+              list:
+                object:
+                  name: 
+                    text: any
+                  category:
+                    text: any

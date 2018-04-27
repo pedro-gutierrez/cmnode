@@ -17,7 +17,7 @@ spec:
           text: 
             literal: "login"
         username:
-          text: any
+          email: any
         password:
           text: any
     email_not_found:

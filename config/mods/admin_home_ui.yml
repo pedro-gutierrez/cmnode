@@ -1,0 +1,17 @@
+version: 1.0
+type: module
+category: ui
+name: admin_home_ui 
+spec:
+  update:
+    ready:
+      cmds:
+        - effect: events
+          encoder: 
+  decoders:
+    ready:
+      object:
+        effect:
+          keyword: events
+        event:
+          keyword: user_logged_in

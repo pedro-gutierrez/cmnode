@@ -395,10 +395,13 @@ mkdirp(Dir) ->
 value_at(Key, Map) when is_atom(Key) and is_map(Map) ->
     case maps:get(Key, Map, undef) of
         undef ->
-            maps:get(to_bin(Key), Map, undef);
+            value_at(to_bin(Key), Map);
         V -> 
             V
-    end.
+    end;
+
+value_at(Key, Map) when is_binary(Key) and is_map(Map) ->
+    maps:get(Key, Map, undef).
 
 
 is_email(Email) ->

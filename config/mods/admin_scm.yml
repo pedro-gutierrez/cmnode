@@ -26,6 +26,7 @@ spec:
           spec: 
             modules:
               - account_ui
+              - apps_ui
     scheme:
       data: 
         from: scheme

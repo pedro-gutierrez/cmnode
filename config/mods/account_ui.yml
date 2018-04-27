@@ -146,8 +146,21 @@ spec:
             text:
               literal: "Hello"
         cmds:
+          - effect: events
+            encoder: user_logged_in
+    invalid:
+      - when:
+          eq:
+            state:
+              keyword: logging_in
+        model: 
+          state: 
+            keyword: login
+          message:
+            text:
+              literal: "Please check your data and try again"
+        cmds:
           - effect: ui
-            encoder: home_view
     not_found:
       - when:
           eq:
@@ -162,6 +175,19 @@ spec:
         cmds:
           - effect: ui
             encoder: login_view
+    forbidden:
+      - when:
+          eq:
+            state:
+              keyword: logging_in
+        model: 
+          state: 
+            keyword: login
+          message:
+            text:
+              literal: "Invalid credentials"
+        cmds:
+          - effect: ui
   encoders:
     login:
       object:
@@ -480,22 +506,10 @@ spec:
                   keyword: show_signup
                 title:
                   literal: "Create an account"
-    home_view:
-      view:
-        tag: div 
-        attrs:
-          class: container
-        children:
-          - tag: h1
-            attrs:
-              key: title
-            children:
-              - text: "Hello"
-          - view: user_message
-            params:
-              object:
-                message:
-                  from: message
+    user_logged_in:
+      object:
+        event: 
+          keyword: user_logged_in
   decoders:
     ws_connected:
       object:
@@ -619,6 +633,15 @@ spec:
               text: any
             last:
               text: any
+    invalid:
+      object:
+        effect: 
+          keyword: ws
+        data:
+          object:
+            error:
+              text:
+                literal: invalid
     not_found:
       object:
         effect: 
@@ -628,7 +651,18 @@ spec:
             error:
               text:
                 literal: not_found
+    forbidden:
+      object:
+        effect: 
+          keyword: ws
+        data:
+          object:
+            error:
+              text:
+                  literal: forbidden
   effects:
+    events:
+      type: elementary-events
     ui:
       type: elementary-ui
     ws:

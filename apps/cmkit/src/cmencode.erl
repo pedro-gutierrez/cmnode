@@ -26,7 +26,7 @@ encode(Key, In, _, _) when is_atom(Key) or is_binary(Key) ->
            {ok, V}
    end;
 
-encode(#{ from := Key, at := At }, In, Config, Out) when is_atom(Key) and is_atom(At) -> 
+encode(#{ from := Key, at := At }, In, Config, Out) when is_atom(Key) and ( is_atom(At) or is_binary(At))-> 
     case encode(At, In, Config, Out) of 
         {ok, In2} ->
             encode(Key, In2, Config, Out);

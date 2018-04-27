@@ -36,6 +36,30 @@
           ('ok (encode-object (cdr spec) input (set k (car (cdr encoded)) out)))
           (else encoded))))))
 
+(define (encode-from spec input)
+  (case (symbol? spec)
+    ('#t 
+     (let* ((v (get spec input)))
+       (case v
+         ('undef (list 'error 'missing-key spec input))
+         (else (list 'ok v)))))
+    (else 
+      (case (length spec)
+        ('2 
+         (let* ((key (car spec))
+                (spec2 (car (cdr spec)))
+                (encode2-fn (case (symbol? spec2)
+                              ('#t encode-from)
+                              ('#f encode)))
+                (input2 (encode2-fn spec2 input)))
+           (case (car input2)
+             ('ok 
+              (encode-from key (car (cdr input2))))
+             (else
+               (console-error "encode error" (list spec2 input))
+               (list 'error 'encode-error spec2 input)))))
+        (else (console-error "unsupported encode spec " spec))))))
+
 (define (encode spec input) 
   (case (list? spec)
     ('#f
@@ -50,12 +74,9 @@
         (case type-spec
           ('symbol (list 'ok value-spec))
           ('text (list 'ok value-spec))
-          ('from 
-           (let* ((v (get value-spec input)))
-             (case v 
-               ('undef (list 'error 'missing-key value-spec input))
-               (else (list 'ok v)))))
+          ('from (encode-from value-spec input)) 
           ('object (encode-object value-spec input '()))
+          ('list (list 'ok value-spec))
           (else
             (console-error "invalid value spec" spec)
             '(error invalid-spec)))))))
@@ -66,9 +87,10 @@
     ('#f '(error text-mismatch))))
 
 (define (decode-text spec in)
-  (case (and (string? in) (or (eq? 'any spec) (eq? in spec)))
-    ('#t (list 'ok in))
-    ('#f '(error text-mismatch))))
+  (let* ((condition (and (string? in) (or (eq? 'any spec) (eq? in spec)))))
+    (case condition
+      ('#t (list 'ok in))
+      ('#f '(error text-mismatch)))))
 
 (define (decode-number spec in)
   (case (and (number? in) (or (eq? 'any spec) (eq? in spec)))
@@ -81,18 +103,42 @@
      ('#t (list (car spec) (car (cdr spec))))))
 
 (define (decode-term spec in)
-  (let* ((decoded-spec (decode-v-spec spec))
-         (type-spec (car decoded-spec))
-         (value-spec (car (cdr decoded-spec))))
-    (case type-spec
-      ('symbol (decode-symbol value-spec in))
-      ('text (decode-text value-spec in))
-      ('number (decode-number value-spec in))
-      ('object (decode-object value-spec in '()))
-      (else
-        (console-error "unsupported decoder spec type" spec)
-        '(error invalid-type-spec)))))
-        
+  (case in 
+    ('undef '(error undef))
+    (else 
+      (let* ((decoded-spec (decode-v-spec spec))
+             (type-spec (car decoded-spec))
+             (value-spec (car (cdr decoded-spec))))
+        (case type-spec
+          ('symbol (decode-symbol value-spec in))
+          ('text (decode-text value-spec in))
+          ('number (decode-number value-spec in))
+          ('object (decode-object value-spec in '()))
+          ('list (decode-list value-spec in '()))
+          (else
+            (console-error "unsupported decoder spec type" (list type-spec spec))
+            '(error invalid-type-spec)))))))
+
+(define (decode-list spec in out)
+  (case (length in)
+    ('0 (list 'ok (reverse out)))
+    (else 
+      (case (car spec)
+        ('object (decode-objects (car (cdr spec)) in out))
+        (else 
+          (console-error "unsupported list decoder spec type" spec)
+            '(error invalid--list-type-spec))))))
+
+(define (decode-objects spec in out)
+  (case (length in)
+    ('0 (list 'ok out))
+    (else 
+      (let* ((next (car in))
+             (decoded (decode-object spec next '())))
+        (case (car decoded)
+          ('ok (decode-objects spec (cdr in) (cons (car (cdr decoded)) out)))
+          (else decoded))))))
+
 (define (decode-object spec in out)
   (case in 
     ('undef '(error not-an-object in))
