@@ -38,7 +38,7 @@
       
      
     (define (default-view)
-      (list "div" '() (list (list "nothing to render"))))
+      (list "div" '() (list 'list (list (list 'text "nothing to render")))))
     
     (define (views) (hashtable-ref state 'views '()))
     (define (model) (hashtable-ref state 'model '()))
@@ -50,18 +50,21 @@
           ('#f v))))
 
     (define (render-view)
-      (let ((v (compile-view (list "div" '() (list (view))) (model))))
+      (let ((v (compile-view (list "div" '() (list 'list (list (view)))) (model))))
         (render-elem v)))
     
     (define (render-elem elem)
-      (case (length elem)
-        ('3
-         (let* ((tag (car elem))
-                (args (cdr elem))
-                (attrs (car args))
-                (children (car (cdr args))))
-           (h tag attrs (map render-elem children))))
-        ('1 (car elem))))
+      (case (list? elem)
+        ('#f elem)
+        ('#t 
+          (case (length elem)
+            ('3
+             (let* ((tag (car elem))
+                    (args (cdr elem))
+                    (attrs (car args))
+                    (children (car (cdr args))))
+               (h tag attrs (map render-elem children))))
+            ('1 (car elem))))))
     
     (define (view-ctx spec in) 
       (case spec
@@ -89,6 +92,7 @@
           (else (console-error "no such view" spec)))))
     
     (define (compile-views spec ctx)
+      (console-log "compile-views" spec)
       (let ((v (resolve-view spec)))
         (case (car v)
           ('ok
@@ -98,9 +102,9 @@
                (let ((items (encode (get 'items spec) ctx))
                      (item-view (car (cdr v))))
                  (case (car items)
-                   ('ok (list "div" '() (map (lambda (item)
+                   ('ok (map (lambda (item)
                                (let ((v-ctx2 (set 'item item (car (cdr v-ctx)))))
-                                (compile-view item-view v-ctx2)))  (car (cdr items))))) 
+                                (compile-view item-view v-ctx2)))  (car (cdr items)))) 
                    (else (console-error "unable to convert spec into a list of items" spec)))))
               (else (console-error "invalid context for subview" (list spec v-ctx))))))
           (else (console-error "no such view" spec)))))
@@ -136,21 +140,28 @@
          (let* ((tag (car v))
                 (args (cdr v))
                 (attrs (car args))
-                (children (car (cdr args)))
-                (compile-attr-fn (lambda (a) (compile-attr a ctx)))
-                (compile-child-fn (lambda (c) (compile-view c ctx))))
-           (list tag (map compile-attr-fn attrs) (map compile-child-fn children))))
+                (children-spec (car (cdr args)))
+                (compile-attr-fn (lambda (a) (compile-attr a ctx))))
+           (case (car children-spec)
+             ('list
+                (list tag (map compile-attr-fn attrs) 
+                      (map (lambda (c) (compile-view c ctx)) (car (cdr children-spec)))))
+             ('loop
+                (list tag (map compile-attr-fn attrs) (compile-views (car (cdr children-spec)) ctx )))
+             (else
+               (console-error "unsupported children spec" children-spec)))))
         ('2
          (let ((kind (car v))
                (value (car (cdr v))))
            (case kind
+             ('text value )
              ('view (compile-view-ref value ctx))
              ('from
               (let ((encoded (encode v ctx)))
                 (case (car encoded)
                   ('ok (cdr encoded))
                   (else (console-error "unable to compile text" encoded)))))
-             ('iterate (compile-views value ctx)) 
+             ;('iterate (compile-views value ctx)) 
              (else (console-error "unknown directive" v)))))
         ('1 v)
         (else (console-error "unknown view" v ))))

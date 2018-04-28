@@ -44,26 +44,40 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            from: name
-            at: item
+          class: "column col-6 col-xs-12"
         children:
-          - tag: p
+          - tag: div
+            attrs:
+              class: "card"
             children:
-              - text:
-                  from: name
-                  at: item
+              - tag: div
+                attrs:
+                  class: "card-header"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "card-title h5"
+                    children:
+                      - text:
+                          from: name
+                          at: item
+                  - tag: div
+                    attrs:
+                      class: "card-subtitle text-gray"
+                    children:
+                      - text:
+                          from: category
+                          at: item
     apps_collection_view:
       view:
         tag: div
         attrs:
+          class: "columns"
           key: "apps-collection"
         children:
-          - text:
-              literal: "apps collection view"
-          - iterate:
-              from: items 
-            using: app_item_view
+          loop: 
+            from: items
+          with: app_item_view
     apps_view: 
       view:
         tag: div

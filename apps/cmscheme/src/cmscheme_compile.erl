@@ -146,30 +146,6 @@ term(K, #{ type := list }) ->
                             ]);
 
 
-%term(K, #{ from := From, at := Spec }) ->
-%    cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
-%                             cmscheme_ast:call(list, [
-%                                                      cmscheme_ast:sym(from),
-%                                                      cmscheme_ast:call(list, [ 
-%                                                                               cmscheme_ast:sym(From),
-%                                                                               term(Spec)
-%                                                                              ])
-%
-%                                                     ])
-%                            ]);
-%
-%
-%term(K, #{ from := From }) ->
-%    cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
-%                             cmscheme_ast:call(list, [
-%                                                      cmscheme_ast:sym(from),
-%                                                      cmscheme_ast:call(list, [ 
-%                                                                               cmscheme_ast:sym(From)
-%                                                                              ])
-%
-%                                                     ])
-%                            ]);
-
 term(K, #{ type := view, spec := Spec}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(Spec)]);
 
@@ -230,7 +206,7 @@ term(#{ model := Model, cmds := Cmds }) ->
 term(#{ tag := Tag, attrs := Attrs, children := Children }) ->
     cmscheme_ast:call(list, [cmscheme_ast:str(Tag),
                              cmscheme_ast:call(list, view_attrs(Attrs)),
-                             cmscheme_ast:call(list, view_children(Children, []))
+                             view_children(Children)
                             ]);
 
 term(#{ view := View, params := Params}) ->
@@ -292,18 +268,48 @@ term(#{ from := Key })  ->
 
     
 term(#{ text := #{ literal := Text}}) ->
-    cmscheme_ast:call(list, [cmscheme_ast:str(Text)]);
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),    
+                             cmscheme_ast:str(Text)
+                            ]);
 
 term(#{ text := Spec })  -> term(Spec);
 
 term(#{ value := Text}) when is_binary(Text) ->
-    cmscheme_ast:call(list, [cmscheme_ast:str(Text)]).
+    cmscheme_ast:call(list, [ 
+                             cmscheme_ast:sym(text),    
+                             cmscheme_ast:str(Text)
+                            ]).
 
 
 view_attrs(Attrs) when is_map(Attrs) ->
     maps:fold(fun(K, V, Out) ->
                 [term(K, V)|Out]
               end, [], Attrs).
+
+view_children(Spec) when is_list(Spec) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(list),
+                             cmscheme_ast:call(list, view_children(Spec, []))
+                            ]);
+
+view_children(#{ loop := From, with := View }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(loop),
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:call(list, [
+                                                                               cmscheme_ast:sym(items),
+                                                                               term(From)
+                                                                              ]),
+                                                      cmscheme_ast:call(list, [
+                                                                               cmscheme_ast:sym(name),
+                                                                               cmscheme_ast:sym(View)
+                                                                              ])
+
+                                                     ])
+
+                            ]).
+
 
 view_children([], Out) -> lists:reverse(Out);
 view_children([Spec|Rem], Out) ->

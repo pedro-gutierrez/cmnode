@@ -307,6 +307,18 @@ compile_term(#{ <<"from">> := From  }) ->
 compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
     #{ one_of => lists:map(fun compile_term/1, Specs) }; 
 
+
+compile_term(#{ <<"loop">> := From,
+                <<"with">> := View }) when is_map(From) ->
+
+    #{ loop => compile_term(From),
+       with => compile_keyword(View) };
+
+compile_term(#{ <<"loop">> := From,
+                <<"with">> := _ } = Spec) when is_binary(From) ->
+
+    compile_term(Spec#{ <<"loop">> => #{ <<"from">> => From }});
+
 compile_term(Text) when is_binary(Text) -> Text.
 
 compile_from(From) when is_binary(From)-> compile_keyword(From);
@@ -420,7 +432,15 @@ compile_view(#{ <<"view">> := View,
 
 compile_view(#{ <<"tag">> := Tag,
                 <<"attrs">> := Attrs,
-                <<"children">> := Children }) ->
+                <<"children">> := Children }) when is_map(Children)->
+    #{ tag => Tag,
+       attrs => compile_view_attrs(Attrs),
+       children => compile_term(Children) 
+     };
+
+compile_view(#{ <<"tag">> := Tag,
+                <<"attrs">> := Attrs,
+                <<"children">> := Children }) when is_list(Children)->
     #{ tag => Tag,
        attrs => compile_view_attrs(Attrs),
        children => lists:map(fun compile_view/1, Children) };
