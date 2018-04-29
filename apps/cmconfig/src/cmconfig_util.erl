@@ -193,6 +193,9 @@ compile_term(#{ <<"decoders">> := Decs }) ->
 compile_term(#{ <<"encoders">> := Encs }) ->
     compile_encoders(Encs);
 
+compile_term(#{ <<"encoder">> := Enc }) when is_binary(Enc) ->
+    #{ encoder => compile_keyword(Enc) };
+
 compile_term(#{ <<"init">> := Init }) ->
     compile_init(Init);
 
@@ -237,6 +240,16 @@ compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
 compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
     #{ type => list,
        spec => compile_term(Spec)
+     };
+
+
+compile_term(#{ <<"map">> := #{ <<"value">> := From,
+                                <<"options">> := Options }}) ->
+    #{ type => map,
+       spec => #{ 
+         value => compile_term(From),
+         options => compile_options(Options)
+        }
      };
 
 compile_term(#{ <<"spec">> := Spec }) ->
@@ -312,7 +325,7 @@ compile_term(#{ <<"loop">> := From,
                 <<"with">> := View }) when is_map(From) ->
 
     #{ loop => compile_term(From),
-       with => compile_keyword(View) };
+       with => compile_term(View) };
 
 compile_term(#{ <<"loop">> := From,
                 <<"with">> := _ } = Spec) when is_binary(From) ->
@@ -357,6 +370,16 @@ compile_priority(#{ <<"priority">> := P }) ->
 
 compile_priority(_) ->
     compile_keyword(normal).
+
+
+compile_options(Spec) when is_map(Spec) ->
+    compile_options(maps:keys(Spec), Spec, []).
+
+compile_options([], _, Out) -> Out;
+compile_options([K|Rem], Spec, Out) ->
+    compile_options(Rem, Spec, [#{ source => compile_term(K),
+                                   target => compile_term(maps:get(K, Spec))
+                                 }|Out]).
 
 
 sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
@@ -427,9 +450,14 @@ compile_view(#{ <<"view">> := View,
 compile_view(#{ <<"view">> := View,
                 <<"params">> := Params }) ->
     
-    #{ view => compile_keyword(View),
+    #{ view => compile_view_name(View),
        params  => compile_term(Params) };
 
+compile_view(#{ <<"view">> := View }) ->
+    
+    #{ view => compile_view_name(View),
+       params  => #{} };
+    
 compile_view(#{ <<"tag">> := Tag,
                 <<"attrs">> := Attrs,
                 <<"children">> := Children }) when is_map(Children)->
@@ -469,6 +497,12 @@ compile_view(#{ <<"iterate">> := From,
                 <<"using">> := ItemView }) ->
     #{ iterate => compile_term(From), 
        using => compile_keyword(ItemView) }.
+
+compile_view_name(Text) when is_binary(Text) ->
+    compile_keyword(Text);
+
+compile_view_name(Spec) ->
+    compile_term(Spec).
 
 
 compile_view_attrs(Attrs) when is_map(Attrs) ->

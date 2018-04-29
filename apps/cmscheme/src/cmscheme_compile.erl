@@ -146,6 +146,9 @@ term(K, #{ type := list }) ->
                             ]);
 
 
+
+
+
 term(K, #{ type := view, spec := Spec}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(Spec)]);
 
@@ -186,6 +189,8 @@ terms([], _, Out) -> lists:reverse(Out);
 terms([K|Rem], Terms, Out) ->
     terms(Rem, Terms, [term(K, maps:get(K, Terms))|Out]).
 
+term(#{}=Map) when map_size(Map) == 0-> cmscheme_ast:call(list, []);
+
 term(A) when is_atom(A) -> cmscheme_ast:sym(A);
 
 term(#{ model := Model, condition := Cond, cmds := Cmds }) ->
@@ -212,7 +217,7 @@ term(#{ tag := Tag, attrs := Attrs, children := Children }) ->
 term(#{ view := View, params := Params}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(view),
                              cmscheme_ast:call(list, [
-                                cmscheme_ast:call(list, [cmscheme_ast:sym(name), cmscheme_ast:sym(View)]),
+                                cmscheme_ast:call(list, [cmscheme_ast:sym(name), term(View)]),
                                 cmscheme_ast:call(list, [
                                                          cmscheme_ast:sym(params), 
                                                          term(Params)])
@@ -220,6 +225,12 @@ term(#{ view := View, params := Params}) ->
                             ]);
 
 
+term(#{ encoder := Name }) when is_atom(Name) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(encoder),
+                             cmscheme_ast:sym(Name)
+                            ]);
+    
 term(#{ view := View, condition := _}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(view),
                              cmscheme_ast:call(list, [
@@ -253,6 +264,39 @@ term(#{ type := object, spec := Spec}) ->
                              cmscheme_ast:call(list, terms(Spec))
                             ]);
 
+
+term(#{ type := map, spec := #{ options := Options,
+                                value := Value}}) ->
+
+
+    OptionsAst = cmscheme_ast:call(list, [
+        cmscheme_ast:sym(options),
+        cmscheme_ast:call(list, lists:map(fun(#{ source := Source, target := Target }) ->
+                                cmscheme_ast:call(list, [
+                                                         cmscheme_ast:call(list, [
+                                                                                  cmscheme_ast:sym(source),
+                                                                                  term(Source)
+                                                                                 ]),
+                                                         cmscheme_ast:call(list, [
+                                                                                  cmscheme_ast:sym(target),
+                                                                                  term(Target)
+                                                                                 ])
+
+                                                        ])
+                                          end, Options))
+                                         ]),
+    
+    ValueAst = cmscheme_ast:call(list, [
+        cmscheme_ast:sym(value),
+        term(Value)
+                                       ]),
+
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(map),
+                             cmscheme_ast:call(list, [OptionsAst, ValueAst])
+                            ]);
+                             
+                             
 term(#{ from := Key, at := At })  -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(from),
                              cmscheme_ast:call(list, [
@@ -276,11 +320,13 @@ term(#{ text := #{ literal := Text}}) ->
 term(#{ text := Spec })  -> term(Spec);
 
 term(#{ value := Text}) when is_binary(Text) ->
+    term(Text);
+
+term(Text) when is_binary(Text) ->
     cmscheme_ast:call(list, [ 
                              cmscheme_ast:sym(text),    
                              cmscheme_ast:str(Text)
                             ]).
-
 
 view_attrs(Attrs) when is_map(Attrs) ->
     maps:fold(fun(K, V, Out) ->
@@ -294,6 +340,12 @@ view_children(Spec) when is_list(Spec) ->
                             ]);
 
 view_children(#{ loop := From, with := View }) ->
+
+    ViewAst = case is_binary(View) of
+                  true -> cmscheme_ast:sym(View);
+                  false -> term(View)
+              end,
+
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(loop),
                              cmscheme_ast:call(list, [
@@ -303,7 +355,7 @@ view_children(#{ loop := From, with := View }) ->
                                                                               ]),
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(name),
-                                                                               cmscheme_ast:sym(View)
+                                                                               ViewAst
                                                                               ])
 
                                                      ])

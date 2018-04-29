@@ -40,9 +40,13 @@
     (define (default-view)
       (list "div" '() (list 'list (list (list 'text "nothing to render")))))
     
-    (define (views) (hashtable-ref state 'views '()))
+    (define (views) (hashtable-ref state 'encoders '()))
     (define (model) (hashtable-ref state 'model '()))
     
+
+    (define (resolve-encoder name)
+      (get name (views)))
+
     (define (view) 
       (let ((v (hashtable-ref state 'view '())))
         (case (null? v)
@@ -67,33 +71,43 @@
             ('1 (car elem))))))
     
     (define (view-ctx spec in) 
-      (case spec
-        ('undef (list 'ok '()))
+      (case (and (list? spec) (> (length spec) 0))
+        ('#f (list 'ok '()))
         (else (encode spec in))))
     
-    (define (resolve-view spec)
-      (let ((view-name (get 'name spec)))
-        (case view-name
-          ('undef (console-error "invalid subview spec" spec))
-          (else
-            (let ((v (get view-name (views))))
+    (define (resolve-view-name spec ctx) 
+      (case (symbol? spec)
+        ('#t (list 'ok spec))
+        (else 
+          (let ((encoded (encode spec ctx)))
+            (case (car encoded)
+              ('ok encoded)
+              (else (list 'error 'encode-error spec)))))))
+
+    (define (resolve-view spec ctx)
+      (let ((view-name (resolve-view-name (get 'name spec) ctx)))
+        (case (car view-name)
+          ('ok
+            (let ((v (get (car (cdr view-name)) (views))))
               (case v
                 ('undef (list 'error 'no-view view-name))
-                (else (list 'ok v))))))))
+                (else (list 'ok v)))))
+          (else (console-error "cannot resolve view name" view-name)))))   
+
     
     (define (compile-view-ref spec ctx)
-      (let ((v (resolve-view spec)))
-        (case (car v)
-          ('ok  
-           (let ((v-ctx (view-ctx (get 'params spec) ctx)))
-            (case (car v-ctx)
+      (let* ((params-spec (get 'params spec))
+             (v-ctx (view-ctx params-spec ctx)))
+        (case (car v-ctx)
+          ('ok 
+           (let ((v (resolve-view spec ctx)))
+            (case (car v)
               ('ok (compile-view (car (cdr v)) (car (cdr v-ctx))))
-              (else (console-error "invalid context for subview" (list spec v-ctx))))))
-          (else (console-error "no such view" spec)))))
+              (else (console-error "no such view" spec)))))
+          (else (console-error "cannot encode view context" spec ctx v-ctx)))))
     
     (define (compile-views spec ctx)
-      (console-log "compile-views" spec)
-      (let ((v (resolve-view spec)))
+      (let ((v (resolve-view spec ctx)))
         (case (car v)
           ('ok
            (let ((v-ctx (view-ctx (get 'params spec) ctx)))
@@ -114,9 +128,21 @@
         ('#t (symbol->string attr))
         ('#f attr)))
     
+    (define (compile-value spec ctx)
+      (case (list? spec)
+        ('#t 
+          (case (car spec)
+            ('encoder
+             (let ((enc (resolve-encoder (car (cdr spec)))))
+               (case enc
+                 ('undef (console-error "no such encoder" (list encode-spec)))
+                 (else (encode enc ctx))))) 
+            (else (encode spec ctx))))
+        ('#f (encode spec ctx))))
+
     (define (compile-attr attr ctx)
       (let ((n (attr-name (car attr)))
-            (v (encode (car (cdr attr)) ctx)))
+            (v (compile-value (car (cdr attr)) ctx)))
         (case (car v)
           ('ok
            (case n
@@ -171,7 +197,7 @@
         ('nil 'ok)
         (else 
           (hashtable-set! state 'view enc)
-          (hashtable-set! state 'views encs))))
+          (hashtable-set! state 'encoders encs))))
 
 
     (define (recv encs enc m)

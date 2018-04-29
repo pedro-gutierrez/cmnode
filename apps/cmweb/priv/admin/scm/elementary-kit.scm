@@ -37,28 +37,74 @@
           (else encoded))))))
 
 (define (encode-from spec input)
-  (case (symbol? spec)
-    ('#t 
-     (let* ((v (get spec input)))
-       (case v
-         ('undef (list 'error 'missing-key spec input))
-         (else (list 'ok v)))))
+  (case (length input)
+    ('0 (list 'error 'no-input input))
     (else 
-      (case (length spec)
-        ('2 
-         (let* ((key (car spec))
-                (spec2 (car (cdr spec)))
-                (encode2-fn (case (symbol? spec2)
-                              ('#t encode-from)
-                              ('#f encode)))
-                (input2 (encode2-fn spec2 input)))
-           (case (car input2)
-             ('ok 
-              (encode-from key (car (cdr input2))))
-             (else
-               (console-error "encode error" (list spec2 input))
-               (list 'error 'encode-error spec2 input)))))
-        (else (console-error "unsupported encode spec " spec))))))
+      (case (symbol? spec)
+        ('#t 
+         (let* ((v (get spec input)))
+           (case v
+             ('undef (list 'error 'missing-key spec input))
+             (else (list 'ok v)))))
+        (else 
+          (case (length spec)
+            ('2 
+             (let* ((key (car spec))
+                    (spec2 (car (cdr spec)))
+                    (encode2-fn (case (symbol? spec2)
+                                  ('#t encode-from)
+                                  ('#f encode)))
+                    (input2 (encode2-fn spec2 input)))
+               (case (car input2)
+                 ('ok 
+                  (encode-from key (car (cdr input2))))
+                 (else
+                   (console-error "encode error" (list spec2 input))
+                   (list 'error 'encode-error spec2 input)))))
+            (else (console-error "unsupported encode spec " spec))))))))
+
+
+(define (encode-map-match-options options in) 
+  (case (length options)
+    ('0 '(error no-options-matched))
+    (else
+      (let* ((opt (car options))
+             (opt-source (get 'source opt))
+             (opt-source-value (encode opt-source in)))
+        (case (car opt-source-value)
+          ('ok
+           (case (eq? (car (cdr opt-source-value)) in)
+             ('#f (encode-map-match-options (cdr options) in))
+             (else 
+              (let* ((opt-target (get 'target opt))
+                     (opt-target-value (encode opt-target in)))
+                (case (car opt-target-value)
+                  ('ok (list 'ok (car (cdr opt-target-value))))
+                  (else (list 'error encode-error opt-target)))))))
+          (else (list 'error encode-error opt-source)))))))
+
+(define (encode-map spec input)
+  (let* ((value-spec (get 'value spec))
+         (options-spec (get 'options spec))
+         (v (encode value-spec input)))
+    (case (car v)
+      ('ok
+       (let ((encoded (encode-map-match-options options-spec (car (cdr v)))))
+         (case (car encoded)
+           ('ok encoded)
+           (else (console-error "unable to map value" (list spec input encoded))))))
+      (else (console-error "unable to encode value in map spec" spec)))))
+
+(define (encode-list specs in out)
+  (case (length specs)
+    ('0 (list 'ok (reverse out)))
+    (else 
+      (let* ((spec (car specs))
+             (encoded (encode spec in)))
+        (case (car encoded)
+          ('ok (encode-list (cdr specs) in (cons (car (cdr encoded)) out)))
+          (else 
+            (console-error "cannot encode list" specs in encoded)))))))
 
 (define (encode spec input) 
   (case (list? spec)
@@ -76,7 +122,8 @@
           ('text (list 'ok value-spec))
           ('from (encode-from value-spec input)) 
           ('object (encode-object value-spec input '()))
-          ('list (list 'ok value-spec))
+          ('list (encode-list value-spec input '()))
+          ('map (encode-map value-spec input))
           (else
             (console-error "invalid value spec" spec)
             '(error invalid-spec)))))))

@@ -144,7 +144,7 @@ spec:
         model:
           message:
             text:
-              literal: "Hello"
+              literal: ""
         cmds:
           - effect: events
             encoder: user_logged_in

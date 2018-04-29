@@ -11,7 +11,7 @@ spec:
     ready:
       cmds:
         - effect: ui
-          encoder: home_view
+          encoder: apps_view
         - effect: ws
           encoder: apps
     apps:
@@ -24,82 +24,271 @@ spec:
         - effect: ui
           encoder: apps_view
   encoders:
-    home_view:
+    sidebar_icon:
       view:
         tag: div
         attrs:
-          class: container
+          class: "sidebar-icon c-hand"
+          onclick:
+            from: name
+          key: 
+            from: name
         children:
-          - tag: h1
+          - tag: i
             attrs:
-              key: title
+              class: 
+                from: style
+          - tag: div
             children:
-              - text: "Hello"
-          - view: user_message
+              - text:
+                  from: title
+    sidebar:
+      view:
+        tag: div
+        attrs:
+          class: "text-center"
+          key: "sidebar"
+        children:
+          - view: sidebar_icon
             params:
               object:
-                message:
-                  from: message
+                name: "apps"
+                style: "icono-gear"
+                title: "Apps"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "ports"
+                style: "icono-rss"
+                title: "Ports"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "buckets"
+                style: "icono-book"
+                title: "Buckets"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "nodes"
+                style: "icono-imac"
+                title: "Nodes"
+    layout:
+      view:
+        tag: div
+        attrs:
+          class: "off-canvas"
+          key: "layout"
+        children:
+          - tag: div
+            attrs:
+              id: "sidebar"
+              class: "off-canvas-sidebar active"
+            children:
+              - view: sidebar
+          - tag: div
+            attrs:
+              class: "off-canvas-content"
+            children:
+              - view: user_message
+                params:
+                  object:
+                    message:
+                      from: message
+              - view:
+                  from: content_view
+                params:
+                  object:
+                    data:
+                      from: contents
+    main:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: view 
+        children:
+          - tag: h2
+            attrs:
+              class: "content-view"
+            children:
+              - text:
+                  from: title
+          - view:
+              from: view
+            params:
+              object:
+                data:
+                  from: data
+
+    section:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: view 
+        children:
+          - tag: section
+            attrs:
+              class: "section-view"
+            children:
+              - view:
+                  from: view
+                params:
+                  object:
+                    data:
+                      from: data
+    table:
+      view: 
+        tag: div
+        attrs:
+          class: "table-view"
+        children:
+          - tag: table
+            children:
+              - tag: thead
+                children:
+                  loop:
+                    from: headers
+                  with: table_header
+              - tag: tbody
+                children:
+                  loop:
+                    from: items
+                  with:
+                    from: item_view
+
+    table_header:
+      view:
+        tag: th
+        children:
+          - text:
+              from: title
+              at: item
+    app_icon:
+      map:
+        value:
+          from: category
+          at: item
+        options:
+          ui: "icon-dark icono-imacBold"
+          api: "icon-dark icono-terminal"
     app_item_view:
       view:
         tag: div
         attrs:
-          class: "column col-6 col-xs-12"
+          key:
+            from: name
+            at: item
+          class: "column col-3 col-xs-6 text-center"
         children:
           - tag: div
             attrs:
-              class: "card"
+              class: "icon-dark"
             children:
-              - tag: div
+              - tag: i
                 attrs:
-                  class: "card-header"
-                children:
-                  - tag: div
-                    attrs:
-                      class: "card-title h5"
-                    children:
-                      - text:
-                          from: name
-                          at: item
-                  - tag: div
-                    attrs:
-                      class: "card-subtitle text-gray"
-                    children:
-                      - text:
-                          from: category
-                          at: item
+                  class:
+                    encoder: app_icon 
+          - tag: h4
+            attrs:
+              class: "title"
+            children:
+              - text:
+                  from: name
+                  at: item
+          - tag: label
+            attrs:
+              class: "label"
+            children:
+              - text:
+                  from: category
+                  at: item
+
     apps_collection_view:
       view:
         tag: div
         attrs:
-          class: "columns"
-          key: "apps-collection"
+          class: "container"
         children:
-          loop: 
-            from: items
-          with: app_item_view
+          - tag: div
+            attrs:
+              class: "columns"
+              key: "apps-collection"
+            children:
+              loop: 
+                from: data
+              with: app_item_view
+    app_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            from: name
+            at: item
+        children:
+          - tag: td
+            children:
+              - text:
+                  from: name
+                  at: item
+          - tag: td
+            children:
+              - text:
+                  from: category
+                  at: item
+    apps_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+                - object:
+                    title:
+                      text: 
+                        literal: "Category"
+            items:
+              from: data
+            item_view:
+              keyword: app_table_item_view
+                    
+    apps_section_view:
+      view:
+        view: section
+        params:
+          object:
+            view:
+              keyword: apps_table_view
+            data:
+              from: data
+    apps_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Apps"
+            view:
+              keyword: apps_table_view
+            data:
+              from: data
     apps_view: 
       view:
-        tag: div
-        attrs:
-          class: container
-        children:
-          - tag: h1
-            attrs:
-              key: title
-            children:
-              - text: "Applications"
-          - view: user_message
-            params:
-              object:
-                message:
-                  from: message
-          - view: apps_collection_view 
-            params:
-              object:
-                items:
-                  from: apps
-
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: apps_main_view
+            contents:
+              from: apps
     apps:
       object: 
         action:
