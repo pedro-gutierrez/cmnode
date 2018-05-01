@@ -106,10 +106,19 @@
           (else 
             (console-error "cannot encode list" specs in encoded)))))))
 
+(define (encode-text spec in)
+  (case (string? spec)
+    ('#t (list 'ok spec))
+    (else 
+      (let ((encoded (encode spec in)))
+        (case (car encoded)
+          ('ok (to-string (car (cdr encoded))))
+          (else encoded))))))
+
 (define (encode spec input) 
   (case (list? spec)
     ('#f
-     (case (or (symbol? spec) (string? spec))
+     (case (or (symbol? spec) (string? spec) (number? spec))
        ('#t (list 'ok spec))
        ('#f 
         (console-error "invalid spec" spec)
@@ -119,8 +128,8 @@
             (value-spec (car (cdr spec))))
         (case type-spec
           ('symbol (list 'ok value-spec))
-          ('text (list 'ok value-spec))
-          ('from (encode-from value-spec input)) 
+          ('text (encode-text value-spec input))
+          ('from (encode-from value-spec input))
           ('object (encode-object value-spec input '()))
           ('list (encode-list value-spec input '()))
           ('map (encode-map value-spec input))
@@ -232,4 +241,11 @@
       (console-error "unsupported condition" spec)
       '#f)))
     
+(define (to-string v)
+  (case (string? v)
+    ('#t (list 'ok v))
+    ('#f 
+     (case (number? v)
+       ('#t (list 'ok (number->string v)))
+       (else (console-error "can't convert value to a string" v))))))
 

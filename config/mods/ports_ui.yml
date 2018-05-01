@@ -1,0 +1,136 @@
+version: 1.0
+type: module
+category: ui
+name: ports_ui
+spec:
+  init:
+    model:
+      ports:
+        list: []
+  update:
+    ports:
+      model:
+        ports:
+          from: data
+          at: 
+            from: data
+      cmds:
+        - effect: ui
+          encoder: ports_view
+    show_ports:
+      cmds:
+        - effect: ui
+          encoder: ports_view
+        - effect: ws
+          encoder: ports
+  encoders:
+    port_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            from: name
+            at: item
+        children:
+          - tag: td
+            children:
+              - text:
+                  from: port 
+                  at: item
+          - tag: td
+            children:
+              - text:
+                  literal: "To do"
+    ports_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Port"
+                - object:
+                    title:
+                      text: 
+                        literal: "Apps"
+            items:
+              from: data
+            item_view:
+              keyword: port_table_item_view
+                    
+    ports_section_view:
+      view:
+        view: section
+        params:
+          object:
+            view:
+              keyword: ports_table_view
+            data:
+              from: data
+    ports_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "ports"
+            view:
+              keyword: ports_table_view
+            data:
+              from: data
+    ports_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: ports_main_view
+            contents:
+              from: ports
+    ports:
+      object: 
+        action:
+          keyword: ports 
+  decoders:
+    show_ports:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: "ports"
+    ports:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            type: 
+              text: 
+                literal: ports
+            data:
+              list:
+                object:
+                  name:
+                    text: any
+                  port: 
+                    number: any
+                  apps:
+                    list:
+                      object:
+                        name:
+                          text: any
+                        mounts:
+                          list:
+                            object:
+                              transport:
+                                text: any
+                              path:
+                                text: any
+

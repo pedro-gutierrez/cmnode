@@ -317,7 +317,12 @@ term(#{ text := #{ literal := Text}}) ->
                              cmscheme_ast:str(Text)
                             ]);
 
-term(#{ text := Spec })  -> term(Spec);
+term(#{ text := Spec })  -> 
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),
+                            term(Spec)
+                             
+                            ]);
 
 term(#{ value := Text}) when is_binary(Text) ->
     term(Text);

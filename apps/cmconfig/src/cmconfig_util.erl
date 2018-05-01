@@ -284,7 +284,7 @@ compile_term(#{ <<"same_as">> := Prop }) ->
 compile_term(#{ <<"text">> := <<"any">> }) ->
     #{ type => text };
 
-compile_term(#{ <<"any">> := <<"tetx">> }) ->
+compile_term(#{ <<"any">> := <<"text">> }) ->
     #{ type => text };
 
 compile_term(#{ <<"email">> := <<"any">> }) ->
@@ -295,6 +295,15 @@ compile_term(#{ <<"any">> := <<"email">> }) ->
 
 compile_term(#{ <<"any">> := <<"keyword">> }) ->
     #{ type => keyword };
+
+compile_term(#{ <<"keyword">> := <<"any">> }) ->
+    #{ type => keyword };
+
+compile_term(#{ <<"any">> := <<"number">> }) ->
+    #{ type => number };
+
+compile_term(#{ <<"number">> := <<"any">> }) ->
+    #{ type => number };
 
 compile_term(#{ <<"text">> := Spec }) ->
     maps:merge(#{ type => text},

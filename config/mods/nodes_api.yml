@@ -1,0 +1,53 @@
+version: 1.0
+type: module
+category: server
+name: nodes_api 
+spec:
+  decoders:
+    nodes_query:
+      object:
+        action: 
+          text: 
+            literal: "nodes"
+    nodes:
+      object:
+        nodes: 
+          list:
+            object: 
+              status:
+                keyword:
+                  one_of:
+                    - keyword: online
+                    - keyword: offline
+              name:
+                any: keyword
+  encoders:
+    nodes_query:
+      object:
+        query: 
+          keyword: nodes 
+    nodes:
+      object:
+        type:
+          keyword: nodes
+        data:
+          from: nodes
+  update:
+    nodes_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        cmds:
+          - effect: cloud 
+            encoder: nodes_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    nodes:
+      model:
+        nodes:
+          from: nodes 
+      cmds:
+        - effect: notify
+          encoder: nodes

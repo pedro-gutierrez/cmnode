@@ -7,13 +7,9 @@ spec:
     model:
       apps: 
         list: []
+      nodes:
+        list: []
   update:
-    ready:
-      cmds:
-        - effect: ui
-          encoder: apps_view
-        - effect: ws
-          encoder: apps
     apps:
       model:
         apps:
@@ -23,6 +19,18 @@ spec:
       cmds:
         - effect: ui
           encoder: apps_view
+    show_apps:
+      cmds:
+        - effect: ui
+          encoder: apps_view
+        - effect: ws
+          encoder: apps
+    ready:
+      cmds:
+        - effect: ui
+          encoder: apps_view
+        - effect: ws
+          encoder: apps
   encoders:
     sidebar_icon:
       view:
@@ -64,9 +72,9 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "buckets"
-                style: "icono-book"
-                title: "Buckets"
+                name: "tables"
+                style: "icono-list"
+                title: "Tables"
           - view: sidebar_icon
             params:
               object:
@@ -289,10 +297,74 @@ spec:
               keyword: apps_main_view
             contents:
               from: apps
+    node_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            from: name
+            at: item
+        children:
+          - tag: td
+            children:
+              - text:
+                  from: name
+                  at: item
+          - tag: td
+            children:
+              - text:
+                  from: status
+                  at: item
+    nodes_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+                - object:
+                    title:
+                      text: 
+                        literal: "Status"
+            items:
+              from: data
+            item_view:
+              keyword: node_table_item_view
+    nodes_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Nodes"
+            view:
+              keyword: nodes_table_view
+            data:
+              from: data
+    nodes_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: nodes_main_view
+            contents:
+              from: nodes
     apps:
       object: 
         action:
           keyword: apps
+    nodes:
+      object: 
+        action:
+          keyword: nodes 
   decoders:
     ready:
       object:
@@ -300,6 +372,13 @@ spec:
           keyword: events
         event:
           keyword: user_logged_in
+    show_apps:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: "apps"
     apps:
       object:
         effect:

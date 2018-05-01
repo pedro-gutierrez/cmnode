@@ -5,4 +5,7 @@
 
 effect_info() -> config.
 effect_apply(#{ query := apps }, #{ id := SessionId }) ->
-    cmcore:update(SessionId, #{ apps => cmconfig:apps() }).
+    cmcore:update(SessionId, #{ apps => cmconfig:apps() });
+
+effect_apply(#{ query := ports }, #{ id := SessionId }) ->
+    cmcore:update(SessionId, #{ ports => cmconfig:ports() }).

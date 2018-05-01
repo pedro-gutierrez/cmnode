@@ -10,6 +10,8 @@ spec:
     - login_api
     - register_api
     - apps
+    - nodes_api
+    - ports_api
   config:
     role:
       keyword: admin

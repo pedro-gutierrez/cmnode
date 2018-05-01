@@ -180,7 +180,11 @@
          (let ((kind (car v))
                (value (car (cdr v))))
            (case kind
-             ('text value )
+             ('text 
+              (let ((encoded (encode v ctx)))
+                (case (car encoded)
+                  ('ok (car (cdr encoded)))
+                  (else (console-error "can't encode text" encoded)))))
              ('view (compile-view-ref value ctx))
              ('from
               (let ((encoded (encode v ctx)))

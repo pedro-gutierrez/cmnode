@@ -13,8 +13,9 @@ decode(#{ type := object }, Data) when is_map(Data) ->
 decode(#{ type := list } = Spec, Data) -> 
     decode_term(Spec, Data);
 
-decode(_, _) ->  no_match.
-
+decode(Spec, Data) ->  
+    cmkit:log({cmdecode, not_matched, Spec, Data}),
+    no_match.
 
 decode_list(Spec, Data) -> 
     decode_list(Spec, Data, []).
@@ -24,7 +25,9 @@ decode_list(Spec, [Item|Rem], Out) ->
     case decode(Spec, Item) of 
         {ok, Decoded} ->
             decode_list(Spec, Rem, [Decoded|Out]);
-        Other -> Other
+        Other -> 
+            cmkit:log({cmcode, decode_list, not_matched, Spec, Item, Other}),
+            Other
     end.
 
 decode_object(Spec, Data, Out) ->
@@ -65,6 +68,9 @@ decode_term(#{ type := text, value := _, constraint := equal}, _) -> no_match;
 decode_term(#{ type := text, value := Text}, Text) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text, value := _}, Text) when is_binary(Text) -> no_match;
 decode_term(#{ type := text}, Text) when is_binary(Text) -> {ok, Text};
+decode_term(#{ type := text}, Text) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
+decode_term(#{ type := number}, Num) when is_number(Num) -> {ok, Num};
+
 decode_term(#{ type := list, spec := Spec }, Data) when is_list(Data) -> 
     decode_list(Spec, Data);
 
