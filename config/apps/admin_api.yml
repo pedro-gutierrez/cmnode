@@ -12,6 +12,7 @@ spec:
     - apps
     - nodes_api
     - ports_api
+    - buckets_api
   config:
     role:
       keyword: admin

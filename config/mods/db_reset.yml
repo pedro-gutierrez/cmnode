@@ -17,7 +17,7 @@ spec:
         all_deleted:
           keyword: true 
   encoders:
-    buckets:
+    buckets_to_clear:
       object:
         buckets:
           list: 
@@ -30,7 +30,7 @@ spec:
     reset:
       cmds:
         - effect: db_reset
-          encoder: buckets
+          encoder: buckets_to_clear
     success:
       cmds:
         - effect: notify

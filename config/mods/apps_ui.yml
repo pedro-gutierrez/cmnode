@@ -181,52 +181,6 @@ spec:
         options:
           ui: "icon-dark icono-imacBold"
           api: "icon-dark icono-terminal"
-    app_item_view:
-      view:
-        tag: div
-        attrs:
-          key:
-            from: name
-            at: item
-          class: "column col-3 col-xs-6 text-center"
-        children:
-          - tag: div
-            attrs:
-              class: "icon-dark"
-            children:
-              - tag: i
-                attrs:
-                  class:
-                    encoder: app_icon 
-          - tag: h4
-            attrs:
-              class: "title"
-            children:
-              - text:
-                  from: name
-                  at: item
-          - tag: label
-            attrs:
-              class: "label"
-            children:
-              - text:
-                  from: category
-                  at: item
-
-    apps_collection_view:
-      view:
-        tag: div
-        attrs:
-          class: "container"
-        children:
-          - tag: div
-            attrs:
-              class: "columns"
-              key: "apps-collection"
-            children:
-              loop: 
-                from: data
-              with: app_item_view
     app_table_item_view:
       view:
         tag: "tr"
@@ -237,9 +191,15 @@ spec:
         children:
           - tag: td
             children:
-              - text:
-                  from: name
-                  at: item
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                  onclick:
+                    encoder: app_selection
+                children:
+                  - text:
+                      from: name
+                      at: item
           - tag: td
             children:
               - text:
@@ -364,7 +324,13 @@ spec:
     nodes:
       object: 
         action:
-          keyword: nodes 
+          keyword: nodes
+    app_selection:
+      object:
+        name:
+          keyword: show_app
+        app:
+          from: item 
   decoders:
     ready:
       object:

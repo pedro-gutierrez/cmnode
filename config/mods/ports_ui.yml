@@ -24,6 +24,56 @@ spec:
         - effect: ws
           encoder: ports
   encoders:
+    port_app_mount_item_view:
+      view:
+        tag: div
+        children:
+          - text:
+              from: path
+              at: item
+          - text:
+              from: transport
+              at: item
+    port_app_mounts_view:
+      view:
+        tag: div
+        children:
+          loop:
+            from: mounts
+          with: port_app_mount_item_view
+    port_app_item_view:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: name
+            at: item
+        children:
+          - tag: a
+            attrs:
+              class: "c-hand"
+              onclick:
+                encoder: app_selection
+              href: "#" 
+            children: 
+              - text:
+                  from: name
+                  at: item
+          - view: port_app_mounts_view
+            params:
+              object:
+                mounts:
+                  from: mounts
+                  at: item
+    port_apps_view:
+      view:
+        tag: div
+        attrs:
+          class: "container"
+        children:
+          loop:
+            from: apps
+          with: port_app_item_view
     port_table_item_view:
       view:
         tag: "tr"
@@ -39,8 +89,12 @@ spec:
                   at: item
           - tag: td
             children:
-              - text:
-                  literal: "To do"
+              - view: port_apps_view
+                params:
+                  object:
+                    apps:
+                      from: apps
+                      at: item
     ports_table_view:
       view:
         view: table

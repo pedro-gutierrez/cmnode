@@ -306,6 +306,8 @@ compile_term(#{ <<"number">> := <<"any">> }) ->
     #{ type => number };
 
 compile_term(#{ <<"text">> := Spec }) ->
+    %#{ type => text, spec => compile_term(Spec) };
+    
     maps:merge(#{ type => text},
                compile_term(Spec));
     
@@ -322,6 +324,7 @@ compile_term(#{ <<"from">> := From,
 
 
 compile_term(<<"from_data">>) -> from_data;
+compile_term(#{ <<"from_data">> := _ }) -> from_data;
 
 compile_term(#{ <<"from">> := From  }) ->
     #{ from => compile_from(From) };

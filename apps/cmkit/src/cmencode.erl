@@ -49,6 +49,11 @@ encode(#{ type := text,
           value := Value }, _, _, _) ->
     {ok, cmkit:to_bin(Value) };
 
+
+encode(#{ type := text,
+          spec := Spec }, In, Config, Out) ->
+    encode(Spec, In, Config, Out);
+
 encode(#{ type := keyword,
           value := Value }, _, _, _) when is_atom(Value) ->
     {ok, Value};

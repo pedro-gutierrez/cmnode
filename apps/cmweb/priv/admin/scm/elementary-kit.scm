@@ -140,18 +140,18 @@
 (define (decode-symbol spec in)
   (case (and (symbol? in) (eq? in spec))
     ('#t (list 'ok in))
-    ('#f '(error text-mismatch))))
+    ('#f (list 'error 'symbol-mismatch spec in))))
 
 (define (decode-text spec in)
   (let* ((condition (and (string? in) (or (eq? 'any spec) (eq? in spec)))))
     (case condition
       ('#t (list 'ok in))
-      ('#f '(error text-mismatch)))))
+      ('#f (list 'error 'text-mismatch spec in)))))
 
 (define (decode-number spec in)
   (case (and (number? in) (or (eq? 'any spec) (eq? in spec)))
     ('#t (list 'ok in))
-    ('#f '(error number-mismatch))))
+    ('#f (list 'error 'number-mismatch spec in))))
 
 (define (decode-v-spec spec)
    (case (list? spec)
@@ -181,9 +181,20 @@
     (else 
       (case (car spec)
         ('object (decode-objects (car (cdr spec)) in out))
+        ('text (decode-texts (car (cdr spec)) in out))
         (else 
           (console-error "unsupported list decoder spec type" spec)
             '(error invalid--list-type-spec))))))
+
+(define (decode-texts spec in out)
+  (case (length in)
+    ('0 (list 'ok (reverse out)))
+    (else
+      (let* ((next (car in))
+             (decoded (decode-text spec next)))
+        (case (car decoded)
+          ('ok (decode-texts spec (cdr in) (cons (car (cdr decoded)) out)))
+          (else decoded))))))
 
 (define (decode-objects spec in out)
   (case (length in)

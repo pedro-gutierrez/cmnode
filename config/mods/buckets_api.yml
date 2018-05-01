@@ -1,0 +1,53 @@
+version: 1.0
+type: module
+category: server
+name: buckets_api 
+spec:
+  decoders:
+    buckets_query:
+      object:
+        action: 
+          text: 
+            literal: "buckets"
+    buckets:
+      object:
+        buckets: 
+          list:
+            object: 
+              hosts:
+                list:
+                  any: text
+              name:
+                any: keyword
+              storage:
+                any: keyword
+  encoders:
+    buckets_query:
+      object:
+        query: 
+          keyword: buckets 
+    buckets:
+      object:
+        type:
+          keyword: buckets
+        data:
+          from: buckets
+  update:
+    buckets_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        cmds:
+          - effect: config 
+            encoder: buckets_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    buckets:
+      model:
+        buckets:
+          from: buckets 
+      cmds:
+        - effect: notify
+          encoder: buckets

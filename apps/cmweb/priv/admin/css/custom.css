@@ -51,4 +51,6 @@ tbody tr td {
     vertical-align: top;
 }
 
+a { text-decoration: none !important; }
+
 

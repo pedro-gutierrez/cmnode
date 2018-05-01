@@ -10,12 +10,8 @@ decode(#{ type := object, spec := Spec }, Data) ->
 decode(#{ type := object }, Data) when is_map(Data) -> 
     {ok, Data};
 
-decode(#{ type := list } = Spec, Data) -> 
-    decode_term(Spec, Data);
-
-decode(Spec, Data) ->  
-    cmkit:log({cmdecode, not_matched, Spec, Data}),
-    no_match.
+decode(Spec, Data) -> 
+    decode_term(Spec, Data).
 
 decode_list(Spec, Data) -> 
     decode_list(Spec, Data, []).
@@ -26,7 +22,7 @@ decode_list(Spec, [Item|Rem], Out) ->
         {ok, Decoded} ->
             decode_list(Spec, Rem, [Decoded|Out]);
         Other -> 
-            cmkit:log({cmcode, decode_list, not_matched, Spec, Item, Other}),
+            cmkit:log({cmdecode, decode_list, not_matched, Spec, Item, Other}),
             Other
     end.
 

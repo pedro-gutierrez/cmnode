@@ -1,0 +1,59 @@
+version: 1.0
+type: module
+category: ui
+name: app_ui
+spec:
+  update:
+    show_app:
+      model:
+        app: 
+          from: app
+          at: event
+      cmds:
+        - effect: ui
+          encoder: app_view
+  encoders:
+    app_sections_view:
+      view:
+        tag: div
+        children:
+          - text:
+              from: name
+              at: data
+    app_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                from: name
+                at: data
+            view:
+              keyword: app_sections_view
+            data:
+              from: data
+    app_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: app_main_view
+            contents:
+              from: app 
+  decoders:
+    show_app:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: show_app
+            app:
+              object:
+                name: 
+                  text: any

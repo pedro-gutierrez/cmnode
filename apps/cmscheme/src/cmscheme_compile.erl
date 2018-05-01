@@ -103,6 +103,23 @@ term(K, #{ type := keyword, value := V}) when is_atom(V) ->
 term(K, #{ type := text, value := V  }) when is_binary(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
 
+term(K, #{ type := text, from := From, at := At }) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(text),
+                                                      term(#{ from => From,
+                                                              at => At })
+                                                     ])
+                            ]);
+
+term(K, #{ type := text, from := From }) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(text),
+                                                      term(#{ from => From })
+                                                     ])
+                            ]);
+
 term(K, #{ type := text }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, [
@@ -310,18 +327,46 @@ term(#{ from := Key })  ->
                              cmscheme_ast:sym(Key)
                             ]);
 
-    
+   
+
+
 term(#{ text := #{ literal := Text}}) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),    
                              cmscheme_ast:str(Text)
                             ]);
 
+term(#{ type := text, from := From, at := At }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),
+                             term(#{ from => From,
+                                        at => At })
+                            ]);
+
+term(#{ type := text, from := From }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),
+                             term(#{ from =>  From })
+                            ]);
+
+
+term(#{ type := text, spec := Spec }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),
+                             term(Spec)
+                            ]);
+
+term(#{ type := text }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),
+                             cmscheme_ast:sym(any)
+                            ]);
+
+
 term(#{ text := Spec })  -> 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
                             term(Spec)
-                             
                             ]);
 
 term(#{ value := Text}) when is_binary(Text) ->

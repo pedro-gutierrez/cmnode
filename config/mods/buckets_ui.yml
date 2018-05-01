@@ -1,0 +1,144 @@
+version: 1.0
+type: module
+category: ui
+name: buckets_ui
+spec:
+  init:
+    model:
+      buckets:
+        list: []
+  update:
+    buckets:
+      model:
+        buckets:
+          from: data
+          at: 
+            from: data
+      cmds:
+        - effect: ui
+          encoder: buckets_view
+    show_buckets:
+      cmds:
+        - effect: ui
+          encoder: buckets_view
+        - effect: ws
+          encoder: buckets
+  encoders:
+    bucket_replica_item_view:
+      view:
+        tag: div
+        children:
+          - text:
+              from: item 
+    bucket_replicas_view:
+      view:
+        tag: div
+        attrs:
+          class: "container"
+        children:
+          loop:
+            from: replicas 
+          with: bucket_replica_item_view
+    bucket_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            from: name
+            at: item
+        children:
+          - tag: td
+            children:
+              - text:
+                  from: name 
+                  at: item
+          - tag: td
+            children:
+              - text:
+                  from: storage 
+                  at: item
+          - tag: td
+            children:
+              - view: bucket_replicas_view
+                params:
+                  object:
+                    replicas:
+                      from: hosts
+                      at: item
+    buckets_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Table name"
+                - object:
+                    title: 
+                      text:
+                        literal: "Storage type"
+                - object:
+                    title:
+                      text: 
+                        literal: "Replicas"
+            items:
+              from: data
+            item_view:
+              keyword: bucket_table_item_view
+    buckets_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Tables"
+            view:
+              keyword: buckets_table_view
+            data:
+              from: data
+    buckets_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: buckets_main_view
+            contents:
+              from: buckets
+    buckets:
+      object: 
+        action:
+          keyword: buckets 
+  decoders:
+    show_buckets:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: "tables"
+    buckets:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            type: 
+              text: 
+                literal: buckets
+            data:
+              list:
+                object:
+                  name:
+                    text: any
+                  storage: 
+                    text: any
+                  hosts:
+                    list:
+                      text: any
