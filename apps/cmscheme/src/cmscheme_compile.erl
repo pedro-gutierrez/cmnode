@@ -153,6 +153,14 @@ term(K, #{ type := list, spec := Spec }) when is_map(Spec) ->
                                                ])
                             ]);
 
+term(K, #{ type := list, size := Size }) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
+                             cmscheme_ast:call(list, 
+                                               [ cmscheme_ast:sym(list),
+                                                 cmscheme_ast:number(Size)
+                                               ])
+                            ]);
+
 
 term(K, #{ type := list }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),

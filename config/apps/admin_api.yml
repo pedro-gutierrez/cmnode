@@ -13,6 +13,8 @@ spec:
     - nodes_api
     - ports_api
     - buckets_api
+    - modules_api
+    - app_info_api
   config:
     role:
       keyword: admin

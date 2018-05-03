@@ -27,13 +27,23 @@ spec:
     port_app_mount_item_view:
       view:
         tag: div
+        attrs:
+          class: "chip"
         children:
-          - text:
-              from: path
-              at: item
-          - text:
-              from: transport
-              at: item
+          - tag: label
+            attrs:
+              class: "label label-primary label-rounded"
+            children:
+              - text:
+                  from: transport
+                  at: item
+          - tag: span
+            attrs:
+              class: "mx-2"
+            children:
+              - text:
+                  from: path
+                  at: item
     port_app_mounts_view:
       view:
         tag: div
@@ -45,6 +55,7 @@ spec:
       view:
         tag: div
         attrs:
+          class: "mb-6"
           key: 
             from: name
             at: item

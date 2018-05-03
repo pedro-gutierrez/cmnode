@@ -70,14 +70,21 @@ compile_app(#{ <<"name">> := Name,
                   } = Spec
              }, Mods) ->
 
-
+    ResolvedModules = cmconfig_util:resolve_modules(Modules, Mods),
         
     #{ name => cmkit:to_atom(Name),
        type => app,
+       modules => lists:map(fun(#{ status := unknown }=M) ->
+                                    M;
+                               (#{ name := ModName }) ->
+                                    #{ name => ModName,
+                                       status => resolved
+                                     }
+                            end, ResolvedModules),
        config => compile_config(maps:get(<<"config">>, Spec, #{})),
        debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
        category => cmconfig_util:compile_keyword(Cat),
-       spec => compile_modules(cmconfig_util:resolve_modules(Modules, Mods), #{})
+       spec => compile_modules(ResolvedModules, #{})
      }.
 
 compile_bucket(#{ <<"name">> := Name,
@@ -228,6 +235,9 @@ compile_term(#{ <<"view">> := View }) ->
     #{ type => view ,
        spec => compile_view(View)
      };
+
+compile_term(#{ <<"list">> := <<"empty">>}) ->
+    #{ type => list, size => 0 };
 
 compile_term(#{ <<"list">> := <<"any">>}) ->
     #{ type => list };

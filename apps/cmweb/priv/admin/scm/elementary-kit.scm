@@ -170,12 +170,25 @@
           ('text (decode-text value-spec in))
           ('number (decode-number value-spec in))
           ('object (decode-object value-spec in '()))
-          ('list (decode-list value-spec in '()))
+          ('list (decode-list value-spec in)) 
           (else
             (console-error "unsupported decoder spec type" (list type-spec spec))
             '(error invalid-type-spec)))))))
 
-(define (decode-list spec in out)
+(define (decode-list spec in)
+  (case (number? spec)
+    ('#t (decode-list-size spec in))
+    ('#f 
+     (case (length in)
+       ('0 (list 'error 'list-size-mismatch (length in)))
+       (else (decode-non-empty-list spec in '()))))))
+
+(define (decode-list-size size in)
+  (case (eq? size (length in))
+    ('#t (list 'ok in))
+    ('#f (list 'error list-size-mismatch size in))))
+
+(define (decode-non-empty-list spec in out)
   (case (length in)
     ('0 (list 'ok (reverse out)))
     (else 

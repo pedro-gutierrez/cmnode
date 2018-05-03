@@ -7,6 +7,7 @@
          def/3,
          sym/1,
          str/1,
+         number/1,
          switch/2,
          match/2
         ]).
@@ -39,6 +40,10 @@ str(Name) ->
 sym(Name) ->
     #{ type => symbol,
        value => Name }.
+
+number(Int) ->
+    #{ type => number,
+       value => Int }.
 
 switch(Test, Cases) ->
     #{ type => switch,

@@ -4,22 +4,124 @@ category: ui
 name: app_ui
 spec:
   update:
-    show_app:
-      model:
-        app: 
-          from: app
-          at: event
+    no_modules:
       cmds:
         - effect: ui
           encoder: app_view
+    modules:
+      model:
+        modules:
+          from: modules
+          at: data
+        modules_view:
+          keyword: app_modules_table_view
+      cmds:
+        - effect: ui
+          encoder: app_view
+    show_app:
+      model:
+        modules:
+          list: []
+        app:
+          from: name
+          at:
+            from: app
+            at: event
+        modules_view: 
+          keyword: app_modules_empty_view
+      cmds:
+        - effect: ui
+          encoder: app_view
+        - effect: ws
+          encoder: app_modules
+        - effect: ws
+          encoder: app_info
+        - effect: ws
+          encoder: app_config
   encoders:
+    app_modules:
+      object: 
+        action:
+          keyword: modules
+        app:
+          from: app
+    app_info:
+      object: 
+        action:
+          keyword: info
+        app:
+          from: app
+    app_config:
+      object: 
+        action:
+          keyword: config
+        app:
+          from: app
+    app_modules_empty_view:
+      view:
+        tag: 'div'
+        children:
+          - text:
+              literal: "No modules found"
+    app_module_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            from: name
+            at: item
+        children:
+          - tag: td
+            children:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                children:
+                  - text:
+                      from: name
+                      at: item
+    app_modules_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+            items:
+              from: modules
+            item_view:
+              keyword: app_module_table_item_view
+    app_modules_section_view:
+      view:
+        tag: div
+        children:
+          - tag: h4
+            children:
+              - text: 
+                  literal: "Modules"
+          - view:
+              from: modules_view
+            params:
+              object:
+                modules:
+                  from: modules
     app_sections_view:
       view:
         tag: div
         children:
-          - text:
-              from: name
-              at: data
+          - view: app_modules_section_view
+            params:
+              object:
+                modules_view:
+                  from: modules_view
+                  at: data
+                modules:
+                  from: modules
+                  at: data
     app_main_view:
       view:
         view: main
@@ -27,7 +129,7 @@ spec:
           object:
             title:
               text:
-                from: name
+                from: app
                 at: data
             view:
               keyword: app_sections_view
@@ -43,8 +145,33 @@ spec:
             content_view:
               keyword: app_main_view
             contents:
-              from: app 
+              object:
+                app: 
+                  from: app
+                modules:
+                  from: modules
+                modules_view:
+                  from: modules_view
   decoders:
+    modules:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            modules:
+              list:
+                object:
+                  name:
+                    text: any
+    no_modules:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            modules:
+              list: empty
     show_app:
       object:
         effect:

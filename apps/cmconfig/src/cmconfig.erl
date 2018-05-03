@@ -40,7 +40,12 @@ app(Name) ->
     app(Name, apps()).
 
 app(_, []) -> {error, not_found};
-app(Name, [#{ name := Name}=App|_]) -> {ok, App};
+app(Name, [#{ name := Name}=App|_]) when is_atom(Name) -> {ok, App};
+app(Name, [#{ name := AppName}=App|Rem]) when is_binary(Name) -> 
+    case cmkit:to_bin(AppName) of 
+        Name -> {ok, App};
+        _ -> app(Name, Rem)
+    end;
 app(Name, [_|Rem]) -> app(Name, Rem).
 
 buckets() ->

@@ -50,6 +50,9 @@ expr(#{ type := switch,
 expr(#{ type := literal,
         value := Arg }) when is_binary(Arg) -> Arg;
 
+expr(#{ type := number ,
+        value := N }) when is_number(N) -> N;
+
 expr(#{ type := string,
         value := Arg }) -> cmkit:bin_join([?QUOTES, cmkit:to_bin(Arg), ?QUOTES ]);
 

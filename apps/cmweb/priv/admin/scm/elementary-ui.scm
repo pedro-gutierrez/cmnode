@@ -92,7 +92,7 @@
               (case v
                 ('undef (list 'error 'no-view view-name))
                 (else (list 'ok v)))))
-          (else (console-error "cannot resolve view name" view-name)))))   
+          (else (console-error "cannot resolve view name" view-name ctx)))))   
 
     
     (define (compile-view-ref spec ctx)
