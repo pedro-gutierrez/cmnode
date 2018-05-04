@@ -1,0 +1,62 @@
+version: 1.0
+type: module
+category: server
+name: app_info_api 
+spec:
+  decoders:
+    app_info_query:
+      object:
+        action: 
+          text: 
+            literal: "info"
+        app:
+          text: any
+    app_info_found:
+      object:
+        app:
+          any: keyword
+        category: 
+          any: keyword 
+        debug:
+          any: keyword
+  encoders:
+    app_info_query:
+      object:
+        query: 
+          keyword: info
+        app:
+          from: app
+    app_info:
+      object:
+        info:
+          object:
+            app:
+              from: app
+            category:
+              from: category
+            debug: 
+              from: debug
+  update:
+    app_info_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        model:
+          app:
+            from: app
+        cmds:
+          - effect: config 
+            encoder: app_info_query 
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    app_info_found:
+      model:
+        category:
+          from: category
+        debug:
+          from: debug
+      cmds:
+        - effect: notify
+          encoder: app_info

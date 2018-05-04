@@ -1,0 +1,55 @@
+version: 1.0
+type: module
+category: server
+name: modules_api 
+spec:
+  decoders:
+    modules_query:
+      object:
+        action: 
+          text: 
+            literal: "modules"
+        app:
+          text: any
+    modules:
+      object:
+        modules: 
+          list:
+            object: 
+              name:
+                any: keyword
+              status:
+                any: keyword
+  encoders:
+    modules_query:
+      object:
+        query: 
+          keyword: modules
+        scope:
+          from: app
+    modules:
+      object:
+        modules:
+          from: modules
+  update:
+    modules_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        model:
+          app:
+            from: app
+        cmds:
+          - effect: config 
+            encoder: modules_query 
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    modules:
+      model:
+        modules:
+          from: modules 
+      cmds:
+        - effect: notify
+          encoder: modules
