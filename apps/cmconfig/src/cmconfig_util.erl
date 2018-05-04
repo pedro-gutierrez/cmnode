@@ -315,6 +315,12 @@ compile_term(#{ <<"any">> := <<"number">> }) ->
 compile_term(#{ <<"number">> := <<"any">> }) ->
     #{ type => number };
 
+compile_term(#{ <<"any">> := <<"boolean">> }) ->
+    #{ type => boolean };
+
+compile_term(#{ <<"boolean">> := <<"any">> }) ->
+    #{ type => boolean };
+
 compile_term(#{ <<"text">> := Spec }) ->
     %#{ type => text, spec => compile_term(Spec) };
     

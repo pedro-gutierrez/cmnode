@@ -3,7 +3,28 @@ type: module
 category: ui
 name: app_ui
 spec:
+  init:
+    model:
+      category: 
+        keyword: none
+      debug:
+        keyword: none
   update:
+    app_info:
+      model:
+        category:
+          from: category
+          at: 
+            from: info
+            at: data
+        debug:
+          from: debug
+          at:
+            from: info
+            at: data
+      cmds:
+        - effect: ui
+          encoder: app_view
     no_modules:
       cmds:
         - effect: ui
@@ -95,6 +116,7 @@ spec:
               from: modules
             item_view:
               keyword: app_module_table_item_view
+    
     app_modules_section_view:
       view:
         tag: div
@@ -109,10 +131,26 @@ spec:
               object:
                 modules:
                   from: modules
+    app_info_view:
+      view:
+        tag: div
+        children:
+          - text:
+              from: category
+              at: info
+          - text:
+              from: debug
+              at: info
     app_sections_view:
       view:
         tag: div
         children:
+          - view: app_info_view
+            params:
+              object:
+                info:
+                  from: info
+                  at: data
           - view: app_modules_section_view
             params:
               object:
@@ -148,11 +186,29 @@ spec:
               object:
                 app: 
                   from: app
+                info:
+                  object:
+                    category:
+                      from: category
+                    debug:
+                      from: debug
                 modules:
                   from: modules
                 modules_view:
                   from: modules_view
   decoders:
+    app_info:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            info:
+              object:
+                debug:
+                  any: boolean
+                category:
+                  any: text
     modules:
       object:
         effect:

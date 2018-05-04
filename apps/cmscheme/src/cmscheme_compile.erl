@@ -336,6 +336,11 @@ term(#{ from := Key })  ->
                             ]);
 
    
+term(#{ type := boolean }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(boolean),    
+                             cmscheme_ast:sym(any)
+                            ]);
 
 
 term(#{ text := #{ literal := Text}}) ->
