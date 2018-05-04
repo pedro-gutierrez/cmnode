@@ -6,4 +6,9 @@ An OTP application
 Build
 -----
 
-    $ rebar3 compile
+    $ make console
+
+Related projects
+-----
+
+[Elementary](https://github.com/pedro-gutierrez/elementary)
