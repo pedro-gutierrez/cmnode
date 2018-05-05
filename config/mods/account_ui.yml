@@ -122,8 +122,8 @@ spec:
     user:
       - when:
           eq:
-            state:
-              keyword: registering
+            - key: state
+            - keyword: registering
         model:
           password:
             text: 
@@ -139,8 +139,8 @@ spec:
             encoder: login_view
       - when:
           eq:
-            state:
-              keyword: logging_in
+            - key: state
+            - keyword: logging_in 
         model:
           message:
             text:
@@ -151,8 +151,8 @@ spec:
     invalid:
       - when:
           eq:
-            state:
-              keyword: logging_in
+            - key: state
+            - keyword: logging_in
         model: 
           state: 
             keyword: login
@@ -164,7 +164,7 @@ spec:
     not_found:
       - when:
           eq:
-            state:
+            - key: state
               keyword: logging_in
         model: 
           state: 
@@ -178,8 +178,8 @@ spec:
     forbidden:
       - when:
           eq:
-            state:
-              keyword: logging_in
+            - key: state
+            - keyword: logging_in
         model: 
           state: 
             keyword: login
@@ -326,7 +326,9 @@ spec:
               object:
                 message:
                   from: message
-            when: message
+            when:
+              is_set:
+                key: message
           - view: input
             params:
               object:

@@ -44,10 +44,10 @@ spec:
         modules:
           list: []
         app:
-          from: name
-          at:
-            from: app
-            at: event
+          key: name
+          in:
+            key: app
+            in: event
         modules_view: 
           keyword: app_modules_empty_view
       cmds:
@@ -134,6 +134,8 @@ spec:
     app_info_view:
       view:
         tag: div
+        attrs:
+          key: "info"
         children:
           - text:
               from: category
@@ -151,6 +153,12 @@ spec:
                 info:
                   from: info
                   at: data
+            when:
+              not:
+                eq:
+                  - key: category
+                    in: info
+                  - keyword: none
           - view: app_modules_section_view
             params:
               object:

@@ -280,14 +280,31 @@
   (case (car spec)
     ('true '#t)
     ('false '#f)
-    ('equal
-     (let* ((object-spec (car (cdr spec)))
-            (decoded (decode-object object-spec in '())))
-       (eq? 'ok (car decoded))))
+    ('equal (all-equal? (car (cdr spec)) in 'undef))
+    ('is_set
+     (let ((encoded (encode (car (cdr spec)) in)))
+       (eq? 'ok (car encoded))))
+    ('not (not (eval-condition (car (cdr spec)) in)))
     (else 
       (console-error "unsupported condition" spec)
       '#f)))
-    
+
+(define (all-equal? exprs in expected) 
+  (case (length exprs)
+    ('0 '#t)
+    (else 
+      (let* ((next (car exprs))
+             (encoded (encode next in)))
+        (case (car encoded)
+          ('ok 
+           (let ((v (car (cdr encoded))))
+             (case (or (eq? 'undef expected) (eq? v expected))
+               ('#t (all-equal? (cdr exprs) in v))
+               ('#f '#f))))
+          (else 
+            (console-error "cannot eval condition " next encoded)
+            '#f))))))
+
 (define (to-string v)
   (let ((infered-type (infer-type v)))
     (case infered-type

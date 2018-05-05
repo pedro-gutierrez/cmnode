@@ -98,25 +98,25 @@ term(K, #{ type := object, spec := Spec}) when is_map(Spec) ->
                             ]);
 
 term(K, #{ type := keyword, value := V}) when is_atom(V) -> 
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:sym(V)]);
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(V)]);
 
 term(K, #{ type := text, value := V  }) when is_binary(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
 
-term(K, #{ type := text, from := From, at := At }) ->
+term(K, #{ type := text, key := Key, in := In }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(text),
-                                                      term(#{ from => From,
-                                                              at => At })
+                                                      term(#{ key=> Key,
+                                                              in => In })
                                                      ])
                             ]);
 
-term(K, #{ type := text, from := From }) ->
+term(K, #{ type := text, key := Key }) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(text),
-                                                      term(#{ from => From })
+                                                      term(#{ key => Key })
                                                      ])
                             ]);
 
@@ -239,16 +239,31 @@ term(#{ tag := Tag, attrs := Attrs, children := Children }) ->
                              view_children(Children)
                             ]);
 
-term(#{ view := View, params := Params}) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(view),
-                             cmscheme_ast:call(list, [
-                                cmscheme_ast:call(list, [cmscheme_ast:sym(name), term(View)]),
-                                cmscheme_ast:call(list, [
-                                                         cmscheme_ast:sym(params), 
-                                                         term(Params)])
-                                                     ])
-                            ]);
 
+term(#{ view := View }=Spec) ->
+
+    NameAst = cmscheme_ast:call(list, [cmscheme_ast:sym(name), term(View)]),
+    ParamsAst = case maps:get(params, Spec, undef) of 
+                    undef -> [];
+                    ParamsSpec -> 
+                        [cmscheme_ast:call(list, [
+                                         cmscheme_ast:sym(params),
+                                         term(ParamsSpec)
+                                        ])]
+                end,
+
+    ConditionAst = case maps:get(condition, Spec, undef) of 
+                       undef -> [];
+                       ConditionSpec -> 
+                            [cmscheme_ast:call(list, [
+                                                    cmscheme_ast:sym(condition), 
+                                                    term(ConditionSpec)
+                                                   ])]
+                    end,
+
+    cmscheme_ast:call(list, [cmscheme_ast:sym(view),
+                             cmscheme_ast:call(list, [ NameAst ] ++ ParamsAst ++ ConditionAst)
+                            ]);
 
 term(#{ encoder := Name }) when is_atom(Name) ->
     cmscheme_ast:call(list, [
@@ -256,15 +271,6 @@ term(#{ encoder := Name }) when is_atom(Name) ->
                              cmscheme_ast:sym(Name)
                             ]);
     
-term(#{ view := View, condition := _}) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(view),
-                             cmscheme_ast:call(list, [
-                                                      cmscheme_ast:call(list, [cmscheme_ast:sym(name), cmscheme_ast:sym(View)])
-                                                     ])
-                            ]);
-
-
-
 term(#{ iterate := From, using := ItemView }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(iterate),
@@ -322,7 +328,7 @@ term(#{ type := map, spec := #{ options := Options,
                             ]);
                              
                              
-term(#{ from := Key, at := At })  -> 
+term(#{ key := Key, in := At })  -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(from),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(Key),
@@ -330,7 +336,7 @@ term(#{ from := Key, at := At })  ->
                                                      ])
                             ]);
 
-term(#{ from := Key })  -> 
+term(#{ key := Key })  -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(from),
                              cmscheme_ast:sym(Key)
                             ]);
@@ -343,23 +349,26 @@ term(#{ type := boolean }) ->
                             ]);
 
 
+term(#{ type := keyword, value := V}) when is_atom(V) ->
+    cmscheme_ast:sym(V);
+
 term(#{ text := #{ literal := Text}}) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),    
                              cmscheme_ast:str(Text)
                             ]);
 
-term(#{ type := text, from := From, at := At }) ->
+term(#{ type := text, key := Key, in := In }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
-                             term(#{ from => From,
-                                        at => At })
+                             term(#{ key => Key,
+                                     in => In })
                             ]);
 
-term(#{ type := text, from := From }) ->
+term(#{ type := text, key := Key }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
-                             term(#{ from =>  From })
+                             term(#{ key =>  Key })
                             ]);
 
 
@@ -384,6 +393,25 @@ term(#{ text := Spec })  ->
 
 term(#{ value := Text}) when is_binary(Text) ->
     term(Text);
+
+
+term(#{ type := is_set, spec := Spec }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(is_set),
+                             term(Spec)
+                            ]);
+
+term(#{ type := 'not', spec := Spec}) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym('not'),
+                             term(Spec)
+                            ]);
+
+term(#{ type := equal, spec := Specs}) when is_list(Specs) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(equal),
+                             cmscheme_ast:call(list, lists:map(fun term/1, Specs))
+                            ]);
 
 term(Text) when is_binary(Text) ->
     cmscheme_ast:call(list, [ 

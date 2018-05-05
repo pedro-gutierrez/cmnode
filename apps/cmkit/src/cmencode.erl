@@ -26,7 +26,7 @@ encode(Key, In, _, _) when is_atom(Key) or is_binary(Key) ->
            {ok, V}
    end;
 
-encode(#{ from := Key, at := At }, In, Config, Out) when is_atom(Key) and ( is_atom(At) or is_binary(At))-> 
+encode(#{ key := Key, in := At }, In, Config, Out) when is_atom(Key) and ( is_atom(At) or is_binary(At))-> 
     case encode(At, In, Config, Out) of 
         {ok, In2} ->
             encode(Key, In2, Config, Out);
@@ -34,7 +34,7 @@ encode(#{ from := Key, at := At }, In, Config, Out) when is_atom(Key) and ( is_a
             Other
     end;
 
-encode(#{ from := Key, at := At }, In, Config, Out) when is_atom(Key) and is_map(At) -> 
+encode(#{ key := Key, in := At }, In, Config, Out) when is_atom(Key) and is_map(At) -> 
     case encode(At, In, Config, Out) of 
         {ok, In2} ->
             encode(Key, In2, Config, Out);
@@ -42,7 +42,7 @@ encode(#{ from := Key, at := At }, In, Config, Out) when is_atom(Key) and is_map
             Other
     end;
 
-encode(#{ from := Key}, In, Config, Out) when is_atom(Key) -> 
+encode(#{ key := Key}, In, Config, Out) when is_atom(Key) -> 
     encode(Key, In, Config, Out);
 
 encode(#{ type := text,

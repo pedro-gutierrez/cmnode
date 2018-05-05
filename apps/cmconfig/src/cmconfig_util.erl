@@ -291,6 +291,12 @@ compile_term(#{ <<"same_as">> := Prop }) ->
        relates_to => cmkit:to_atom(Prop) 
      };
 
+compile_term(#{ <<"object">> := <<"any">> }) ->
+    #{ type => object };
+
+compile_term(#{ <<"any">> := <<"object">> }) ->
+    #{ type => object };
+
 compile_term(#{ <<"text">> := <<"any">> }) ->
     #{ type => text };
 
@@ -327,24 +333,49 @@ compile_term(#{ <<"text">> := Spec }) ->
     maps:merge(#{ type => text},
                compile_term(Spec));
     
-compile_term(#{ <<"from">> := From,
-                <<"at">> := At }) when is_binary(At) ->
-    #{ from => compile_from(From),
-       at => compile_keyword(At) };
-
-compile_term(#{ <<"from">> := From,
-                <<"at">> := At }) when is_map(At) ->
-    #{ from => compile_from(From),
-       at => compile_term(At) };
+%%compile_term(#{ <<"from">> := From,
+%%                <<"at">> := At }) when is_binary(At) ->
+%%    #{ from => compile_from(From),
+%%       at => compile_keyword(At) };
+%%
+%%compile_term(#{ <<"from">> := From,
+%%                <<"at">> := At }) when is_map(At) ->
+%%    #{ from => compile_from(From),
+%%       at => compile_term(At) };
 
 
 
 compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from_data">> := _ }) -> from_data;
 
-compile_term(#{ <<"from">> := From  }) ->
-    #{ from => compile_from(From) };
+%compile_term(#{ <<"from">> := From  }) ->
+%    #{ from => compile_from(From) };
 
+compile_term(#{ <<"key">> := Key, 
+                <<"in">> := In }) when is_binary(In) -> 
+    #{ key => compile_keyword(Key),
+       in => compile_keyword(In)
+     };
+
+compile_term(#{ <<"key">> := Key, 
+                <<"in">> := In }) -> 
+    #{ key => compile_keyword(Key),
+       in => compile_term(In)
+     };
+
+compile_term(#{ <<"key">> := Key}) ->
+    #{ key => compile_keyword(Key) };
+
+
+compile_term(#{ <<"from">> := From, 
+                <<"at">> := At }) -> 
+    
+    compile_term(#{ <<"key">> => From,
+                    <<"in">> => At });
+
+compile_term(#{ <<"from">> := From}) ->
+    compile_term(#{ <<"key">> => From });
+    
 compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
     #{ one_of => lists:map(fun compile_term/1, Specs) }; 
 
@@ -358,13 +389,43 @@ compile_term(#{ <<"loop">> := From,
 compile_term(#{ <<"loop">> := From,
                 <<"with">> := _ } = Spec) when is_binary(From) ->
 
-    compile_term(Spec#{ <<"loop">> => #{ <<"from">> => From }});
+    compile_term(Spec#{ <<"loop">> => #{ <<"key">> => From }});
+
+compile_term(#{ <<"are_set">> := Specs }) when is_list(Specs) ->
+    #{ type => are_set,
+       spec => lists:map(fun compile_term/1, Specs)
+     };
+
+compile_term(#{ <<"is_set">> := Spec }) when is_map(Spec) ->
+    #{ type => is_set,
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"not">> := Spec }) ->
+    #{ type => 'not',
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"eq">> := Specs }) when is_list(Specs) ->
+    #{ type => equal,
+       spec => lists:map(fun compile_term/1, Specs)
+     };
+
+compile_term(#{ <<"member">> := Spec }) ->
+    #{ type => member,
+       spec => compile_object(maps:keys(Spec), Spec, #{}) 
+     };
+
+compile_term(#{ <<"all">> := Conds }) ->
+    #{ type => all,
+       spec => lists:map(fun compile_term/1, Conds) 
+     };
 
 compile_term(Text) when is_binary(Text) -> Text.
 
-compile_from(From) when is_binary(From)-> compile_keyword(From);
-compile_from(From) when is_map(From) ->
-    compile_term(From).
+%compile_from(From) when is_binary(From)-> compile_keyword(From);
+%compile_from(From) when is_map(From) ->
+%    compile_term(From).
 
 compile_object(<<"any">>) -> 
     #{ type => object };
@@ -438,8 +499,14 @@ compile_updates([K|Rem], Updates, Out) ->
     Init = compile_init(maps:get(K, Updates)),
     compile_updates(Rem, Updates, Out#{ Name => Init }).
 
+compile_update_spec(#{ <<"when">> := When}=Spec) when is_map(Spec) -> 
+    #{ condition => compile_term(When), 
+       model => compile_model(maps:get(<<"model">>, Spec, #{})),
+       cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
+     };
+
 compile_update_spec(Spec) when is_map(Spec) -> 
-    #{ condition => compile_condition(maps:get(<<"when">>, Spec, [])), 
+    #{ condition => #{ type => true }, 
        model => compile_model(maps:get(<<"model">>, Spec, #{})),
        cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
      }.
@@ -466,13 +533,13 @@ compile_view(#{ <<"view">> := View,
     
     #{ view => compile_keyword(View),
        params => compile_term(Params),
-       condition => compile_condition(When) };
+       condition => compile_term(When) };
 
 compile_view(#{ <<"view">> := View,
                 <<"when">> := When }) ->
     
     #{ view => compile_keyword(View),
-       condition => compile_condition(When) };
+       condition => compile_term(When) };
     
 
 compile_view(#{ <<"view">> := View,
@@ -538,27 +605,6 @@ compile_view_attrs(Attrs) when is_map(Attrs) ->
                       Attrs2#{ compile_keyword(K) => compile_term(V) }
               end, #{}, Attrs). 
 
-compile_condition(Prop) when is_binary(Prop) ->
-    #{ type => present,
-       spec => [ compile_keyword(Prop) ] };
-
-compile_condition(#{ <<"eq">> := Spec }) ->
-    #{ type => equal,
-       spec => compile_object(maps:keys(Spec), Spec, #{}) 
-     };
-
-compile_condition(#{ <<"member">> := Spec }) ->
-    #{ type => member,
-       spec => compile_object(maps:keys(Spec), Spec, #{}) 
-     };
-
-compile_condition(#{ <<"all">> := Conds }) ->
-    #{ type => all,
-       spec => lists:map(fun compile_condition/1, Conds) 
-     };
-
-compile_condition([]) -> 
-    #{ type => true }.
 
 compile_model(Map) -> compile_object(Map).
 

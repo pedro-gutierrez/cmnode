@@ -15,6 +15,7 @@ spec:
     - buckets_api
     - modules_api
     - app_info_api
+    - app_config_api
   config:
     role:
       keyword: admin

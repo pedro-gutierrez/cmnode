@@ -71,7 +71,6 @@ decode_term(#{ type := list, spec := Spec }, Data) when is_list(Data) ->
     decode_list(Spec, Data);
 
 decode_term(#{ type := list, with := Member }, Data) when is_list(Data) ->
-    cmkit:log({cmdecode, list, member, Member, Data}),
     case lists:member(Member, Data) of
         true -> {ok, Data};
         false -> no_match
@@ -86,6 +85,10 @@ decode_term(#{ type := email}, Email) ->
 
 decode_term(#{ type := object, spec := Spec}, In) when is_map(In) ->
     decode_object(Spec, In, #{});
+
+
+decode_term(#{ type := object }, In) when is_map(In) ->
+    {ok, In};
 
 decode_term(#{ one_of := Specs }, In) when is_list(Specs) ->
     decode_first(Specs, In);

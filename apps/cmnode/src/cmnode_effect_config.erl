@@ -31,6 +31,19 @@ effect_apply(#{ query := info, app := App}, #{ id := SessionId }) ->
 
     cmcore:update(SessionId, Res);
 
+effect_apply(#{ query := config, app := App}, #{ id := SessionId }) ->
+    Res = case cmconfig:app(App) of 
+        {ok, #{ config := Config }} ->
+            #{ config => Config };
+        _ -> 
+            #{ error => not_found,
+               query => config,
+               app => App 
+             }
+    end,
+
+    cmcore:update(SessionId, Res);
+
 
 effect_apply(#{ query := modules, scope := App}, #{ id := SessionId }) ->
     Res = case cmconfig:app(App) of 
