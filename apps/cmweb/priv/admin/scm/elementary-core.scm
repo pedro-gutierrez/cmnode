@@ -64,7 +64,7 @@
                   (data (car (cdr (cdr decoded))))
                   (update-specs (update-for msg)))
              (case (or (eq? 'undef update-specs) (= 0 (length update-specs)))
-               ('#t (console-error "no such update spec" (list msg update-specs)))
+               ('#t (console-error "no such update spec" (list msg data)))
                (else (try-update update-specs data (model))))))
           (else (console-error "no decoder for" data)))))
     

@@ -81,6 +81,18 @@ spec:
                 name: "nodes"
                 style: "icono-imac"
                 title: "Nodes"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "users"
+                style: "icono-user"
+                title: "Users"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "metrics"
+                style: "icono-areaChart"
+                title: "Metrics"
     layout:
       view:
         tag: div

@@ -1,0 +1,11 @@
+version: 1.0
+type: app
+category: api
+name: wk_admin_api
+spec:
+  debug: true 
+  modules:
+    - ping
+  config:
+    role:
+      keyword: admin

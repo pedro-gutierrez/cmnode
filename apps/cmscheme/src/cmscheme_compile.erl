@@ -128,13 +128,6 @@ term(K, #{ type := text }) ->
                                                      ])
                             ]);
 
-term(K, #{ type := number }) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
-                             cmscheme_ast:call(list, [
-                                                      cmscheme_ast:sym(number),
-                                                      cmscheme_ast:sym(any)
-                                                     ])
-                            ]);
 
 term(K, #{ type := list, value := List }) when is_list(List) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
@@ -295,6 +288,12 @@ term(#{ type := object, spec := Spec}) ->
                              cmscheme_ast:call(list, terms(Spec))
                             ]);
 
+term(#{ type := entries, spec := Spec }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(entries),
+                             term(Spec)
+                            ]);
+
 
 term(#{ type := map, spec := #{ options := Options,
                                 value := Value}}) ->
@@ -326,7 +325,13 @@ term(#{ type := map, spec := #{ options := Options,
                              cmscheme_ast:sym(map),
                              cmscheme_ast:call(list, [OptionsAst, ValueAst])
                             ]);
-                             
+
+
+term(#{ one_of := Specs }) when is_list(Specs) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(one_of),
+                             cmscheme_ast:call(list, lists:map(fun term/1, Specs))
+                            ]);
+
                              
 term(#{ key := Key, in := At })  -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(from),
@@ -381,6 +386,12 @@ term(#{ type := text, spec := Spec }) ->
 term(#{ type := text }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
+                             cmscheme_ast:sym(any)
+                            ]);
+
+term(#{ type := number }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(number),
                              cmscheme_ast:sym(any)
                             ]);
 

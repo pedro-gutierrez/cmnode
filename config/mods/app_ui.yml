@@ -9,6 +9,8 @@ spec:
         keyword: none
       debug:
         keyword: none
+      config:
+        list: []
   update:
     app_info:
       model:
@@ -22,6 +24,14 @@ spec:
           at:
             from: info
             at: data
+      cmds:
+        - effect: ui
+          encoder: app_view
+    app_config:
+      model:
+        config:
+          from: config
+          at: data
       cmds:
         - effect: ui
           encoder: app_view
@@ -131,34 +141,109 @@ spec:
               object:
                 modules:
                   from: modules
-    app_info_view:
+
+    app_setting_name_view:
       view:
         tag: div
         attrs:
-          key: "info"
+          key: 
+            from: key
+            at: item
+        children:
+          - tag: strong
+            children:
+              - text:
+                  from: key
+                  at: item
+    app_setting_value_view:
+      view:
+        tag: div
+        attrs:
+          key: 
+            from: key
+            at: item
         children:
           - text:
-              from: category
-              at: info
-          - text:
-              from: debug
-              at: info
+              from: value
+              at: item
+    app_settings_view:
+      view:
+        tag: div
+        attrs:
+          class: "section-view"
+        children:
+          - tag: h4
+            children:
+              - text:
+                  literal: "Settings"
+          - tag: div
+            attrs:
+              key: "info"
+              class: "card"
+            children:
+              - tag: div
+                attrs:
+                  class: "card-body columns"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "col-3"
+                    children:
+                      - tag: div
+                        children:
+                          - tag: strong
+                            children:
+                              - text:
+                                  literal: "Category"
+                      - tag: div
+                        children:
+                          - tag: strong
+                            children:
+                              - text:
+                                  literal: "Debug"
+                  - tag: div
+                    attrs:
+                      class: "col-3"
+                    children:
+                      - tag: div
+                        children:
+                          - text:
+                              from: category
+                              at: info
+                      - tag: div
+                        children:
+                          - text:
+                              from: debug
+                              at: info
+                  - tag: div
+                    attrs:
+                      class: "col-3"
+                    children:
+                      loop:
+                        from: config
+                      with: app_setting_name_view 
+
+                  - tag: div
+                    attrs:
+                      class: "col-3"
+                    children:
+                      loop:
+                        from: config
+                      with: app_setting_value_view
+
     app_sections_view:
       view:
         tag: div
         children:
-          - view: app_info_view
+          - view: app_settings_view
             params:
               object:
                 info:
                   from: info
                   at: data
-            when:
-              not:
-                eq:
-                  - key: category
-                    in: info
-                  - keyword: none
+                config:
+                  from: config
+                  at: data
           - view: app_modules_section_view
             params:
               object:
@@ -194,6 +279,8 @@ spec:
               object:
                 app: 
                   from: app
+                config:
+                  from: config
                 info:
                   object:
                     category:
@@ -217,6 +304,17 @@ spec:
                   any: boolean
                 category:
                   any: text
+    app_config:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            config:
+              entries:
+                one_of:
+                  - text: any
+                  - number: any
     modules:
       object:
         effect:

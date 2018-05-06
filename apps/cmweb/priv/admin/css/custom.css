@@ -1,3 +1,4 @@
+.columns { margin-left: 0 !important; margin-right: 0 !important; }
 #sidebar { width: 80px; min-width: 80px; background: white; border-right: 1px solid #ededed; }
 .off-canvas-content { background: #f6f6f6; padding: .9rem .4rem .4rem 5rem !important; }
 .off-canvas-overlay { display: none; }
@@ -54,3 +55,4 @@ tbody tr td {
 a { text-decoration: none !important; }
 
 .mb-6 { margin-bottom: 6px; }
+.section-view { margin-bottom: 15px; }

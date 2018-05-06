@@ -194,9 +194,39 @@
           ('object (decode-object value-spec in '()))
           ('list (decode-list value-spec in)) 
           ('boolean (decode-boolean value-spec in))
+          ('entries (decode-entries value-spec in '()))
+          ('one_of (decode-one-of value-spec in))
           (else
-            (console-error "unsupported decoder spec type" (list type-spec spec))
+            (console-error "unsupported decoder spec type" spec)
             '(error invalid-type-spec)))))))
+
+(define (decode-one-of specs in)
+  (case (length specs)
+    ('0 (list 'error 'one-of-none-matched in))
+    (else 
+      (let* ((spec (car specs))
+             (decoded (decode-term spec in)))
+        (case (car decoded)
+          ('ok decoded)
+          (else (decode-one-of (cdr specs) in)))))))
+
+(define (decode-entries spec in out)
+  (case (length in)
+    ('0 (list 'ok out))
+    (else 
+      (let ((next (car in)))
+        (case (and (list? next) (eq? 2 (length next)))
+          ('#t 
+           (let* ((k (car next))
+                  (v (car (cdr next)))
+                  (decoded (decode-term spec v)))
+             (case (car decoded)
+               ('ok (decode-entries spec (cdr in) (cons (list (list 'key k)
+                                                              (list 'value (car (cdr decoded)))) out)))
+               (else 
+                 (console-error "error decoding entry" decoded)
+                 decoded)))) 
+          ('#f (list 'error 'invalid-entry next)))))))
 
 (define (decode-list spec in)
   (case (number? spec)

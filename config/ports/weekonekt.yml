@@ -1,0 +1,12 @@
+version: 1.0
+type: port
+name: wk_admin
+spec:
+  port: 8081
+  acceptors: 1
+  apps:
+    wk_admin_api:
+      ws: "/ws"
+      http: "/api"
+    wk_admin_ui:
+      http: "/scm/app.scm"

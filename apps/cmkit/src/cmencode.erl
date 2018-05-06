@@ -50,6 +50,10 @@ encode(#{ type := text,
     {ok, cmkit:to_bin(Value) };
 
 
+encode(#{ type := number,
+          value := V }, _, _, _) when is_number(V) ->
+    {ok, V};
+
 encode(#{ type := text,
           spec := Spec }, In, Config, Out) ->
     encode(Spec, In, Config, Out);

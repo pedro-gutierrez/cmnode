@@ -231,6 +231,11 @@ compile_term(#{ <<"config">> := Key }) ->
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
 
+compile_term(#{ <<"entries">> := Spec }) ->
+    #{ type => entries,
+       spec => compile_term(Spec)
+     };
+
 compile_term(#{ <<"view">> := View }) ->
     #{ type => view ,
        spec => compile_view(View)
@@ -280,7 +285,11 @@ compile_term(#{ <<"keyword">> := Spec }) when is_map(Spec) ->
     #{ type => keyword,
        spec => compile_term(Spec) };
 
-compile_term(#{ <<"number">> := _ }) ->
+
+compile_term(#{ <<"number">> := Num }) when is_number(Num) ->
+    #{ type => number, value => Num };
+
+compile_term(#{ <<"number">> := <<"any">> }) ->
     #{ type => number };
 
 compile_term(#{ <<"literal">> := Text }) ->

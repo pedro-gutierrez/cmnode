@@ -19,3 +19,7 @@ spec:
   config:
     role:
       keyword: admin
+    sessions:
+      keyword: many
+    timeout:
+      number: 30
