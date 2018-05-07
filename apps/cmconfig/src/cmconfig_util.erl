@@ -228,6 +228,9 @@ compile_term(#{ <<"config">> := Key }) ->
        spec => compile_keyword(Key) 
      };
 
+compile_term(#{ <<"maybe">> := Spec }) ->
+    #{ maybe => compile_term(Spec) };
+
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
 

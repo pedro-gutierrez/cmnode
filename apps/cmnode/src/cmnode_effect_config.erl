@@ -62,12 +62,12 @@ effect_apply(#{ query := modules, scope := App}, #{ id := SessionId }) ->
 
 effect_apply(#{ query := module, module := Mod}, #{ id := SessionId }) ->
     Res = case cmconfig:module(Mod) of 
-        {ok, Spec} ->
+              {ok, Spec} ->
                   #{ module => Spec};
-        _ -> 
-            #{ error => not_found,
-               query => modules,
-               module => Mod 
-             }
+              _ -> 
+                  #{ error => not_found,
+                     query => modules,
+                     module => Mod 
+                   }
     end,
     cmcore:update(SessionId, Res).

@@ -154,19 +154,6 @@ term(K, #{ type := list, size := Size }) ->
                                                ])
                             ]);
 
-
-term(K, #{ type := list }) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
-                             cmscheme_ast:call(list, [
-                                                      cmscheme_ast:sym(list),
-                                                      cmscheme_ast:sym(any)
-                                                     ])
-                            ]);
-
-
-
-
-
 term(K, #{ type := view, spec := Spec}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(Spec)]);
 
@@ -281,6 +268,19 @@ term(#{ iterate := From, using := ItemView }) ->
                                                      ])
                             ]);
 
+
+term(#{ maybe := Spec }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(maybe),
+                             term(Spec)
+                            ]);
+
+
+term(#{ type := list }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(list),
+                             cmscheme_ast:sym(any)
+                            ]);
 
 term(#{ type := object, spec := Spec}) ->
     cmscheme_ast:call(list, [

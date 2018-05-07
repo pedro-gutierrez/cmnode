@@ -1,7 +1,7 @@
 version: 1.0
 type: module
 category: server
-name: app_config_api 
+name: module_api 
 spec:
   decoders:
     module_query:

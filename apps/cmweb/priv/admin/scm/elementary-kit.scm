@@ -196,9 +196,24 @@
           ('boolean (decode-boolean value-spec in))
           ('entries (decode-entries value-spec in '()))
           ('one_of (decode-one-of value-spec in))
+          ('maybe (decode-maybe value-spec in))
           (else
             (console-error "unsupported decoder spec type" spec)
             '(error invalid-type-spec)))))))
+
+(define (decode-maybe spec in)
+  (let ((decoded (decode-term spec in)))
+    (case (car decoded)
+      ('ok decoded)
+      (else (list 'ok (default-for spec ))))))
+
+(define (default-for spec)
+  (case (car spec)
+    ('text "")
+    ('number 0)
+    ('symbol 'undef)
+    ('boolean '#f)
+    (else '())))
 
 (define (decode-one-of specs in)
   (case (length specs)
@@ -244,13 +259,16 @@
 (define (decode-non-empty-list spec in out)
   (case (length in)
     ('0 (list 'ok (reverse out)))
-    (else 
-      (case (car spec)
-        ('object (decode-objects (car (cdr spec)) in out))
-        ('text (decode-texts (car (cdr spec)) in out))
+    (else
+      (case spec
+        ('any (decode-non-empty-list spec (cdr in) (cons (car in) out)))
         (else 
-          (console-error "unsupported list decoder spec type" spec)
-            '(error invalid--list-type-spec))))))
+          (case (car spec)
+            ('object (decode-objects (car (cdr spec)) in out))
+            ('text (decode-texts (car (cdr spec)) in out))
+            (else 
+              (console-error "unsupported list decoder spec type" spec)
+                '(error invalid--list-type-spec))))))))
 
 (define (decode-texts spec in out)
   (case (length in)
