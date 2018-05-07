@@ -28,18 +28,20 @@ spec:
       view:
         tag: div
         attrs:
-          class: "chip"
+          class: "columns col-12"
         children:
-          - tag: label
+          - tag: div
             attrs:
-              class: "label label-primary label-rounded"
+              class: "col-6"
             children:
-              - text:
-                  from: transport
-                  at: item
-          - tag: span
+              - tag: strong
+                children:
+                  - text:
+                      from: transport
+                      at: item
+          - tag: div
             attrs:
-              class: "mx-2"
+              class: "col-6"
             children:
               - text:
                   from: path
@@ -55,27 +57,35 @@ spec:
       view:
         tag: div
         attrs:
-          class: "mb-6"
+          class: "columns mb-6"
           key: 
             from: name
             at: item
         children:
-          - tag: a
+          - tag: div
             attrs:
-              class: "c-hand"
-              onclick:
-                encoder: app_selection
-              href: "#" 
-            children: 
-              - text:
-                  from: name
-                  at: item
-          - view: port_app_mounts_view
-            params:
-              object:
-                mounts:
-                  from: mounts
-                  at: item
+              class: "col-6"
+            children:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                  onclick:
+                    encoder: app_selection
+                  href: "#" 
+                children: 
+                  - text:
+                      from: name
+                      at: item
+          - tag: div
+            attrs:
+              class: "col-6"
+            children:
+              - view: port_app_mounts_view
+                params:
+                  object:
+                    mounts:
+                      from: mounts
+                      at: item
     port_apps_view:
       view:
         tag: div

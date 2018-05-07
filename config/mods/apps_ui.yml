@@ -47,6 +47,8 @@ spec:
               class: 
                 from: style
           - tag: div
+            attrs:
+              class: "mt-1"
             children:
               - text:
                   from: title
@@ -61,38 +63,44 @@ spec:
             params:
               object:
                 name: "apps"
-                style: "icono-gear"
+                style: "fab fa-4x fa-app-store"
                 title: "Apps"
           - view: sidebar_icon
             params:
               object:
                 name: "ports"
-                style: "icono-rss"
+                style: "fas fa-4x fa-wifi"
                 title: "Ports"
           - view: sidebar_icon
             params:
               object:
                 name: "tables"
-                style: "icono-list"
+                style: "fas fa-4x fa-database"
                 title: "Tables"
           - view: sidebar_icon
             params:
               object:
                 name: "nodes"
-                style: "icono-imac"
+                style: "fas fa-4x fa-desktop"
                 title: "Nodes"
           - view: sidebar_icon
             params:
               object:
                 name: "users"
-                style: "icono-user"
+                style: "fas fa-4x fa-users"
                 title: "Users"
           - view: sidebar_icon
             params:
               object:
                 name: "metrics"
-                style: "icono-areaChart"
+                style: "fas fa-4x fa-chart-area"
                 title: "Metrics"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "bugs"
+                style: "fas fa-4x fa-bug"
+                title: "Bugs"
     layout:
       view:
         tag: div

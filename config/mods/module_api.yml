@@ -1,0 +1,50 @@
+version: 1.0
+type: module
+category: server
+name: app_config_api 
+spec:
+  decoders:
+    module_query:
+      object:
+        action: 
+          text: 
+            literal: "module"
+        module:
+          text: any
+    module_found:
+      object:
+        module:
+          any: object
+  encoders:
+    module_lookup:
+      object:
+        query: 
+          keyword: module
+        module:
+          from: module
+    module:
+      object:
+        module:
+          from: module
+  update:
+    module_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        model:
+          module:
+            from: module
+        cmds:
+          - effect: config 
+            encoder: module_lookup 
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    module_found:
+      model:
+        module:
+          from: module
+      cmds:
+        - effect: notify
+          encoder: module

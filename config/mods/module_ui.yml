@@ -1,0 +1,60 @@
+version: 1.0
+type: module
+category: ui
+name: module_ui
+spec:
+  update:
+    show_module:
+      model:
+        module:
+          key: name
+          in:
+            key: module
+            in: event
+      cmds:
+        - effect: ui
+          encoder: module_view
+  encoders:
+    module_sections_view:
+      view:
+        tag: div
+        children: []
+    module_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                from: module
+                at: data
+            view:
+              keyword: module_sections_view
+            data:
+              from: data
+    module_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: module_main_view
+            contents:
+              object:
+                module: 
+                  from: module
+  decoders:
+    show_module:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: show_module
+            module:
+              object:
+                name: 
+                  text: any

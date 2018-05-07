@@ -88,6 +88,12 @@ spec:
           keyword: config
         app:
           from: app
+    module_selection:
+      object:
+        name:
+          keyword: show_module
+        module:
+          from: item 
     app_modules_empty_view:
       view:
         tag: 'div'
@@ -107,6 +113,8 @@ spec:
               - tag: a
                 attrs:
                   class: "c-hand"
+                  onclick:
+                    encoder: module_selection
                 children:
                   - text:
                       from: name

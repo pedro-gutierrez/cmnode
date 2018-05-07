@@ -16,6 +16,7 @@ spec:
     - modules_api
     - app_info_api
     - app_config_api
+    - module_api
   config:
     role:
       keyword: admin
