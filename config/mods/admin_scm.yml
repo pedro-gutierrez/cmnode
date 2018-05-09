@@ -1,7 +1,8 @@
 version: 1.0
 type: module
 category: client
-name: admin_scm 
+name: admin_scm
+priority: lowest
 spec:
   init:
     model:
@@ -26,6 +27,7 @@ spec:
           spec: 
             modules:
               - account_ui
+              - admin_common_ui
               - apps_ui
               - nodes_ui
               - ports_ui

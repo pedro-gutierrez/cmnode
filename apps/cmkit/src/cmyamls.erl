@@ -5,16 +5,7 @@ filenames() ->
     cmkit:files(cmkit:etc(), ".yml").
 
 all() ->
-    lists:map(fun(File) ->
-        case file:read_file(File) of
-            {ok, Data} ->
-                case cmkit:yamld(Data) of 
-                    {ok, [Yaml]} -> {ok, Yaml};
-                    Other -> Other
-                end;
-            Other -> Other
-        end
-    end, filenames()).
+    lists:map(fun cmkit:yaml/1, filenames()).
 
 of_type_name(Type, Name) ->
     TypeBin = cmkit:to_bin(Type),

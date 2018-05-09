@@ -79,6 +79,36 @@ spec:
             children:
               - text:
                   literal: "Init"
+          - tag: div
+            attrs:
+              key: "init"
+              class: "card"
+            children:
+              - tag: div
+                attrs:
+                  class: "card-body columns"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "col-3"
+                    children:
+                      - tag: div
+                        children:
+                          - tag: strong
+                            children:
+                              - text:
+                                  literal: "Model"
+                      - tag: div
+                        children:
+                          - tag: strong
+                            children:
+                              - text:
+                                  literal: "Commands"
+                  - tag: div
+                    attrs:
+                      class: "col-9"
+                    children: []
+
     module_update_view:
       view:
         tag: div

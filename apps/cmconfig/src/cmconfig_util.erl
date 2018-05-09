@@ -1,9 +1,11 @@
 -module(cmconfig_util).
 -export([
+         compile/1,
+         deps/1,
          compile_port/1,
          compile_template/1,
          compile_module/1,
-         compile_app/2,
+         compile_app/1,
          compile_bucket/1,
          compile_keyword/1,
          compile_decoders/1,
@@ -12,8 +14,58 @@
          compile_term/1,
          resolve_modules/2,
          compile_assets/1,
-         compile_effects/1
+         compile_effects/1,
+         compare/2
         ]).
+
+compile(#{ <<"type">> := <<"port">> }=Spec) -> {ok, compile_port(Spec)};
+compile(#{ <<"type">> := <<"app">> }=Spec) -> {ok, compile_app(Spec)};
+compile(#{ <<"type">> := <<"bucket">> }=Spec) -> {ok, compile_bucket(Spec)};
+compile(#{ <<"type">> := <<"template">> }=Spec) -> {ok, compile_template(Spec)};
+compile(#{ <<"type">> := <<"module">> }=Spec) -> {ok, compile_module(Spec)}.
+
+deps(#{ <<"type">> := T, 
+        <<"name">> := N }=Spec) -> 
+    Type = cmkit:to_atom(T),
+    Name = cmkit:to_atom(N),
+    {ok, Type, Name, cmkit:distinct(deps(Type, Spec))}.
+
+deps(app, #{ <<"spec">> := #{
+                   <<"modules">> := Modules }}) -> 
+    lists:map(fun(Name) ->
+                      {module, cmkit:to_atom(Name)}
+              end, Modules);
+
+deps(port, #{ <<"spec">> := #{
+                    <<"apps">> := Apps }}) when is_map(Apps) -> 
+    lists:map(fun(Name) ->
+                      {app, cmkit:to_atom(Name)}
+              end, maps:keys(Apps));
+
+deps(module, #{ <<"spec">> := 
+                #{ <<"encoders">> := Encoders }}) when is_map(Encoders) ->
+    module_deps(maps:values(Encoders), []);
+
+deps(_, _) -> [].
+
+module_deps([], Deps) -> Deps;
+module_deps([#{<<"object">> := Spec}|Rem], Deps) when is_map(Spec) ->
+   module_deps(Rem, modules_from_object_spec(maps:keys(Spec), Spec, []) ++ Deps); 
+
+module_deps([_|Rem], Deps) -> module_deps(Rem, Deps). 
+
+modules_from_object_spec([], _, Mods) -> Mods;
+modules_from_object_spec([K|Rem], Spec, Mods) ->
+    case maps:get(K, Spec) of
+        #{ <<"spec">> := 
+            #{ <<"modules">> := MoreMods }} ->
+            modules_from_object_spec(Rem, Spec, lists:map(fun(Name) ->
+                                                            {module, cmkit:to_atom(Name)}     
+                                                          end, MoreMods)
+                                     ++ Mods);
+        _ ->
+            modules_from_object_spec(Rem, Spec, Mods)
+    end.
 
 compile_port(#{ <<"name">> := Name,
                 <<"spec">> := #{
@@ -22,6 +74,7 @@ compile_port(#{ <<"name">> := Name,
                     <<"apps">> := Apps }}) ->
     
     #{ name => compile_keyword(Name),
+       type => port,
        port  => Port,
        acceptors => Acceptors,
        apps => compile_port_apps(Apps) }.
@@ -47,7 +100,8 @@ compile_template(#{ <<"name">> := Name,
                         <<"contents">> := Contents,
                         <<"params">> := ParamsSpec }}) ->
 
-    #{ name => cmkit:to_atom(Name),
+    #{   type => template,
+         name => cmkit:to_atom(Name),
          contents => Contents,
          params => cmconfig_util:compile_term(ParamsSpec) }.
 
@@ -68,8 +122,9 @@ compile_app(#{ <<"name">> := Name,
                <<"spec">> := #{
                    <<"modules">> := Modules 
                   } = Spec
-             }, Mods) ->
+             }) ->
 
+    Mods = cmconfig:modules(),
     ResolvedModules = cmconfig_util:resolve_modules(Modules, Mods),
         
     #{ name => cmkit:to_atom(Name),
@@ -92,7 +147,8 @@ compile_bucket(#{ <<"name">> := Name,
                                    <<"storage">> := Storage
                                  }}) ->
 
-    #{ name => cmkit:to_atom(Name),
+    #{ type => bucket,
+       name => cmkit:to_atom(Name),
        storage =>  cmkit:to_atom(Storage),
        hosts => Hosts }.
 
@@ -680,3 +736,24 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}) ->
      };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}).
+
+
+compare(#{ <<"type">> := <<"bucket">> }, _) -> true;
+compare(#{ <<"type">> := <<"template">> }, _) -> true;
+compare(#{ <<"type">> := <<"port">> }, _) -> false;
+compare(#{ <<"type">> := <<"app">> }, #{ <<"type">> := <<"port">> }) -> true;
+compare(#{ <<"type">> := <<"app">> }, _) -> false;
+compare(#{ <<"type">> := <<"module">> }, #{ <<"type">> := <<"port">> }) -> true;
+compare(#{ <<"type">> := <<"module">> }, #{ <<"type">> := <<"app">> }) -> true;
+compare(#{ <<"type">> := <<"module">>,
+            <<"name">> := Name1 }, #{ <<"type">> := <<"module">>, 
+                                        <<"name">> := Name2 }) ->
+    {ok, Children1} = cmconfig_cache:children(module, cmkit:to_atom(Name1)),
+    {ok, Children2} = cmconfig_cache:children(module, cmkit:to_atom(Name2)),
+    length(Children1) =< length(Children2);
+
+compare(#{ <<"type">> := <<"module">> }, _) -> false.
+
+
+
+

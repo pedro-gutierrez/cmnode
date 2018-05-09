@@ -1,7 +1,7 @@
 version: 1.0
 type: app
 category: ui
-name: wk_admin_ui
+name: weekonekt_admin_ui
 spec: 
   modules:
-    - admin_scm
+    - weekonekt_admin_scm

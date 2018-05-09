@@ -1,35 +1,18 @@
-%%%-------------------------------------------------------------------
-%% @doc cmconfig top level supervisor.
-%% @end
-%%%-------------------------------------------------------------------
-
 -module(cmconfig_sup).
-
 -behaviour(supervisor).
-
-%% API
 -export([start_link/0]).
-
-%% Supervisor callbacks
 -export([init/1]).
-
 -define(SERVER, ?MODULE).
-
-%%====================================================================
-%% API functions
-%%====================================================================
 
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-%%====================================================================
-%% Supervisor callbacks
-%%====================================================================
-
-%% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+    Specs = lists:map(fun worker_spec/1, [cmconfig_cache,
+                                          cmconfig_compiler, 
+                                          cmconfig_watcher,
+                                          cmconfig_loader]),
+    {ok, { {one_for_one, 0, 1}, Specs} }.
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+worker_spec(Mod) ->
+    cmkit:child_spec(Mod, Mod, [], worker).

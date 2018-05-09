@@ -1,9 +1,0 @@
-version: 1.0
-type: app
-category: api
-name: other 
-spec:
-  port: 8081
-  acceptors: 1
-  modules:
-    - hello
