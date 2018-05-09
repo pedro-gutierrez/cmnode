@@ -16,8 +16,6 @@ eval(#{ type := member,
         spec := Spec }, In) -> 
     case lists_members_specs(Spec, In) of 
         {ok, Spec2} -> 
-            cmkit:log({cmeval, member, #{ type => object,
-                                    spec => Spec2 }, In}),
             case cmdecode:decode(#{ type => object,
                                     spec => Spec2 }, In) of
                 {ok, _} -> true;
