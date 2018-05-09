@@ -171,7 +171,6 @@
             v))))
    
     (define (compile-view v ctx)
-      (console-log "compile-view" v ctx)
       (case (length v)
         ('3
          (let* ((tag (car v))

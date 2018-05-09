@@ -4,6 +4,8 @@
     (define (conn) (hashtable-ref state 'ws '()))
     (define json (js-eval "JSON"))
     (define object (js-eval "Object"))
+    (define window (js-eval "window"))
+    (define location (js-ref window "location"))
     
     (define (json-encode obj)
       (js-invoke json "stringify" obj))
@@ -74,7 +76,21 @@
     (define (ws-on socket event fn)
       (js-set! socket event (js-lambda fn)))
 
-    (define (ws-url) (get 'url effect-settings))
+    (define (ws-url)
+      (let ((url (get 'url effect-settings)))
+        (case url
+          ('undef
+           (let ((path (get 'path effect-settings))
+                 (proto (ws-proto)))
+             (string-append proto "//" (js-ref location "host")  path)))
+          (else url))))
+      
+    (define (ws-proto)
+      (let ((proto (js-ref location "protocol")))
+        (case (eq? "http:" proto)
+          ('#t "ws:")
+          ('#f "wss:"))))
+
     (define (ws-persistent?)
       (eq? 'true (get 'persistent effect-settings)))
     

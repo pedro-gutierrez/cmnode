@@ -14,7 +14,7 @@ open(#{ name := Name,
         port := Port, 
         apps := Apps }) ->
 
-    Dispatch = cowboy_router:compile([{'_', routes(Name, Apps)}]),
+    Dispatch = cowboy_router:compile([{'_', routes(Name, Port, Apps)}]),
     {ok, _} = cowboy:start_clear(Name, 
                                  [{port, Port}, {num_acceptors, Acceptors}],
                                  #{env => #{dispatch => Dispatch},
@@ -24,22 +24,24 @@ open(#{ name := Name,
 
 open(_) -> ok.
 
-routes(Port, Apps) ->
-    AppDir = atom_to_list(Port),
-    lists:flatten(lists:map(fun app_routes/1, Apps))
+routes(PortName, PortNumber, Apps) ->
+    AppDir = atom_to_list(PortName),
+    lists:flatten(lists:map(fun (App) -> 
+                               app_routes(PortNumber, App)     
+                            end, Apps))
     ++
     [
         {"/", cowboy_static, {priv_file, cmweb, AppDir ++ "/index.html"}},
         {"/[...]", cowboy_static, {priv_dir, cmweb, AppDir}}
     ].
 
-app_routes(#{ name := Name, mounts := Mounts }) ->
+app_routes(Port, #{ name := Name, mounts := Mounts }) ->
     lists:map(fun(Mount) ->
-                    mount_route(Name, Mount)
+                    mount_route(Name, Mount, Port)
               end, Mounts).
 
-mount_route(App, #{ path := Path, transport := http }) ->
-    { Path ++ "/[...]", cmweb_http, #{app => App}};
+mount_route(App, #{ path := Path, transport := http }, Port) ->
+    { Path ++ "/[...]", cmweb_http, #{app => App, port => Port}};
 
-mount_route(App, #{ path := Path, transport := ws }) ->
-    { Path, cmweb_ws, #{ app => App}}.
+mount_route(App, #{ path := Path, transport := ws }, Port) ->
+    { Path, cmweb_ws, #{ app => App, port => Port}}.

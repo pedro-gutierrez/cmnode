@@ -670,9 +670,11 @@ spec:
     ws:
       type: elementary-ws
       settings:
-        url:
+        secure:
+          keyword: no 
+        path:
           text:
-            literal: "ws://localhost:8080/ws"
+            literal: "/ws"
         persistent: 
           keyword: true
         ping:
