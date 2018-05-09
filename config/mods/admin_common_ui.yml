@@ -24,55 +24,6 @@ spec:
             children:
               - text:
                   from: title
-    admin_sidebar:
-      view:
-        tag: div
-        attrs:
-          class: "text-center"
-          key: "sidebar"
-        children:
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-flask"
-                title: "Apps"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "ports"
-                style: "fa fa-4x fa-rss"
-                title: "Ports"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "tables"
-                style: "fa fa-4x fa-database"
-                title: "Tables"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "nodes"
-                style: "fa fa-4x fa-desktop"
-                title: "Nodes"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "users"
-                style: "fa fa-4x fa-users"
-                title: "Users"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "metrics"
-                style: "fa fa-4x fa-area-chart"
-                title: "Metrics"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "bugs"
-                style: "fa fa-4x fa-bug"
-                title: "Bugs"
     layout:
       view:
         tag: div
@@ -85,7 +36,8 @@ spec:
               id: "sidebar"
               class: "off-canvas-sidebar active"
             children:
-              - view: admin_sidebar
+              - view:
+                  from: sidebar
           - tag: div
             attrs:
               class: "off-canvas-content"

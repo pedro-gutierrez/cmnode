@@ -27,12 +27,7 @@ spec:
             modules:
               - account_ui
               - admin_common_ui
-              - apps_ui
-              - nodes_ui
-              - ports_ui
-              - buckets_ui
-              - app_ui
-              - module_ui
+              - weekonekt_admin_reviews_ui
     scheme:
       data: 
         from: scheme

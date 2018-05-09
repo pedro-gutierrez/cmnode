@@ -1,0 +1,113 @@
+version: 1.0
+type: module
+category: ui
+name: weekonekt_admin_reviews_ui
+spec:
+  init:
+    model:
+      reviews: [] 
+  update:
+    ready:
+      cmds:
+        - effect: ui
+          encoder: reviews_view
+  encoders:
+    reviews_table_view:
+      view:
+        tag: div
+        children:
+          - text:
+              literal: "Contents go here"
+    reviews_main_section:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Reviews"
+            view:
+              keyword: reviews_table_view
+            data:
+              from: data
+    reviews_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              from: message
+            content_view:
+              keyword: reviews_main_section
+            contents:
+              from: reviews
+            sidebar:
+              keyword: weekonekt_admin_sidebar
+    weekonekt_admin_sidebar:
+      view:
+        tag: div
+        attrs:
+          class: "text-center"
+          key: "sidebar"
+        children:
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-pencil-square-o"
+                title: "Reviews"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-picture-o"
+                title: "Photos"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-map-marker"
+                title: "Places"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-sitemap"
+                title: "Categories"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-users"
+                title: "Users"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-cloud-upload"
+                title: "Import"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-bug"
+                title: "Bugs"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-power-off"
+                title: "Logout"
+
+
+
+
+
+                
+  decoders:
+    ready:
+      object:
+        effect:
+          keyword: events
+        event:
+          keyword: user_logged_in

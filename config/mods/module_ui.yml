@@ -211,6 +211,8 @@ spec:
         view: layout
         params:
           object:
+            sidebar:
+              keyword: admin_sidebar
             message:
               from: message
             content_view:
@@ -234,6 +236,8 @@ spec:
               object:
                 name: 
                   from: name
+            sidebar:
+              keyword: admin_sidebar
   decoders:
     show_module:
       object:

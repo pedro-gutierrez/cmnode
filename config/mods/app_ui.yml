@@ -299,6 +299,8 @@ spec:
                   from: modules
                 modules_view:
                   from: modules_view
+            sidebar:
+              keyword: admin_sidebar
   decoders:
     app_info:
       object:

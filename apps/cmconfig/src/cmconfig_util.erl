@@ -489,6 +489,15 @@ compile_term(#{ <<"all">> := Conds }) ->
        spec => lists:map(fun compile_term/1, Conds) 
      };
 
+compile_term(#{}=Map) when map_size(Map) == 0 ->
+    #{ type => object };
+
+compile_term(null) -> 
+    #{ type => object };
+
+compile_term([]) -> 
+    #{ type => list, value => [] };
+
 compile_term(Text) when is_binary(Text) -> Text.
 
 %compile_from(From) when is_binary(From)-> compile_keyword(From);
@@ -496,6 +505,9 @@ compile_term(Text) when is_binary(Text) -> Text.
 %    compile_term(From).
 
 compile_object(<<"any">>) -> 
+    #{ type => object };
+
+compile_object(null) ->
     #{ type => object };
 
 compile_object(Map) when is_map(Map) ->

@@ -168,6 +168,8 @@ spec:
               keyword: ports_main_view
             contents:
               from: ports
+            sidebar:
+              keyword: admin_sidebar
     ports:
       object: 
         action:

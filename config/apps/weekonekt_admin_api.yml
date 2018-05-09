@@ -6,6 +6,8 @@ spec:
   debug: true 
   modules:
     - ping
+    - login_api
+    - register_api
   config:
     role:
       keyword: weekonekt_admin

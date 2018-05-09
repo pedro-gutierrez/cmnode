@@ -108,66 +108,57 @@ spec:
               keyword: apps_main_view
             contents:
               from: apps
-    node_table_item_view:
+            sidebar:
+              keyword: admin_sidebar
+    admin_sidebar:
       view:
-        tag: "tr"
+        tag: div
         attrs:
-          key:
-            from: name
-            at: item
+          class: "text-center"
+          key: "sidebar"
         children:
-          - tag: td
-            children:
-              - text:
-                  from: name
-                  at: item
-          - tag: td
-            children:
-              - text:
-                  from: status
-                  at: item
-    nodes_table_view:
-      view:
-        view: table
-        params:
-          object:
-            headers:
-              list:
-                - object:
-                    title: 
-                      text:
-                        literal: "Name"
-                - object:
-                    title:
-                      text: 
-                        literal: "Status"
-            items:
-              from: data
-            item_view:
-              keyword: node_table_item_view
-    nodes_main_view:
-      view:
-        view: main
-        params:
-          object:
-            title:
-              text:
-                literal: "Nodes"
-            view:
-              keyword: nodes_table_view
-            data:
-              from: data
-    nodes_view: 
-      view:
-        view: layout
-        params:
-          object:
-            message:
-              from: message
-            content_view:
-              keyword: nodes_main_view
-            contents:
-              from: nodes
+          - view: sidebar_icon
+            params:
+              object:
+                name: "apps"
+                style: "fa fa-4x fa-flask"
+                title: "Apps"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "ports"
+                style: "fa fa-4x fa-rss"
+                title: "Ports"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "tables"
+                style: "fa fa-4x fa-database"
+                title: "Tables"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "nodes"
+                style: "fa fa-4x fa-desktop"
+                title: "Nodes"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "users"
+                style: "fa fa-4x fa-users"
+                title: "Users"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "metrics"
+                style: "fa fa-4x fa-area-chart"
+                title: "Metrics"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "bugs"
+                style: "fa fa-4x fa-bug"
+                title: "Bugs"
     apps:
       object: 
         action:

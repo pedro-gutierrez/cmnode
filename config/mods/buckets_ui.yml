@@ -111,6 +111,8 @@ spec:
               keyword: buckets_main_view
             contents:
               from: buckets
+            sidebar:
+              keyword: admin_sidebar
     buckets:
       object: 
         action:

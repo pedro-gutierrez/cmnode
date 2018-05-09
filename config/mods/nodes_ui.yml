@@ -94,6 +94,8 @@ spec:
               keyword: nodes_main_view
             contents:
               from: nodes
+            sidebar:
+              keyword: admin_sidebar
     nodes:
       object: 
         action:
