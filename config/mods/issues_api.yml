@@ -1,0 +1,64 @@
+version: 1.0
+type: module
+category: server
+name: issues_api 
+spec:
+  decoders:
+    issues_query:
+      object:
+        action: 
+          text: 
+            literal: "issues"
+    issues:
+      object:
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: issue
+        values: 
+          list:
+            object: 
+              status:
+                keyword:
+                  one_of:
+                    - keyword: new
+                    - keyword: done
+                    - keyword: progress
+              name:
+                any: text
+              description:
+                any: text
+              id:
+                any: text
+              milestone:
+                any: text
+  encoders:
+    issues_lookup:
+      object:
+        bucket:
+          keyword: tracker
+        type:
+          keyword: issue
+    issues:
+      object:
+        issues:
+          from: issues
+  update:
+    issues_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        cmds:
+          - effect: db_get
+            encoder: issues_lookup
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    issues:
+      model:
+        issues:
+          from: values
+      cmds:
+        - effect: notify
+          encoder: issues

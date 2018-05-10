@@ -17,10 +17,16 @@ spec:
     - app_info_api
     - app_config_api
     - module_api
+    - projects_api
+    - issues_api
+    - milestones_api
   config:
     role:
       keyword: admin
     sessions:
       keyword: many
+    key:
+      text:
+        literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
     timeout:
       number: 30

@@ -69,9 +69,11 @@ ready({call, From}, {put, Pairs}, #data{tid=Tid}=Data) ->
 
 ready({call, From}, {put_new, Pairs}, #data{tid=Tid}=Data) ->
     Res = case ets:insert_new(Tid, Pairs) of 
-        true -> ok;
-        _ -> error
-    end,
+              true -> ok;
+              Other -> 
+                  cmkit:log({cmdb, put_new, Pairs, Other}),
+                  error
+          end,
     {keep_state, Data, {reply, From, Res}};
 
 ready({call, From}, backup, Data) ->

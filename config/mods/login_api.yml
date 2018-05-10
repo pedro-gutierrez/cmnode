@@ -53,7 +53,20 @@ spec:
         type:
           keyword: roles
         value:
-          list: any 
+          list:
+            with:
+              config: role
+    roles_invalid:
+      priority: lowest 
+      object:
+        bucket:
+          keyword: users
+        type:
+          keyword: roles
+        value:
+          list: 
+            without:
+              config: role
     roles_not_found:
       object:
         bucket:
@@ -202,7 +215,11 @@ spec:
     roles_not_found:
       cmds:
         - effect: notify
-          encoder: login_user_data
+          encoder: forbidden
+    roles_invalid:
+      cmds:
+        - effect: notify
+          encoder: forbidden
     roles_found:
       model:
         roles:

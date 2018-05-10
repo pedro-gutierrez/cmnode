@@ -4,8 +4,8 @@
          cmds/4,
          context/1,
          update/5,
-         update_spec/3,
-         decode/2
+         update_spec/4,
+         decode/3
         ]).
 
 context(SessionId) ->
@@ -17,12 +17,12 @@ context(SessionId) ->
 init(#{ init := Init }=App, Config) -> update(App, Init, Config);
 init(_, _) -> {ok, #{}, []}.
 
-update_spec(#{ update := Updates}, Msg, Model) ->
+update_spec(#{ update := Updates}, Msg, Model, Config) ->
     case maps:get(Msg, Updates, undef) of
         undef -> 
             {error, #{  update => not_implemented, msg => Msg }};
         Specs ->
-            case first_spec(Specs, Model) of 
+            case first_spec(Specs, Model, Config) of 
                 none -> 
                     {error, #{  update => none_applies, msg => Msg }};
                 Spec ->
@@ -30,30 +30,30 @@ update_spec(#{ update := Updates}, Msg, Model) ->
             end
     end;
 
-update_spec(_, Msg, _) ->
+update_spec(_, Msg, _, _) ->
     {error, #{ update => not_implemented, msg => Msg }}.
 
-first_spec([], _) -> none;
-first_spec([#{ condition := Cond}=Spec|Rem], Model) ->
-    case cmeval:eval(Cond, Model) of 
+first_spec([], _, _) -> none;
+first_spec([#{ condition := Cond}=Spec|Rem], Model, Config) ->
+    case cmeval:eval(Cond, Model, Config) of 
         true -> Spec;
-        false -> first_spec(Rem, Model)
+        false -> first_spec(Rem, Model, Config)
     end.
 
-decode(#{ decoders := Decoders }, Data) ->
-    decode(Decoders, Data);
+decode(#{ decoders := Decoders }, Data, Config) ->
+    decode(Decoders, Data, Config);
 
-decode([], _) -> {error, no_match};
+decode([], _, _) -> {error, no_match};
 
-decode([#{ msg := Msg, spec := Spec}|Rem], Data) ->
-    case cmdecode:decode(Spec, Data) of
+decode([#{ msg := Msg, spec := Spec}|Rem], Data, Config) ->
+    case cmdecode:decode(Spec, Data, Config) of
         no_match -> 
-            decode(Rem, Data);
+            decode(Rem, Data, Config);
         {ok, Decoded} ->
             {ok, Msg, Decoded}
     end;
 
-decode(_, _) -> {error, no_match}.
+decode(_, _, _) -> {error, no_match}.
 
 update(App, Spec, Config) -> update(App, Spec, Config, #{}).
 

@@ -137,15 +137,22 @@ spec:
         - effect: notify
           encoder: conflict
     not_found:
+      model:
+        state: 
+          keyword: registering
       cmds:
         - effect: uuid
     uuid:
-      model:
-        uuid:
-          from: uuid
-      cmds:
-        - effect: db_put_new_all
-          encoder: register_data
+      - when: 
+          eq:
+            - keyword: registering
+            - key: state
+        model:
+          uuid:
+            from: uuid
+        cmds:
+          - effect: db_put_new_all
+            encoder: register_data
     registered:
       cmds:
         - effect: notify

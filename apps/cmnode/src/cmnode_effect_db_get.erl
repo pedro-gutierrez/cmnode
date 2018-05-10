@@ -17,4 +17,13 @@ effect_apply(#{ context := Context,
                                  {ok, [V]} -> Res#{ value => V };
                                  {ok, [V|_]} -> Res#{ value => V };
                                  {error, E }-> Res#{ error => E }
+                             end);
+
+effect_apply(#{  bucket := Db, 
+                 type := Type }, #{ id := SessionId }) ->
+    Res = #{ bucket => Db,
+             type => Type },
+    cmcore:update(SessionId, case cmdb:find(Db, Type) of
+                                 {ok, Values} -> Res#{ values => Values };
+                                 {error, E }-> Res#{ error => E }
                              end).

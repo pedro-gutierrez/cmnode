@@ -1,0 +1,65 @@
+version: 1.0
+type: module
+category: server
+name: milestones_api 
+spec:
+  decoders:
+    milestones_query:
+      object:
+        action: 
+          text: 
+            literal: "milestones"
+    milestones:
+      object:
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: milestone
+        values: 
+          list:
+            object: 
+              status:
+                keyword:
+                  one_of:
+                    - keyword: not_planned
+                    - keyword: ontime
+                    - keyword: late
+                    - keyword: done
+              name:
+                any: text
+              description:
+                any: text
+              id:
+                any: text
+              project:
+                any: text
+  encoders:
+    milestones_lookup:
+      object:
+        bucket:
+          keyword: tracker
+        type:
+          keyword: milestone
+    milestones:
+      object:
+        milestones:
+          from: milestones
+  update:
+    milestones_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        cmds:
+          - effect: db_get
+            encoder: milestones_lookup
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    milestones:
+      model:
+        milestones:
+          from: values
+      cmds:
+        - effect: notify
+          encoder: milestones

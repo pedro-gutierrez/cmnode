@@ -10,8 +10,7 @@ spec:
           text: 
             literal: "reset"
         token:
-          text:
-            literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
+          config: key
     success:
       object:
         all_deleted:
@@ -22,6 +21,7 @@ spec:
         buckets:
           list: 
             - keyword: users
+            - keyword: tracker
     success:
       object:
         status:

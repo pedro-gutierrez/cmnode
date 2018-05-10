@@ -306,6 +306,12 @@ compile_term(#{ <<"list">> := <<"empty">>}) ->
 compile_term(#{ <<"list">> := <<"any">>}) ->
     #{ type => list };
 
+compile_term(#{ <<"list">> := #{ <<"with">> := Spec}}) ->
+    #{ type => list, with => compile_term(Spec) };
+
+compile_term(#{ <<"list">> := #{ <<"without">> := Spec}}) ->
+    #{ type => list, without => compile_term(Spec) };
+
 compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
     #{ type => list,
        value => lists:map( fun compile_term/1, Items) 
@@ -315,7 +321,6 @@ compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
     #{ type => list,
        spec => compile_term(Spec)
      };
-
 
 compile_term(#{ <<"map">> := #{ <<"value">> := From,
                                 <<"options">> := Options }}) ->

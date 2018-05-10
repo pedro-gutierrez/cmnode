@@ -1,36 +1,37 @@
 -module(cmdecode).
--export([decode/2]).
+-export([decode/3]).
 
-decode(#{ type := data }, Data) when is_binary(Data) ->
+
+decode(#{ type := data }, Data, _) when is_binary(Data) ->
     {ok, Data};
 
-decode(#{ type := object, spec := Spec }, Data) ->
-    decode_object(Spec, Data, #{});
+decode(#{ type := object, spec := Spec }, Data, Config) ->
+    decode_object(Spec, Data, Config, #{});
 
-decode(#{ type := object }, Data) when is_map(Data) -> 
+decode(#{ type := object }, Data, _) when is_map(Data) -> 
     {ok, Data};
 
-decode(Spec, Data) -> 
-    decode_term(Spec, Data).
+decode(Spec, Data, Config) -> 
+    decode_term(Spec, Data, Config).
 
-decode_list(Spec, Data) -> 
-    decode_list(Spec, Data, []).
+decode_list(Spec, Data, Config) -> 
+    decode_list(Spec, Data, Config, []).
 
-decode_list(_, [], Out) -> {ok, lists:reverse(Out)};
-decode_list(Spec, [Item|Rem], Out) ->
-    case decode(Spec, Item) of 
+decode_list(_, [], _, Out) -> {ok, lists:reverse(Out)};
+decode_list(Spec, [Item|Rem], Config, Out) ->
+    
+    case decode(Spec, Item, Config) of 
         {ok, Decoded} ->
-            decode_list(Spec, Rem, [Decoded|Out]);
+            decode_list(Spec, Rem, Config, [Decoded|Out]);
         Other -> 
-            cmkit:log({cmdecode, decode_list, not_matched, Spec, Item, Other}),
             Other
     end.
 
-decode_object(Spec, Data, Out) ->
-    decode_object(maps:keys(Spec), Spec, Data, Out).
+decode_object(Spec, Data, Config, Out) ->
+    decode_object(maps:keys(Spec), Spec, Data, Config, Out).
 
-decode_object([], _, _, Out) -> {ok, Out};
-decode_object([Key|Rem], Spec, Data, Out) ->
+decode_object([], _, _, _, Out) -> {ok, Out};
+decode_object([Key|Rem], Spec, Data, Config, Out) ->
     KeySpec = maps:get(Key, Spec),
     Value = cmkit:value_at(Key, Data),
     case Value of 
@@ -43,65 +44,98 @@ decode_object([Key|Rem], Spec, Data, Out) ->
                              OtherKey ->
                                  KeySpec#{ value => cmkit:value_at(OtherKey, Data) }
                          end,
-
-            case decode_term(DecodeSpec, Value) of 
+            case decode_term(DecodeSpec, Value, Config ) of 
                 {ok, Decoded} ->
-                    decode_object(Rem, Spec, Data, Out#{ Key => Decoded});
+                    decode_object(Rem, Spec, Data, Config, Out#{ Key => Decoded});
                 no_match -> no_match
             end
 
     end.
 
 
-decode_term(#{ type := keyword, value := Data}, Data) when is_atom(Data) -> {ok, Data};
-decode_term(#{ type := keyword, spec := Spec}, Data) when is_atom(Data) ->
-    decode_term(Spec, Data);
+decode_term(#{ type := keyword, value := Data}, Data, _) when is_atom(Data) -> {ok, Data};
+decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) ->
+    decode_term(Spec, Data, Config);
 
-decode_term(#{ type := keyword, value := _}, _) -> no_match;
-decode_term(#{ type := keyword }, Data) when is_atom(Data) -> {ok, Data}; 
-decode_term(#{ type := text, value := Text, constraint := equal}, Text) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text, value := _, constraint := equal}, _) -> no_match;
-decode_term(#{ type := text, value := Text}, Text) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text, value := _}, Text) when is_binary(Text) -> no_match;
-decode_term(#{ type := text}, Text) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text}, Text) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
-decode_term(#{ type := number}, Num) when is_number(Num) -> {ok, Num};
+decode_term(#{ type := keyword, value := _}, _, _) -> no_match;
+decode_term(#{ type := keyword }, Data, _) when is_atom(Data) -> {ok, Data}; 
+decode_term(#{ type := text, value := Text, constraint := equal}, Text, _) when is_binary(Text) -> {ok, Text};
+decode_term(#{ type := text, value := _, constraint := equal}, _, _) -> no_match;
+decode_term(#{ type := text, value := Text}, Text, _) when is_binary(Text) -> {ok, Text};
+decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_match;
+decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
+decode_term(#{ type := text}, Text, _) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
+decode_term(#{ type := number}, Num, _) when is_number(Num) -> {ok, Num};
 
-decode_term(#{ type := list, spec := Spec }, Data) when is_list(Data) -> 
-    decode_list(Spec, Data);
+decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) -> 
+    decode_list(Spec, Data, Config);
 
-decode_term(#{ type := list, with := Member }, Data) when is_list(Data) ->
+
+decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data) and is_map(Spec) ->
+    case cmencode:encode(Spec, Data, Config) of 
+        {ok, Member} ->
+            case lists:member(Member, Data) of
+                true -> {ok, Data};
+                false -> no_match
+            end;
+        Other -> Other
+    end;
+
+decode_term(#{ type := list, with := Member}, Data, _) when is_list(Data) ->
     case lists:member(Member, Data) of
         true -> {ok, Data};
         false -> no_match
     end;
 
-decode_term(#{ type := list}, List) when is_list(List) -> {ok, List};
-decode_term(#{ type := email}, Email) ->
+decode_term(#{ type := list, without := Spec }, Data, Config) when is_list(Data) and is_map(Spec) ->
+    case cmencode:encode(Spec, Data, Config) of 
+        {ok, Member} ->
+            case lists:member(Member, Data) of
+                false -> {ok, Data};
+                true -> no_match
+            end;
+        Other -> Other
+    end;
+
+decode_term(#{ type := list, without := Member}, Data, _) when is_list(Data) ->
+    case lists:member(Member, Data) of
+        false -> {ok, Data};
+        true -> no_match
+    end;
+
+decode_term(#{ type := list}, List, _) when is_list(List) -> {ok, List};
+decode_term(#{ type := email}, Email, _) ->
     case cmkit:is_email(Email) of 
         true -> {ok, Email};
         false -> no_match
     end;
 
-decode_term(#{ type := object, spec := Spec}, In) when is_map(In) ->
-    decode_object(Spec, In, #{});
+decode_term(#{ type := object, spec := Spec}, In, Config) when is_map(In) ->
+    decode_object(Spec, In, Config, #{});
 
 
-decode_term(#{ type := object }, In) when is_map(In) ->
+decode_term(#{ type := object }, In, _) when is_map(In) ->
     {ok, In};
 
-decode_term(#{ one_of := Specs }, In) when is_list(Specs) ->
-    decode_first(Specs, In);
+decode_term(#{ type := config, spec := Key}, _, Config)  ->
+    case maps:get(Key, Config, undef) of 
+        undef -> 
+            cmkit:log({cmdecode, missing_config, Key, Config}),
+            no_match;
+        V -> {ok, V}
+    end;
 
-decode_term(Spec, Data) -> 
+decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
+    decode_first(Specs, In, Config);
+
+decode_term(Spec, Data, _) -> 
     cmkit:log({cmdecode, not_implemented, Spec, Data}),
     no_match.
 
-decode_first([], _) -> no_match;
-decode_first([Spec|Rem], In) ->
-    case decode_term(Spec, In) of 
+decode_first([], _, _) -> no_match;
+decode_first([Spec|Rem], In, Config) ->
+    case decode_term(Spec, In, Config) of 
         {ok, Decoded} -> {ok, Decoded};
         no_match ->
-            decode_first(Rem, In)
+            decode_first(Rem, In, Config)
     end.
-

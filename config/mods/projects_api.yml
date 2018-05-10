@@ -1,0 +1,183 @@
+version: 1.0
+type: module
+category: server
+name: projects_api 
+spec:
+  decoders:
+    projects_query:
+      object:
+        action: 
+          text: 
+            literal: "projects"
+    project_create_query:
+      object:
+        action: 
+          text: 
+            literal: "create_project"
+        name:
+          any: text
+        description:
+          any: text
+    projects:
+      object:
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: project
+        values: 
+          list:
+            object: 
+              status:
+                keyword:
+                  one_of:
+                    - keyword: planning
+                    - keyword: started
+                    - keyword: abandoned
+              name:
+                any: keyword
+              description:
+                any: text
+              owner:
+                any: text
+    tracker_db_ok:
+      object:
+        bucket: 
+          keyword: tracker
+        status:
+          keyword: ok
+
+  encoders:
+    projects_lookup:
+      object:
+        bucket:
+          keyword: tracker
+        type:
+          keyword: project
+    projects:
+      object:
+        projects:
+          from: projects
+    project_entries:
+      object:
+        context:
+          keyword: new_project
+        bucket:
+          keyword: tracker
+        items:
+          list:
+            - object: 
+                type: 
+                  keyword: project
+                id: 
+                  from: name
+                value:
+                  from: uuid
+            - object:
+                type:
+                  keyword: project
+                id:
+                  from: uuid
+                value:
+                  object:
+                    name: 
+                      from: name
+                    description: 
+                      from: description
+                    status:
+                      from: project_status
+                    id:
+                      from: uuid
+            - object:
+                type:
+                  keyword: owner
+                id:
+                  from: uuid
+                value:
+                  key: id
+                  in:
+                    key: user
+            - object:
+                type:
+                  keyword: projects
+                id:
+                  key: id
+                  in:
+                    key: user
+                value:
+                  from: uuid
+    project:
+      object:
+        project:
+          object:
+            name: 
+              from: name
+            description:
+              from: description
+            id:
+              from: uuid
+            status:
+              from: project_status
+            owner:
+              key: id
+              in:
+                key: user
+  update:
+    projects_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        cmds:
+          - effect: db_get
+            encoder: projects_lookup
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    uuid:
+      - when:
+          eq:
+            - from: state 
+            - keyword: creating_project
+        model:
+          uuid:
+            from: uuid
+          project_status:
+            keyword: planning
+        cmds:
+            - effect: db_put_new_all
+              encoder: project_entries
+    project_create_query:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        model:
+          name:
+            from: name
+          description:
+            from: description
+          state:
+            keyword: creating_project
+        cmds:
+          - effect: uuid
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    tracker_db_ok:
+      - when:
+          eq:
+            - key: state
+            - keyword: creating_project
+        model:
+          state: 
+            keyword: none
+        cmds:
+          - effect: notify
+            encoder: project
+    projects:
+      model:
+        projects:
+          from: values
+      cmds:
+        - effect: notify
+          encoder: projects

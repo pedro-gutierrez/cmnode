@@ -20,7 +20,7 @@ init([#{ debug := Debug,
          spec := Spec }, #{ id := Id, app := App }=Session]) ->
     ok = cmsession:attach(Id, context, self()),
     Log = cmkit:log_fun(Debug),
-    Log({ cmcore_context, App, Id, self() }),
+    Log({ cmcore, App, Id, self() }),
     {ok, initializing, Session#{ spec => Spec, config => Config, log => Log }}.
 
 initializing(cast, {init, _Data},  #{app := App,
@@ -48,12 +48,14 @@ ready(cast, {update, Data}, #{ app := App,
                                config := Config,
                                model := Model, 
                                log := Log }=Session) ->
-    case cmcore_util:decode(Spec, Data) of 
+    
+    Log({cmcore, data, App, Id, Data}),
+    case cmcore_util:decode(Spec, Data, Config) of 
         {ok, Msg, Decoded} ->
-            Log({cmcore_context, decoded, Msg, App, Id}),
-            case cmcore_util:update_spec(Spec, Msg, Model) of 
+            Log({cmcore, decoded, Msg, App, Id}),
+            case cmcore_util:update_spec(Spec, Msg, Model, Config) of 
                 {ok, UpdateSpec} ->
-                    Log({cmcore_context, update, UpdateSpec, App, Id}),
+                    Log({cmcore, update, UpdateSpec, App, Id}),
                     case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
                             case cmsession:attach(Id, model, Model2) of
