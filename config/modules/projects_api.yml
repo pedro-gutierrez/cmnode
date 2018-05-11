@@ -4,16 +4,27 @@ category: server
 name: projects_api 
 spec:
   decoders:
-    projects_query:
+    list_projects:
       object:
         action: 
           text: 
             literal: "projects"
-    project_create_query:
+    create_project:
       object:
         action: 
           text: 
             literal: "create_project"
+        name:
+          any: text
+        description:
+          any: text
+    edit_project:
+      object:
+        action: 
+          text: 
+            literal: "edit_project"
+        project:
+          any: text
         name:
           any: text
         description:
@@ -39,6 +50,26 @@ spec:
                 any: text
               owner:
                 any: text
+    project_found:
+      object:
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: project
+        value:
+          object:
+            id:
+              any: text
+            owner:
+              any: text
+    no_such_project:
+      object:
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: project
+        error:
+          keyword: not_found
     tracker_db_ok:
       object:
         bucket: 
@@ -53,6 +84,14 @@ spec:
           keyword: tracker
         type:
           keyword: project
+    project_by_id:
+      object:
+        bucket:
+          keyword: tracker
+        type:
+          keyword: project
+        value:
+          from: project
     projects:
       object:
         projects:
@@ -122,7 +161,7 @@ spec:
               in:
                 key: user
   update:
-    projects_query:
+    list_projects:
       - when:
           member:
             roles: 
@@ -146,7 +185,7 @@ spec:
         cmds:
             - effect: db_put_new_all
               encoder: project_entries
-    project_create_query:
+    create_project:
       - when:
           member:
             roles: 
@@ -160,6 +199,26 @@ spec:
             keyword: creating_project
         cmds:
           - effect: uuid
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    edit_project:
+      - when:
+          member:
+            roles: 
+              keyword: admin
+        model:
+          project:
+            from: project
+          name:
+            from: name
+          description:
+            from: description
+          state:
+            keyword: editing_project
+        cmds:
+          - effect: find_project
+            encoder: project_by_id
       - cmds:
           - effect: notify
             encoder: forbidden
