@@ -217,11 +217,24 @@ spec:
           state:
             keyword: editing_project
         cmds:
-          - effect: find_project
+          - effect: find_projectcm
             encoder: project_by_id
       - cmds:
           - effect: notify
             encoder: forbidden
+    project_found:
+      - when:
+          eq:
+            - key: owner
+            - key: id
+              in:
+                key: user
+                of: model
+
+    not_such_project:
+      cmds:
+        - effect: notify
+          encoder: not_found
     tracker_db_ok:
       - when:
           eq:
