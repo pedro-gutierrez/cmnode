@@ -11,9 +11,9 @@ spec:
     nodes:
       model:
         nodes:
-          from: data
-          at: 
-            from: data
+          key: data
+          in: 
+            key: data
       cmds:
         - effect: ui
           encoder: nodes_view
@@ -29,19 +29,19 @@ spec:
         tag: "tr"
         attrs:
           key:
-            from: name
-            at: item
+            key: name
+            in: item
         children:
           - tag: td
             children:
               - text:
-                  from: name
-                  at: item
+                  key: name
+                  in: item
           - tag: td
             children:
               - text:
-                  from: status 
-                  at: item
+                  key: status 
+                  in: item
     nodes_table_view:
       view:
         view: table
@@ -58,7 +58,7 @@ spec:
                       text: 
                         literal: "Status"
             items:
-              from: data
+              key: data
             item_view:
               keyword: node_table_item_view
                     
@@ -70,7 +70,7 @@ spec:
             view:
               keyword: nodes_table_view
             data:
-              from: data
+              key: data
     nodes_main_view:
       view:
         view: main
@@ -82,18 +82,18 @@ spec:
             view:
               keyword: nodes_table_view
             data:
-              from: data
+              key: data
     nodes_view: 
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: nodes_main_view
             contents:
-              from: nodes
+              key: nodes
             sidebar:
               keyword: admin_sidebar
     nodes:

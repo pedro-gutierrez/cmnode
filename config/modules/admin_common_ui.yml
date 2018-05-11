@@ -10,20 +10,20 @@ spec:
         attrs:
           class: "sidebar-icon c-hand"
           onclick:
-            from: name
+            key: name
           key: 
-            from: name
+            key: name
         children:
           - tag: i
             attrs:
               class: 
-                from: style
+                key: style
           - tag: div
             attrs:
               class: "mt-1"
             children:
               - text:
-                  from: title
+                  key: title
     layout:
       view:
         tag: div
@@ -37,7 +37,7 @@ spec:
               class: "off-canvas-sidebar active"
             children:
               - view:
-                  from: sidebar
+                  key: sidebar
           - tag: div
             attrs:
               class: "off-canvas-content"
@@ -46,50 +46,50 @@ spec:
                 params:
                   object:
                     message:
-                      from: message
+                      key: message
               - view:
-                  from: content_view
+                  key: content_view
                 params:
                   object:
                     data:
-                      from: contents
+                      key: contents
     main:
       view:
         tag: div
         attrs:
           key: 
-            from: view 
+            key: view 
         children:
           - tag: h2
             attrs:
               class: "content-view"
             children:
               - text:
-                  from: title
+                  key: title
           - view:
-              from: view
+              key: view
             params:
               object:
                 data:
-                  from: data
+                  key: data
 
     section:
       view:
         tag: div
         attrs:
           key: 
-            from: view 
+            key: view 
         children:
           - tag: section
             attrs:
               class: "section-view"
             children:
               - view:
-                  from: view
+                  key: view
                 params:
                   object:
                     data:
-                      from: data
+                      key: data
     table:
       view: 
         tag: div
@@ -101,19 +101,19 @@ spec:
               - tag: thead
                 children:
                   loop:
-                    from: headers
+                    key: headers
                   with: table_header
               - tag: tbody
                 children:
                   loop:
-                    from: items
+                    key: items
                   with:
-                    from: item_view
+                    key: item_view
 
     table_header:
       view:
         tag: th
         children:
           - text:
-              from: title
-              at: item
+              key: title
+              in: item

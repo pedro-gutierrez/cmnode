@@ -401,28 +401,13 @@ compile_term(#{ <<"boolean">> := <<"any">> }) ->
     #{ type => boolean };
 
 compile_term(#{ <<"text">> := Spec }) ->
-    %#{ type => text, spec => compile_term(Spec) };
     
     maps:merge(#{ type => text},
                compile_term(Spec));
     
-%%compile_term(#{ <<"from">> := From,
-%%                <<"at">> := At }) when is_binary(At) ->
-%%    #{ from => compile_from(From),
-%%       at => compile_keyword(At) };
-%%
-%%compile_term(#{ <<"from">> := From,
-%%                <<"at">> := At }) when is_map(At) ->
-%%    #{ from => compile_from(From),
-%%       at => compile_term(At) };
-
-
 
 compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from_data">> := _ }) -> from_data;
-
-%compile_term(#{ <<"from">> := From  }) ->
-%    #{ from => compile_from(From) };
 
 compile_term(#{ <<"key">> := Key, 
                 <<"in">> := In }) when is_binary(In) -> 
@@ -440,14 +425,14 @@ compile_term(#{ <<"key">> := Key}) ->
     #{ key => compile_keyword(Key) };
 
 
-compile_term(#{ <<"from">> := From, 
-                <<"at">> := At }) -> 
-    
-    compile_term(#{ <<"key">> => From,
-                    <<"in">> => At });
-
-compile_term(#{ <<"from">> := From}) ->
-    compile_term(#{ <<"key">> => From });
+%compile_term(#{ <<"from">> := From, 
+%                <<"at">> := At }) -> 
+%    
+%    compile_term(#{ <<"key">> => From,
+%                    <<"in">> => At });
+%
+%compile_term(#{ <<"from">> := From}) ->
+%    compile_term(#{ <<"key">> => From });
     
 compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
     #{ one_of => lists:map(fun compile_term/1, Specs) }; 

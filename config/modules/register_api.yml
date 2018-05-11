@@ -54,7 +54,7 @@ spec:
         type:
           keyword: email
         id: 
-          from: email
+          key: email
     conflict:
       object:
         error:
@@ -75,21 +75,21 @@ spec:
                 type: 
                   keyword: email
                 id: 
-                  from: email
+                  key: email
                 value:
-                  from: uuid
+                  key: uuid
             - object:
                 type: 
                   keyword: password
                 id: 
-                  from: uuid
+                  key: uuid
                 value:
-                  from: password
+                  key: password
             - object:
                 type: 
                   keyword: roles
                 id: 
-                  from: uuid
+                  key: uuid
                 value: 
                   list:
                     - config: role 
@@ -97,38 +97,38 @@ spec:
                 type:
                   keyword: user
                 id:
-                  from: uuid
+                  key: uuid
                 value:
                   object:
                     first: 
-                      from: first
+                      key: first
                     last: 
-                      from: last
+                      key: last
                     email:
-                      from: email
+                      key: email
                     id:
-                      from: uuid
+                      key: uuid
     user_data:
       object:
         id: 
-          from: uuid
+          key: uuid
         first:
-          from: first
+          key: first
         last: 
-          from: last
+          key: last
         email:
-          from: email
+          key: email
   update:
     register:
       model:
         first: 
-          from: first
+          key: first
         last: 
-          from: last
+          key: last
         email:
-          from: username
+          key: username
         password:
-          from: password
+          key: password
       cmds:
         - effect: db_get
           encoder: register_user_lookup
@@ -149,7 +149,7 @@ spec:
             - key: state
         model:
           uuid:
-            from: uuid
+            key: uuid
         cmds:
           - effect: db_put_new_all
             encoder: register_data

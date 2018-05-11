@@ -31,7 +31,7 @@ spec:
         type:
           keyword: apps
         data:
-          from: apps
+          key: apps
   update:
     list:
       - when:
@@ -47,7 +47,7 @@ spec:
     apps:
       model:
         apps:
-          from: apps
+          key: apps
       cmds:
         - effect: notify
           encoder: apps

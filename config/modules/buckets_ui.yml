@@ -11,9 +11,9 @@ spec:
     buckets:
       model:
         buckets:
-          from: data
-          at: 
-            from: data
+          key: data
+          in: 
+            key: data
       cmds:
         - effect: ui
           encoder: buckets_view
@@ -29,7 +29,7 @@ spec:
         tag: div
         children:
           - text:
-              from: item 
+              key: item 
     bucket_replicas_view:
       view:
         tag: div
@@ -37,34 +37,34 @@ spec:
           class: "container"
         children:
           loop:
-            from: replicas 
+            key: replicas 
           with: bucket_replica_item_view
     bucket_table_item_view:
       view:
         tag: "tr"
         attrs:
           key:
-            from: name
-            at: item
+            key: name
+            in: item
         children:
           - tag: td
             children:
               - text:
-                  from: name 
-                  at: item
+                  key: name 
+                  in: item
           - tag: td
             children:
               - text:
-                  from: storage 
-                  at: item
+                  key: storage 
+                  in: item
           - tag: td
             children:
               - view: bucket_replicas_view
                 params:
                   object:
                     replicas:
-                      from: hosts
-                      at: item
+                      key: hosts
+                      in: item
     buckets_table_view:
       view:
         view: table
@@ -85,7 +85,7 @@ spec:
                       text: 
                         literal: "Replicas"
             items:
-              from: data
+              key: data
             item_view:
               keyword: bucket_table_item_view
     buckets_main_view:
@@ -99,18 +99,18 @@ spec:
             view:
               keyword: buckets_table_view
             data:
-              from: data
+              key: data
     buckets_view: 
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: buckets_main_view
             contents:
-              from: buckets
+              key: buckets
             sidebar:
               keyword: admin_sidebar
     buckets:

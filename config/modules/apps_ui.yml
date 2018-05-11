@@ -13,9 +13,9 @@ spec:
     apps:
       model:
         apps:
-          from: data
-          at: 
-            from: data
+          key: data
+          in: 
+            key: data
       cmds:
         - effect: ui
           encoder: apps_view
@@ -37,8 +37,8 @@ spec:
         tag: "tr"
         attrs:
           key:
-            from: name
-            at: item
+            key: name
+            in: item
         children:
           - tag: td
             children:
@@ -49,13 +49,13 @@ spec:
                     encoder: app_selection
                 children:
                   - text:
-                      from: name
-                      at: item
+                      key: name
+                      in: item
           - tag: td
             children:
               - text:
-                  from: category
-                  at: item
+                  key: category
+                  in: item
     apps_table_view:
       view:
         view: table
@@ -72,7 +72,7 @@ spec:
                       text: 
                         literal: "Category"
             items:
-              from: data
+              key: data
             item_view:
               keyword: app_table_item_view
                     
@@ -84,7 +84,7 @@ spec:
             view:
               keyword: apps_table_view
             data:
-              from: data
+              key: data
     apps_main_view:
       view:
         view: main
@@ -96,18 +96,18 @@ spec:
             view:
               keyword: apps_table_view
             data:
-              from: data
+              key: data
     apps_view: 
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: apps_main_view
             contents:
-              from: apps
+              key: apps
             sidebar:
               keyword: admin_sidebar
     admin_sidebar:
@@ -172,7 +172,7 @@ spec:
         name:
           keyword: show_app
         app:
-          from: item 
+          key: item 
   decoders:
     ready:
       object:

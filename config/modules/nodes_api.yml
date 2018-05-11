@@ -31,7 +31,7 @@ spec:
         type:
           keyword: nodes
         data:
-          from: nodes
+          key: nodes
   update:
     nodes_query:
       - when:
@@ -47,7 +47,7 @@ spec:
     nodes:
       model:
         nodes:
-          from: nodes 
+          key: nodes 
       cmds:
         - effect: notify
           encoder: nodes

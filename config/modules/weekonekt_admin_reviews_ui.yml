@@ -29,18 +29,18 @@ spec:
             view:
               keyword: reviews_table_view
             data:
-              from: data
+              key: data
     reviews_view: 
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: reviews_main_section
             contents:
-              from: reviews
+              key: reviews
             sidebar:
               keyword: weekonekt_admin_sidebar
     weekonekt_admin_sidebar:

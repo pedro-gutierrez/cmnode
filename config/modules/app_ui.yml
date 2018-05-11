@@ -15,23 +15,23 @@ spec:
     app_info:
       model:
         category:
-          from: category
-          at: 
-            from: info
-            at: data
+          key: category
+          in: 
+            key: info
+            in: data
         debug:
-          from: debug
+          key: debug
           at:
-            from: info
-            at: data
+            key: info
+            in: data
       cmds:
         - effect: ui
           encoder: app_view
     app_config:
       model:
         config:
-          from: config
-          at: data
+          key: config
+          in: data
       cmds:
         - effect: ui
           encoder: app_view
@@ -42,8 +42,8 @@ spec:
     modules:
       model:
         modules:
-          from: modules
-          at: data
+          key: modules
+          in: data
         modules_view:
           keyword: app_modules_table_view
       cmds:
@@ -75,25 +75,25 @@ spec:
         action:
           keyword: modules
         app:
-          from: app
+          key: app
     app_info:
       object: 
         action:
           keyword: info
         app:
-          from: app
+          key: app
     app_config:
       object: 
         action:
           keyword: config
         app:
-          from: app
+          key: app
     module_selection:
       object:
         name:
           keyword: show_module
         module:
-          from: item 
+          key: item 
     app_modules_empty_view:
       view:
         tag: 'div'
@@ -105,8 +105,8 @@ spec:
         tag: "tr"
         attrs:
           key:
-            from: name
-            at: item
+            key: name
+            in: item
         children:
           - tag: td
             children:
@@ -117,8 +117,8 @@ spec:
                     encoder: module_selection
                 children:
                   - text:
-                      from: name
-                      at: item
+                      key: name
+                      in: item
     app_modules_table_view:
       view:
         view: table
@@ -131,7 +131,7 @@ spec:
                       text:
                         literal: "Name"
             items:
-              from: modules
+              key: modules
             item_view:
               keyword: app_module_table_item_view
     
@@ -144,36 +144,36 @@ spec:
               - text: 
                   literal: "Modules"
           - view:
-              from: modules_view
+              key: modules_view
             params:
               object:
                 modules:
-                  from: modules
+                  key: modules
 
     app_setting_name_view:
       view:
         tag: div
         attrs:
           key: 
-            from: key
-            at: item
+            key: key
+            in: item
         children:
           - tag: strong
             children:
               - text:
-                  from: key
-                  at: item
+                  key: key
+                  in: item
     app_setting_value_view:
       view:
         tag: div
         attrs:
           key: 
-            from: key
-            at: item
+            key: key
+            in: item
         children:
           - text:
-              from: value
-              at: item
+              key: value
+              in: item
     app_settings_view:
       view:
         tag: div
@@ -216,19 +216,19 @@ spec:
                       - tag: div
                         children:
                           - text:
-                              from: category
-                              at: info
+                              key: category
+                              in: info
                       - tag: div
                         children:
                           - text:
-                              from: debug
-                              at: info
+                              key: debug
+                              in: info
                   - tag: div
                     attrs:
                       class: "col-3"
                     children:
                       loop:
-                        from: config
+                        key: config
                       with: app_setting_name_view 
 
                   - tag: div
@@ -236,7 +236,7 @@ spec:
                       class: "col-3"
                     children:
                       loop:
-                        from: config
+                        key: config
                       with: app_setting_value_view
 
     app_sections_view:
@@ -247,20 +247,20 @@ spec:
             params:
               object:
                 info:
-                  from: info
-                  at: data
+                  key: info
+                  in: data
                 config:
-                  from: config
-                  at: data
+                  key: config
+                  in: data
           - view: app_modules_section_view
             params:
               object:
                 modules_view:
-                  from: modules_view
-                  at: data
+                  key: modules_view
+                  in: data
                 modules:
-                  from: modules
-                  at: data
+                  key: modules
+                  in: data
     app_main_view:
       view:
         view: main
@@ -268,37 +268,37 @@ spec:
           object:
             title:
               text:
-                from: app
-                at: data
+                key: app
+                in: data
             view:
               keyword: app_sections_view
             data:
-              from: data
+              key: data
     app_view: 
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: app_main_view
             contents:
               object:
                 app: 
-                  from: app
+                  key: app
                 config:
-                  from: config
+                  key: config
                 info:
                   object:
                     category:
-                      from: category
+                      key: category
                     debug:
-                      from: debug
+                      key: debug
                 modules:
-                  from: modules
+                  key: modules
                 modules_view:
-                  from: modules_view
+                  key: modules_view
             sidebar:
               keyword: admin_sidebar
   decoders:

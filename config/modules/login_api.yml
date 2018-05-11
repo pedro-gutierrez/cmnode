@@ -109,7 +109,7 @@ spec:
         type:
           keyword: email
         id: 
-          from: email
+          key: email
     login_user_lookup:
       object:
         context:
@@ -119,7 +119,7 @@ spec:
         type:
           keyword: user 
         id: 
-          from: uuid
+          key: uuid
     login_roles_lookup:
       object:
         context:
@@ -129,7 +129,7 @@ spec:
         type:
           keyword: roles 
         id: 
-          from: uuid
+          key: uuid
     user_password_lookup:
       object:
         context: 
@@ -139,7 +139,7 @@ spec:
         type: 
           keyword: password
         id:
-          from: uuid
+          key: uuid
     invalid:
       object:
         error:
@@ -157,25 +157,25 @@ spec:
         context:
           keyword: password_check
         hash:
-          from: password_in_db
+          key: password_in_db
         clear:
-          from: password
+          key: password
     login_user_data:
       object:
         first:
-          from: first
-          at: user
+          key: first
+          in: user
         last:
-          from: last
-          at: user
+          key: last
+          in: user
         email:
-          from: email
-          at: user
+          key: email
+          in: user
         id: 
-          from: id
-          at: user
+          key: id
+          in: user
         roles:
-          from: roles
+          key: roles
   update:
     invalid:
       cmds:
@@ -184,9 +184,9 @@ spec:
     login:
       model:
         email:
-          from: username
+          key: username
         password:
-          from: password
+          key: password
       cmds:
         - effect: db_get
           encoder: login_email_lookup
@@ -201,14 +201,14 @@ spec:
     email_found:
       model:
         uuid:
-          from: value 
+          key: value 
       cmds:
         - effect: db_get
           encoder: user_password_lookup
     user_found:
       model:
         user:
-          from: value
+          key: value
       cmds:
         - effect: db_get
           encoder: login_roles_lookup
@@ -223,14 +223,14 @@ spec:
     roles_found:
       model:
         roles:
-          from: value
+          key: value
       cmds:
         - effect: notify
           encoder: login_user_data
     password_found:
       model:
         password_in_db:
-          from: value
+          key: value
       cmds:
         - effect: crypt_verify
           encoder: password_check

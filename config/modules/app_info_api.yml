@@ -25,17 +25,17 @@ spec:
         query: 
           keyword: info
         app:
-          from: app
+          key: app
     app_info:
       object:
         info:
           object:
             app:
-              from: app
+              key: app
             category:
-              from: category
+              key: category
             debug: 
-              from: debug
+              key: debug
   update:
     app_info_query:
       - when:
@@ -44,7 +44,7 @@ spec:
               keyword: admin
         model:
           app:
-            from: app
+            key: app
         cmds:
           - effect: config 
             encoder: app_info_query 
@@ -54,9 +54,9 @@ spec:
     app_info_found:
       model:
         category:
-          from: category
+          key: category
         debug:
-          from: debug
+          key: debug
       cmds:
         - effect: notify
           encoder: app_info

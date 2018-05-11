@@ -31,7 +31,7 @@ spec:
         type:
           keyword: buckets
         data:
-          from: buckets
+          key: buckets
   update:
     buckets_query:
       - when:
@@ -47,7 +47,7 @@ spec:
     buckets:
       model:
         buckets:
-          from: buckets 
+          key: buckets 
       cmds:
         - effect: notify
           encoder: buckets

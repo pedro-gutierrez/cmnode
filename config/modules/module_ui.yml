@@ -31,7 +31,7 @@ spec:
           text:
             literal: module
         module:
-          from: name
+          key: name
     module_settings_view:
       view:
         tag: div
@@ -68,7 +68,7 @@ spec:
                       - tag: div
                         children:
                           - text:
-                              from: category
+                              key: category
     module_init_view:
       view:
         tag: div
@@ -180,13 +180,13 @@ spec:
           object:
             title:
               text:
-                from: name
-                at: data
+                key: name
+                in: data
             view:
               keyword: module_sections_view
             data:
-              from: module
-              at: data
+              key: module
+              in: data
     loading_view:
       view:
         tag: div
@@ -200,12 +200,12 @@ spec:
           object:
             title:
               text:
-                from: name
-                at: data
+                key: name
+                in: data
             view:
               keyword: loading_view
             data:
-              from: data
+              key: data
     module_view: 
       view:
         view: layout
@@ -214,28 +214,28 @@ spec:
             sidebar:
               keyword: admin_sidebar
             message:
-              from: message
+              key: message
             content_view:
               keyword: module_main_view
             contents:
               object:
                 name: 
-                  from: name
+                  key: name
                 module:
-                  from: module
+                  key: module
     module_loading_view:
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: module_loading_main_view
             contents:
               object:
                 name: 
-                  from: name
+                  key: name
             sidebar:
               keyword: admin_sidebar
   decoders:

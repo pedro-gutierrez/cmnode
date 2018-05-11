@@ -42,7 +42,7 @@ spec:
     issues:
       object:
         issues:
-          from: issues
+          key: issues
   update:
     issues_query:
       - when:
@@ -58,7 +58,7 @@ spec:
     issues:
       model:
         issues:
-          from: values
+          key: values
       cmds:
         - effect: notify
           encoder: issues

@@ -15,7 +15,7 @@ spec:
     scheme:
       model:
         scheme: 
-          from: source 
+          key: source 
       cmds:
         - effect: notify
           encoder: scheme
@@ -30,7 +30,7 @@ spec:
               - weekonekt_admin_reviews_ui
     scheme:
       data: 
-        from: scheme
+        key: scheme
   decoders:
     scheme:
       object:

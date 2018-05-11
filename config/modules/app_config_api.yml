@@ -21,11 +21,11 @@ spec:
         query: 
           keyword: config
         app:
-          from: app
+          key: app
     app_config:
       object:
         config:
-          from: config
+          key: config
   update:
     app_config_query:
       - when:
@@ -34,7 +34,7 @@ spec:
               keyword: admin
         model:
           app:
-            from: app
+            key: app
         cmds:
           - effect: config 
             encoder: app_config_query 
@@ -44,7 +44,7 @@ spec:
     app_config_found:
       model:
         config:
-          from: config
+          key: config
       cmds:
         - effect: notify
           encoder: app_config

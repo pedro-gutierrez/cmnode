@@ -43,7 +43,7 @@ spec:
     milestones:
       object:
         milestones:
-          from: milestones
+          key: milestones
   update:
     milestones_query:
       - when:
@@ -59,7 +59,7 @@ spec:
     milestones:
       model:
         milestones:
-          from: values
+          key: values
       cmds:
         - effect: notify
           encoder: milestones

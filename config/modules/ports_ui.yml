@@ -11,9 +11,9 @@ spec:
     ports:
       model:
         ports:
-          from: data
-          at: 
-            from: data
+          key: data
+          in: 
+            key: data
       cmds:
         - effect: ui
           encoder: ports_view
@@ -37,21 +37,21 @@ spec:
               - tag: strong
                 children:
                   - text:
-                      from: transport
-                      at: item
+                      key: transport
+                      in: item
           - tag: div
             attrs:
               class: "col-6"
             children:
               - text:
-                  from: path
-                  at: item
+                  key: path
+                  in: item
     port_app_mounts_view:
       view:
         tag: div
         children:
           loop:
-            from: mounts
+            key: mounts
           with: port_app_mount_item_view
     port_app_item_view:
       view:
@@ -59,8 +59,8 @@ spec:
         attrs:
           class: "columns mb-6"
           key: 
-            from: name
-            at: item
+            key: name
+            in: item
         children:
           - tag: div
             attrs:
@@ -74,8 +74,8 @@ spec:
                   href: "#" 
                 children: 
                   - text:
-                      from: name
-                      at: item
+                      key: name
+                      in: item
           - tag: div
             attrs:
               class: "col-6"
@@ -84,8 +84,8 @@ spec:
                 params:
                   object:
                     mounts:
-                      from: mounts
-                      at: item
+                      key: mounts
+                      in: item
     port_apps_view:
       view:
         tag: div
@@ -93,29 +93,29 @@ spec:
           class: "container"
         children:
           loop:
-            from: apps
+            key: apps
           with: port_app_item_view
     port_table_item_view:
       view:
         tag: "tr"
         attrs:
           key:
-            from: name
-            at: item
+            key: name
+            in: item
         children:
           - tag: td
             children:
               - text:
-                  from: port 
-                  at: item
+                  key: port 
+                  in: item
           - tag: td
             children:
               - view: port_apps_view
                 params:
                   object:
                     apps:
-                      from: apps
-                      at: item
+                      key: apps
+                      in: item
     ports_table_view:
       view:
         view: table
@@ -132,7 +132,7 @@ spec:
                       text: 
                         literal: "Apps"
             items:
-              from: data
+              key: data
             item_view:
               keyword: port_table_item_view
                     
@@ -144,7 +144,7 @@ spec:
             view:
               keyword: ports_table_view
             data:
-              from: data
+              key: data
     ports_main_view:
       view:
         view: main
@@ -156,18 +156,18 @@ spec:
             view:
               keyword: ports_table_view
             data:
-              from: data
+              key: data
     ports_view: 
       view:
         view: layout
         params:
           object:
             message:
-              from: message
+              key: message
             content_view:
               keyword: ports_main_view
             contents:
-              from: ports
+              key: ports
             sidebar:
               keyword: admin_sidebar
     ports:

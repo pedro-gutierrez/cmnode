@@ -61,31 +61,31 @@ spec:
     email_changed:
       model:
         email:
-          from: value
+          key: value
       cmds:
         - effect: ui
     password_changed:
       model:
         password:
-          from: value
+          key: value
       cmds:
         - effect: ui
     first_changed:
       model:
         first:
-          from: value
+          key: value
       cmds:
         - effect: ui
     last_changed:
       model:
         last:
-          from: value
+          key: value
       cmds:
         - effect: ui
     password_confirm_changed:
       model:
         password_confirm:
-          from: value
+          key: value
       cmds:
         - effect: ui
     send_login:
@@ -195,28 +195,28 @@ spec:
           text:
             literal: "login"
         username: 
-          from: email 
+          key: email 
         password:
-          from: password
+          key: password
     signup:
       object:
         action:
           text: 
             literal: "register"
         username:
-          from: email 
+          key: email 
         password:
-          from: password
+          key: password
         password_confirm:
-          from: password_confirm
+          key: password_confirm
         first:
-          from: first
+          key: first
         last: 
-          from: last
+          key: last
     recover_password:
       object:
         username: 
-          from: email 
+          key: email 
     user_message:
       view:
         tag: div
@@ -225,63 +225,63 @@ spec:
           class: warning
         children:
           - text: 
-              from: message 
+              key: message 
     input:
       view:
         tag: div
         attrs:
           key: 
-            from: id
+            key: id
           class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
         children:
           - tag: label
             attrs:
               class: "form-label"
               for: 
-                from: id
+                key: id
             children:
               - text: 
-                  from: title
+                  key: title
           - tag: input
             attrs:
               class: "form-input"
               type: "text"
               id: 
-                from: id
+                key: id
               placeholder: 
-                from: title
+                key: title
               onchange:
-                from: id
+                key: id
               value:
-                from: value
+                key: value
     password:
       view:
         tag: div
         attrs:
           key: 
-            from: id
+            key: id
           class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
         children:
           - tag: label
             attrs:
               class: "form-label"
               for: 
-                from: id
+                key: id
             children:
               - text: 
-                  from: title
+                  key: title
           - tag: input
             attrs:
               class: "form-input"
               type: "password"
               id: 
-                from: id
+                key: id
               placeholder: 
-                from: title
+                key: title
               onchange:
-                from: id
+                key: id
               value:
-                from: value
+                key: value
 
     button:
       view:
@@ -291,25 +291,25 @@ spec:
             attrs:
               class: "btn btn-primary"
               onclick:
-                from: click
+                key: click
             children:
               - text:
-                  from: title
+                  key: title
     link:
       view:
         tag: div
         attrs:
           onclick:
-            from: click
+            key: click
           key: 
-            from: id
+            key: id
         children:
           - tag: a
             attrs:
               href: "#"
             children:
               - text: 
-                  from: title
+                  key: title
     login_view:
       view:
         tag: div 
@@ -325,7 +325,7 @@ spec:
             params:
               object:
                 message:
-                  from: message
+                  key: message
             when:
               is_set:
                 key: message
@@ -337,7 +337,7 @@ spec:
                 title:
                   literal: "Email"
                 value:
-                  from: email
+                  key: email
           - view: password 
             params:
               object:
@@ -346,7 +346,7 @@ spec:
                 title:
                   literal: "Password"
                 value:
-                  from: password
+                  key: password
           - view: button
             params:
               object:
@@ -387,7 +387,7 @@ spec:
             params:
               object:
                 message:
-                  from: message
+                  key: message
           - view: input
             params:
               object:
@@ -396,7 +396,7 @@ spec:
                 title:
                   literal: "First name"
                 value:
-                  from: first
+                  key: first
           - view: input
             params:
               object:
@@ -405,7 +405,7 @@ spec:
                 title:
                   literal: "Last name"
                 value:
-                  from: last
+                  key: last
           - view: input
             params:
               object:
@@ -414,7 +414,7 @@ spec:
                 title:
                   literal: "Email"
                 value:
-                  from: email
+                  key: email
           - view: password 
             params:
               object:
@@ -423,7 +423,7 @@ spec:
                 title:
                   literal: "Password"
                 value:
-                  from: password
+                  key: password
           - view: password 
             params:
               object:
@@ -432,7 +432,7 @@ spec:
                 title:
                   literal: "Password (again)"
                 value:
-                  from: password_confirm
+                  key: password_confirm
           - view: button
             params:
               object:
@@ -473,7 +473,7 @@ spec:
             params:
               object:
                 message:
-                  from: message
+                  key: message
           - view: input
             params:
               object:
@@ -482,7 +482,7 @@ spec:
                 title:
                   literal: "Email"
                 value:
-                  from: email
+                  key: email
           - view: button
             params:
               object:

@@ -21,11 +21,11 @@ spec:
         query: 
           keyword: module
         module:
-          from: module
+          key: module
     module:
       object:
         module:
-          from: module
+          key: module
   update:
     module_query:
       - when:
@@ -34,7 +34,7 @@ spec:
               keyword: admin
         model:
           module:
-            from: module
+            key: module
         cmds:
           - effect: config 
             encoder: module_lookup 
@@ -44,7 +44,7 @@ spec:
     module_found:
       model:
         module:
-          from: module
+          key: module
       cmds:
         - effect: notify
           encoder: module

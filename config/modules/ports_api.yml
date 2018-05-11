@@ -41,7 +41,7 @@ spec:
         type:
           keyword: ports
         data:
-          from: ports
+          key: ports
   update:
     ports_query:
       - when:
@@ -57,7 +57,7 @@ spec:
     ports:
       model:
         ports:
-          from: ports 
+          key: ports 
       cmds:
         - effect: notify
           encoder: ports

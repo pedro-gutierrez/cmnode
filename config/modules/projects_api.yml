@@ -91,11 +91,11 @@ spec:
         type:
           keyword: project
         value:
-          from: project
+          key: project
     projects:
       object:
         projects:
-          from: projects
+          key: projects
     project_entries:
       object:
         context:
@@ -108,29 +108,29 @@ spec:
                 type: 
                   keyword: project
                 id: 
-                  from: name
+                  key: name
                 value:
-                  from: uuid
+                  key: uuid
             - object:
                 type:
                   keyword: project
                 id:
-                  from: uuid
+                  key: uuid
                 value:
                   object:
                     name: 
-                      from: name
+                      key: name
                     description: 
-                      from: description
+                      key: description
                     status:
-                      from: project_status
+                      key: project_status
                     id:
-                      from: uuid
+                      key: uuid
             - object:
                 type:
                   keyword: owner
                 id:
-                  from: uuid
+                  key: uuid
                 value:
                   key: id
                   in:
@@ -143,19 +143,19 @@ spec:
                   in:
                     key: user
                 value:
-                  from: uuid
+                  key: uuid
     project:
       object:
         project:
           object:
             name: 
-              from: name
+              key: name
             description:
-              from: description
+              key: description
             id:
-              from: uuid
+              key: uuid
             status:
-              from: project_status
+              key: project_status
             owner:
               key: id
               in:
@@ -175,11 +175,11 @@ spec:
     uuid:
       - when:
           eq:
-            - from: state 
+            - key: state 
             - keyword: creating_project
         model:
           uuid:
-            from: uuid
+            key: uuid
           project_status:
             keyword: planning
         cmds:
@@ -192,9 +192,9 @@ spec:
               keyword: admin
         model:
           name:
-            from: name
+            key: name
           description:
-            from: description
+            key: description
           state:
             keyword: creating_project
         cmds:
@@ -209,11 +209,11 @@ spec:
               keyword: admin
         model:
           project:
-            from: project
+            key: project
           name:
-            from: name
+            key: name
           description:
-            from: description
+            key: description
           state:
             keyword: editing_project
         cmds:
@@ -249,7 +249,7 @@ spec:
     projects:
       model:
         projects:
-          from: values
+          key: values
       cmds:
         - effect: notify
           encoder: projects
