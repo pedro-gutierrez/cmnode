@@ -35,9 +35,7 @@ spec:
   update:
     buckets_query:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         cmds:
           - effect: config 
             encoder: buckets_query

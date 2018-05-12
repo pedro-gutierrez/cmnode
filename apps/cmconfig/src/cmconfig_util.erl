@@ -171,6 +171,7 @@ compile_spec(Spec) ->
                                         Other -> C0#{ compile_keyword(Key) => Other }
                                    end
                            end, #{}, Keys),
+    
     #{ spec => Contents }.
 
 compile_config(Spec) -> 
@@ -359,11 +360,16 @@ compile_term(#{ <<"number">> := <<"any">> }) ->
 compile_term(#{ <<"literal">> := Text }) ->
     #{ value => Text };
 
-compile_term(#{ <<"same_as">> := Prop }) ->
-    #{ constraint => equal, 
-       relates_to => cmkit:to_atom(Prop) 
-     };
-
+%compile_term(#{ <<"same_as">> := Spec }) ->
+%    #{ constraint => #{ type => equal, 
+%                        spec  => compile_term(Spec)
+%                      }};
+%
+%compile_term(#{ <<"other_than">> := Spec }) ->
+%    #{ constraint => #{ type => different, 
+%                        spec  => compile_term(Spec)
+%                      }};
+%
 compile_term(#{ <<"object">> := <<"any">> }) ->
     #{ type => object };
 
@@ -469,9 +475,18 @@ compile_term(#{ <<"eq">> := Specs }) when is_list(Specs) ->
        spec => lists:map(fun compile_term/1, Specs)
      };
 
-compile_term(#{ <<"member">> := Spec }) ->
+compile_term(#{ <<"member">> := Spec }) -> 
+   
     #{ type => member,
-       spec => compile_object(maps:keys(Spec), Spec, #{}) 
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"value">> := ValueSpec,
+                <<"of">> := CollectionSpec
+              }) ->
+    
+    #{ value => compile_term(ValueSpec),
+                  in => compile_term(CollectionSpec)
      };
 
 compile_term(#{ <<"all">> := Conds }) ->

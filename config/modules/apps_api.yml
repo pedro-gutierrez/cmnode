@@ -35,9 +35,7 @@ spec:
   update:
     list:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         cmds:
           - effect: config 
             encoder: apps_query

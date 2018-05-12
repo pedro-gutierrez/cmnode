@@ -29,9 +29,7 @@ spec:
   update:
     module_query:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         model:
           module:
             key: module

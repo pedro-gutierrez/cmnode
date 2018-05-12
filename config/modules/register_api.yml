@@ -18,8 +18,7 @@ spec:
         password:
           text: any
         password_confirm:
-          text:
-            same_as: password
+          text: any
     not_found:
       object:
         context:
@@ -120,18 +119,27 @@ spec:
           key: email
   update:
     register:
-      model:
-        first: 
-          key: first
-        last: 
-          key: last
-        email:
-          key: username
-        password:
-          key: password
-      cmds:
-        - effect: db_get
-          encoder: register_user_lookup
+      - when:
+          eq:
+            - key: password
+              in: data
+            - key: password_confirm
+              in: data
+        model:
+          first: 
+            key: first
+          last: 
+            key: last
+          email:
+            key: username
+          password:
+            key: password
+        cmds:
+          - effect: db_get
+            encoder: register_user_lookup
+      - cmds:
+        - effect: notify
+          encoder: invalid
     found:
       cmds:
         - effect: notify
@@ -147,6 +155,7 @@ spec:
           eq:
             - keyword: registering
             - key: state
+              in: model
         model:
           uuid:
             key: uuid

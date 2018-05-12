@@ -35,9 +35,7 @@ spec:
   update:
     nodes_query:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         cmds:
           - effect: cloud 
             encoder: nodes_query

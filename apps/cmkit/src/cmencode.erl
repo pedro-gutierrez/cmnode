@@ -51,8 +51,33 @@ encode(#{ type := text,
 
 
 encode(#{ type := number,
-          value := V }, _, _, _) when is_number(V) ->
+          value:= V }, _, _, _) when is_number(V) ->
     {ok, V};
+
+encode(#{ type := member,
+          spec := #{ value := ValueSpec,
+                     in := CollectionSpec }}, In, Config, _) ->
+    case encode(CollectionSpec, In, Config) of
+        {ok, List} when is_list(List) ->
+            case encode(ValueSpec, In, Config) of
+                {ok, Member} ->
+                    {ok, lists:member(Member, List)};
+                Other ->
+                    {error, #{ status => encode_error,
+                               spec => ValueSpec,
+                               data => In,
+                               reason => Other
+                             }
+                    }
+            end;
+        Other ->
+            {error, #{ status => encode_error,
+                       spec => CollectionSpec,
+                       data => In,
+                       reason => Other
+                     }
+            }
+    end;
 
 encode(#{ type := text,
           spec := Spec }, In, Config, Out) ->

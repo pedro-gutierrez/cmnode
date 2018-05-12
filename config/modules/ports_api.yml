@@ -45,9 +45,7 @@ spec:
   update:
     ports_query:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         cmds:
           - effect: config 
             encoder: ports_query

@@ -4,7 +4,7 @@
          cmds/4,
          context/1,
          update/5,
-         update_spec/4,
+         update_spec/5,
          decode/3
         ]).
 
@@ -17,12 +17,13 @@ context(SessionId) ->
 init(#{ init := Init }=App, Config) -> update(App, Init, Config);
 init(_, _) -> {ok, #{}, []}.
 
-update_spec(#{ update := Updates}, Msg, Model, Config) ->
+update_spec(#{ update := Updates, encoders := Encoders }, Msg, Data, Model, Config) ->
     case maps:get(Msg, Updates, undef) of
         undef -> 
             {error, #{  update => not_implemented, msg => Msg }};
-        Specs ->
-            case first_spec(Specs, Model, Config) of 
+        Clauses ->
+            In = #{ model => Model, data => Data },
+            case first_clause(Clauses, Encoders, In, Config) of 
                 none -> 
                     {error, #{  update => none_applies, msg => Msg }};
                 Spec ->
@@ -30,14 +31,14 @@ update_spec(#{ update := Updates}, Msg, Model, Config) ->
             end
     end;
 
-update_spec(_, Msg, _, _) ->
+update_spec(_, Msg, _, _, _) ->
     {error, #{ update => not_implemented, msg => Msg }}.
 
-first_spec([], _, _) -> none;
-first_spec([#{ condition := Cond}=Spec|Rem], Model, Config) ->
-    case cmeval:eval(Cond, Model, Config) of 
+first_clause([], _, _, _) -> none;
+first_clause([#{ condition := Cond}=Spec|Rem], Encoders, In, Config) ->
+    case cmeval:eval(Cond, Encoders, In, Config) of 
         true -> Spec;
-        false -> first_spec(Rem, Model, Config)
+        false -> first_clause(Rem, Encoders, In, Config)
     end.
 
 decode(#{ decoders := Decoders }, Data, Config) ->

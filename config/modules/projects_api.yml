@@ -60,9 +60,20 @@ spec:
           object:
             id:
               any: text
-            owner:
-              any: text
-    no_such_project:
+            status:
+              one_of:
+                - keyword: planning
+                - keyword: started
+                - keyword: abandoned
+    project_owner:
+      object:
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: owner 
+        value:
+          any: text
+    project_not_found:
       object:
         bucket:
           keyword: tracker
@@ -70,13 +81,12 @@ spec:
           keyword: project
         error:
           keyword: not_found
-    tracker_db_ok:
+    tracker_written:
       object:
         bucket: 
           keyword: tracker
         status:
           keyword: ok
-
   encoders:
     projects_lookup:
       object:
@@ -84,13 +94,21 @@ spec:
           keyword: tracker
         type:
           keyword: project
-    project_by_id:
+    project_lookup:
       object:
         bucket:
           keyword: tracker
         type:
           keyword: project
-        value:
+        id:
+          key: project
+    project_owner_lookup:
+      object:
+        bucket:
+          keyword: tracker
+        type:
+          keyword: owner
+        id:
           key: project
     projects:
       object:
@@ -144,6 +162,31 @@ spec:
                     key: user
                 value:
                   key: uuid
+    updated_project:
+      object:
+        context:
+          keyword: edit_project
+        bucket:
+           keyword: tracker
+        items:
+          list:
+            - object:
+                type:
+                  keyword: project
+                id:
+                  key: uuid
+                value:
+                  object:
+                    name:
+                      key: name
+                    description:
+                      key: description
+                    status:
+                      key: status
+                      in: project
+                    id:
+                      key: id
+                      in: project
     project:
       object:
         project:
@@ -163,9 +206,7 @@ spec:
   update:
     list_projects:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         cmds:
           - effect: db_get
             encoder: projects_lookup
@@ -176,6 +217,7 @@ spec:
       - when:
           eq:
             - key: state 
+              in: model
             - keyword: creating_project
         model:
           uuid:
@@ -187,9 +229,7 @@ spec:
               encoder: project_entries
     create_project:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         model:
           name:
             key: name
@@ -204,9 +244,7 @@ spec:
             encoder: forbidden
     edit_project:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         model:
           project:
             key: project
@@ -217,35 +255,41 @@ spec:
           state:
             keyword: editing_project
         cmds:
-          - effect: find_projectcm
-            encoder: project_by_id
+          - effect: db_get
+            encoder: project_owner_lookup
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    project_owner:
+      - when:
+          eq:
+            - key: value
+              in: data
+            - key: id
+              in:
+                key: user
+                in: model
+        cmds:
+          - effect: db_get
+            encoder: project_lookup
       - cmds:
           - effect: notify
             encoder: forbidden
     project_found:
-      - when:
-          eq:
-            - key: owner
-            - key: id
-              in:
-                key: user
-                of: model
-
-    not_such_project:
+      model:
+        project:
+          key: value
+      cmds:
+        - effect: db_put_all
+          encoder: updated_project
+    project_not_found:
       cmds:
         - effect: notify
           encoder: not_found
-    tracker_db_ok:
-      - when:
-          eq:
-            - key: state
-            - keyword: creating_project
-        model:
-          state: 
-            keyword: none
-        cmds:
-          - effect: notify
-            encoder: project
+    tracker_written:
+      cmds:
+        - effect: notify
+          encoder: project
     projects:
       model:
         projects:

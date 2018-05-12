@@ -1,17 +1,19 @@
 -module(cmeval).
--export([eval/3]).
+-export([eval/4]).
 
-eval(#{ type := true }, _, _) -> true;
-eval(#{ type := false }, _, _) -> false;
+eval(#{ type := true }, _, _, _) -> true;
+eval(#{ type := false }, _, _, _) -> false;
 
 eval(#{ type := equal, 
-        spec := Specs }, In, Config) when is_list(Specs) -> 
+        spec := Specs }, _, In, Config) when is_list(Specs) -> 
+    cmkit:log({cmeval, all_equal, Specs, In, Config}),
+    
     all_equal(lists:map(fun(Spec) ->
                                 cmencode:encode(Spec, In, Config)
                         end, Specs));
 
 eval(#{ type := member, 
-        spec := Spec }, In, Config) -> 
+        spec := Spec }, _, In, Config) -> 
     case lists_members_specs(Spec, In) of 
         {ok, Spec2} -> 
             case cmdecode:decode(#{ type => object,
@@ -22,10 +24,28 @@ eval(#{ type := member,
         _ -> false
     end;
 
-eval(#{ type := present, spec := Keys}, In, _) when is_map(In) ->
+eval(#{ type := present, spec := Keys}, _, In, _) when is_map(In) ->
     cmkit:has_all_keys(Keys, In);
 
-eval(_, _, _) -> false.
+
+eval(#{ encoder := Name}, Encs, In, Config) when is_atom(Name) ->
+    case maps:get(Name, Encs, undef) of 
+        undef -> 
+             cmkit:log({cmeval, encoder, unknown, Name}),
+             false;
+        Enc ->
+            case cmencode:encode(Enc, In, Config) of
+                {ok, true} -> true;
+                {ok, false} -> false;
+                Other ->
+                    cmkit:log({cmeval, encoder, non_bool, Name, Enc, Other}),
+                    false
+            end
+    end;
+
+eval(Spec, _, _, _) -> 
+    cmkit:log({cmeval, not_implemented, Spec}),
+    false.
 
 lists_members_specs(Spec, In) ->
     lists_members_specs(maps:keys(Spec), Spec, In, #{}).

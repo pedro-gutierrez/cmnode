@@ -39,9 +39,7 @@ spec:
   update:
     app_info_query:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         model:
           app:
             key: app

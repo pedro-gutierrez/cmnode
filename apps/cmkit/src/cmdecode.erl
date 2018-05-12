@@ -59,8 +59,6 @@ decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) 
 
 decode_term(#{ type := keyword, value := _}, _, _) -> no_match;
 decode_term(#{ type := keyword }, Data, _) when is_atom(Data) -> {ok, Data}; 
-decode_term(#{ type := text, value := Text, constraint := equal}, Text, _) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text, value := _, constraint := equal}, _, _) -> no_match;
 decode_term(#{ type := text, value := Text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_match;
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};

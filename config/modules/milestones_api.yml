@@ -47,9 +47,7 @@ spec:
   update:
     milestones_query:
       - when:
-          member:
-            roles: 
-              keyword: admin
+          encoder: is_admin
         cmds:
           - effect: db_get
             encoder: milestones_lookup
