@@ -22,36 +22,62 @@ spec:
       object:
         action: 
           text: 
-            literal: "edit_project"
+            literal: "edit"
         project:
           any: text
         name:
           any: text
         description:
           any: text
+    project_info:
+      object:
+        action: 
+          text: 
+            literal: "info"
+        project:
+          any: text
     projects:
       object:
+        context:
+          keyword: my_projects
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: projects
+        value: 
+          list: any
+    projects_not_found:
+      object:
+        context:
+          keyword: my_projects
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: projects
+        error:
+          keyword: not_found
+    project_found_for_info:
+      object:
+        context:
+          keyword: info
         bucket:
           keyword: tracker
         type: 
           keyword: project
-        values: 
-          list:
-            object: 
-              status:
-                keyword:
-                  one_of:
-                    - keyword: planning
-                    - keyword: started
-                    - keyword: abandoned
-              name:
-                any: keyword
-              description:
-                any: text
-              owner:
-                any: text
-    project_found:
+        value:
+          object:
+            id:
+              any: text
+            status:
+              any: keyword
+            name:
+              any: text
+            description: 
+              any: text
+    project_found_for_edit:
       object:
+        context:
+          keyword: edit
         bucket:
           keyword: tracker
         type: 
@@ -65,14 +91,26 @@ spec:
                 - keyword: planning
                 - keyword: started
                 - keyword: abandoned
-    project_owner:
+    project_owner_for_edit:
       object:
+        context:
+          keyword: edit
         bucket:
           keyword: tracker
         type: 
           keyword: owner 
         value:
           any: text
+    project_members_for_info:
+      object:
+        context:
+          keyword: info
+        bucket:
+          keyword: tracker
+        type: 
+          keyword: members 
+        value:
+          any: list
     project_not_found:
       object:
         bucket:
@@ -88,22 +126,42 @@ spec:
         status:
           keyword: ok
   encoders:
-    projects_lookup:
+    my_projects_lookup:
       object:
+        context:
+          keyword: my_projects
         bucket:
           keyword: tracker
         type:
-          keyword: project
-    project_lookup:
+          keyword: projects
+        id:
+          key: id
+          in:
+            key: user
+    project_lookup_for_edit:
       object:
+        context:
+          keyword: edit
         bucket:
           keyword: tracker
         type:
           keyword: project
         id:
           key: project
-    project_owner_lookup:
+    project_lookup_for_info:
       object:
+        context:
+          keyword: info
+        bucket:
+          keyword: tracker
+        type:
+          keyword: project
+        id:
+          key: project
+    project_owner_lookup_for_edit:
+      object:
+        context:
+          keyword: edit
         bucket:
           keyword: tracker
         type:
@@ -117,14 +175,14 @@ spec:
     project_entries:
       object:
         context:
-          keyword: new_project
+          keyword: create 
         bucket:
           keyword: tracker
         items:
           list:
             - object: 
                 type: 
-                  keyword: project
+                  keyword: name
                 id: 
                   key: name
                 value:
@@ -162,6 +220,15 @@ spec:
                     key: user
                 value:
                   key: uuid
+            - object:
+                type:
+                  keyword: members
+                id:
+                  key: uuid
+                value:
+                  key: id
+                  in:
+                    key: user
     updated_project:
       object:
         context:
@@ -203,13 +270,25 @@ spec:
               key: id
               in:
                 key: user
+    project_members_for_info:
+      object:
+        context:
+          keyword: info
+        bucket:
+          keyword: tracker
+        type:
+          keyword: members
+        id:
+          key: project
+        all:
+          keyword: true
   update:
     list_projects:
       - when:
           encoder: is_admin
         cmds:
           - effect: db_get
-            encoder: projects_lookup
+            encoder: my_projects_lookup
       - cmds:
           - effect: notify
             encoder: forbidden
@@ -256,11 +335,35 @@ spec:
             keyword: editing_project
         cmds:
           - effect: db_get
-            encoder: project_owner_lookup
+            encoder: project_owner_lookup_for_edit
       - cmds:
           - effect: notify
             encoder: forbidden
-    project_owner:
+    project_info:
+      model:
+        project:
+          key: project
+      cmds:
+        - effect: db_get
+          encoder: project_members_for_info
+    project_members_for_info:
+      - when:
+          member:
+            value:
+              key: id
+              in:
+                key: user
+                in: model
+            of:
+              key: value
+              in: data
+        cmds:
+          - effect: db_get
+            encoder: project_lookup_for_info
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    project_owner_for_edit:
       - when:
           eq:
             - key: value
@@ -271,11 +374,18 @@ spec:
                 in: model
         cmds:
           - effect: db_get
-            encoder: project_lookup
+            encoder: project_lookup_for_edit
       - cmds:
           - effect: notify
             encoder: forbidden
-    project_found:
+    project_found_for_info:
+      model:
+        project:
+          key: value
+      cmds:
+        - effect: notify
+          encoder: project
+    project_found_for_edit:
       model:
         project:
           key: value
@@ -286,6 +396,12 @@ spec:
       cmds:
         - effect: notify
           encoder: not_found
+    projects_not_found:
+      model:
+        projects: []
+      cmds:
+        - effect: notify
+          encoder: projects
     tracker_written:
       cmds:
         - effect: notify

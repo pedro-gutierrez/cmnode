@@ -4,16 +4,17 @@
         ]).
 
 effect_info() -> db_get.
+
 effect_apply(#{ bucket := Db, 
                 type := Type, 
                 id := Id } = Q, #{ id := SessionId }) ->
 
-    cmcore:update(SessionId, case cmdb:get(Db, {Type, Id}) of
-                                 not_found -> Q#{ error => not_found };
-                                 {ok, [V]} -> Q#{ value => V };
-                                 {ok, [V|_]} -> Q#{ value => V };
-                                 {error, E }-> Q#{ error => E }
-                             end);
+    R = case cmdb:get(Db, {Type, Id}) of 
+            not_found -> Q#{ error => not_found };
+            {ok, Items} -> Q#{ value => value(Items, maps:get(all, Q, false))};
+            {error, E }-> Q#{ error => E }
+        end,
+    cmcore:update(SessionId, R);
 
 effect_apply(#{  bucket := Db, 
                  type := Type } = Q, #{ id := SessionId }) ->
@@ -21,3 +22,7 @@ effect_apply(#{  bucket := Db,
                                  {ok, Values} -> Q#{ values => Values };
                                  {error, E }-> Q#{ error => E }
                              end).
+
+value([V], false) -> V;
+value([V|_], false) -> V;
+value(Items, _) -> Items.

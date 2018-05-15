@@ -156,9 +156,9 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "bugs"
+                name: "tracker"
                 style: "fa fa-4x fa-bug"
-                title: "Bugs"
+                title: "Tracker"
     apps:
       object: 
         action:

@@ -1,8 +1,8 @@
 -module(cmcsv).
--export([parse/3]).
+-export([parse/3, now/0]).
 
 parse(File, BatchSize, Fun) ->
-    Stats = #{ start => cmkit:now(), 
+    Stats = #{ start => cmcsv:now(), 
                read => 0,
                stop => undef,
                 written => 0 
@@ -35,14 +35,14 @@ read_batch(IoDevice, Current, BatchSize, #{ start := Start,
                                             read := LinesRead }=Stats, Batch, Fun) ->
     case file:read_line(IoDevice) of
         {ok, Data} ->
-            Unicode = cmkit:uniconvert(binary_to_list(Data)), 
+            Unicode = uniconvert(binary_to_list(Data)), 
             Data2 = binary:part(Unicode, {0, size(Unicode)-1}),
             Fields = binary:split(Data2, <<",">>, [global]),
             read_batch(IoDevice, Current-1, BatchSize, Stats#{ read => LinesRead + 1}, [Fields|Batch], Fun);
         eof ->
             case Fun(Batch) of 
                 {ok, Processed} -> 
-                    Stop = cmkit:now(),
+                    Stop = cmcsv:now(),
                     LinesRead2 = LinesRead + 1,
                     Written2 = Written + Processed,
                     Elapsed = (Stop - Start) / 1000,
@@ -66,3 +66,15 @@ read_batch(IoDevice, Current, BatchSize, #{ start := Start,
 
 without_header(IoDevice) ->
     file:read_line(IoDevice).
+
+now() ->
+    erlang:system_time(millisecond).
+
+uniconvert(String) ->
+    try xmerl_ucs:from_utf8(String) of
+        _ ->
+            list_to_binary(String)
+    catch
+        exit:{ucs,{bad_utf8_character_code}} ->
+            list_to_binary(xmerl_ucs:to_utf8(String))
+    end.

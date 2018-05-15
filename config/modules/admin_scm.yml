@@ -34,6 +34,7 @@ spec:
               - buckets_ui
               - app_ui
               - module_ui
+              - tracker_ui 
     scheme:
       data: 
         key: scheme

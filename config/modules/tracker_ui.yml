@@ -1,0 +1,244 @@
+version: 1.0
+type: module
+category: ui
+name: tracker_ui
+spec:
+  init:
+    model:
+      projects: []
+  update:
+    projects:
+      model:
+        projects:
+          key: data
+          in: 
+            key: data
+      cmds:
+        - effect: ui
+          encoder: projects_view
+    show_tracker:
+      cmds:
+        - effect: ui
+          encoder: tracker_view
+        - effect: ws
+          encoder: projects
+    show_new_project:
+      model:
+        project_name:
+          text:
+            literal: ""
+        project_description:
+          text:
+            literal: ""
+      cmds:
+        - effect: ui
+          encoder: tracker_project_create_view
+    no_projects:
+      cmds:
+        - effect: ui
+          encoder: tracker_bootstrap_view
+    project_name:
+      model:
+        project_name:
+          key: value
+      cmds:
+        - effect: ui
+    project_description:
+      model:
+        project_description:
+          key: value
+      cmds:
+        - effect: ui
+    create_project:
+      cmds:
+        - effect: ws
+          encoder: new_project
+  encoders:
+    projects:
+      object:
+        action: projects
+    new_project:
+      object:
+        action: 
+          text:
+            literal: "create_project"
+        name:
+          key: project_name
+        description:
+          key: project_description
+    tracker_sections_view:
+      view:
+        tag: div
+        children:
+          - text: 
+              literal: ""
+    tracker_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Tracker"
+            view:
+              keyword: tracker_sections_view
+            data:
+              key: data
+    tracker_project_create_main_form_view:
+      view:
+        tag: div 
+        children:
+          - view: input
+            params:
+              object:
+                id: 
+                  literal: "project_name"
+                title:
+                  literal: "Name"
+                value:
+                  key: name
+                  in: 
+                    key: data 
+          - view: textarea
+            params:
+              object:
+                id: 
+                  literal: "project_description"
+                title:
+                  literal: "Description"
+                value:
+                  key: description
+                  in: 
+                    key: data
+                rows:
+                  text: 
+                    literal: "4"
+          - view: button
+            params:
+              object:
+                click:
+                  keyword: create_project
+                title:
+                  literal: "Create"
+    tracker_project_create_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "New project"
+            view:
+              keyword: tracker_project_create_main_form_view
+            data:
+              key: data
+    tracker_project_create_view:
+      view:
+        view: layout
+        params:
+          object:
+            content_view:
+              keyword: tracker_project_create_main_view
+            sidebar:
+              keyword: admin_sidebar
+            contents:
+              object:
+                name:
+                  key: project_name
+                description:
+                  key: project_description
+    tracker_bootstrap_main_form_view:
+      view:
+        tag: div
+        children:
+          - view: label
+            params:
+              object:
+                title:
+                  text:
+                    literal: "You haven't got any projects yet"
+          - view: button
+            params:
+              object:
+                click:
+                  keyword: new_project
+                title:
+                  literal: "New Project"
+    tracker_bootstrap_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Tracker"
+            view:
+              keyword: tracker_bootstrap_main_form_view
+    tracker_bootstrap_view:
+      view:
+        view: layout
+        params:
+          object:
+            content_view:
+              keyword: tracker_bootstrap_main_view
+            sidebar:
+              keyword: admin_sidebar
+    tracker_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: tracker_main_view
+            contents:
+              key: projects
+            sidebar:
+              keyword: admin_sidebar
+  decoders:
+    show_tracker:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: "tracker"
+    show_new_project:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: new_project
+    project_description:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text: 
+            literal: project_description
+        value:
+          any: text
+    project_name:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text: 
+            literal: project_name
+        value:
+          any: text
+    create_project:
+      object:
+        effect: 
+          keyword: ui
+        event:
+          keyword: create_project
+    no_projects:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            projects:
+              list: empty

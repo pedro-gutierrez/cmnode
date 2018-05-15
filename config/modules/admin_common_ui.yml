@@ -46,13 +46,15 @@ spec:
                 params:
                   object:
                     message:
-                      key: message
+                      maybe:
+                        key: message
               - view:
                   key: content_view
                 params:
                   object:
                     data:
-                      key: contents
+                      maybe:
+                        key: contents
     main:
       view:
         tag: div
@@ -71,7 +73,8 @@ spec:
             params:
               object:
                 data:
-                  key: data
+                  maybe:
+                    key: data
 
     section:
       view:

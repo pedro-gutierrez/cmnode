@@ -142,6 +142,7 @@ compile_app(#{ <<"name">> := Name,
        spec => compile_modules(ResolvedModules, #{})
      }.
 
+
 compile_bucket(#{ <<"name">> := Name,
                   <<"spec">> := #{ <<"hosts">> := Hosts,
                                    <<"storage">> := Storage
@@ -150,7 +151,16 @@ compile_bucket(#{ <<"name">> := Name,
     #{ type => bucket,
        name => cmkit:to_atom(Name),
        storage =>  cmkit:to_atom(Storage),
-       hosts => Hosts }.
+       hosts => Hosts };
+
+compile_bucket(#{ <<"name">> := Name,
+                  <<"spec">> := #{ <<"storage">> := Storage
+                                 }}) ->
+
+    #{ type => bucket,
+       name => cmkit:to_atom(Name),
+       storage =>  cmkit:to_atom(Storage)
+     }.
 
 compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
     Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
@@ -305,6 +315,9 @@ compile_term(#{ <<"list">> := <<"empty">>}) ->
     #{ type => list, size => 0 };
 
 compile_term(#{ <<"list">> := <<"any">>}) ->
+    #{ type => list };
+
+compile_term(#{ <<"any">> := <<"list">>}) ->
     #{ type => list };
 
 compile_term(#{ <<"list">> := #{ <<"with">> := Spec}}) ->

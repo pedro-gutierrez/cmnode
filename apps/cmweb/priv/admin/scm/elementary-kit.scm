@@ -132,6 +132,12 @@
           ('ok (to-string (car (cdr encoded))))
           (else encoded))))))
 
+(define (encode-maybe spec in)
+  (let ((encoded (encode spec in)))
+    (case (car encoded)
+      ('ok encoded)
+      (else '(ok ())))))
+
 (define (encode spec input) 
   (case (list? spec)
     ('#f
@@ -150,6 +156,7 @@
           ('object (encode-object value-spec input '()))
           ('list (encode-list value-spec input '()))
           ('map (encode-map value-spec input))
+          ('maybe (encode-maybe value-spec input))
           (else
             (console-error "invalid value spec" spec)
             '(error invalid-spec)))))))
@@ -294,16 +301,19 @@
   (case in 
     ('undef '(error not-an-object in))
     (else
-      (case (length spec)
-        ('0 (list 'ok out))
-        (else 
-          (let* ((entry-spec (car spec))
-                 (k (car entry-spec))
-                 (v-spec (car (cdr entry-spec)))
-                 (decoded (decode-term v-spec (get k in))))
-            (case (car decoded)
-              ('ok (decode-object (cdr spec) in (set k (car (cdr decoded)) out)))
-              (else decoded))))))))
+      (case (list? in)
+        ('#f '(error not-an-object in))
+        ('#t 
+          (case (length spec)
+            ('0 (list 'ok out))
+            (else 
+              (let* ((entry-spec (car spec))
+                     (k (car entry-spec))
+                     (v-spec (car (cdr entry-spec)))
+                     (decoded (decode-term v-spec (get k in))))
+                (case (car decoded)
+                  ('ok (decode-object (cdr spec) in (set k (car (cdr decoded)) out)))
+                  (else decoded))))))))))
 
 (define (decode spec in)
   (case (car spec)
@@ -359,9 +369,13 @@
       ('symbol (list 'ok (symbol->string v)))
       ('string (list 'ok v))
       ('number (list 'ok (number->string v)))
+      ('list 
+       (case (length v)
+         ('0 (list 'ok ""))
+         (else (list 'ok (string-append (map to-string v))))))
       ('boolean
        (case v
          ('#t (list 'ok "true"))
          ('#f (list 'ok "false"))))
-      (else (console-error "can't convert value to a string" infered-type v)))))
+      (else (console-error "can't convert value into a string" infered-type v)))))
 

@@ -226,13 +226,51 @@ spec:
         children:
           - text: 
               key: message 
+    label:
+      view:
+        tag: label
+        attrs:
+          class: "form-label"
+        children:
+          - text: 
+              key: title
+    textarea:
+      view:
+        tag: div
+        attrs:
+          key: 
+            key: id
+          class: "form-group"
+        children:
+          - tag: label
+            attrs:
+              class: "form-label"
+              for: 
+                key: id
+            children:
+              - text: 
+                  key: title
+          - tag: textarea
+            attrs:
+              class: "form-input"
+              type: "text"
+              id: 
+                key: id
+              placeholder: 
+                key: title
+              onchange:
+                key: id
+              value:
+                key: value
+              rows:
+                key: rows
     input:
       view:
         tag: div
         attrs:
           key: 
             key: id
-          class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
+          class: "form-group"
         children:
           - tag: label
             attrs:
@@ -260,7 +298,7 @@ spec:
         attrs:
           key: 
             key: id
-          class: "form-group col-3 col-md-4 col-sm-12 col-xs-12"
+          class: "form-group"
         children:
           - tag: label
             attrs:
