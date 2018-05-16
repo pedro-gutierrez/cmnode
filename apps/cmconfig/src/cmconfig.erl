@@ -1,5 +1,7 @@
 -module(cmconfig).
 -export([
+         tests/0,
+         test/1,
          buckets/0, 
          templates/0, 
          modules/0,
@@ -17,7 +19,8 @@ templates() -> all(template).
 modules() -> all(module).
 apps() -> all(app).
 buckets() -> all(bucket).
-
+tests() -> all(test).
+test(Name) -> find(test, Name).
 module(Name) -> find(module, Name).
 app(Name) -> find(app, Name).
 

@@ -15,6 +15,7 @@
          resolve_modules/2,
          compile_assets/1,
          compile_effects/1,
+         compile_test/1,
          compare/2
         ]).
 
@@ -22,7 +23,8 @@ compile(#{ <<"type">> := <<"port">> }=Spec) -> {ok, compile_port(Spec)};
 compile(#{ <<"type">> := <<"app">> }=Spec) -> {ok, compile_app(Spec)};
 compile(#{ <<"type">> := <<"bucket">> }=Spec) -> {ok, compile_bucket(Spec)};
 compile(#{ <<"type">> := <<"template">> }=Spec) -> {ok, compile_template(Spec)};
-compile(#{ <<"type">> := <<"module">> }=Spec) -> {ok, compile_module(Spec)}.
+compile(#{ <<"type">> := <<"module">> }=Spec) -> {ok, compile_module(Spec)};
+compile(#{ <<"type">> := <<"test">> }=Spec) -> {ok, compile_test(Spec)}.
 
 deps(#{ <<"type">> := T, 
         <<"name">> := N }=Spec) -> 
@@ -162,10 +164,155 @@ compile_bucket(#{ <<"name">> := Name,
        storage =>  cmkit:to_atom(Storage)
      }.
 
+compile_test(#{ <<"name">> := Name,
+                     <<"spec">> := #{ 
+                         <<"scenarios">> := Scenarios,
+                         <<"backgrounds">> := Backgrounds 
+                        }
+                   }) ->
+    #{ type => test,
+       name => cmkit:to_atom(Name),
+       scenarios => compile_scenarios(Scenarios),
+       backgrounds => compile_backgrounds(Backgrounds)
+     };
+
+compile_test(#{ <<"name">> := Name,
+                     <<"spec">> := #{ 
+                         <<"backgrounds">> := Backgrounds 
+                        }
+                   }) ->
+
+    #{ type => test,
+       name => cmkit:to_atom(Name),
+       scenarios => #{},   
+       backgrounds => compile_backgrounds(Backgrounds)
+     };
+
+compile_test(#{ <<"name">> := Name,
+                     <<"spec">> := #{ 
+                         <<"scenarios">> := Scenarios
+                        }
+                   }) ->
+
+    #{ type => test,
+       name => cmkit:to_atom(Name),
+       backgrounds => #{},  
+       scenarios => compile_scenarios(Scenarios)
+     }.
+
+compile_scenarios(Specs) -> 
+    lists:map(fun compile_scenario/1, Specs).
+
+compile_scenario(#{ <<"title">> := Title, 
+                    <<"tags">> := Tags, 
+                    <<"backgrounds">> := Backgrounds,
+                    <<"steps">> := Steps
+                  }) ->
+    
+    Title2 = cmkit:to_lower(Title),
+
+    #{ title => Title2,
+       id => cmkit:hash(Title2),
+       tags => compile_tags(Tags) ++ compile_title(Title2),
+       backgrounds => lists:map(fun(T) ->
+                                        cmkit:hash(cmkit:to_lower(T))
+                                end, Backgrounds),
+       steps => compile_steps(Steps)
+     };
+
+compile_scenario(#{ <<"title">> := _, 
+                    <<"tags">> := _, 
+                    <<"steps">> := _ 
+                  }=Spec) ->
+    compile_scenario(Spec#{ <<"backgrounds">> => [] });
+
+compile_scenario(#{ <<"title">> := _, 
+                    <<"steps">> := _ 
+                  }=Spec) ->
+    
+    compile_scenario(Spec#{ 
+                       <<"tags">> => [],
+                       <<"backgrounds">> => [] 
+                      }).
+    
+
+compile_tags(Tags) when is_binary(Tags) ->
+    lists:map(fun(T) ->
+                      cmkit:to_atom(cmkit:bin_trim(T))
+              end, cmkit:bin_split(cmkit:to_lower(Tags), <<",">>));
+
+compile_tags([]) -> [].
+
+compile_title(Title) when is_binary(Title) ->
+    T1 = cmkit:bin_split(Title, <<" ">>),
+    T2 = lists:map(fun (T) -> 
+                           cmkit:bin_split(T, <<",">>)
+                   end, T1),
+    lists:map(fun (T) ->
+                      cmkit:to_atom(cmkit:bin_trim(T))
+              end, lists:flatten(T2)).
+
+compile_steps(Steps) -> 
+    compile_steps(Steps, []).
+
+compile_steps([], Out) -> lists:reverse(Out);
+compile_steps([Step|Rem], Out) ->
+    compile_steps(Rem, [compile_step(Step)|Out]).
+
+compile_step(#{ <<"app">> := App,
+                <<"port">> := Port,
+                <<"transport">> := Transport,
+                <<"status">> := Status }) ->
+
+    #{ type => connection,
+       transport => cmkit:to_atom(Transport),
+       port => Port,
+       app => cmkit:to_atom(App),
+       status => cmkit:to_atom(Status) 
+     };
+
+compile_step(#{ <<"app">> := _,
+                <<"port">> := _,
+                <<"status">> := _ }=Spec) ->
+    compile_step(Spec#{ <<"transport">> => <<"ws">> });
+
+compile_step(#{ <<"app">> := App,
+                <<"status">> :=  _}=Spec) ->
+    compile_step(Spec#{ 
+                    <<"port">> => App,
+                   <<"transport">> => <<"ws">> });
+    
+compile_step(#{ <<"send">> := SendSpec,
+                <<"expect">> := ExpectSpecs }) ->
+    
+    #{ type => send, 
+       spec => compile_term(SendSpec),
+       expect => compile_expectations(ExpectSpecs) 
+     };
+
+compile_step(#{ <<"send">> := SendSpec }) ->
+    
+    #{ send => compile_term(SendSpec),
+       expect => [] 
+     }.
+
+compile_expectations(Specs) ->
+    lists:foldr(fun(Spec, Out) ->
+                        [compile_term(Spec)|Out]
+                end, [], Specs).
+
+compile_backgrounds(Specs) ->
+    lists:foldl(fun(Spec, Out) -> 
+                        #{ id := Key } = Compiled = compile_background(Spec),
+                    Out#{ Key => Compiled } 
+                end, #{}, Specs).
+
+compile_background(Spec) ->
+    compile_scenario(Spec).
+
 compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
     Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
     Out;
-
 
 compile_spec(Spec) ->
     
@@ -373,16 +520,6 @@ compile_term(#{ <<"number">> := <<"any">> }) ->
 compile_term(#{ <<"literal">> := Text }) ->
     #{ value => Text };
 
-%compile_term(#{ <<"same_as">> := Spec }) ->
-%    #{ constraint => #{ type => equal, 
-%                        spec  => compile_term(Spec)
-%                      }};
-%
-%compile_term(#{ <<"other_than">> := Spec }) ->
-%    #{ constraint => #{ type => different, 
-%                        spec  => compile_term(Spec)
-%                      }};
-%
 compile_term(#{ <<"object">> := <<"any">> }) ->
     #{ type => object };
 
@@ -444,15 +581,6 @@ compile_term(#{ <<"key">> := Key}) ->
     #{ key => compile_keyword(Key) };
 
 
-%compile_term(#{ <<"from">> := From, 
-%                <<"at">> := At }) -> 
-%    
-%    compile_term(#{ <<"key">> => From,
-%                    <<"in">> => At });
-%
-%compile_term(#{ <<"from">> := From}) ->
-%    compile_term(#{ <<"key">> => From });
-    
 compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
     #{ one_of => lists:map(fun compile_term/1, Specs) }; 
 
@@ -493,6 +621,14 @@ compile_term(#{ <<"member">> := Spec }) ->
     #{ type => member,
        spec => compile_term(Spec)
      };
+
+compile_term(#{ <<"present">> := Spec }) ->
+    #{ type => present,
+       spec => compile_term(Spec) };
+
+compile_term(#{ <<"path">> := Spec }) when is_binary(Spec)->
+    #{ type => path,
+       value => Spec };
 
 compile_term(#{ <<"value">> := ValueSpec,
                 <<"of">> := CollectionSpec
@@ -768,6 +904,8 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}) ->
 compile_effect(Name, #{ <<"type">> := _ }=Effect) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}).
 
 
+compare(#{ <<"type">> := <<"test">> }, _) -> true;
+compare(_, #{ <<"type">> := <<"test">> }) -> false;
 compare(#{ <<"type">> := <<"bucket">> }, _) -> true;
 compare(#{ <<"type">> := <<"template">> }, _) -> true;
 compare(#{ <<"type">> := <<"port">> }, _) -> false;

@@ -156,6 +156,12 @@ spec:
           - view: sidebar_icon
             params:
               object:
+                name: "tests"
+                style: "fa fa-4x fa-check"
+                title: "Tests"
+          - view: sidebar_icon
+            params:
+              object:
                 name: "tracker"
                 style: "fa fa-4x fa-bug"
                 title: "Tracker"

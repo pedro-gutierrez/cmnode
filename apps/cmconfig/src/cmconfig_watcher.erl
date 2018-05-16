@@ -18,7 +18,7 @@ start_link() ->
 init([]) ->
     Dir = cmkit:etc(),
     {ok, Pid} = cmkit:watch(Dir),
-    cmkit:log({cmconfig_watcher, watching, Dir, Pid}),
+    cmkit:log({cmconfig_watcher, watching, Pid}),
     {ok, ready, #data{dir=Dir, watcher=Pid}}.
 
 ready(info, {_, {fs, file_event}, {File, Events}}, Data) ->
