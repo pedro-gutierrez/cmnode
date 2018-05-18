@@ -1,0 +1,228 @@
+version: 1.0
+type: module
+category: ui
+name: weekonekt_admin_import_ui
+spec:
+  init:
+    model:
+      import_action_view: 
+        keyword: import_selectfile_view
+      import: []
+      files: []
+      import_progress: 
+        number: 50
+      stage:
+        text: 
+          literal: "Not started"
+  update:
+    show_import_ui:
+      model:
+        import_action_view:
+          keyword: import_selectfile_view
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+    import_file_selected:
+      model:
+        import_action_view: 
+          keyword: import_upload_summary_view
+        files:
+          key: value
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+    start_importing:
+      model:
+        import_action_view: 
+          keyword: import_progress_view
+        stage:
+          text:
+            literal: "Preparing to upload data"
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+  encoders:
+    select_file:
+      view:
+        tag: div
+        children:
+          - tag: label
+            attrs:
+              class: "c-hand label label-primary btn btn-label"
+              for:
+                key: id
+            children:
+              - text:
+                  key: title
+          - tag: input
+            attrs:
+              type: "file"
+              id: 
+                key: id
+              onchange:
+                key: change
+              class: "d-hide"
+    import_selectfile_view:
+      view:
+        tag: div
+        attrs:
+          key: "import_select_file"
+        children:
+          - view: label
+            params:
+              object:
+                title:
+                  text:
+                    literal: "Please select a Wordpress file to import"
+          - view: select_file
+            params:
+              object:
+                change: 
+                  keyword: import_file_selected 
+                title: 
+                  text:
+                    literal: "Choose a file"
+                id: 
+                  text:
+                    literal: "upload"
+    import_main_sections_view:
+      view:
+        tag: div
+        attrs:
+          key: "import_sections"
+        children:
+          - view:
+              key: action_view
+              in: data
+            params:
+              object:
+                data: 
+                  key: data
+    import_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Import"
+            view:
+              keyword: import_main_sections_view
+            data:
+              key: data
+    import_layout_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: import_main_view
+            contents:
+              object:
+                action_view: 
+                  key: import_action_view
+                files:
+                  key: files
+                progress:
+                  key: import_progress
+                stage:
+                  key: stage
+            sidebar:
+              keyword: weekonekt_admin_sidebar
+    import_upload_summary_view:
+      view:
+        tag: div
+        attrs:
+          key: "import_summary"
+        children:
+          - view: label
+            params:
+              object:
+                title:
+                  text:
+                    literal: "All set up to start importing"
+          - view: import_selected_files_view
+            params:
+              object:
+                files:
+                  key: files
+                  in: data
+          - view: button
+            params:
+              object:
+                click: 
+                  keyword: start_importing
+                title: 
+                  text:
+                    literal: "Start importing"
+    import_progress_view:
+      view:
+        tag: div
+        attrs:
+          key: "import_progress"
+        children:
+          - tag: span
+            children:
+              - text:
+                  key: stage
+                  in: data
+          - view: progress
+            params:
+              object:
+                value: 
+                  text:
+                    key: progress
+                    in: data
+                max:
+                  text:
+                    number: 100
+          - view: button
+            params:
+              object:
+                click: 
+                  keyword: cancel_import
+                title: 
+                  text:
+                    literal: "Cancel import"
+    import_selected_files_view:
+      view:
+        tag: div
+        attrs:
+          class: "my-2"
+        children:
+          loop:
+            key: files
+          with: import_selected_file_view
+    import_selected_file_view:
+      view:
+        tag: strong
+        children:
+          - text:
+              key: name
+              in: item
+  decoders:
+    show_import_ui:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: "import"
+    start_importing:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            keyword: start_importing
+    import_file_selected:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: import_file_selected
+        value:
+          list:
+            file: any

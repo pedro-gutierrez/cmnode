@@ -83,7 +83,7 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "apps"
+                name: "import"
                 style: "fa fa-4x fa-cloud-upload"
                 title: "Import"
           - view: sidebar_icon

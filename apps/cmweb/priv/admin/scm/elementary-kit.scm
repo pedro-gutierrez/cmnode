@@ -123,6 +123,13 @@
           (else 
             (console-error "cannot encode list" specs in encoded)))))))
 
+(define (encode-number spec in)
+  (case (number? spec)
+    ('#t (list 'ok spec))
+    ('#f 
+     (console-error "invalid number spec" spec in)
+     (list 'error 'invalid-number-spec spec in))))
+
 (define (encode-text spec in)
   (case (string? spec)
     ('#t (list 'ok spec))
@@ -152,6 +159,7 @@
         (case type-spec
           ('symbol (list 'ok value-spec))
           ('text (encode-text value-spec input))
+          ('number (encode-number value-spec input))
           ('from (encode-from value-spec input))
           ('object (encode-object value-spec input '()))
           ('list (encode-list value-spec input '()))
@@ -204,9 +212,17 @@
           ('entries (decode-entries value-spec in '()))
           ('one_of (decode-one-of value-spec in))
           ('maybe (decode-maybe value-spec in))
+          ('data (decode-data value-spec in))
           (else
-            (console-error "unsupported decoder spec type" spec)
+            (console-error "unsupported decoder spec type" spec type-spec value-spec in)
             '(error invalid-type-spec)))))))
+
+(define (decode-data spec in)
+  (case spec
+    ('any (list 'ok in))
+    (else 
+      (console-error "unsupported data decoder spec" spec in)
+      (list 'error 'unsupported-data-decoder-spec))))
 
 (define (decode-maybe spec in)
   (let ((decoded (decode-term spec in)))
@@ -271,21 +287,42 @@
         ('any (decode-non-empty-list spec (cdr in) (cons (car in) out)))
         (else 
           (case (car spec)
-            ('object (decode-objects (car (cdr spec)) in out))
-            ('text (decode-texts (car (cdr spec)) in out))
+            ('object (decode-items decode-object! (car (cdr spec)) in out))
+            ('text (decode-items decode-text (car (cdr spec)) in out))
+            ('file (decode-items decode-file (car (cdr spec)) in out))
             (else 
               (console-error "unsupported list decoder spec type" spec)
                 '(error invalid--list-type-spec))))))))
 
-(define (decode-texts spec in out)
+(define (decode-file spec in)
+  (list 'ok (list (list 'name (js-ref in "name"))
+                  (list 'size (js-ref in "size"))
+                  (list 'type (js-ref in "type"))
+                  (list 'modified (js-ref in "lastModified"))
+                  (list 'file in))))
+
+(define (decode-items fn spec in out)
   (case (length in)
     ('0 (list 'ok (reverse out)))
-    (else
+    (else 
       (let* ((next (car in))
-             (decoded (decode-text spec next)))
+             (decoded (fn spec next)))
         (case (car decoded)
-          ('ok (decode-texts spec (cdr in) (cons (car (cdr decoded)) out)))
+          ('ok (decode-items fn spec (cdr in) (cons (car (cdr decoded)) out)))
           (else decoded))))))
+
+;(define (decode-texts spec in out)
+;  (case (length in)
+;    ('0 (list 'ok (reverse out)))
+;    (else
+;      (let* ((next (car in))
+;             (decoded (decode-text spec next)))
+;        (case (car decoded)
+;          ('ok (decode-texts spec (cdr in) (cons (car (cdr decoded)) out)))
+;          (else decoded))))))
+
+(define (decode-object! spec in)
+    (decode-objects spec in '()))
 
 (define (decode-objects spec in out)
   (case (length in)

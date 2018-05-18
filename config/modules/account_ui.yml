@@ -329,7 +329,8 @@ spec:
             attrs:
               class: "btn btn-primary"
               onclick:
-                key: click
+                maybe:
+                  key: click
             children:
               - text:
                   key: title

@@ -89,6 +89,7 @@ decoder(#{ msg := Msg,
     term(Msg, Spec).
 
 
+
 term(K, #{ type := object, spec := Spec}) when is_map(Spec) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
                              cmscheme_ast:call(list, [
@@ -293,6 +294,25 @@ term(#{ type := entries, spec := Spec }) ->
                              cmscheme_ast:sym(entries),
                              term(Spec)
                             ]);
+term(#{ type := files, 
+        spec := Spec }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(files),
+                             term(Spec)
+                            ]);
+
+term(#{ type := file }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(file),
+                             cmscheme_ast:sym(any)
+                            ]);
+
+
+term(#{ size := Size }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(size),
+                             cmscheme_ast:number(Size)
+                            ]);
 
 
 term(#{ type := map, spec := #{ options := Options,
@@ -389,12 +409,24 @@ term(#{ type := text }) ->
                              cmscheme_ast:sym(any)
                             ]);
 
+term(#{ type := number, value := V }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(number),
+                             cmscheme_ast:number(V)
+                            ]);
+
+
 term(#{ type := number }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(number),
                              cmscheme_ast:sym(any)
                             ]);
 
+term(#{ type := data }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(data),
+                             cmscheme_ast:sym(any)
+                            ]);
 
 term(#{ text := Spec })  -> 
     cmscheme_ast:call(list, [

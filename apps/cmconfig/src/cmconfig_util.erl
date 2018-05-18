@@ -432,6 +432,14 @@ compile_term(#{ <<"effects">> := Effects }) ->
 compile_term(#{ <<"data">> := <<"any">> }) ->
     #{ type => data };
 
+compile_term(#{ <<"any">> := <<"data">> }) ->
+    #{ type => data };
+
+compile_term(#{ <<"file">> := <<"any">> }) ->
+    #{ type => file };
+
+compile_term(#{ <<"any">> := <<"file">> }) ->
+    #{ type => file };
 
 compile_term(#{ <<"data">> := Spec }) ->
     maps:merge(#{ type => data},
@@ -560,7 +568,14 @@ compile_term(#{ <<"text">> := Spec }) ->
     
     maps:merge(#{ type => text},
                compile_term(Spec));
-    
+   
+compile_term(#{ <<"files">> := Spec }) -> 
+    #{ type => files,
+       spec => compile_term(Spec) 
+     };
+
+compile_term(#{ <<"size">> := Size}) -> 
+    #{ size => Size };
 
 compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from_data">> := _ }) -> from_data;
@@ -625,10 +640,6 @@ compile_term(#{ <<"member">> := Spec }) ->
 compile_term(#{ <<"present">> := Spec }) ->
     #{ type => present,
        spec => compile_term(Spec) };
-
-compile_term(#{ <<"path">> := Spec }) when is_binary(Spec)->
-    #{ type => path,
-       value => Spec };
 
 compile_term(#{ <<"value">> := ValueSpec,
                 <<"of">> := CollectionSpec

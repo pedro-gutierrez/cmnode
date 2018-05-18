@@ -162,13 +162,21 @@
              ((string "onchange")
               (let ((fn (js-lambda (lambda (args)
                                      (let* ((ev (car args))
-                                            (value (js-ref (js-ref ev "target") "value")))
-                                       (send-event (car (cdr v)) value))))))
+                                            (target (js-ref ev "target"))
+                                            (ev-value (map-event-value target)))
+                                       (send-event (car (cdr v)) ev-value))))))
                 (list "oninput" fn)))
              (else (list n (car (cdr v))))))
           (else 
             (console-error "error encoding attribute value" v)
             v))))
+
+    (define (map-event-value target)
+      (let ((files (js-ref target "files")))
+        (case (js-null? files)
+          ('#f (js-array->list files))
+          ('#t (js-ref target "value")))))
+
    
     (define (compile-view v ctx)
       (case (length v)

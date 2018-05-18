@@ -28,6 +28,7 @@ spec:
               - account_ui
               - admin_common_ui
               - weekonekt_admin_reviews_ui
+              - weekonekt_admin_import_ui
     scheme:
       data: 
         key: scheme

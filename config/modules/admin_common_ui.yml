@@ -4,6 +4,15 @@ category: ui
 name: admin_common_ui
 spec:
   encoders:
+    progress:
+      view:
+        tag: progress
+        attrs:
+          class: "progress"
+          value:
+            key: value
+          max:
+            key: max
     sidebar_icon:
       view:
         tag: div
@@ -40,7 +49,7 @@ spec:
                   key: sidebar
           - tag: div
             attrs:
-              class: "off-canvas-content"
+              class: "admin-content off-canvas-content"
             children:
               - view: user_message
                 params:

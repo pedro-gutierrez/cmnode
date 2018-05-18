@@ -56,3 +56,13 @@ a { text-decoration: none !important; }
 
 .mb-6 { margin-bottom: 6px; }
 .section-view { margin-bottom: 15px; }
+
+.btn-label {
+    padding: .35rem .4rem !important;
+}
+
+.admin-content .btn.btn-primary, .admin-content .label-primary {
+    background: white;
+    border-color: #bababa;
+    color: #50596b;
+} 

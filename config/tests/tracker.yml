@@ -21,7 +21,7 @@ spec:
                   literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
           expect:
             - eq:
-                - path: "status"
+                - key: "status"
                 - text:
                     literal: "ok"
     - title: "admin user john"
@@ -50,7 +50,9 @@ spec:
                   literal: foo
           expect:
             - present:
-                path: "user.id"
+                key: "id"
+                in:
+                  key: "user"
                  
     - title: "john logged in"
       steps:
@@ -69,7 +71,9 @@ spec:
                   literal: foo
           expect:
             - present:
-                path: "user.id"
+                key: "id"
+                in: 
+                  key: "user"
   scenarios:
     - title: "List basic tracker objects, as admin"
       tags: admin, tracker, projects, project, list
@@ -89,4 +93,4 @@ spec:
                   literal: projects
           expect:
             - present:
-                path: "projects"
+                key: "projects"

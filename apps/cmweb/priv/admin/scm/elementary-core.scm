@@ -45,11 +45,12 @@
                  (decoded (decode spec data)))
             (case (car decoded)
               ('ok (list 'ok msg (car (cdr decoded))))
-              (else (try-decoders (cdr decs) data)))))))
+              (else 
+                (try-decoders (cdr decs) data)))))))
 
-    (define (decode-data data)
+    (define (decode-received data)
       (case (list? data)
-        ('#f '(error bad-format))
+        ('#f (list 'error 'not-a-list data))
         ('#t 
          (let ((eff (get 'effect data)))
            (case eff
@@ -57,7 +58,7 @@
              (else (try-decoders (map-get eff decoders-registry) data)))))))
 
     (define (effect-recv data)
-      (let ((decoded (decode-data data)))
+      (let ((decoded (decode-received data)))
         (case (car decoded)
           ('ok 
            (let* ((msg (car (cdr decoded)))
