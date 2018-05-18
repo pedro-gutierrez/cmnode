@@ -3,6 +3,9 @@
 -export([
          run/1,
          run/2,
+         progress/4,
+         success/4,
+         fail/4,
          stop/0,
          start_link/0,
          init/1, 
@@ -11,11 +14,28 @@
          ready/3
         ]).
 
+
 run(#{ scenarios := Scenarios }=Test) ->
-    run(Test, Scenarios).
+    run(Test, Scenarios);
+
+run(All) ->
+    gen_statem:call(?MODULE, {tests, All}).
 
 run(Test, Scenarios) ->
     gen_statem:call(?MODULE, {scenarios, Test, Scenarios}).
+
+progress(T, S, Info, Pid) ->
+    gen_statem:cast(Pid, {progress, T, S, Info}).
+
+success(T, S, Info, Pid) ->
+    gen_statem:cast(Pid, {success, T, S, Info}).
+
+fail(T, S, Info, Pid) ->
+    gen_statem:cast(Pid, {fail, T, S, Info}).
+
+ok(From) -> reply(From, ok).
+
+reply(From, Msg) -> [{reply, From, Msg}].
 
 stop() ->
     gen_statem:call(?MODULE, stop).
@@ -29,34 +49,131 @@ start_link() ->
 init([]) ->
     Log = cmkit:log_fun(true),
     Log({cmtest, node(), self()}),
-    {ok, ready, #{ log => Log }}.
+    {ok, ready, #{ log => Log, 
+                   started => cmkit:now(),
+                   failures => [] 
+                 }}.
 
-ready({call, From}, {scenarios, #{ name := Name}=Spec, [S|Rem]=Scenarios}, Data) ->
-    Rep = {running, Name, length(Scenarios)},
-    {ok, Pid } = cmtest_util:run(Spec, S),
-    {keep_state, Data#{ stats => #{ 
-                          pid => Pid,
-                          started => cmkit:now(),
-                          total => 0, 
-                          pending => length(Scenarios), 
-                          success => 0,
-                          error => 0,
-                          running => 1,
-                          scenarios => [] 
-                         }
-                      }, [{reply, From, Rep}]};
 
-ready({call, From}, {scenarios, #{ name := Name}, []}, Data) ->
-    Rep = {no_scenarios, Name, 0},
-    {keep_state, Data, [{reply, From, Rep}]};
+ready({call, From}, {tests, Tests}, #{ log := Log} = Data) ->
+    case start_test(Tests, Data#{ tests => Tests,
+                                  total => 0,
+                                  success => 0,
+                                  fail => 0} ) of 
+        {ok, Data2} ->
+            {keep_state, Data2, ok(From)}; 
+        {finished, Data2} ->
+            report(Data2),
+            {keep_state, Data2, ok(From)}; 
+        Other ->
+            Log({cmtest, error, Other}),
+            {keep_state, Data, ok(From)}
+    end;
+    
+ready({call, From}, {scenarios, Test, Scenarios}, #{ log := Log} = Data) ->
+    case start_scenario(Test, Scenarios, Data#{ test => Test,
+                                                total => 0,
+                                                success => 0,
+                                                fail => 0} ) of 
+        {ok, Data2} ->
+            {keep_state, Data2, ok(From)}; 
+        {finished, Data2} ->
+            report(Data2),
+            {keep_state, Data2, ok(From)}; 
+        Other ->
+            Log({cmtest, error, Other}),
+            {keep_state, Data, ok(From)}
+    end;
 
-ready({call, From}, stop, #{ stats := #{ pid := Pid }}=Data) ->
-    cmtest_scenario_sup:kill(Pid),
-    {keep_state, Data#{ stats => null }, [{reply, From, ok}]}.
+ready({call, From}, stop, #{ pid := Pid }=Data) ->
+    cmtest_scenario:stop(Pid),
+    {keep_state, Data#{ stats => null }, [{reply, From, ok}]};
 
+ready(cast, {progress, _, _, _}, #{ pid := Pid }=Data) ->
+    cmtest_scenario:next(Pid),
+    {keep_state, Data};
+
+ready(cast, {success, _, _, _}, #{ log := Log, 
+                                      pid := Pid,
+                                      test := Test,
+                                      scenarios:= Rem,
+                                      success := Success
+                                    }=Data) ->
+    cmtest_scenario:stop(Pid),
+    Data2 = Data#{ success => Success + 1 },
+    case start_scenario(Test, Rem, Data2) of 
+        {ok, Data3 } ->
+            {keep_state, Data3};
+        {finished, Data3} ->
+            report(Data3),
+            {keep_state, Data3}; 
+        {error, E} ->
+            Log({cmtest, error, E}),
+            {keep_state, Data2}
+    end;
+
+ready(cast, {fail, _, #{ title := Title }, Info
+            }, #{ log := Log, 
+                  pid := Pid,
+                  test := #{ name := Name }=Test,
+                  scenarios := Rem,
+                  fail := Fail,
+                  failures := Failures
+                }=Data) ->
+    
+    Data2 = Data#{ fail => Fail + 1,
+                   failures => [#{ test => Name,
+                                   scenario => Title,
+                                   reason => Info }
+                                |Failures]
+                 },
+    cmtest_scenario:stop(Pid),
+    case start_scenario(Test, Rem, Data2) of 
+        {ok, Data3} ->
+            {keep_state, Data3};
+        {finished, Data3} ->
+            report(Data3),
+            {keep_state, Data3}; 
+        {error, E} ->
+            Log({cmtest, error, E}),
+            {keep_state, Data2}
+    end.
+    
 terminate(Reason, _, #{ log := Log}) ->
     Log({cmtest, node(), self(), terminated, Reason}),
     ok.
 
-report(Name, {Time, Res}) ->
-    {Name, Time/1000, Res}.
+start_test([], Data) ->
+    {finished, Data#{ finished => cmkit:now() }};
+
+start_test([#{ scenarios := Scenarios}=T|Rem], Data) ->
+    start_scenario(T, Scenarios, Data#{ test => T,
+                                        tests => Rem }).
+
+start_scenario(_, [], #{ tests := [] } = Data) ->
+    {finished, Data#{ finished => cmkit:now() }};
+
+start_scenario(_, [], #{ tests := Tests }=Data) ->
+    start_test(Tests, Data);
+
+start_scenario(#{ name := Name }=Test, [S|Rem], Data) ->
+    case cmtest_util:start(Test, S, self() ) of 
+        {ok, Pid} ->
+            Data2 = Data#{ 
+                      pid => Pid,
+                      scenarios => Rem
+                     },
+            cmtest_scenario:next(Pid),
+            {ok, Data2};
+        {error, {Title, {error, Reason}}} ->
+            {error, Name, Title, Reason}
+    end.
+
+report(#{ started := T1, 
+          finished := T2,
+          total := Total,
+          success := Success,
+          fail := Fail,
+          failures := Failures 
+        }) ->
+    cmkit:log({cmtest, summary, Total, Success, Fail, trunc((T2-T1)/1000), Failures}).

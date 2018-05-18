@@ -261,45 +261,35 @@ compile_steps([Step|Rem], Out) ->
 
 compile_step(#{ <<"app">> := App,
                 <<"port">> := Port,
-                <<"transport">> := Transport,
-                <<"status">> := Status }) ->
+                <<"transport">> := Transport }) ->
 
     #{ type => connection,
        transport => cmkit:to_atom(Transport),
-       port => Port,
-       app => cmkit:to_atom(App),
-       status => cmkit:to_atom(Status) 
+       port => cmkit:to_atom(Port),
+       app => cmkit:to_atom(App)
      };
 
-compile_step(#{ <<"app">> := _,
-                <<"port">> := _,
-                <<"status">> := _ }=Spec) ->
-    compile_step(Spec#{ <<"transport">> => <<"ws">> });
-
-compile_step(#{ <<"app">> := App,
-                <<"status">> :=  _}=Spec) ->
-    compile_step(Spec#{ 
-                    <<"port">> => App,
-                   <<"transport">> => <<"ws">> });
+compile_step(#{ <<"probe">> := Spec }) ->
     
-compile_step(#{ <<"send">> := SendSpec,
-                <<"expect">> := ExpectSpecs }) ->
-    
-    #{ type => send, 
-       spec => compile_term(SendSpec),
-       expect => compile_expectations(ExpectSpecs) 
+    #{ type => probe,
+       spec => compile_term(Spec)
      };
 
-compile_step(#{ <<"send">> := SendSpec }) ->
+compile_step(#{ <<"send">> := Spec }) ->
     
-    #{ send => compile_term(SendSpec),
-       expect => [] 
+    #{ type => send,
+       spec => compile_term(Spec)
+     };
+
+compile_step(#{ <<"receive">> := Spec }) ->
+    #{ type => recv,
+       spec => compile_term(Spec)
+     };
+
+compile_step(#{ <<"expect">> := Spec }) ->
+    #{ type => expect,
+       spec => compile_term(Spec)
      }.
-
-compile_expectations(Specs) ->
-    lists:foldr(fun(Spec, Out) ->
-                        [compile_term(Spec)|Out]
-                end, [], Specs).
 
 compile_backgrounds(Specs) ->
     lists:foldl(fun(Spec, Out) -> 
@@ -428,6 +418,31 @@ compile_term(#{ <<"views">> := Views }) ->
 
 compile_term(#{ <<"effects">> := Effects }) ->
     compile_effects(Effects);
+
+
+compile_term(#{ <<"spec">> := Spec,
+                <<"from">> := From,
+                <<"as">> := Alias }) when is_binary(From) ->
+    #{ from => cmkit:to_atom(From),
+       spec => compile_term(Spec),
+       as => cmkit:to_atom(Alias)
+     };
+
+compile_term(#{ <<"spec">> := _,
+                <<"from">> := _ }=Spec)  ->
+    compile_term(Spec#{ <<"as">> => <<"last">> });
+
+compile_term(#{ <<"spec">> := Spec,
+                <<"to">> := To }) when is_binary(To) ->
+    #{ to => cmkit:to_atom(To),
+       spec => compile_term(Spec) 
+     };
+
+compile_term(#{ <<"app">> := App,
+                <<"status">> := Status }) ->
+    #{ app => cmkit:to_atom(App),
+       status => cmkit:to_atom(Status)
+     };
 
 compile_term(#{ <<"data">> := <<"any">> }) ->
     #{ type => data };

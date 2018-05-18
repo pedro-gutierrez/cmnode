@@ -1,6 +1,8 @@
 -module(cmdecode).
--export([decode/3]).
+-export([decode/2, decode/3]).
 
+decode(Spec, In) ->
+    decode(Spec, In, #{}).
 
 decode(#{ type := data }, Data, _) when is_binary(Data) ->
     {ok, Data};
@@ -79,6 +81,7 @@ decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data) and
         Other -> Other
     end;
 
+
 decode_term(#{ type := list, with := Member}, Data, _) when is_list(Data) ->
     case lists:member(Member, Data) of
         true -> {ok, Data};
@@ -100,6 +103,9 @@ decode_term(#{ type := list, without := Member}, Data, _) when is_list(Data) ->
         false -> {ok, Data};
         true -> no_match
     end;
+
+decode_term(#{ type := first, spec := Spec }, Data, Config) when is_list(Data) ->
+    decode_first_item(Spec, Data, Config);
 
 decode_term(#{ type := list}, List, _) when is_list(List) -> {ok, List};
 decode_term(#{ type := email}, Email, _) ->
@@ -124,16 +130,24 @@ decode_term(#{ type := config, spec := Key}, _, Config)  ->
     end;
 
 decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
-    decode_first(Specs, In, Config);
+    decode_first_spec(Specs, In, Config);
 
 decode_term(Spec, Data, _) -> 
     cmkit:log({cmdecode, not_implemented, Spec, Data}),
     no_match.
 
-decode_first([], _, _) -> no_match;
-decode_first([Spec|Rem], In, Config) ->
+decode_first_spec([], _, _) -> no_match;
+decode_first_spec([Spec|Rem], In, Config) ->
     case decode_term(Spec, In, Config) of 
         {ok, Decoded} -> {ok, Decoded};
         no_match ->
-            decode_first(Rem, In, Config)
+            decode_first_spec(Rem, In, Config)
+    end.
+
+decode_first_item(_, [], _) -> no_match;
+decode_first_item(Spec, [Item|Rem], Config) ->
+    case decode_term(Spec, Item, Config) of 
+        {ok, Decoded} -> {ok, Decoded};
+        no_match ->
+            decode_first_item(Spec, Rem, Config)
     end.

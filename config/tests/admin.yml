@@ -1,0 +1,96 @@
+version: 1.0
+type: test 
+name: admin 
+spec:
+  backgrounds:
+    - title: "weekonekt admin online"
+      steps:
+        - app: weekonekt_admin_api
+          port: weekonekt_admin
+          transport: ws
+        - probe:
+            app: weekonekt_admin_api
+            status: up
+    - title: "admin empty"
+      steps:
+        - send:
+            to: weekonekt_admin_api
+            spec:
+              object:
+                action:
+                  text:
+                    literal: "reset"
+                token:
+                  text:
+                    literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
+        - receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                status:
+                  text:
+                    literal: "ok"
+    - title: "admin user john"
+      steps:
+        - send:
+            to: weekonekt_admin_api
+            spec:
+              object:
+                action: 
+                  text:
+                    literal: register
+                first: 
+                  text:
+                    literal: John
+                last: 
+                  text:
+                    literal: Chricthon
+                username: 
+                  text:
+                    literal: john@farscape.com
+                password: 
+                  text:
+                    literal: foo
+                password_confirm: 
+                  text:
+                    literal: foo
+        - receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                id:
+                  any: text
+                email:
+                  any: text
+    - title: "john logged in"
+      steps:
+        - send:
+            to: weekonekt_admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: login
+                username: 
+                  text: 
+                    literal: john@farscape.com
+                password: 
+                  text:
+                    literal: foo
+        - receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                id:
+                  any: text
+                email:
+                  any: text
+  scenarios:
+    - title: "List imports"
+      tags: weekonekt 
+      backgrounds:
+        - "weekonekt admin online"
+        - "admin empty"
+        - "admin user john"
+        - "john logged in"
+      steps: []

@@ -1,36 +1,117 @@
 -module(cmtest_scenario).
 -behaviour(gen_statem).
 -export([
-         start/2,
-         run/1,
-         start_link/2,
+         start/3,
+         next/1,
+         stop/1,
+         start_link/3,
          init/1, 
          callback_mode/0, 
          terminate/3,
          ready/3
         ]).
 
-start(Test, Spec) ->
-    cmtest_scenario_sup:start(Test, Spec).
+start(Test, Spec, Runner) ->
+    cmtest_scenario_sup:start(Test, Spec, Runner).
 
-run(Pid) ->
-    gen_statem:call(Pid, run).
+next(Pid) ->
+    gen_statem:cast(Pid, next).
+
+stop(Pid) ->
+    gen_statem:call(Pid, stop).
+
+ok(Pid) ->
+    [{reply, Pid, ok}].
 
 callback_mode() ->
     state_functions.
 
-start_link(Test, Spec) ->
-    gen_statem:start_link({local, ?MODULE}, ?MODULE, [Test, Spec], []).
+start_link(Test, Spec, Runner) ->
+    gen_statem:start_link({local, ?MODULE}, ?MODULE, [Test, Spec, Runner], []).
 
-init([#{ name := Name }=Test, #{ title := Title }=Spec]) ->
+init([#{ name := Name }=Test, #{ title := Title }=Scenario, Runner]) ->
     Log = cmkit:log_fun(true),
-    Log({cmtest, started, Name, Title, self()}),
-    {ok, ready, #{ log => Log, test => Test, scenario => Spec}}.
+    case cmtest_util:steps(Scenario, Test) of 
+        {ok, Steps} ->
+            {ok, ready, #{ log => Log, 
+                           test => Test, 
+                           scenario => Scenario, 
+                           steps => Steps, 
+                           world => #{ retries => 10,
+                                       data => #{},
+                                       conns => #{} },
+                           runner => Runner
+                         }};
+        Other ->
+            Log({cmtest, error, Name, Title, Other, Test, self()}),
+            {stop, normal}
+    end.
 
-ready({call, From}, run, #{ log := Log, test := #{ name := Name }, scenario := #{ title := Title}}=Data) ->
-    Log({cmtest, running, Name, Title, self()}),
-    {keep_state, Data, [{reply, From, ok}]}.
 
-terminate(Reason, _, #{ log := Log, test := #{ name := Name }, scenario := #{ title := Title }}) ->
-    Log({cmtest, terminated, Name, Title, self(), Reason}),
+ready(info, {ws, App, Ev}, #{ world := World }=Data) ->
+    World2 = world_with_conn_status(App, Ev, World),
+    {keep_state, Data#{ world => World2}};
+
+ready(info, {ws, App, msg, Msg}, #{ world := World }=Data) ->
+    World2 = world_with_conn_msg(App, Msg, World),
+    {keep_state, Data#{ world => World2}};
+
+ready(state_timeout, retry, Data) ->
+    run_steps(Data);
+
+ready(cast, next, Data) ->
+    run_steps(Data);
+     
+ready({call, From}, stop, #{ 
+                             world := World
+                           }) ->
+    cmtest_util:close(World, self()),
+    {stop_and_reply, normal, ok(From)}.
+
+terminate(_, _, _) ->
     ok.
+
+run_steps(#{ test := #{ name := Name },
+             scenario := #{ title := Title },
+             steps := Steps,
+             world := World,
+             runner := Runner
+           }=Data) ->
+
+    case Steps of 
+        [Step|Rem] ->
+            Res = cmtest_util:run(Step, World),
+            case Res of 
+                {retry, World2} ->
+                    cmkit:log({cmtest, retrying, Step, World}),
+                    {keep_state, Data#{ world => World2 }, 
+                        [{state_timeout, 5, retry}]};
+                
+                {ok, World2} ->
+                    cmtest_runner:progress(Name, Title, length(Rem), Runner),
+                    {keep_state, Data#{ world => World2, 
+                                        steps => Rem 
+                                      }};
+                    
+                {error, E} ->
+                    cmtest_runner:fail(Name, Title, E, Runner),
+                    {keep_state, Data#{ steps => Rem }}
+            end;
+        [] ->
+            cmtest_runner:success(Name, Title, 0, Runner),
+            {keep_state, Data}
+    end.
+
+world_with_conn_status(App, Status, #{ conns := Conns }=World) ->
+    Conn = maps:get(App, Conns),
+    Conn2 = Conn#{ status => Status },
+    Conns2 = Conns#{ App => Conn2 },
+    World#{ conns => Conns2 }.
+
+world_with_conn_msg(App, Msg, #{ conns := Conns}=World) ->
+    Conn = maps:get(App, Conns),
+    Inbox = maps:get(inbox, Conn),
+    Conn2 = Conn#{ inbox => [Msg|Inbox] },
+    Conns2 = Conns#{ App => Conn2 },
+    World#{ conns => Conns2 }.
+    

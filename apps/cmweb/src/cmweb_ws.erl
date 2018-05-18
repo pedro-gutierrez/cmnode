@@ -22,19 +22,11 @@ websocket_init(#{app := App, port := Port }=State) ->
             {stop, E}
     end.
 
-websocket_handle({text, Text}, #{ app := App,
-                                  port := Port,
-                                  id := Id,
-                                  log := Log }=State) ->
-    case cmkit:jsond(Text) of
-        {error, _} -> 
-            Log({ws, in, App, Port, Id, invalid, Text}),
-            {stop, State};
-        {ok, Data} ->
-            Log({ws, in, App, Port, Id, self(), ok, Data}),
-            cmcore:update(Id, Data),
-            {ok, State}
-    end.
+websocket_handle({binary, Data}, State) ->
+    handle_data(Data, State);
+
+websocket_handle({text, Data}, State) -> 
+    handle_data(Data, State).
 
 websocket_info(Data, #{ app := App, 
                         port := Port, 
@@ -42,3 +34,19 @@ websocket_info(Data, #{ app := App,
                         log := Log }=State) ->
     Log({ws, out, App, Port, Id, self(), Data}),
     {reply, {text, cmkit:jsone(Data)}, State}.
+
+
+handle_data(Data, #{ app := App,
+                     port := Port,
+                     id := Id,
+                     log := Log }=State) ->
+
+    case cmkit:jsond(Data) of
+        {error, _} -> 
+            Log({ws, in, App, Port, Id, invalid, Data}),
+            {stop, State};
+        {ok, Decoded} ->
+            Log({ws, in, App, Port, Id, self(), ok, Decoded}),
+            cmcore:update(Id, Decoded),
+            {ok, State}
+    end.

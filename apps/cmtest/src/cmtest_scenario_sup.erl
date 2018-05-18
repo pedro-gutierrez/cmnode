@@ -1,6 +1,6 @@
 -module(cmtest_scenario_sup).
 -behaviour(supervisor).
--export([start_link/0, start/2, kill/1]).
+-export([start_link/0, start/3, kill/1]).
 -export([init/1]).
 
 start_link() ->
@@ -16,8 +16,8 @@ init([]) ->
     
     {ok, { {simple_one_for_one, 0, 1}, [Spec]}}.
 
-start(Test, Spec) ->
-    supervisor:start_child(?MODULE, [Test, Spec]).
+start(Test, Spec, Runner) ->
+    supervisor:start_child(?MODULE, [Test, Spec, Runner]).
 
 kill(Pid) ->
     supervisor:terminate_child(?MODULE, Pid).

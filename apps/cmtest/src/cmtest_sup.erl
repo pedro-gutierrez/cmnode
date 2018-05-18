@@ -21,9 +21,15 @@ init([]) ->
                                    permanent,
                                    supervisor),
 
+    WsSup = cmkit:child_spec(cmtest_ws_sup,
+                             cmtest_ws_sup,
+                             [],
+                             permanent,
+                             supervisor),
     
     {ok, { {one_for_one, 0, 1}, [
                                  Runner, 
-                                 ScenarioSup
+                                 ScenarioSup,
+                                 WsSup
                                 ]}}.
 

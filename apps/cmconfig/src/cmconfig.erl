@@ -7,14 +7,17 @@
          modules/0,
          module/1,
          ports/0,
+         port/1,
          apps/0,
          app/1,
+         mount/3,
          effects/0
         ]).
 
 all(Type) -> cmconfig_cache:all(Type).
 find(Type, Id) -> cmconfig_cache:find(Type, Id).
 ports() -> all(port).
+port(Name) -> find(port, Name).
 templates() -> all(template).
 modules() -> all(module).
 apps() -> all(app).
@@ -23,6 +26,31 @@ tests() -> all(test).
 test(Name) -> find(test, Name).
 module(Name) -> find(module, Name).
 app(Name) -> find(app, Name).
+
+mount(App, Port, Transport) ->
+    case port(Port) of 
+        {ok, #{ port := PortNumber,
+                apps := Apps }} ->
+            case mount(Transport, lists:filter(fun(#{ name := AppName }) ->
+                                       AppName =:= App
+                               end, Apps)) of 
+                {ok, Mount} -> {ok, Mount#{ port => PortNumber }};
+                Other -> Other
+            end;
+        Other -> Other
+    end.
+
+mount(_, []) -> {error, not_found};
+mount(Transport, [#{ mounts := Mounts }]) ->
+    case lists:filter(fun(#{ transport := T }) ->
+                              T =:= Transport
+                      end, Mounts) of 
+        [] -> {error, not_found};
+        [M] -> {ok, M};
+        Other -> {error, Other}
+    end.
+
+
 
 effect_contract() ->
   [{effect_info, 0}, 

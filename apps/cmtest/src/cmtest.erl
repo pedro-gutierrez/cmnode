@@ -1,5 +1,8 @@
 -module(cmtest).
--export([run/1, run/2, clear/0]).
+-export([run/0, run/1, run/2, clear/0]).
+
+run() -> 
+    cmtest_runner:run(cmconfig:tests()).
 
 run(Test) ->
     case cmconfig:test(Test) of
@@ -11,7 +14,7 @@ run(Test) ->
 run(Test, Scenario) ->
     case cmconfig:test(Test) of
         {ok, #{ scenarios := Scenarios }=Spec} ->
-            {ok, SSpecs} = cmtest_util:find_scenarios(Scenario, Scenarios),
+            {ok, SSpecs} = cmtest_util:scenarios(Scenario, Scenarios),
             cmtest_runner:run(Spec, SSpecs);
         Other -> Other
     end.
