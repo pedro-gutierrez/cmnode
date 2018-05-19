@@ -47,6 +47,9 @@ world_with_new_conn(App, Pid, #{ conns := Conns }=World) ->
                              }},
     World#{ conns => Conns2 }.
 
+run(#{ type := _ }, #{ retries := #{ left := 0}}) ->
+    {error, max_retries_reached};
+
 run(#{ type := connection,
        port := Port,
        app := App, 
@@ -70,27 +73,24 @@ run(#{ type := connection,
 run(#{ type := probe, 
        spec := #{ app := App,
                   status := Status 
-                }}, #{ conns := Conns, retries := R }=World) ->
+                }}, #{ conns := Conns }=World) ->
     case maps:get(App, Conns, undef) of
         undef ->
             {error, {not_found, App, World}};
         #{ status := Status } ->
             {ok, World};
         _ ->
-            {retry, World#{ retries => R -1}}
+            retry
     end;
 
-run(#{ type := expect, 
-       spec := Spec } , #{ retries := 0}=World) ->
-    {error, {timeout, Spec, World}};
 
 run(#{ type := expect, 
-       spec := Spec } , #{ retries := R}=World) ->
+       spec := Spec }, World) ->
     case cmeval:eval(Spec, World) of 
         true ->
             {ok, World};
         false ->
-            {retry, World#{ retries => R -1}}
+            retry
     end;
 
 run(#{ type := send, 
@@ -113,17 +113,12 @@ run(#{ type := send,
     end;
 
 run(#{ type := recv, 
-       spec := Spec } , #{ retries := 0}=World) ->
-    {error, {timeout, Spec, World}};
-
-run(#{ type := recv, 
        spec := #{
          as := As,
          from := App,
          spec := Spec
         }} , #{ data := Data,
-                conns := Conns,
-                retries := R 
+                conns := Conns
               }=World) ->
     case maps:get(App, Conns, undef) of 
         undef -> 
@@ -134,7 +129,7 @@ run(#{ type := recv,
                 {ok, Decoded} ->
                     {ok, World#{ data => Data#{ As => Decoded }}};
                 no_match -> 
-                    {retry, World#{ retries => R - 1}}
+                    retry
             end
     end;
 

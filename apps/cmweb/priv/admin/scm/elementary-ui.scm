@@ -173,9 +173,10 @@
 
     (define (map-event-value target)
       (let ((files (js-ref target "files")))
-        (case (js-null? files)
-          ('#f (js-array->list files))
-          ('#t (js-ref target "value")))))
+        (case (js-defined? files)
+          ('#t 
+           (js-array->list files))
+          ('#f (js-ref target "value")))))
 
    
     (define (compile-view v ctx)

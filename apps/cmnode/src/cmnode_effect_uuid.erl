@@ -4,5 +4,5 @@
         ]).
 
 effect_info() -> uuid.
-effect_apply(_, #{ id := Id }) ->
-    cmcore:update(Id, #{ uuid => cmkit:uuid() }).
+effect_apply(#{ context := _ } = Query, #{ id := Id }) ->
+    cmcore:update(Id, Query#{ uuid => cmkit:uuid() }).

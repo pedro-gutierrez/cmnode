@@ -125,7 +125,17 @@ spec:
           keyword: tracker
         status:
           keyword: ok
+    project_uuid:
+      object:
+        context:
+          keyword: project
+        uuid:
+          text: any
   encoders:
+    project_context:
+      object:
+        context:
+          keyword: project
     my_projects_lookup:
       object:
         context:
@@ -292,20 +302,15 @@ spec:
       - cmds:
           - effect: notify
             encoder: forbidden
-    uuid:
-      - when:
-          eq:
-            - key: state 
-              in: model
-            - keyword: creating_project
-        model:
-          uuid:
-            key: uuid
-          project_status:
-            keyword: planning
-        cmds:
-            - effect: db_put_new_all
-              encoder: project_entries
+    project_uuid:
+      model:
+        uuid:
+          key: uuid
+        project_status:
+          keyword: planning
+      cmds:
+          - effect: db_put_new_all
+            encoder: project_entries
     create_project:
       - when:
           encoder: is_admin
@@ -314,10 +319,9 @@ spec:
             key: name
           description:
             key: description
-          state:
-            keyword: creating_project
         cmds:
           - effect: uuid
+            encoder: project_context
       - cmds:
           - effect: notify
             encoder: forbidden

@@ -47,23 +47,39 @@ offline({call, From}, Msg, #data{name=Name}=Data) ->
 ready({call, From}, reset, #data{name=Name}=Data) ->
     Res = case dets:delete_all_objects(Name) of 
         {error, R} -> {error, R};
-        true -> ok
+        true -> ok;
+        ok -> ok
+    end,
+    {keep_state, Data, {reply, From, Res}};
+
+ready({call, From}, {find, Type}, #data{name=Name}=Data) ->
+    Res = case dets:match(Name, {{Type, '_'}, '$1'}) of 
+        {error, R} -> {error, R};
+        Objs when is_list(Objs) -> {ok, lists:flatten(Objs)}
     end,
     {keep_state, Data, {reply, From, Res}};
 
 ready({call, From}, {get, K}, #data{name=Name}=Data) ->
     Res = case dets:lookup(Name, K) of 
         {error, R} -> {error, R};
-        Objs -> Objs
+        [] -> not_found;
+        Objs -> {ok, lists:map(fun({_, V}) -> V end, Objs)}
     end,
     {keep_state, Data, {reply, From, Res}};
-
+    
 ready({call, From}, {put, K, V}, #data{name=Name}=Data) ->
     Res = dets:insert(Name, {K, V}),
     {keep_state, Data, {reply, From, Res}};
 
 ready({call, From}, {put, Pairs}, #data{name=Name}=Data) ->
     Res = dets:insert(Name, Pairs),
+    {keep_state, Data, {reply, From, Res}};
+
+ready({call, From}, {put_new, Pairs}, #data{name=Name}=Data) ->
+    Res = case dets:insert_new(Name, Pairs) of 
+              true -> ok;
+              Other -> error
+          end,
     {keep_state, Data, {reply, From, Res}};
 
 ready({call, From}, backup, #data{dir=D, name=Name}=Data) ->
@@ -109,7 +125,6 @@ backupName(Timestamp, Name) ->
     ++ ".zip".
 
 data_file(Name) -> 
-    Workdir = cmkit:config(data_dir, cmdb),
-    DbDir = string:join([Workdir, atom_to_list(Name)], "/"),
+    DbDir = string:join([cmkit:home(), "data", atom_to_list(Name)], "/"),
     DbFile = string:join([DbDir, "data.db" ], "/"),
     { DbDir, DbFile }. 

@@ -1,5 +1,8 @@
 (define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))
 
+(define (js-defined? v) 
+  (and (not (js-null? v)) (not (js-undefined? v))))
+
 (define (set k v m)
   (cons (list k v) m))
 
@@ -311,28 +314,8 @@
           ('ok (decode-items fn spec (cdr in) (cons (car (cdr decoded)) out)))
           (else decoded))))))
 
-;(define (decode-texts spec in out)
-;  (case (length in)
-;    ('0 (list 'ok (reverse out)))
-;    (else
-;      (let* ((next (car in))
-;             (decoded (decode-text spec next)))
-;        (case (car decoded)
-;          ('ok (decode-texts spec (cdr in) (cons (car (cdr decoded)) out)))
-;          (else decoded))))))
-
 (define (decode-object! spec in)
-    (decode-objects spec in '()))
-
-(define (decode-objects spec in out)
-  (case (length in)
-    ('0 (list 'ok out))
-    (else 
-      (let* ((next (car in))
-             (decoded (decode-object spec next '())))
-        (case (car decoded)
-          ('ok (decode-objects spec (cdr in) (cons (car (cdr decoded)) out)))
-          (else decoded))))))
+    (decode-object spec in '()))
 
 (define (decode-object spec in out)
   (case in 

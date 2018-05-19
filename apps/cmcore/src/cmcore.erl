@@ -10,5 +10,5 @@ update(Id, Data) when is_binary(Id) ->
         {ok, Context} ->
             gen_statem:cast(Context, {update, Data});
         Other ->
-            cmkit:log({cmcore, update, Id, context_error, Other})
+            cmkit:log({cmcore, error, Id, no_context, Other})
     end.

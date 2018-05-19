@@ -21,5 +21,5 @@ db_spec(#{name := Name}=Db) ->
     cmkit:child_spec(Name, Mod, [Db], worker).
 
 db_impl(#{ storage := disc}) -> cmdb_dets;
-db_impl(#{ storage := memory}) -> cmdb_ets;
+db_impl(#{ storage := memory}) -> cmdb_dets;
 db_impl(#{ storage := dynamo }) -> cmdb_dynamo.

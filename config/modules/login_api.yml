@@ -8,9 +8,6 @@ spec:
       roles:
         list: [] 
   decoders:
-    invalid:
-      priority: lowest
-      object: any
     login:
       object:
         action:

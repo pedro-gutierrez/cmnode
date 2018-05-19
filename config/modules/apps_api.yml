@@ -4,7 +4,7 @@ category: server
 name: apps 
 spec:
   decoders:
-    list:
+    list_apps:
       object:
         action: 
           text: 
@@ -33,7 +33,7 @@ spec:
         data:
           key: apps
   update:
-    list:
+    list_apps:
       - when:
           encoder: is_admin
         cmds:

@@ -11,7 +11,6 @@ effect_apply(#{ context := Context,
                               type := Type,
                               value := Value}) -> {{Type, Id}, Value} end, Items),
     
-    cmkit:log({db_put_all, Pairs}),
     Res = #{ context => Context,
              bucket => Db,
              status => cmdb:put(Db, Pairs) },

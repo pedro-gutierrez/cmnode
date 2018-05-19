@@ -55,11 +55,13 @@ ready(cast, {update, Data}, #{ app := App,
             Log({cmcore, decoded, Msg, App, Id}),
             case cmcore_util:update_spec(Spec, Msg, Decoded, Model, Config) of 
                 {ok, UpdateSpec} ->
-                    Log({cmcore, update, UpdateSpec, App, Id}),
+                    Log({cmcore, update_spec, UpdateSpec, App, Id}),
                     case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
+                            Log({cmcore, model, Model2,App, Id}),
                             case cmsession:attach(Id, model, Model2) of
                                 ok ->
+                                    Log({cmcore, cmds, Cmds,App, Id}),
                                     cmcore_util:cmds(Cmds, Model2, Config, Session),
                                     {keep_state, Session#{ model => Model2 }};
                                 {error, E} ->

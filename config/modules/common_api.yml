@@ -3,7 +3,15 @@ type: module
 category: server
 name: common_api
 spec:
+  decoders:
+    invalid:
+      priority: lowest
+      object: any
   encoders:
+    forbidden:
+      object:
+        error:
+          keyword: forbidden 
     is_admin:
       member:
         value:

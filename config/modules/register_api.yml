@@ -31,8 +31,10 @@ spec:
           keyword: register
         value:
           text: any
-    uuid:
+    uuid_for_new_user:
       object:
+        context:
+          keyword: register
         uuid:
           text: any
     registered:
@@ -117,6 +119,10 @@ spec:
           key: last
         email:
           key: email
+    register_context:
+      object:
+        context:
+          keyword: register
   update:
     register:
       - when:
@@ -150,18 +156,14 @@ spec:
           keyword: registering
       cmds:
         - effect: uuid
-    uuid:
-      - when: 
-          eq:
-            - keyword: registering
-            - key: state
-              in: model
-        model:
-          uuid:
-            key: uuid
-        cmds:
-          - effect: db_put_new_all
-            encoder: register_data
+          encoder: register_context 
+    uuid_for_new_user:
+      model:
+        uuid:
+          key: uuid
+      cmds:
+        - effect: db_put_new_all
+          encoder: register_data
     registered:
       cmds:
         - effect: notify

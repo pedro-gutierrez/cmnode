@@ -88,19 +88,24 @@ resolve_cmds(App, [Cmd|Rem], Out) ->
 resolve_cmd(#{ encoders := Encoders }, #{ encoder := Enc }=Cmd) ->
     case maps:get(Enc, Encoders, undef) of
         undef ->
-            {error, {no_such_encoder, Enc}};
+            {error, unknown_encoder(Enc) };
         Encoder ->
             {ok, Cmd#{ encoder => Encoder }}
     end;
 
 resolve_cmd(_, #{ encoder := Enc }) ->
-    {error, {no_such_encoder, Enc}};
+    {error, unknown_encoder(Enc)};
 
 resolve_cmd(_, #{ effect := _ }=Cmd) ->
     {ok, Cmd };
 
 resolve_cmd(_, Cmd) ->
     {error, {invalid_cmd, Cmd}}.
+
+unknown_encoder(Enc) ->
+    #{ encoder => Enc,
+       status => undefined }.
+
 
 update_model(Spec, In, Config, Out) ->
     cmencode:encode(Spec, In, Config, Out).

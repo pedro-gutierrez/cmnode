@@ -19,9 +19,7 @@ spec:
     buckets_to_clear:
       object:
         buckets:
-          list: 
-            - keyword: users
-            - keyword: tracker
+          config: databases
     success:
       object:
         status:

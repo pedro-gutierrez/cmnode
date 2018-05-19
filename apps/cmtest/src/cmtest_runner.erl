@@ -59,7 +59,8 @@ ready({call, From}, {tests, Tests}, #{ log := Log} = Data) ->
     case start_test(Tests, Data#{ tests => Tests,
                                   total => 0,
                                   success => 0,
-                                  fail => 0} ) of 
+                                  fail => 0, 
+                                  failures => [] } ) of 
         {ok, Data2} ->
             {keep_state, Data2, ok(From)}; 
         {finished, Data2} ->
@@ -74,7 +75,8 @@ ready({call, From}, {scenarios, Test, Scenarios}, #{ log := Log} = Data) ->
     case start_scenario(Test, Scenarios, Data#{ test => Test,
                                                 total => 0,
                                                 success => 0,
-                                                fail => 0} ) of 
+                                                fail => 0, 
+                                                failures => [] } ) of 
         {ok, Data2} ->
             {keep_state, Data2, ok(From)}; 
         {finished, Data2} ->
@@ -112,7 +114,7 @@ ready(cast, {success, _, _, _}, #{ log := Log,
             {keep_state, Data2}
     end;
 
-ready(cast, {fail, _, #{ title := Title }, Info
+ready(cast, {fail, _, Title, Info
             }, #{ log := Log, 
                   pid := Pid,
                   test := #{ name := Name }=Test,
@@ -124,7 +126,7 @@ ready(cast, {fail, _, #{ title := Title }, Info
     Data2 = Data#{ fail => Fail + 1,
                    failures => [#{ test => Name,
                                    scenario => Title,
-                                   reason => Info }
+                                   failure => Info }
                                 |Failures]
                  },
     cmtest_scenario:stop(Pid),
@@ -148,7 +150,7 @@ start_test([], Data) ->
 
 start_test([#{ scenarios := Scenarios}=T|Rem], Data) ->
     start_scenario(T, Scenarios, Data#{ test => T,
-                                        tests => Rem }).
+                                        tests => Rem}).
 
 start_scenario(_, [], #{ tests := [] } = Data) ->
     {finished, Data#{ finished => cmkit:now() }};
@@ -166,7 +168,9 @@ start_scenario(#{ name := Name }=Test, [S|Rem], Data) ->
             cmtest_scenario:next(Pid),
             {ok, Data2};
         {error, {Title, {error, Reason}}} ->
-            {error, Name, Title, Reason}
+            {error, #{ test => Name, 
+                       scenario => Title, 
+                       reason => Reason}}
     end.
 
 report(#{ started := T1, 
@@ -176,4 +180,9 @@ report(#{ started := T1,
           fail := Fail,
           failures := Failures 
         }) ->
-    cmkit:log({cmtest, summary, Total, Success, Fail, trunc((T2-T1)/1000), Failures}).
+    cmkit:log({cmtest, Failures, 
+               {scenarios, 
+                    {total, Total}, 
+                    {passed, Success},
+                    {failed, Fail}},
+               {millis, trunc((T2-T1)/1000)}}).

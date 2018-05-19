@@ -29,7 +29,11 @@ callback_mode() ->
 start_link(Test, Spec, Runner) ->
     gen_statem:start_link({local, ?MODULE}, ?MODULE, [Test, Spec, Runner], []).
 
-init([#{ name := Name }=Test, #{ title := Title }=Scenario, Runner]) ->
+init([#{ name := Name,
+         config := #{ retries := Retries,
+                      wait := Wait 
+                    } 
+       }=Test, #{ title := Title }=Scenario, Runner]) ->
     Log = cmkit:log_fun(true),
     case cmtest_util:steps(Scenario, Test) of 
         {ok, Steps} ->
@@ -37,7 +41,11 @@ init([#{ name := Name }=Test, #{ title := Title }=Scenario, Runner]) ->
                            test => Test, 
                            scenario => Scenario, 
                            steps => Steps, 
-                           world => #{ retries => 10,
+                           world => #{ 
+                                       retries => #{ max => Retries,
+                                                     left => Retries,
+                                                     wait => Wait
+                                                   },
                                        data => #{},
                                        conns => #{} },
                            runner => Runner
@@ -74,7 +82,10 @@ terminate(_, _, _) ->
 run_steps(#{ test := #{ name := Name },
              scenario := #{ title := Title },
              steps := Steps,
-             world := World,
+             world := #{ retries := #{ 
+                                       wait := Wait 
+                                     }
+                       } = World,
              runner := Runner
            }=Data) ->
 
@@ -82,10 +93,10 @@ run_steps(#{ test := #{ name := Name },
         [Step|Rem] ->
             Res = cmtest_util:run(Step, World),
             case Res of 
-                {retry, World2} ->
-                    cmkit:log({cmtest, retrying, Step, World}),
-                    {keep_state, Data#{ world => World2 }, 
-                        [{state_timeout, 5, retry}]};
+                retry ->
+                    World2 = retried(World),
+                    {keep_state, Data#{ world => World2  }, 
+                        [{state_timeout, Wait, retry}]};
                 
                 {ok, World2} ->
                     cmtest_runner:progress(Name, Title, length(Rem), Runner),
@@ -94,13 +105,19 @@ run_steps(#{ test := #{ name := Name },
                                       }};
                     
                 {error, E} ->
-                    cmtest_runner:fail(Name, Title, E, Runner),
+                    cmtest_runner:fail(Name, Title, #{ step => Step,
+                                                       world => World,
+                                                       reason => E
+                                                     }, Runner),
                     {keep_state, Data#{ steps => Rem }}
             end;
         [] ->
             cmtest_runner:success(Name, Title, 0, Runner),
             {keep_state, Data}
     end.
+
+retried(#{ retries := #{ left := L }=R}=W) ->
+    W#{ retries => R#{ left => L -1 }}.
 
 world_with_conn_status(App, Status, #{ conns := Conns }=World) ->
     Conn = maps:get(App, Conns),

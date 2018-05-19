@@ -108,15 +108,14 @@ compile_template(#{ <<"name">> := Name,
          params => cmconfig_util:compile_term(ParamsSpec) }.
 
 
-compile_module(#{ <<"name">> := Name, <<"category">> := Cat,
+compile_module(#{ <<"name">> := Name,
             <<"spec">> := Spec }) ->
 
     
     #{ spec := CompiledSpec } = compile_spec(Spec),
     maps:merge(CompiledSpec,  #{
                  name => cmkit:to_atom(Name),
-                 type => module,
-                 category => cmconfig_util:compile_keyword(Cat)
+                 type => module
     }).
 
 compile_app(#{ <<"name">> := Name, 
@@ -166,25 +165,29 @@ compile_bucket(#{ <<"name">> := Name,
 
 compile_test(#{ <<"name">> := Name,
                      <<"spec">> := #{ 
+                         <<"config">> := Config,
                          <<"scenarios">> := Scenarios,
                          <<"backgrounds">> := Backgrounds 
                         }
                    }) ->
     #{ type => test,
        name => cmkit:to_atom(Name),
+       config => compile_config(Config),
        scenarios => compile_scenarios(Scenarios),
        backgrounds => compile_backgrounds(Backgrounds)
      };
 
 compile_test(#{ <<"name">> := Name,
                      <<"spec">> := #{ 
+                         <<"config">> := Config,
                          <<"backgrounds">> := Backgrounds 
                         }
                    }) ->
 
     #{ type => test,
        name => cmkit:to_atom(Name),
-       scenarios => #{},   
+       scenarios => #{},
+       config => compile_config(Config),
        backgrounds => compile_backgrounds(Backgrounds)
      };
 
@@ -220,6 +223,12 @@ compile_scenario(#{ <<"title">> := Title,
        steps => compile_steps(Steps)
      };
 
+compile_scenario(#{ <<"title">> := _, 
+                    <<"tags">> := _, 
+                    <<"backgrounds">> := _ 
+                  }=Spec) ->
+    compile_scenario(Spec#{ <<"steps">> => []});
+    
 compile_scenario(#{ <<"title">> := _, 
                     <<"tags">> := _, 
                     <<"steps">> := _ 
@@ -678,6 +687,10 @@ compile_term(null) ->
 compile_term([]) -> 
     #{ type => list, value => [] };
 
+
+compile_term(Num) when is_number(Num) ->
+    #{ type => number, value => Num };
+
 compile_term(Text) when is_binary(Text) -> Text.
 
 %compile_from(From) when is_binary(From)-> compile_keyword(From);
@@ -702,8 +715,11 @@ compile_object([K|Rem], Map, Out) ->
 
 compile_keyword(K) -> cmkit:to_atom(K).
 
-compile_decoders(Decs) ->
-    compile_decoders(maps:keys(Decs), Decs, []).
+compile_decoders(Decs) when is_map(Decs) ->
+    compile_decoders(maps:keys(Decs), Decs, []);
+
+compile_decoders(_) -> [].
+
 
 compile_decoders([], _, Out) -> sort_decoders(Out);
 compile_decoders([K|Rem], Decs, Out) ->

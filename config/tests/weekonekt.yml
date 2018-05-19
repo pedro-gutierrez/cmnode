@@ -2,6 +2,9 @@ version: 1.0
 type: test 
 name: weekonekt
 spec:
+  config:
+    retries: 20
+    wait: 5
   backgrounds:
     - title: "weekonekt admin online"
       steps:
@@ -85,12 +88,92 @@ spec:
                   any: text
                 email:
                   any: text
+    - title: "a weekonekt import"
+      steps:
+        - send:
+            to: weekonekt_admin_api
+            spec:
+              object:
+                action:
+                  text:
+                    literal: create_import 
+        - receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                import:
+                  object:
+                    id:
+                      any: text
+                    created:
+                      any: number
   scenarios:
     - title: "List imports"
-      tags: weekonekt 
+      tags: weekonekt, import 
       backgrounds:
         - "weekonekt admin online"
         - "admin empty"
         - "admin user john"
         - "john logged in"
+      steps:
+        - send:
+            to: weekonekt_admin_api
+            spec:
+              object:
+                action:
+                  text:
+                    literal: imports
+        - receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                imports:
+                  list: empty
+
+    - title: "Create new import"
+      purpose: "Verify that the weekonekt admin is able to create a new import"
+      tags: weekonekt, import 
+      backgrounds:
+        - "weekonekt admin online"
+        - "admin empty"
+        - "admin user john"
+        - "john logged in"
+        - "a weekonekt import"
       steps: []
+
+    - title: "Create an upload token for an import"
+      purpose: "Verify that the weekonekt admin is able to create a new import"
+      tags: weekonekt, import 
+      backgrounds:
+        - "weekonekt admin online"
+        - "admin empty"
+        - "admin user john"
+        - "john logged in"
+        - "a weekonekt import"
+      steps:
+        - send:
+            to: weekonekt_admin_api
+            spec:
+              object:
+                action:
+                  text:
+                    literal: token
+                subject:
+                  key: id
+                  in:
+                    key: import
+                    in:
+                      key: last
+                      in:
+                        key: data
+                intent:
+                  keyword: attach
+                type:
+                  keyword: project
+
+        - receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                token: 
+                  any: text
