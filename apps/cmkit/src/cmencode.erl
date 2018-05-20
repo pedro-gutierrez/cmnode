@@ -11,17 +11,18 @@ encode(Spec, In, Config) -> encode(Spec, In, Config, #{}).
 encode(#{ type := object, spec := Spec}, In, Config, Out) ->
     encode(maps:keys(Spec), Spec, In, Config, Out);
 
-
-
 encode(#{ type := data, from := Key}, In, Config, Out) when is_atom(Key) ->
     encode(Key, In, Config, Out);
 
 encode(Key, In, _, _) when is_atom(Key) or is_binary(Key) ->
     case cmkit:value_at(Key, In) of
        undef ->
-           {error, #{ status => missing_key,
+            E = #{ status => missing_key,
                       key => Key,
-                      data => In }};
+                      data => In },
+            cmkit:danger(E),
+           
+            {error, E};
        V ->
            {ok, V}
    end;
@@ -101,6 +102,62 @@ encode(#{ type := list,
 encode(#{ type := config,
           spec := Key }, _, Config, _) ->
     {ok, maps:get(Key, Config)};
+
+
+encode(#{ type := request,
+         spec := Spec }, In, Config, Out) ->
+    encode(Spec, In, Config, Out);
+
+encode(#{ type := http,
+          method := Method,
+          body := Body,
+          headers := Headers }, In, Config, Out) ->
+    case encode(Headers, In, Config, Out) of 
+        {ok, H} ->
+            case encode(Body, In, Config, Out) of 
+                {ok, B} ->
+                    {ok, #{ method => Method,
+                            headers => H,
+                            body => B }}; 
+                Other -> Other
+            end;
+        Other -> Other
+    end;
+
+encode(#{ type := path,
+          location := Path }, _, _, _) -> {ok, cmkit:to_list(Path)};
+
+encode(#{ type := file,
+          spec := Spec }, In, Config, Out) ->
+    case encode(Spec, In, Config, Out) of 
+        {ok, Path} ->
+            file:read_file(Path);
+        Other -> 
+            Other
+    end;
+
+
+encode(#{ type := greater_than,
+          spec := [Spec1, Spec2] }, In, Config, Out) ->
+    case { encode(Spec1, In, Config, Out), encode(Spec2, In, Config, Out) } of 
+        { {ok, V1}, {ok, V2} } when (is_number(V1) and is_number(V2)) ->
+            {ok, V1 > V2};
+        Other -> Other
+    end;
+
+encode(#{ type := sum,
+          spec := Specs }, In, Config, Out) ->
+    Res = lists:foldl(fun({ok, V}, Total) when is_number(V) -> 
+                        Total + V;
+                   (Other, _) -> 
+                        {error, {not_a_number, Other}}
+                end, 0, lists:map(fun(S) ->
+                                       encode(S, In, Config, Out)
+                               end, Specs)),
+    case Res of 
+        N when is_number(N) -> {ok, N};
+        Other -> Other
+    end;
 
 encode(#{ spec := Spec }, _, _, _) -> {ok, Spec}.
 

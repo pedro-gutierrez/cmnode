@@ -1,14 +1,30 @@
 -module(cmkit).
--export([log/1, log_fun/1, home/0, env/1, etc/0, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, jsone/1, jsone/2, jsond/1, yamld/1, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, intersection/2, closest_node/1, uniconvert/1, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3]).
+-export([log/1, log_fun/1, home/0, env/1, etc/0, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, jsone/1, jsone/2, jsond/1, yamld/1, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, intersection/2, closest_node/1, uniconvert/1, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1]).
 
 log(Data)->
-    io:format("[LOG] ~p~n", [Data]).
+    io:format("[LOG] ~P~n", [Data, 20]).
 
 log_fun(true) -> 
     fun log/1;
 
 log_fun(false) ->
     fun(_) -> ok end.
+
+print(Pattern, Args, Color) ->
+    Str = lists:flatten(to_list(fmt(Pattern, Args))),
+    io:format("~s~n", [ color:Color(Str)]). 
+
+print(Term, Sev) ->
+    print("[LOG] ~p", [Term], Sev).
+
+success(Term) ->
+    print(Term, greenb).
+
+danger(Term) ->
+    print(Term, red).
+
+warning(Term) ->
+    print(Term, yellow).
 
 home() -> env("CMNODE_HOME").
 etc() -> filename:join([home(), "config"]).
@@ -274,6 +290,16 @@ list_to_number(L, final) ->
             list_to_integer(L)
     end.
     
+to_number(B) when is_binary(B) -> bin_to_number(B);
+to_number(L) when is_list(L) -> list_to_number(L).
+
+to_number(B, Default) ->
+    try to_number(B)
+    catch
+        error:badarg -> 
+            Default
+    end.
+
 
 distinct(List) ->
     sets:to_list(sets:from_list(List)).
@@ -392,7 +418,10 @@ bin_trim(Bin) ->
 to_list(L) when is_list(L) -> 
     L;
 to_list(B) when is_binary(B) ->
-    binary_to_list(B).
+    binary_to_list(B);
+
+to_list(A) when is_atom(A) -> 
+    atom_to_list(A).
 
 localtime() ->
     Now = os:timestamp(),
@@ -452,6 +481,11 @@ watch(Dir) ->
     ok = fs:subscribe(fs_watcher),
     {ok, Pid}.
 
+url(#{ host := Host,
+       transport := Transport,
+       port := Port,
+       path := Path }) ->
+    url(Transport, Host, Port, Path).
 
 url(Transport, Port, Path) ->
     url(Transport, localhost, Port, Path).
@@ -461,11 +495,10 @@ url(Transport, Host, Port, Path) ->
     HostBin = cmkit:to_bin(Host),
     PortBin = cmkit:to_bin(Port),
     PathBin = cmkit:to_bin(Path),
-    to_list(<<TransportBin/binary, 
+    <<TransportBin/binary, 
                      "://", 
                      HostBin/binary, 
                      ":", 
                      PortBin/binary, 
-                     "/", 
-                     PathBin/binary >>).
+                     PathBin/binary >>.
 

@@ -78,7 +78,7 @@ ready({call, From}, {put, Pairs}, #data{name=Name}=Data) ->
 ready({call, From}, {put_new, Pairs}, #data{name=Name}=Data) ->
     Res = case dets:insert_new(Name, Pairs) of 
               true -> ok;
-              Other -> error
+              Other -> Other
           end,
     {keep_state, Data, {reply, From, Res}};
 

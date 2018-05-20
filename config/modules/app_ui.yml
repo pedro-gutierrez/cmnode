@@ -21,7 +21,7 @@ spec:
             in: data
         debug:
           key: debug
-          at:
+          in:
             key: info
             in: data
       cmds:

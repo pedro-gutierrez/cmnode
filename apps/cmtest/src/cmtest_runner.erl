@@ -158,12 +158,13 @@ start_scenario(_, [], #{ tests := [] } = Data) ->
 start_scenario(_, [], #{ tests := Tests }=Data) ->
     start_test(Tests, Data);
 
-start_scenario(#{ name := Name }=Test, [S|Rem], Data) ->
+start_scenario(#{ name := Name }=Test, [S|Rem], #{ total := Total }=Data) ->
     case cmtest_util:start(Test, S, self() ) of 
         {ok, Pid} ->
             Data2 = Data#{ 
                       pid => Pid,
-                      scenarios => Rem
+                      scenarios => Rem,
+                      total => Total + 1
                      },
             cmtest_scenario:next(Pid),
             {ok, Data2};
@@ -171,7 +172,10 @@ start_scenario(#{ name := Name }=Test, [S|Rem], Data) ->
             {error, #{ test => Name, 
                        scenario => Title, 
                        reason => Reason}}
-    end.
+    end;
+
+start_scenario(_, _, Data) ->
+    {finished, Data#{ finished => cmkit:now() }}.
 
 report(#{ started := T1, 
           finished := T2,
@@ -180,9 +184,22 @@ report(#{ started := T1,
           fail := Fail,
           failures := Failures 
         }) ->
-    cmkit:log({cmtest, Failures, 
+    
+    S = severity(Fail, Success, Total),
+    Millis = trunc((T2-T1)/1000),
+
+    cmkit:S({cmtest, Failures, 
                {scenarios, 
                     {total, Total}, 
                     {passed, Success},
                     {failed, Fail}},
-               {millis, trunc((T2-T1)/1000)}}).
+               {millis, Millis}}).
+
+
+severity(_, _, 0) -> success;
+severity(0, _, _) -> success;
+severity(_, 0, _) -> danger;
+severity(_, _, _) -> warning.
+
+
+

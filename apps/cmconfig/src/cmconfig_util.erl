@@ -266,39 +266,8 @@ compile_steps(Steps) ->
 
 compile_steps([], Out) -> lists:reverse(Out);
 compile_steps([Step|Rem], Out) ->
-    compile_steps(Rem, [compile_step(Step)|Out]).
+    compile_steps(Rem, [compile_term(Step)|Out]).
 
-compile_step(#{ <<"app">> := App,
-                <<"port">> := Port,
-                <<"transport">> := Transport }) ->
-
-    #{ type => connection,
-       transport => cmkit:to_atom(Transport),
-       port => cmkit:to_atom(Port),
-       app => cmkit:to_atom(App)
-     };
-
-compile_step(#{ <<"probe">> := Spec }) ->
-    
-    #{ type => probe,
-       spec => compile_term(Spec)
-     };
-
-compile_step(#{ <<"send">> := Spec }) ->
-    
-    #{ type => send,
-       spec => compile_term(Spec)
-     };
-
-compile_step(#{ <<"receive">> := Spec }) ->
-    #{ type => recv,
-       spec => compile_term(Spec)
-     };
-
-compile_step(#{ <<"expect">> := Spec }) ->
-    #{ type => expect,
-       spec => compile_term(Spec)
-     }.
 
 compile_backgrounds(Specs) ->
     lists:foldl(fun(Spec, Out) -> 
@@ -439,7 +408,7 @@ compile_term(#{ <<"spec">> := Spec,
 
 compile_term(#{ <<"spec">> := _,
                 <<"from">> := _ }=Spec)  ->
-    compile_term(Spec#{ <<"as">> => <<"last">> });
+    compile_term(Spec#{ <<"as">> => <<"latest">> });
 
 compile_term(#{ <<"spec">> := Spec,
                 <<"to">> := To }) when is_binary(To) ->
@@ -462,12 +431,38 @@ compile_term(#{ <<"any">> := <<"data">> }) ->
 compile_term(#{ <<"file">> := <<"any">> }) ->
     #{ type => file };
 
+compile_term(#{ <<"as">> := As,
+                <<"file">> := Spec }) when is_map(Spec) ->
+    #{ type => file,
+       as => cmkit:to_atom(As),
+       spec => compile_term(Spec) 
+     };
+
+compile_term(#{ <<"file">> := Spec }) when is_map(Spec) ->
+    #{ type => file,
+       spec => compile_term(Spec) 
+     };
+
 compile_term(#{ <<"any">> := <<"file">> }) ->
     #{ type => file };
+
+compile_term(#{ <<"at">> := Spec }) ->
+    #{ type => path,
+       location => compile_term(Spec) 
+     };
+
+compile_term(#{ <<"data">> := Spec,
+                <<"as">> := As }) ->
+    #{ type => data,
+        spec => compile_term(Spec),
+        as => cmkit:to_atom(As) };
 
 compile_term(#{ <<"data">> := Spec }) ->
     maps:merge(#{ type => data},
                compile_term(Spec));
+
+compile_term(#{<<"empty">> := _}) ->
+    #{ type => empty };
 
 compile_term(#{ <<"config">> := Key }) ->
     #{ type => config,
@@ -655,6 +650,16 @@ compile_term(#{ <<"eq">> := Specs }) when is_list(Specs) ->
        spec => lists:map(fun compile_term/1, Specs)
      };
 
+compile_term(#{ <<"gt">> := Specs }) when is_list(Specs) ->
+    #{ type => greater_than,
+       spec => lists:map(fun compile_term/1, Specs)
+     };
+
+compile_term(#{ <<"sum">> := Specs }) when is_list(Specs) ->
+    #{ type => sum,
+       spec => lists:map(fun compile_term/1, Specs)
+     };
+
 compile_term(#{ <<"member">> := Spec }) -> 
    
     #{ type => member,
@@ -677,6 +682,66 @@ compile_term(#{ <<"all">> := Conds }) ->
     #{ type => all,
        spec => lists:map(fun compile_term/1, Conds) 
      };
+
+compile_term(#{ <<"connect">> := Spec }) ->
+    #{ type => connect,
+       spec => compile_term(Spec) };
+
+
+compile_term(#{ <<"app">> := App,
+                <<"port">> := Port,
+                <<"transport">> := Transport }) ->
+
+    #{ transport => cmkit:to_atom(Transport),
+       port => cmkit:to_atom(Port),
+       app => cmkit:to_atom(App)
+     };
+
+compile_term(#{ <<"probe">> := Spec }) ->
+    
+    #{ type => probe,
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"send">> := Spec }) ->
+    
+    #{ type => send,
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"receive">> := Spec }) ->
+    #{ type => recv,
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"expect">> := Spec }) ->
+    #{ type => expect,
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"request">> := Spec }) ->
+    #{ type => request,
+      spec => compile_term(Spec) 
+    };
+
+compile_term(#{ <<"response">> := Spec }) ->
+    #{ type => response,
+         spec => compile_term(Spec) 
+    };
+
+compile_term(#{ <<"status">> := Status }) ->
+    #{ type => http,
+       status => Status
+     };
+
+compile_term(#{ <<"method">> := Method ,
+                <<"body">> := BodySpec,
+                <<"headers">> := HeadersSpec }) ->
+    #{ type => http,
+       method => cmkit:to_atom(Method),
+        body => compile_term(BodySpec),
+        headers => compile_object(HeadersSpec)
+    };
 
 compile_term(#{}=Map) when map_size(Map) == 0 ->
     #{ type => object };

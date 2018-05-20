@@ -33,18 +33,21 @@ eval(#{ encoder := Name}, Encs, In, Config) when is_atom(Name) ->
              cmkit:log({cmeval, encoder, unknown, Name}),
              false;
         Enc ->
-            case cmencode:encode(Enc, In, Config) of
-                {ok, true} -> true;
-                {ok, false} -> false;
-                Other ->
-                    cmkit:log({cmeval, encoder, non_bool, Name, Enc, Other}),
-                    false
-            end
+            eval(Enc, #{}, In, Config)
     end;
 
-eval(Spec, _, _, _) -> 
-    cmkit:log({cmeval, not_implemented, Spec}),
-    false.
+eval(Spec, _, In, Config) ->
+    case cmencode:encode(Spec, In, Config) of
+        {ok, true} -> true;
+        {ok, false} -> false;
+        {ok, Other} ->
+            cmkit:danger({cmeval, non_boolean_result, Spec, Other}),
+            false;
+        Other ->
+            cmkit:danger({cmeval, error, Spec, Other}),
+            false
+    end.
+
 
 all_equal([V|Rem]) -> all_equal(Rem, V).
 all_equal([], _) -> true;

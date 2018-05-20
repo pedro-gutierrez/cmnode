@@ -117,10 +117,20 @@ cmds([#{ effect := Effect,
         {error, Error} ->
             cmkit:log({cmcore, Effect, Spec, Error});
         {ok, Data} ->
-            cmeffect:apply(Effect, Data, Session)
+            apply_effect(Effect, Data, Session)
     end,
     cmds(Rem, Model, Config, Session);
 
 cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
-    cmeffect:apply(Effect, nothing, Session),
+    apply_effect(Effect, nothing, Session), 
     cmds(Rem, Model, Config, Session).
+
+apply_effect(Effect, Data, #{ id := Id }=Session) ->
+    case cmeffect:apply(Effect, Data, Session) of 
+        ok -> ok;
+        not_found ->
+            cmcore:update(Id, #{ error => no_such_effect,
+                                 effect => Effect,
+                                 data => Data }),
+            ok
+    end.

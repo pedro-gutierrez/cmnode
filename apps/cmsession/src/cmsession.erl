@@ -8,8 +8,12 @@ new(App) ->
     Entries = [{{session, Id}, Session}, 
                {{connections, Id}, [Conn]},
                {{connection, Conn}, #{ pid => Conn, session => Id }}],
-    ok = cmdb:put_new(sessions, Entries),
-    {ok, Session}.
+    case cmdb:put_new(sessions, Entries) of 
+        ok -> {ok, Session};
+        Other -> 
+            cmkit:danger({cmsession, new, Other, App, Entries}),
+            {error, session_not_created}
+    end.
 
 attach(Id, Type, Val) ->
     cmdb:put(sessions, {Type, Id}, Val).

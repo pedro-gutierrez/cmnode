@@ -8,5 +8,7 @@ spec:
     weekonekt_admin_api:
       ws: "/ws"
       http: "/api"
+    weekonekt_file_api:
+      http: "/files"
     weekonekt_admin_ui:
       http: "/scm/app.scm"

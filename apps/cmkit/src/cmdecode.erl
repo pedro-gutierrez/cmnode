@@ -29,11 +29,14 @@ decode_list(Spec, [Item|Rem], Config, Out) ->
             Other
     end.
 
-decode_object(Spec, Data, Config, Out) ->
-    decode_object(maps:keys(Spec), Spec, Data, Config, Out).
+decode_object(Spec, Data, Config, Out) when is_map(Data) ->
+    decode_object(maps:keys(Spec), Spec, Data, Config, Out);
+
+decode_object(_, _, _, _)  ->
+    no_match.
 
 decode_object([], _, _, _, Out) -> {ok, Out};
-decode_object([Key|Rem], Spec, Data, Config, Out) ->
+decode_object([Key|Rem], Spec, Data, Config, Out) when is_map(Data) ->
     KeySpec = maps:get(Key, Spec),
     Value = cmkit:value_at(Key, Data),
     case Value of 
@@ -54,7 +57,7 @@ decode_object([Key|Rem], Spec, Data, Config, Out) ->
 
     end.
 
-
+decode_term(#{ type := data }, Data, _) when is_binary(Data) -> {ok, Data};
 decode_term(#{ type := keyword, value := Data}, Data, _) when is_atom(Data) -> {ok, Data};
 decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) ->
     decode_term(Spec, Data, Config);
@@ -66,6 +69,14 @@ decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_ma
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text}, Text, _) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
 decode_term(#{ type := number}, Num, _) when is_number(Num) -> {ok, Num};
+decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
+    case cmkit:to_number(Bin, none) of 
+        none -> no_match;
+        Num -> {ok, Num}
+    end;
+
+decode_term(#{ type := empty}, empty, _) -> {ok, empty};
+decode_term(#{ type := empty}, _, _) -> no_match;
 
 decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) -> 
     decode_list(Spec, Data, Config);
@@ -80,6 +91,7 @@ decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data) and
             end;
         Other -> Other
     end;
+
 
 
 decode_term(#{ type := list, with := Member}, Data, _) when is_list(Data) ->
@@ -120,6 +132,8 @@ decode_term(#{ type := object, spec := Spec}, In, Config) when is_map(In) ->
 
 decode_term(#{ type := object }, In, _) when is_map(In) ->
     {ok, In};
+
+decode_term(#{ type := object }, _, _) -> no_match;
 
 decode_term(#{ type := config, spec := Key}, _, Config)  ->
     case maps:get(Key, Config, undef) of 

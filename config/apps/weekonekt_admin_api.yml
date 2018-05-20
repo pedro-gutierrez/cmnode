@@ -18,6 +18,8 @@ spec:
       keyword: weekonekt_admin
     tokens_db:
       keyword: weekonekt
+    token_ttl:
+      number: 5000
     key:
       text: 
         literal: "2fc0b674-38f1-40b1-845b-53ec2ffc8a42"

@@ -4,15 +4,11 @@ category: client
 name: admin_scm
 priority: lowest
 spec:
-  init:
-    model:
-      scheme:
-        text: 
-          literal: "Hello" 
-    cmds:
-      - effect: scheme
-        encoder: app
   update:
+    compile:
+      cmds:
+        - effect: scheme
+          encoder: app
     scheme:
       model:
         scheme: 
@@ -39,6 +35,11 @@ spec:
       data: 
         key: scheme
   decoders:
+    compile:
+      object:
+        method:
+          text: 
+            literal: "GET"
     scheme:
       object:
         language:

@@ -1,0 +1,100 @@
+version: 1.0
+type: module
+name: token_api
+spec:
+  decoders:
+    token_request:
+      object:
+        action:
+          text:
+            literal: "token"
+        subject:
+          text: any
+        type: 
+          text: any
+        intent:
+          text: any
+    uuid_for_token:
+      object:
+        context:
+          keyword: token
+        uuid:
+          any: text
+    now_for_token:
+      object:
+        context:
+          keyword: token
+        now:
+          any: number
+    token_created:
+      object:
+        context:
+          keyword: token
+        status:
+          keyword: ok
+  encoders:
+    token_context:
+      object:
+        context:
+          keyword: token
+    token_entries:
+      object:
+        context:
+          keyword: token
+        bucket:
+          config: tokens_db
+        items:
+          list:
+            - object:
+                type: 
+                  keyword: token
+                id:
+                  key: uuid
+                value:
+                  object:
+                    id: 
+                      key: uuid
+                    subject:
+                      key: subject
+                    type:
+                      key: type
+                    intent:
+                      key: intent
+                    ttl:
+                      config: token_ttl
+                    created:
+                      key: now
+    token:
+      object:
+        token:
+          key: uuid
+  update:
+    token_request:
+      model:
+        subject:
+          key: subject
+        type:
+          key: type
+        intent:
+          key: intent
+      cmds:
+        - effect: uuid
+          encoder: token_context
+    uuid_for_token:
+      model:
+        uuid:
+          key: uuid
+      cmds:
+        - effect: now
+          encoder: token_context
+    now_for_token:
+      model:
+        now:
+          key: now
+      cmds:
+        - effect: db_put_new_all
+          encoder: token_entries
+    token_created:
+      cmds:
+        - effect: notify
+          encoder: token

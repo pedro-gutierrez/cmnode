@@ -2,6 +2,6 @@ version: 1.0
 type: bucket
 name: users 
 spec:
-  storage: memory
+  storage: disc
   hosts: 
     - Pedros-MacBook-Pro

@@ -23,14 +23,16 @@ init([#{ debug := Debug,
     Log({ cmcore, App, Id, self() }),
     {ok, initializing, Session#{ spec => Spec, config => Config, log => Log }}.
 
-initializing(cast, {init, _Data},  #{app := App,
+initializing(cast, init,  #{app := App,
                                      config := Config,
+                                     log := Log,
                                      spec := Spec, 
                                      id := Id}=Session) ->
     case cmcore_util:init(Spec, Config) of 
         {ok, Model, Cmds} -> 
             case cmsession:attach(Id, model, Model) of
                 ok ->
+                    Log({cmore, init, Model, Cmds}),
                     cmcore_util:cmds(Cmds, Model, Config, Session),
                     {next_state, ready, Session#{ model => Model }};
                 {error, E} ->
@@ -87,7 +89,7 @@ server_error(App, Session, Phase, Reason) ->
               app => App,
               phase => Phase,
               reason => Reason },
-    cmkit:log(Info),
+    cmkit:log({cmtest, error, Info}),
     cmeffect:apply(notify, Info, Session),
     Info.
 

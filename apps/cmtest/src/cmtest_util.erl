@@ -38,23 +38,19 @@ resolve_backgrounds([B|Rem], #{ backgrounds := Backgrounds }=Test, Out) ->
         Resolved -> resolve_backgrounds(Rem, Test, [Resolved|Out])
     end.
 
-world_with_new_conn(App, Pid, #{ conns := Conns }=World) ->
-    Conns2 = Conns#{ App => #{ pid => Pid,
-                               status => unknown,
-                               inbox => [],
-                               name => App,
-                               app => App
-                             }},
+world_with_new_conn(App, Props, #{ conns := Conns }=World) ->
+    Conns2 = Conns#{ App => maps:merge(Props, #{ inbox => [],
+                                                 name => App,
+                                                 app => App })},
     World#{ conns => Conns2 }.
 
 run(#{ type := _ }, #{ retries := #{ left := 0}}) ->
     {error, max_retries_reached};
 
-run(#{ type := connection,
-       port := Port,
-       app := App, 
-       transport := Transport }, #{ data := _Data
-                                  }=World) ->
+run(#{ type := connect,
+       spec := #{ app := App,
+                  port := Port,
+                  transport := Transport }}, #{ data := _Data}=World) ->
     
     case cmconfig:mount(App, Port, Transport) of 
         {error, not_found} ->
@@ -64,10 +60,26 @@ run(#{ type := connection,
                              host => "localhost",
                              persistent => false 
                            },
-            {ok, Pid } = cmtest_ws_sup:new(App, Config, self()),
             
-            World2 = world_with_new_conn(App, Pid, World), 
-            {ok, World2 }
+            Url = cmkit:url(Config),
+            case Transport of 
+                ws -> 
+                    {ok, Pid } = cmtest_ws_sup:new(App, Config, self()),
+                    {ok, world_with_new_conn(App, #{ transport => ws,
+                                                     pid => Pid,
+                                                     status => undef,
+                                                     url => Url }, World)};
+
+                http ->
+                    Res = cmhttp:get(Url),
+                    Status = case Res of
+                        {ok, _} -> up;
+                        {error, _} -> down
+                    end,
+                    {ok, world_with_new_conn(App, #{ transport => http,
+                                                     status => Status,
+                                                     url => Url}, World) }
+            end
     end;
 
 run(#{ type := probe, 
@@ -102,12 +114,24 @@ run(#{ type := send,
     case maps:get(App, Conns, undef) of 
         undef -> 
             {error, {not_found, App, Conns}};
-        #{ pid := Pid } = Conn ->
+        
+        Conn ->
             case cmencode:encode(Spec, World) of 
-                {ok, Encoded} ->
-                    cmwsc:send(Pid, Encoded),
-                    {ok, World#{ conns => Conns#{ 
-                                            App => Conn#{inbox => []}}}};
+                {ok, Encoded } ->
+                    case Conn of 
+                        #{ transport := ws, pid := Pid } ->
+                            cmwsc:send(Pid, Encoded),
+                            {ok, World#{ conns => Conns#{ 
+                                                    App => Conn#{inbox => []}
+                                                   }}};
+                        #{ transport := http, url := Url } ->
+                            #{ body := Body,
+                               headers := Headers } = Encoded,
+                            {_, Res} = cmhttp:post(Url, Headers, Body),
+                            {ok, World#{ conns => Conns#{
+                                                    App => Conn#{inbox => [Res]}
+                                                   }}}
+                    end;
                 Other -> Other
             end
     end;
@@ -133,14 +157,23 @@ run(#{ type := recv,
             end
     end;
 
+run(#{  type := file,
+        as := As, 
+        spec := #{ type := disk,
+                   path := Path }}, #{ data := Data}=World) -> 
+    case file:read_file(Path) of 
+        {ok, Bin} ->
+           {ok, World#{ data => Data#{ As => Bin }}};
+        Other -> Other
+    end;
 
 run(Step, _) ->
     {error, {unsupported, Step}}.
 
-close(#{ conns := Conns }, _Pid) ->
-    lists:foreach(fun(#{ name := Name,
-                         pid := Pid }) ->
-                          cmkit:log({cmtest, closing, Name, Pid})
+close(#{ conns := _Conns }, _Pid) ->
+    %lists:foreach(fun(#{ name := Name,
+    %                     pid := Pid }) ->
+    %                      cmkit:log({cmtest, closing, Name, Pid})
     %                      cmtest_ws_sup:stop(Pid)
-                  end, maps:values(Conns)),
+    %              end, maps:values(Conns)),
     ok.

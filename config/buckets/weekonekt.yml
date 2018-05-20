@@ -1,6 +1,6 @@
 version: 1.0
 type: bucket
-name: tracker
+name: weekonekt 
 spec:
   storage: disc
   hosts: 
