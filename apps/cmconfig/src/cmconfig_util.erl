@@ -215,10 +215,9 @@ compile_scenario(#{ <<"title">> := Title,
     Title2 = cmkit:to_lower(Title),
 
     #{ title => Title2,
-       id => cmkit:hash(Title2),
+       id => Title2,
        tags => compile_tags(Tags) ++ compile_title(Title2),
-       backgrounds => lists:map(fun(T) ->
-                                        cmkit:hash(cmkit:to_lower(T))
+       backgrounds => lists:map(fun(T) -> cmkit:to_lower(T)
                                 end, Backgrounds),
        steps => compile_steps(Steps)
      };
@@ -266,8 +265,12 @@ compile_steps(Steps) ->
 
 compile_steps([], Out) -> lists:reverse(Out);
 compile_steps([Step|Rem], Out) ->
-    compile_steps(Rem, [compile_term(Step)|Out]).
+    compile_steps(Rem, [compile_step(Step)|Out]).
 
+compile_step(#{ <<"title">> := Title }=Spec) ->
+    maps:merge(
+      compile_term(Spec),
+      #{ title => Title } ).
 
 compile_backgrounds(Specs) ->
     lists:foldl(fun(Spec, Out) -> 
@@ -683,10 +686,16 @@ compile_term(#{ <<"all">> := Conds }) ->
        spec => lists:map(fun compile_term/1, Conds) 
      };
 
+
+compile_term(#{ <<"connect">> := Spec,
+               <<"as">> := As }) ->
+    #{ type => connect,
+       as => cmkit:to_atom(As),
+       spec => compile_term(Spec) };
+
 compile_term(#{ <<"connect">> := Spec }) ->
     #{ type => connect,
        spec => compile_term(Spec) };
-
 
 compile_term(#{ <<"app">> := App,
                 <<"port">> := Port,
@@ -695,6 +704,17 @@ compile_term(#{ <<"app">> := App,
     #{ transport => cmkit:to_atom(Transport),
        port => cmkit:to_atom(Port),
        app => cmkit:to_atom(App)
+     };
+
+compile_term(#{ <<"host">> := Host,
+                <<"port">> := Port,
+                <<"path">> := Path,
+                <<"transport">> := Transport }) ->
+
+    #{ transport => cmkit:to_atom(Transport),
+       port => cmkit:to_number(Port), 
+       host => cmkit:to_list(Host),
+       path => cmkit:to_list(Path)
      };
 
 compile_term(#{ <<"probe">> := Spec }) ->

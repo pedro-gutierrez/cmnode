@@ -5,7 +5,7 @@
 
 effect_info() -> scheme.
 
-effect_apply(#{ app := Spec}, #{ id := Id }) ->
+effect_apply(#{ app := Spec}, Id) ->
     Res = case cmscheme:compile(Spec) of 
               {ok, Ast} ->
                   case cmscheme:render(Ast) of 

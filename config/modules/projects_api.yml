@@ -188,6 +188,8 @@ spec:
           keyword: create 
         bucket:
           keyword: tracker
+        new:
+          keyword: true
         items:
           list:
             - object: 
@@ -309,7 +311,7 @@ spec:
         project_status:
           keyword: planning
       cmds:
-          - effect: db_put_new_all
+          - effect: db_put
             encoder: project_entries
     create_project:
       - when:
@@ -394,7 +396,7 @@ spec:
         project:
           key: value
       cmds:
-        - effect: db_put_all
+        - effect: db_put
           encoder: updated_project
     project_not_found:
       cmds:

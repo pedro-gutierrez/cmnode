@@ -43,6 +43,8 @@ spec:
           keyword: token
         bucket:
           config: tokens_db
+        new:
+          keyword: true
         items:
           list:
             - object:
@@ -92,7 +94,7 @@ spec:
         now:
           key: now
       cmds:
-        - effect: db_put_new_all
+        - effect: db_put
           encoder: token_entries
     token_created:
       cmds:

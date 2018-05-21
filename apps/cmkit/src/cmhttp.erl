@@ -28,11 +28,16 @@ handle({ok, {{_, 409, _}, _, _}}) ->
 handle({ok, {{_, 401, _}, _, _}}) ->
     {error, unauth};
 
+handle({ok, {{_, 400, _}, _, _}}) ->
+    {error, invalid};
+
 handle({ok, {{_, 200, _}, _, []}}) -> 
     ok;
 
 handle({ok, {{_, Code, _}, Headers, Body}}) ->
-    case decoded_mime(Headers) of 
+    case decoded_mime(Headers) of
+        {error, no_content_type} ->
+            {ok, Body};
         {ok, json} ->
             case cmkit:jsond(Body) of 
                 {ok, Term} -> 
@@ -52,7 +57,7 @@ handle({ok, {{_, Code, _}, Headers, Body}}) ->
 
 decoded_mime(Headers) ->
     case lists:keyfind("content-type", 1, Headers) of 
-        false -> {error, not_found};
+        false -> {error, no_content_type};
         {"content-type", CT} ->
             case string:str(CT, "json") of 
                 0 -> {ok, CT};

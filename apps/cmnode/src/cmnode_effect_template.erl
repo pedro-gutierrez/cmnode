@@ -5,7 +5,7 @@
 
 effect_info() -> template.
 
-effect_apply(#{ template := Template, data := Data}, #{ id := Id }) ->
+effect_apply(#{ template := Template, data := Data}, Id) ->
     Res = case cmtemplate:render(Template, Data) of 
               {ok, Data2} ->
                   #{ template => Template,

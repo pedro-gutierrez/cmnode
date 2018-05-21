@@ -107,8 +107,12 @@ unknown_encoder(Enc) ->
        status => undefined }.
 
 
-update_model(Spec, In, Config, Out) ->
-    cmencode:encode(Spec, In, Config, Out).
+update_model(Spec, In, Config, Prev) ->
+    case cmencode:encode(Spec, In, Config) of 
+        {ok, New} ->
+            {ok, maps:merge(Prev, New)};
+        Other -> Other
+    end.
 
 cmds([], _, _, _) -> ok;
 cmds([#{ effect := Effect, 
@@ -125,8 +129,8 @@ cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
     apply_effect(Effect, nothing, Session), 
     cmds(Rem, Model, Config, Session).
 
-apply_effect(Effect, Data, #{ id := Id }=Session) ->
-    case cmeffect:apply(Effect, Data, Session) of 
+apply_effect(Effect, Data, #{ id := Id }) ->
+    case cmeffect:apply(Effect, Data, Id) of 
         ok -> ok;
         not_found ->
             cmcore:update(Id, #{ error => no_such_effect,

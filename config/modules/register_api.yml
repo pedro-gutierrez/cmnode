@@ -70,6 +70,8 @@ spec:
           keyword: register
         bucket:
           keyword: users
+        new:
+          keyword: true
         items:
           list:
             - object: 
@@ -162,7 +164,7 @@ spec:
         uuid:
           key: uuid
       cmds:
-        - effect: db_put_new_all
+        - effect: db_put
           encoder: register_data
     registered:
       cmds:

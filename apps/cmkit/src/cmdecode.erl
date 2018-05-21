@@ -64,10 +64,12 @@ decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) 
 
 decode_term(#{ type := keyword, value := _}, _, _) -> no_match;
 decode_term(#{ type := keyword }, Data, _) when is_atom(Data) -> {ok, Data}; 
+decode_term(#{ type := keyword }, _, _) -> no_match; 
 decode_term(#{ type := text, value := Text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_match;
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text}, Text, _) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
+decode_term(#{ type := text}, _, _) -> no_match;
 decode_term(#{ type := number}, Num, _) when is_number(Num) -> {ok, Num};
 decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
     case cmkit:to_number(Bin, none) of 
@@ -147,7 +149,7 @@ decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
     decode_first_spec(Specs, In, Config);
 
 decode_term(Spec, Data, _) -> 
-    cmkit:log({cmdecode, not_implemented, Spec, Data}),
+    cmkit:danger({cmdecode, not_implemented, Spec, Data}),
     no_match.
 
 decode_first_spec([], _, _) -> no_match;

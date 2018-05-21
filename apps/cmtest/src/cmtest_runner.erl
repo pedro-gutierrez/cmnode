@@ -55,7 +55,7 @@ init([]) ->
                  }}.
 
 
-ready({call, From}, {tests, Tests}, #{ log := Log} = Data) ->
+ready({call, From}, {tests, Tests}, Data) ->
     case start_test(Tests, Data#{ tests => Tests,
                                   total => 0,
                                   success => 0,
@@ -67,7 +67,7 @@ ready({call, From}, {tests, Tests}, #{ log := Log} = Data) ->
             report(Data2),
             {keep_state, Data2, ok(From)}; 
         Other ->
-            Log({cmtest, error, Other}),
+            cmkit:danger({cmtest, error, Other}),
             {keep_state, Data, ok(From)}
     end;
     

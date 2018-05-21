@@ -4,5 +4,5 @@
         ]).
 
 effect_info() -> now.
-effect_apply(#{ context := _ } = Query, #{ id := Id }) ->
+effect_apply(#{ context := _ } = Query, Id) ->
     cmcore:update(Id, Query#{ now => cmkit:now() }).

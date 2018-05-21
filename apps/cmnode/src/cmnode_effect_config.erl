@@ -4,16 +4,16 @@
         ]).
 
 effect_info() -> config.
-effect_apply(#{ query := apps }, #{ id := SessionId }) ->
+effect_apply(#{ query := apps }, SessionId) ->
     cmcore:update(SessionId, #{ apps => cmconfig:apps() });
 
-effect_apply(#{ query := ports }, #{ id := SessionId }) ->
+effect_apply(#{ query := ports }, SessionId) ->
     cmcore:update(SessionId, #{ ports => cmconfig:ports() });
 
-effect_apply(#{ query := buckets}, #{ id := SessionId }) ->
+effect_apply(#{ query := buckets}, SessionId) ->
     cmcore:update(SessionId, #{ buckets => cmconfig:buckets() });
 
-effect_apply(#{ query := info, app := App}, #{ id := SessionId }) ->
+effect_apply(#{ query := info, app := App}, SessionId) ->
     Res = case cmconfig:app(App) of 
         {ok, #{ category := Cat,
                 debug := Debug,
@@ -31,7 +31,7 @@ effect_apply(#{ query := info, app := App}, #{ id := SessionId }) ->
 
     cmcore:update(SessionId, Res);
 
-effect_apply(#{ query := config, app := App}, #{ id := SessionId }) ->
+effect_apply(#{ query := config, app := App}, SessionId) ->
     Res = case cmconfig:app(App) of 
         {ok, #{ config := Config }} ->
             #{ config => Config };
@@ -45,7 +45,7 @@ effect_apply(#{ query := config, app := App}, #{ id := SessionId }) ->
     cmcore:update(SessionId, Res);
 
 
-effect_apply(#{ query := modules, scope := App}, #{ id := SessionId }) ->
+effect_apply(#{ query := modules, scope := App}, SessionId) ->
     Res = case cmconfig:app(App) of 
         {ok, #{ modules := Mods }} ->
                   #{ modules => Mods };
@@ -60,7 +60,7 @@ effect_apply(#{ query := modules, scope := App}, #{ id := SessionId }) ->
 
     cmcore:update(SessionId, Res);
 
-effect_apply(#{ query := module, module := Mod}, #{ id := SessionId }) ->
+effect_apply(#{ query := module, module := Mod}, SessionId) ->
     Res = case cmconfig:module(Mod) of 
               {ok, Spec} ->
                   #{ module => Spec};

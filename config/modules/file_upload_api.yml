@@ -116,7 +116,7 @@ spec:
         uuid: 
           key: uuid
       cmds:
-        - effect: db_put_new_all
+        - effect: db_put
           encoder: file_record
     file_written:
       cmds:
@@ -147,6 +147,8 @@ spec:
           keyword: file_upload
         bucket:
           config: files_db
+        new: 
+          keyword: true
         items: 
           list:
             - object:

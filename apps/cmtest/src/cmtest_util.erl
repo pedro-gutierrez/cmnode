@@ -44,10 +44,46 @@ world_with_new_conn(App, Props, #{ conns := Conns }=World) ->
                                                  app => App })},
     World#{ conns => Conns2 }.
 
+connect(Name, #{ transport := Transport }=Config, World) ->
+    case Transport of 
+        ws -> 
+            connect_ws(Name, Config, World);
+        wss -> 
+            connect_ws(Name, Config, World);
+
+        http ->
+            connect_http(Name, Config, World);
+        https ->
+            connect_http(Name, Config, World)
+    end.
+
+
+connect_ws(Name, Config, World) ->
+    Url = cmkit:url(Config),
+    {ok, Pid } = cmtest_ws_sup:new(Name, Config, self()),
+    {ok, world_with_new_conn(Name, #{ transport => ws,
+                                      pid => Pid,
+                                      status => undef,
+                                      url => Url }, World)}.
+
+
+connect_http(Name, #{ transport := Transport }=Config, World) ->
+    Url = cmkit:url(Config),
+    Res = cmhttp:get(Url),
+    Status = case Res of
+                 {ok, _} -> up;
+                 {error, S} -> S
+             end,
+    {ok, world_with_new_conn(Name, #{ transport => Transport,
+                                      status => Status,
+                                      url => Url}, World) }.
+
+
 run(#{ type := _ }, #{ retries := #{ left := 0}}) ->
     {error, max_retries_reached};
 
 run(#{ type := connect,
+       as := Name,
        spec := #{ app := App,
                   port := Port,
                   transport := Transport }}, #{ data := _Data}=World) ->
@@ -61,26 +97,26 @@ run(#{ type := connect,
                              persistent => false 
                            },
             
-            Url = cmkit:url(Config),
-            case Transport of 
-                ws -> 
-                    {ok, Pid } = cmtest_ws_sup:new(App, Config, self()),
-                    {ok, world_with_new_conn(App, #{ transport => ws,
-                                                     pid => Pid,
-                                                     status => undef,
-                                                     url => Url }, World)};
-
-                http ->
-                    Res = cmhttp:get(Url),
-                    Status = case Res of
-                        {ok, _} -> up;
-                        {error, _} -> down
-                    end,
-                    {ok, world_with_new_conn(App, #{ transport => http,
-                                                     status => Status,
-                                                     url => Url}, World) }
-            end
+            connect(Name, Config, World)
     end;
+
+run(#{ type := connect,
+       spec := #{ app := App }}=Spec, World) ->
+    
+    run(Spec#{ as => App }, World);
+
+run(#{ type := connect,
+       as := Name,
+       spec := #{ host := _,
+                  port := _,
+                  path := _,
+                  transport := _ } = Mount}, World) ->
+    
+    Config = Mount#{ debug => false ,
+                     persistent => false 
+                   },
+
+    connect(Name, Config, World);
 
 run(#{ type := probe, 
        spec := #{ app := App,
@@ -119,18 +155,25 @@ run(#{ type := send,
             case cmencode:encode(Spec, World) of 
                 {ok, Encoded } ->
                     case Conn of 
-                        #{ transport := ws, pid := Pid } ->
+                        #{  pid := Pid } -> 
                             cmwsc:send(Pid, Encoded),
                             {ok, World#{ conns => Conns#{ 
                                                     App => Conn#{inbox => []}
                                                    }}};
-                        #{ transport := http, url := Url } ->
-                            #{ body := Body,
-                               headers := Headers } = Encoded,
-                            {_, Res} = cmhttp:post(Url, Headers, Body),
-                            {ok, World#{ conns => Conns#{
-                                                    App => Conn#{inbox => [Res]}
-                                                   }}}
+                        #{ transport := Transport, url := Url }  ->
+                            case Encoded of 
+                                #{ body := Body,
+                                    headers := Headers } -> 
+                                    
+                                    cmkit:log({cmtest, Transport, out, Url, Headers, Body}),
+                                    {_, Res} = cmhttp:post(Url, Headers, Body),
+                                    cmkit:log({cmtest, Transport, in, Res}),
+                                    {ok, World#{ conns => Conns#{
+                                                            App => Conn#{inbox => [Res]}
+                                                           }}};
+                                _ ->
+                                    {error, {wrong_http_request, Encoded}}
+                            end
                     end;
                 Other -> Other
             end

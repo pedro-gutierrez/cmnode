@@ -4,5 +4,5 @@
         ]).
 
 effect_info() -> notify.
-effect_apply(Data, #{ id := Id }) ->
+effect_apply(Data, Id) ->
     cmsession:tell(Id, Data).

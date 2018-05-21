@@ -6,27 +6,39 @@ spec:
     retries: 100
     wait: 5
   backgrounds:
-    - title: "weekonekt admin online"
+    - title: "Weekonekt admin api is online"
       steps:
-        - connect:
-            app: weekonekt_admin_api
-            port: weekonekt_admin
+        #       - title: "connect to weekonekt admin api"
+        #         connect:
+        #           app: weekonekt_admin_api
+        #           port: weekonekt_admin
+        #           transport: ws
+        - title: "connect to weekonekt admin api"
+          connect:
+            host: "localhost"
+            port: 8081
+            path: "/ws"
             transport: ws
-        - probe:
+          as: weekonekt_admin_api
+        - title: "check weekonekt admin api is ready"
+          probe:
             app: weekonekt_admin_api
             status: up
-    - title: "weekonekt files online"
+    - title: "Weekonekt files api is online"
       steps:
-        - connect:
+        - title: "Connect to weekonekt files api"
+          connect:
             app: weekonekt_file_api
             port: weekonekt_admin
             transport: http
-        - probe:
+        - title: "Verify weekonekt files api is ready"
+          probe:
             app: weekonekt_file_api
             status: up
-    - title: "admin empty"
+    - title: "Weekonekt admin database is empty"
       steps:
-        - send:
+        - title: "Send a reset command to weekonekt admin" 
+          send:
             to: weekonekt_admin_api
             spec:
               object:
@@ -36,16 +48,18 @@ spec:
                 token:
                   text:
                     literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
-        - receive:
+        - title: "Verify status is ok"
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
                 status:
                   text:
                     literal: "ok"
-    - title: "admin user john"
+    - title: "Admin user John"
       steps:
-        - send:
+        - title: "Register as John"
+          send:
             to: weekonekt_admin_api
             spec:
               object:
@@ -67,7 +81,8 @@ spec:
                 password_confirm: 
                   text:
                     literal: foo
-        - receive:
+        - title: "Verify we got a user id and email" 
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
@@ -75,9 +90,10 @@ spec:
                   any: text
                 email:
                   any: text
-    - title: "john logged in"
+    - title: "John logged in"
       steps:
-        - send:
+        - title: "Log in as John"
+          send:
             to: weekonekt_admin_api
             spec:
               object:
@@ -90,7 +106,8 @@ spec:
                 password: 
                   text:
                     literal: foo
-        - receive:
+        - title: "Verify we got a user id and email"
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
@@ -98,16 +115,18 @@ spec:
                   any: text
                 email:
                   any: text
-    - title: "a weekonekt import"
+    - title: "A weekonekt import"
       steps:
-        - send:
+        - title: "Create an import"
+          send:
             to: weekonekt_admin_api
             spec:
               object:
                 action:
                   text:
                     literal: create_import 
-        - receive:
+        - title: "Verify we got a created event"
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
@@ -115,12 +134,16 @@ spec:
                   object:
                     id:
                       any: text
-                    created:
+                    status:
+                      text:
+                        literal: "created"
+                    date:
                       any: number
-            as: import
-    - title: "an import token" 
+            as: import 
+    - title: "An import token" 
       steps:
-        - send:
+        - title: "Create a new token for that import"
+          send:
             to: weekonekt_admin_api
             spec:
               object:
@@ -133,22 +156,23 @@ spec:
                     key: import
                     in:
                       key: import
-                      in:
-                        key: data
+                      in: data
                 intent:
                   keyword: attach
                 type:
-                  keyword: project
+                  keyword: import
 
-        - receive:
+        - title: "Verify we got a token"
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
                 token: 
                   any: text
-    - title: "a wordpress file upload" 
+    - title: "Invalid wordpress file uploaded" 
       steps:
-        - send:
+        - title: "Upload an invalid file"
+          send:
             to: weekonekt_file_api
             spec:
               request:
@@ -165,7 +189,8 @@ spec:
                 body:
                   file: 
                     at: "/Users/pedrogutierrez/Documents/dummy.xml"
-        - receive:
+        - title: "Verify the file was uploaded"
+          receive:
             from: weekonekt_file_api
             spec:
               object:
@@ -179,9 +204,10 @@ spec:
                 created:
                   number: any
             as: wordpress
-    - title: "attach wordpress file to import" 
+    - title: "File attached to import" 
       steps:
-        - send:
+        - title: "Attach that file to the import"
+          send:
             to: weekonekt_admin_api
             spec:
               object:
@@ -190,7 +216,7 @@ spec:
                     literal: attach
                 import:
                   key: id
-                  in: 
+                  in:
                     key: import
                     in:
                       key: import
@@ -200,50 +226,86 @@ spec:
                   in:
                     key: wordpress
                     in: data
-        - receive:
+        - title: "Verify the import was started"
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
-                status:
-                  text:
-                    literal: "ok"
                 import:
-                  any: text
-                file:
-                  any: text
+                  object:
+                    id: 
+                      any: text
+                    status:
+                      text:
+                        literal: "started"
+                    date:
+                      any: number
   scenarios:
     - title: "List imports"
       tags: weekonekt, import 
       backgrounds:
-        - "weekonekt admin online"
-        - "admin empty"
-        - "admin user john"
-        - "john logged in"
+        - "Weekonekt admin api is online"
+        - "Weekonekt files api is online"
+        - "Weekonekt admin database is empty"
+        - "Admin user John"
+        - "John logged in"
       steps:
-        - send:
+        - title: "Fetch imports"
+          send:
             to: weekonekt_admin_api
             spec:
               object:
                 action:
                   text:
                     literal: imports
-        - receive:
+        - title: "Verify we got an empty list of imports"
+          receive:
             from: weekonekt_admin_api
             spec:
               object:
                 imports:
                   list: empty
 
-    - title: "Create a wordpress import"
+    - title: "Invalid wordpress import"
       purpose: "Verify that the weekonekt admin is able to create a new import"
       tags: weekonekt, import, upload
       backgrounds:
-        - "weekonekt admin online"
-        - "weekonekt files online"
-        - "admin empty"
-        - "admin user john"
-        - "john logged in"
-        - "a weekonekt import"
-        - "an import token"
-        - "a wordpress file upload"
-        - "attach wordpress file to import"
+        - "Weekonekt admin api is online"
+        - "Weekonekt files api is online"
+        - "Weekonekt admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+        - "A weekonekt import"
+        - "An import token"
+        - "Invalid wordpress file uploaded"
+        - "File attached to import"
+      steps:
+        - title: "Verify the import was finished"
+          receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                import:
+                  object:
+                    id: 
+                      any: text
+                    status:
+                      text:
+                        literal: "finished"
+                    date:
+                      any: number
+        - title: "Verify we got nothing imported"
+          receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                import:
+                  object:
+                    id: 
+                      any: text
+                    categories:
+                      number: 0
+                    images:
+                      number: 0
+                    items:
+                      number: 0

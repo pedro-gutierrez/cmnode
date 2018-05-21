@@ -4,7 +4,7 @@
         ]).
 
 effect_info() -> cloud.
-effect_apply(#{ query := nodes }, #{ id := SessionId }) ->
+effect_apply(#{ query := nodes }, SessionId) ->
     CurrentNodes = cmcloud:current_nodes(),
     ExpectedNodes= cmcloud:expected_nodes(),
     Nodes = lists:map(fun(N) ->

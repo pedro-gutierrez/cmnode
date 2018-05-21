@@ -289,7 +289,8 @@ list_to_number(L, final) ->
         error:badarg ->
             list_to_integer(L)
     end.
-    
+
+to_number(N) when is_number(N) -> N;
 to_number(B) when is_binary(B) -> bin_to_number(B);
 to_number(L) when is_list(L) -> list_to_number(L).
 

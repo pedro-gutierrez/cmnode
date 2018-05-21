@@ -32,12 +32,22 @@ spec:
           keyword: new_import
         now:
           any: number
-    import_created:
+    import_status:
       object:
         context:
-          keyword: new_import
+          keyword: import
+        type:
+          keyword: status
         status:
           keyword: ok
+        value:
+          object: 
+            status:
+              any: keyword
+            date:
+              any: number
+            id: 
+              any: text
     wordpress_attached:
       object:
         context:
@@ -54,10 +64,6 @@ spec:
           object:
             id:
               any: text
-            status:
-              any: keyword
-            created:
-              any: number
     attach_wordpress:
       object:
         action: 
@@ -67,6 +73,30 @@ spec:
           any: text
         import:
           any: text
+    wordpress_importing:
+      object:
+        wordpress:
+          object:
+            status:
+              keyword: importing
+    wordpress_imported:
+      object:
+        wordpress:
+          object:
+            status:
+              keyword: finished
+            categories:
+              any: number
+            images:
+              any: number
+            items:
+              any: number
+    wordpress_error:
+      object:
+        wordpress:
+          object:
+            status:
+              keyword: error
   encoders:
     imports_query:
       object:
@@ -94,37 +124,28 @@ spec:
       object:
         context:
           keyword: new_import
-    import_entries:
+    import_entry:
       object:
         context: 
           keyword: new_import
         bucket:
           keyword: weekonekt
+        type:
+          keyword: import    
+        id:
+          key: uuid
         new:
           keyword: true
-        items: 
-          list:
-            - object:
-                type: 
-                  keyword: import
-                id:
-                  key: uuid
-                value:
-                  object:
-                    id:
-                      key: uuid
-                    status:
-                      keyword: new
-                    created:
-                      key: date
+        echo: 
+          keyword: true
+        value:
+          object:
+            id:
+              key: uuid
     imports:
       object:
         imports:
           key: imports
-    import:
-      object:
-        import:
-          key: import
     import_attachment_record:
       object:
         context: 
@@ -141,13 +162,134 @@ spec:
           keyword: true
     attachment_summary:
       object:
-        file:
-          key: file
         import:
+          object:
+            id:
+              key: uuid
+            file:
+              key: file
+            status:
+              keyword: ok
+    import_summary:
+      object:
+        import:
+          object:
+            id:
+              key: id
+              in: event
+            categories:
+              key: imported_categories
+            items:
+              key: imported_items
+            images:
+              key: imported_images
+    import_status:
+      object:
+        import:
+          object:
+            id:
+              key: id
+              in: event
+            status:
+              key: status
+              in: event
+            date:
+              key: date
+              in: event
+    import_created_event:
+      object:
+        context: 
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
           key: uuid
-        status:
-          keyword: ok
-
+        echo:
+          keyword: true
+        value:
+          object:
+            id:
+              key: id
+              in: import
+            date: 
+              key: now
+            status:
+              text:
+                keyword: created
+    import_started_event:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: id
+          in: import
+        echo:
+          keyword: true
+        value:
+          object:
+            status:
+              keyword: started
+            date:
+              key: now
+            id: 
+              key: id
+              in: import
+    import_finished_event:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: id
+          in: import
+        echo:
+          keyword: true
+        value:
+          object:
+            status:
+              keyword: finished
+            date:
+              key: now
+            id: 
+              key: id
+              in: import
+    import_error_event:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: id
+          in: import
+        echo:
+          keyword: true
+        value:
+          object:
+            status:
+              keyword: error
+            date:
+              key: now
+            id: 
+              key: id
+              in: import
+    wordpress_file:
+      object:
+        import:
+          key: file
+        bucket:
+          keyword: weekonekt
   update:
     list_imports:
       - when:
@@ -176,15 +318,18 @@ spec:
           encoder: date_for_import
     date_for_import:
       model:
-        date:
+        now:
           key: now
       cmds:
         - effect: db_put
-          encoder: import_entries
-    import_created:
+          encoder: import_entry
+    import_data:
+      model:
+        import:
+          key: value
       cmds:
-        - effect: db_get
-          encoder: import_query
+        - effect: db_put
+          encoder: import_created_event
     imports:
       model:
         imports: 
@@ -192,19 +337,12 @@ spec:
       cmds:
         - effect: notify
           encoder: imports
-    import_data:
-      model:
-        import:
-          key: value
-      cmds:
-        - effect: notify
-          encoder: import
     attach_wordpress:
       - when:
           eq:
             - key: id
               in: 
-                key: import
+                key: event
                 in: model
             - key: import
               in: data
@@ -221,3 +359,38 @@ spec:
       cmds:
         - effect: notify
           encoder: attachment_summary
+        - effect: weekonekt_admin
+          encoder: wordpress_file
+    wordpress_importing:
+      cmds:
+        - effect: db_put
+          encoder: import_started_event
+    wordpress_imported:
+      model:
+        imported_images:
+          key: images
+          in:
+            key: wordpress
+        imported_categories:
+          key: categories
+          in:
+            key: wordpress
+        imported_items:
+          key: items
+          in:
+            key: wordpress
+      cmds:
+        - effect: notify 
+          encoder: import_summary
+        - effect: db_put
+          encoder: import_finished_event
+    wordpress_error:
+        - effect: db_put
+          encoder: import_error_event
+    import_status:
+      model:
+        event:
+          key: value
+      cmds:
+        - effect: notify
+          encoder: import_status

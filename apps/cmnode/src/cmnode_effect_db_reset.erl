@@ -4,7 +4,7 @@
         ]).
 
 effect_info() -> db_reset.
-effect_apply(#{ buckets := Buckets }, #{ id := SessionId }) ->
+effect_apply(#{ buckets := Buckets }, SessionId) ->
     Deleted = [ cmdb:reset(B) || B <- Buckets],
     DeletedOk = lists:filter(fun(ok) -> true; 
                                 (_) -> false end, Deleted),

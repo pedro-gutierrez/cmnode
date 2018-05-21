@@ -7,7 +7,7 @@ effect_info() -> db_get.
 
 effect_apply(#{ bucket := Db, 
                 type := Type, 
-                id := Id } = Q, #{ id := SessionId }) ->
+                id := Id } = Q, SessionId) ->
 
     R = case cmdb:get(Db, {Type, Id}) of 
             not_found -> Q#{ error => not_found };
@@ -17,7 +17,7 @@ effect_apply(#{ bucket := Db,
     cmcore:update(SessionId, R);
 
 effect_apply(#{  bucket := Db, 
-                 type := Type } = Q, #{ id := SessionId }) ->
+                 type := Type } = Q, SessionId) ->
     cmcore:update(SessionId, case cmdb:find(Db, Type) of
                                  {ok, Values} -> Q#{ values => Values };
                                  {error, E }-> Q#{ error => E }

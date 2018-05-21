@@ -51,7 +51,7 @@ init([#{ name := Name,
                            runner => Runner
                          }};
         Other ->
-            Log({cmtest, error, Name, Title, Other, Test, self()}),
+            cmkit:danger({cmtest, error, Name, Title, Other, Test, self()}),
             {stop, normal}
     end.
 
@@ -105,7 +105,9 @@ run_steps(#{ test := #{ name := Name },
                                       }};
                     
                 {error, E} ->
-                    cmtest_runner:fail(Name, Title, #{ step => Step,
+                    cmtest_runner:fail(Name, Title, #{ test => Name,
+                                                       scenario => Title,
+                                                       step => Step,
                                                        world => World,
                                                        reason => E
                                                      }, Runner),
