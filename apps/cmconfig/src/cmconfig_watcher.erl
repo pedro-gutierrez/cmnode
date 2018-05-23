@@ -37,8 +37,8 @@ handle_file_event(File, ".yml", modified) ->
                 <<"version">> := Version } = Spec} ->
             cmkit:log({cmconfig_watcher, modified, Type, Name, Version}),
             cmconfig_loader:modified(Spec);
-        Other ->
-            cmkit:log({cmconfig_watcher, error, File, Other})
+        _ ->
+            cmkit:danger({cmconfig_watcher, error, File})
     end;
 
 handle_file_event(_, _, _) -> ok.

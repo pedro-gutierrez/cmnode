@@ -85,11 +85,9 @@ spec:
           object:
             status:
               keyword: finished
-            categories:
-              any: number
             images:
               any: number
-            items:
+            reviews:
               any: number
     wordpress_error:
       object:
@@ -177,12 +175,12 @@ spec:
             id:
               key: id
               in: event
-            categories:
-              key: imported_categories
-            items:
-              key: imported_items
+            reviews:
+              key: reviews
+              in: stats
             images:
-              key: imported_images
+              key: images
+              in: stats
     import_status:
       object:
         import:
@@ -367,18 +365,8 @@ spec:
           encoder: import_started_event
     wordpress_imported:
       model:
-        imported_images:
-          key: images
-          in:
-            key: wordpress
-        imported_categories:
-          key: categories
-          in:
-            key: wordpress
-        imported_items:
-          key: items
-          in:
-            key: wordpress
+        stats:
+          key: wordpress
       cmds:
         - effect: notify 
           encoder: import_summary

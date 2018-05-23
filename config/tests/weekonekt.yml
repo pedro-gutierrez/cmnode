@@ -8,18 +8,11 @@ spec:
   backgrounds:
     - title: "Weekonekt admin api is online"
       steps:
-        #       - title: "connect to weekonekt admin api"
-        #         connect:
-        #           app: weekonekt_admin_api
-        #           port: weekonekt_admin
-        #           transport: ws
         - title: "connect to weekonekt admin api"
           connect:
-            host: "localhost"
-            port: 8081
-            path: "/ws"
+            app: weekonekt_admin_api
+            port: weekonekt_admin
             transport: ws
-          as: weekonekt_admin_api
         - title: "check weekonekt admin api is ready"
           probe:
             app: weekonekt_admin_api
@@ -56,9 +49,9 @@ spec:
                 status:
                   text:
                     literal: "ok"
-    - title: "Admin user John"
+    - title: "Admin user Marcos"
       steps:
-        - title: "Register as John"
+        - title: "Register as Marcos"
           send:
             to: weekonekt_admin_api
             spec:
@@ -68,13 +61,13 @@ spec:
                     literal: register
                 first: 
                   text:
-                    literal: John
+                    literal: Marcos
                 last: 
                   text:
-                    literal: Chricthon
+                    literal: Chrichton
                 username: 
                   text:
-                    literal: john@farscape.com
+                    literal: marcos@farscape.com
                 password: 
                   text:
                     literal: foo
@@ -90,9 +83,9 @@ spec:
                   any: text
                 email:
                   any: text
-    - title: "John logged in"
+    - title: "Marcos logged in"
       steps:
-        - title: "Log in as John"
+        - title: "Log in as Marcos"
           send:
             to: weekonekt_admin_api
             spec:
@@ -102,7 +95,7 @@ spec:
                     literal: login
                 username: 
                   text: 
-                    literal: john@farscape.com
+                    literal: marcos@farscape.com
                 password: 
                   text:
                     literal: foo
@@ -204,6 +197,41 @@ spec:
                 created:
                   number: any
             as: wordpress
+    - title: "Small wordpress file uploaded" 
+      steps:
+        - title: "Upload an sample wordpress file"
+          send:
+            to: weekonekt_file_api
+            spec:
+              request:
+                method: post
+                headers:
+                  content_type:
+                    text:
+                      literal: "application/xml"
+                  cmauth:
+                    key: token
+                    in:
+                      key: latest
+                      in: data
+                body:
+                  file: 
+                    at: "/Users/pedrogutierrez/Documents/wordpress.xml"
+        - title: "Verify the file was uploaded"
+          receive:
+            from: weekonekt_file_api
+            spec:
+              object:
+                id:
+                  text: any
+                size:
+                  number: any
+                type:
+                  text: 
+                    literal: "application/xml"
+                created:
+                  number: any
+            as: wordpress
     - title: "File attached to import" 
       steps:
         - title: "Attach that file to the import"
@@ -247,8 +275,8 @@ spec:
         - "Weekonekt admin api is online"
         - "Weekonekt files api is online"
         - "Weekonekt admin database is empty"
-        - "Admin user John"
-        - "John logged in"
+        - "Admin user Marcos"
+        - "Marcos logged in"
       steps:
         - title: "Fetch imports"
           send:
@@ -273,8 +301,8 @@ spec:
         - "Weekonekt admin api is online"
         - "Weekonekt files api is online"
         - "Weekonekt admin database is empty"
-        - "Admin user John"
-        - "John logged in"
+        - "Admin user Marcos"
+        - "Marcos logged in"
         - "A weekonekt import"
         - "An import token"
         - "Invalid wordpress file uploaded"
@@ -303,9 +331,49 @@ spec:
                   object:
                     id: 
                       any: text
-                    categories:
-                      number: 0
                     images:
                       number: 0
-                    items:
+                    reviews:
                       number: 0
+
+    - title: "Small wordpress import"
+      purpose: "Verify that the weekonekt admin is able to import small files"
+      tags: weekonekt, import, upload, sample_import
+      backgrounds:
+        - "Weekonekt admin api is online"
+        - "Weekonekt files api is online"
+        - "Weekonekt admin database is empty"
+        - "Admin user Marcos"
+        - "Marcos logged in"
+        - "A weekonekt import"
+        - "An import token"
+        - "Small wordpress file uploaded"
+        - "File attached to import"
+      steps:
+        - title: "Verify the import was finished"
+          receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                import:
+                  object:
+                    id: 
+                      any: text
+                    status:
+                      text:
+                        literal: "finished"
+                    date:
+                      any: number
+        - title: "Verify we got something imported"
+          receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                import:
+                  object:
+                    id: 
+                      any: text
+                    images:
+                      number: 648
+                    reviews:
+                      number: 51

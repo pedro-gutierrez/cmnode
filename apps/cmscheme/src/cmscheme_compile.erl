@@ -98,6 +98,7 @@ term(K, #{ type := object, spec := Spec}) when is_map(Spec) ->
                                                      ])
                             ]);
 
+
 term(K, #{ type := keyword, value := V}) when is_atom(V) -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(V)]);
 
@@ -288,6 +289,14 @@ term(#{ type := object, spec := Spec}) ->
                              cmscheme_ast:sym(object),
                              cmscheme_ast:call(list, terms(Spec))
                             ]);
+
+
+term(#{ type := file, spec := Spec }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(file),
+                             term(Spec)
+                            ]);
+
 
 term(#{ type := entries, spec := Spec }) ->
     cmscheme_ast:call(list, [

@@ -21,17 +21,22 @@ init([]) ->
     {ok, ready, #data{}}.
 
 ready({call, From}, load, Data) ->
-    Specs = specs(),
-    compile_graph(Specs),
-    compile_specs(sorted(Specs), []),
-    {keep_state, Data, [{reply, From, ok}]};
+    case specs() of 
+        {Specs, []} ->
+            compile_graph(Specs),
+            compile_specs(sorted(Specs), []),
+            {keep_state, Data, [{reply, From, ok}]};
+        {_, Errors} ->
+            cmkit:danger({cmconfig, loader, errors, Errors}),
+            {stop, compile_errors}
+    end;
 
 ready({call, From}, {modified, Spec}, Data) ->
     compile_specs([Spec], [ancestors]),
     {keep_state, Data, [{reply, From, ok}]}.
 
 terminate(Reason, _, _) ->
-    cmkit:log({cmconfig_loader, terminate, Reason}),
+    cmkit:danger({cmconfig_loader, terminate, Reason}),
     ok.
 
 call(Msg) ->
@@ -44,7 +49,11 @@ load() ->
     call(load). 
 
 specs() ->
-    lists:map(fun({ok, Spec}) -> Spec end, cmyamls:all()).
+    lists:foldl(fun({yaml, _, {ok, Spec}}, {Specs, Errors}) ->
+                        {[Spec|Specs], Errors};
+                   ({yaml, Filename, {error, E}}, {Specs, Errors}) ->
+                        {Specs, [{Filename, E}|Errors]}
+                end, {[], []}, cmyamls:all()).
 
 sorted(Specs) ->
     lists:sort(fun cmconfig_util:compare/2, Specs).

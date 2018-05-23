@@ -22,15 +22,6 @@ event({characters, Name}, _, #{ state := author_display_name, author := A }=S) -
 event({endElement, _, "author_display_name", _}, _, #{ state := author_display_name }=S) ->
     S#{ state => author };
 
-event({startElement, _, "category_nicename", _, _}, _, S) ->
-    S#{ state => category_nicename };
-
-event({characters, Cat}, _, #{ state := category_nicename, categories := Cats }=S) ->
-    S#{ state => category_nicename, categories => [Cat | Cats ] };
-
-event({endElement, _, "category_nicename", _}, _, #{ state := category_nicename }=S) ->
-    S#{ state =>  none };
-
 event({startElement, _, "image", _, _}, _, S) ->
     S#{ state => image };
 
@@ -52,8 +43,8 @@ event({characters, Title}, _, #{ state := image_title, image := Image }=S) ->
 event({endElement, _, "title", _}, _, #{ state := image_title }=S) ->
     S#{ state =>  image };
 
-event({endElement, _, "image", _}, _, #{ state := image, image := Image, images := Images }=S) ->
-    S#{ state =>  none, images => [ Image | Images ] };
+event({endElement, _, "image", _}, _, #{ state := image }=S) ->
+    S#{ state =>  none  };
 
 event({startElement, _, "item", _, _}, _, #{ state := none }=S) ->
     S#{ state =>  item, item => #{} };
@@ -130,18 +121,16 @@ event({endElement, _, _, {_, "attachment_url"}}, _, #{ state := item_url }=S) ->
     S#{ state => item };
 
 event({endElement, _, "item", _}, _, #{ callback := {Mod, Fun}, 
-                                    state := item, 
-                                    item := Item, 
-                                    items := Items }=S) ->
+                                        stats := Stats,
+                                        state := item, 
+                                        item := Item  }=S) ->
     Item2 = parseHtml(Item),
-    Mod:Fun(Item2),
-    S#{ state =>  none, items => [Item2 | Items] };
+    S#{ state =>  none, 
+        item => #{},
+        stats => Mod:Fun(Item2, Stats)  };
 
-event(endDocument, _, #{ items := Items }=Data) ->
-    Data2 = maps:without([item, image, state], Data),
-    Data3 = Data2#{ items => lists:reverse(Items) },
-    Data3;
-    
+event(endDocument, _, #{ stats := Stats }) ->
+    {ok, Stats };
 
 event(_Ev, _Loc, Data) ->
     %cmkit:log({xml_event, Ev, Loc, Data}),
@@ -151,8 +140,8 @@ parseHtml(#{ type := "page", content := Content }=Item) ->
     Html2 = "<div>" ++ Content ++ "</div>",
     Html3 = lists:flatten([io_lib:format("~c", [V]) || V <- Html2]),
     Html4 = findImages(Html3),
-    Content2 = trane:sax(Html4, fun htmlToken/2, #{ state => none, category => none, images => [], categories => [] }),
-    Content3 = maps:without([category, state], Content2),
+    Content2 = trane:sax(Html4, fun htmlToken/2, #{ state => none, option => none, images => [], options => [] }),
+    Content3 = maps:without([option, state], Content2),
     Item#{ content => Content3};
 
 parseHtml(#{ type := _ }=Item) ->
@@ -165,17 +154,17 @@ findImages(Contents) when is_list(Contents) ->
     binary_to_list(Bin3).
 
 htmlToken({tag, "h3", _}, #{ state := none }=Acc)  ->
-    Acc#{ state => category };
+    Acc#{ state => option };
 
-htmlToken({text, Bin}, #{ state := category }=Acc) ->
-    Acc#{ category => #{ name => Bin, contents => none } };
+htmlToken({text, Bin}, #{ state := option }=Acc) ->
+    Acc#{ option => #{ name => Bin, contents => none } };
 
 htmlToken({end_tag, "h3"}, Acc)  ->
-    Acc#{ state => category_content };
+    Acc#{ state => option_content };
 
-htmlToken({text, Bin}, #{ state := category_content, category := Cat, categories := Cats }=Acc) ->
-    Cat2 = Cat#{ contents => Bin },
-    Acc#{ state => none, category => none, categories  => [ Cat2 | Cats ] };
+htmlToken({text, Bin}, #{ state := option_content, option := Opt, options := Opts }=Acc) ->
+    Opt2 = Opt#{ contents => Bin },
+    Acc#{ state => none, option => none, options  => [ Opt2 | Opts ] };
 
 htmlToken({tag, "pre", _}, #{ state := none }=Acc)  ->
     Acc#{ state => images };

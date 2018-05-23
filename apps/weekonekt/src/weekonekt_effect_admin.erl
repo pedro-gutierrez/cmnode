@@ -15,15 +15,8 @@ effect_apply(#{ import := File,
     Res2 = case cmdb:get(Bucket, {file, File}) of 
         {ok, [#{ data := Bin }]} ->
             case weekonekt_wp_importer:import(Bin) of 
-                {ok, #{ categories := Cats,
-                        images := Images,
-                        items :=  Items }} ->
-                    
-                    #{ status => finished,
-                       categories => length(Cats),
-                       images => length(Images),
-                       items => length(Items) };
-
+                {ok, Stats } -> 
+                    Stats#{ status => finished };
                 Other -> 
                     cmkit:danger({weekonekt, import_error, File, Other}),
                     #{ status => error,

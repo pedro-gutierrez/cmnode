@@ -5,30 +5,39 @@ filenames() ->
     cmkit:files(cmkit:etc(), ".yml").
 
 all() ->
-    lists:map(fun cmkit:yaml/1, filenames()).
+    lists:map(fun(Filename) ->
+                      {yaml, Filename, cmkit:yaml(Filename)}     
+              end, filenames()).
 
 of_type_name(Type, Name) ->
     TypeBin = cmkit:to_bin(Type),
     NameBin = cmkit:to_bin(Name),
-    lists:filter(fun({ok, #{ <<"type">> := Type2, <<"name">> := Name2}}) -> 
+    specs_from(lists:filter(fun({yaml, _, {ok, #{ <<"type">> := Type2, <<"name">> := Name2}}}) -> 
                          (Type2 =:= TypeBin) and (Name2 =:= NameBin) ;
-                    (_) -> false end, all()).
+                    (_) -> false end, all())).
 
 of_type(Type) ->
     TypeBin = cmkit:to_bin(Type),
-    lists:filter(fun({ok, #{ <<"type">> := Type2}}) -> 
+    specs_from(lists:filter(fun({yaml, _, {ok, #{ <<"type">> := Type2}}}) -> 
                          Type2 =:= TypeBin;
-                    (_) -> false end, all()).
+                    (_) -> false end, all())).
 
 of_cat(Cat) ->
     CatBin = cmkit:to_bin(Cat),
-    lists:filter(fun({ok, #{ <<"category">> := Cat2}}) -> 
+    specs_from(lists:filter(fun({yaml, _, {ok, #{ <<"category">> := Cat2}}}) -> 
                          Cat2 =:= CatBin;
-                    (_) -> false end, all()).
+                    (_) -> false end, all())).
 
 of_type_cat(Type, Cat) ->
     TypeBin = cmkit:to_bin(Type),
     CatBin = cmkit:to_bin(Cat),
-    lists:filter(fun({ok, #{ <<"type">> := Type2, <<"category">> := Cat2}}) -> 
+    specs_from(lists:filter(fun({yaml, _, {ok, #{ <<"type">> := Type2, <<"category">> := Cat2}}}) -> 
                          (Type2 =:= TypeBin) and (Cat2 =:= CatBin) ;
-                    (_) -> false end, all()).
+                    (_) -> false end, all())).
+
+
+specs_from(List) ->
+    lists:map(fun spec_from/1, List).
+
+spec_from({yaml, _, {ok, Spec}}) ->
+    {ok, Spec}.

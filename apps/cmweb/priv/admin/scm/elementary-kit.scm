@@ -148,6 +148,25 @@
       ('ok encoded)
       (else '(ok ())))))
 
+(define (encode-files spec in)
+  (console-error "not supported" spec)
+  (list 'error 'not-supported spec))
+
+(define (encode-file spec in)
+  (let ((encoded (encode spec in)))
+    (case (car encoded)
+      ('ok
+       (let ((files (car (cdr encoded))))
+         (case (and (list? files) (> (length files) 0))
+           ('#t 
+            (let* ((first (car files))
+                   (f (get 'file first)))
+              (case f 
+                ('undef (list 'error 'invalid-file encoded))
+                (else (list 'ok f)))))
+           (else (list 'error 'not-a-list-of-files files)))))
+      (else (list 'error 'invalid-file-spec spec)))))
+
 (define (encode spec input) 
   (case (list? spec)
     ('#f
@@ -168,6 +187,8 @@
           ('list (encode-list value-spec input '()))
           ('map (encode-map value-spec input))
           ('maybe (encode-maybe value-spec input))
+          ('files (encode-files value-spec input))
+          ('file (encode-file value-spec input))
           (else
             (console-error "invalid value spec" spec)
             '(error invalid-spec)))))))

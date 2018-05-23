@@ -70,7 +70,16 @@ decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_ma
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text}, Text, _) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
 decode_term(#{ type := text}, _, _) -> no_match;
+decode_term(#{ type := number, value := Num}, Num, _) when is_number(Num) -> {ok, Num};
+decode_term(#{ type := number, value := Num}, _, _) when is_number(Num) -> no_match;
+decode_term(#{ type := number, value := Num}, Bin, _) when is_binary(Bin) ->
+    case cmkit:to_number(Bin, none) of 
+        none -> no_match;
+        Num -> {ok, Num}
+    end;
+
 decode_term(#{ type := number}, Num, _) when is_number(Num) -> {ok, Num};
+
 decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
     case cmkit:to_number(Bin, none) of 
         none -> no_match;

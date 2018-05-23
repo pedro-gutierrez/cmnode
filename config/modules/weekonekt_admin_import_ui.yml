@@ -3,6 +3,15 @@ type: module
 category: ui
 name: weekonekt_admin_import_ui
 spec:
+  effects:
+    file:
+      type: elementary-http
+      settings:
+        secure:
+          keyword: no 
+        path:
+          text:
+            literal: "/files"
   init:
     model:
       import_action_view: 
@@ -35,13 +44,76 @@ spec:
       model:
         import_action_view: 
           keyword: import_progress_view
+        import_progress: 25
         stage:
           text:
-            literal: "Preparing to upload data"
+            literal: "Creating a new import"
       cmds:
+        - effect: ws
+          encoder: import_create_request
         - effect: ui
           encoder: import_layout_view
+    import_created:
+      model:
+        import:
+          key: import
+          in:
+            key: data
+        import_progress: 50
+        stage:
+          text:
+            literal: "Requesting permission to upload data"
+      cmds:
+        - effect: ws
+          encoder: import_token_request 
+        - effect: ui
+          encoder: import_layout_view
+    import_token:
+      model:
+        token:
+          key: token
+          in: data
+        import_progress: 75
+        stage:
+          literal: "Uploading"
+      cmds:
+        - effect: file
+          encoder: import_upload_request
   encoders:
+    import_create_request:
+      object:
+        effect:
+          keyword: ws
+        action:
+          keyword: create_import
+    import_token_request:
+      object:
+        effect:
+          keyword: ws
+        action:
+          keyword: token
+        subject:
+          key: id
+          in: import
+        intent:
+          keyword: attach
+        type:
+          keyword: import
+    import_upload_request:
+      object:
+        effect: 
+          keyword: http
+        method:
+          keyword: post
+        headers:
+          object:
+            content-type: 
+              literal: "application/xml"
+            cmauth:
+              key: token
+        body:
+          file: 
+            key: files
     select_file:
       view:
         tag: div
@@ -226,3 +298,26 @@ spec:
         value:
           list:
             file: any
+    import_created:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "created"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_token:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            token:
+              any: text

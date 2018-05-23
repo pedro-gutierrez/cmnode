@@ -1,16 +1,15 @@
 -module(weekonekt_wp_importer).
--export([import/1, handle/1]).
+-export([import/1, handle/2]).
 
 import(Data) ->
     Res = cmxml:parse(Data, fun weekonekt_wp_parser:event/3, #{ state => none,
                                                           callback => {?MODULE, handle},
-                                                          image => #{ url => none, title => none },
-                                                          images => [],
-                                                          items => [],
-                                                          categories => []
+                                                          stats => #{ images => 0,
+                                                                      reviews => 0 }
                                                         }),
+    
     case Res of 
-        {ok, Summary, _} -> {ok, Summary};
+        {ok, {ok, Stats}, _} -> {ok, Stats};
         Other -> Other
     end.
 
@@ -18,7 +17,7 @@ handle(#{ id := Id,
          url := Url, 
          title := Title, 
          date := Date,
-         type := "attachment" }) ->
+         type := "attachment" }, #{ images := Images }=Stats) ->
     
     BinId = cmkit:to_bin(Id),
     BinUrl = cmkit:to_bin(Url),
@@ -26,12 +25,39 @@ handle(#{ id := Id,
     Item = #{ id => BinId,
               url => BinUrl,
               title => Title,
-              date => Date },
+              date => cmkit:to_millis(Date) },
 
-    cmkit:log({weekonekt, image, PKey, Item}),
-    cmdb:put_new(weekonekt, [{PKey, Item}]);
+    cmdb:put_new(weekonekt, [{PKey, Item}]),
+    Stats#{ images => Images + 1 };
 
-handle(Item) -> 
-    cmkit:log({weekonekt_wp_importer, ignore, Item}). 
+handle(#{ title := "About me" }, Stats) -> Stats;
+handle(#{ title := "Contact" }, Stats) -> Stats;
+
+
+handle(#{ id := Id, 
+              content := #{ options := Opts,
+                            images := Images },
+              title := Title, 
+              date := Date,
+              type := "page" }, #{ reviews := Reviews }=Stats) ->
+    
+    BinId = cmkit:to_bin(Id),
+    PKey = {review, BinId},
+    Item = #{ id => BinId,
+              title => Title,
+              date => cmkit:to_millis(Date),
+              options => Opts,
+              images => lists:map(fun cmkit:to_bin/1, Images) },
+
+    cmdb:put_new(weekonekt, [{PKey, Item}]),
+    Stats#{ reviews => Reviews + 1 };
+    
+handle(#{ type := "nav_menu_item" }, Stats) -> Stats;
+handle(#{ type := "feedback" }, Stats) -> Stats;
+
+
+handle(Item, Stats) -> 
+    cmkit:warning({weekonekt_wp_importer, ignore, Item}),
+    Stats.
 
 
