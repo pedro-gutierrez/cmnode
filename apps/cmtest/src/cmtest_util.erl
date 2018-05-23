@@ -202,8 +202,8 @@ run(#{ type := recv,
 
 run(#{  type := file,
         as := As, 
-        spec := #{ type := disk,
-                   path := Path }}, #{ data := Data}=World) -> 
+        spec := #{ type := path,
+                   location := Path }}, #{ data := Data}=World) -> 
     case file:read_file(Path) of 
         {ok, Bin} ->
            {ok, World#{ data => Data#{ As => Bin }}};

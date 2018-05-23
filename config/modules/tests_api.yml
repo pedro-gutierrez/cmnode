@@ -1,0 +1,87 @@
+version: 1.0
+type: module
+category: server
+name: tests_api 
+spec:
+  decoders:
+    list_tests:
+      object:
+        action: 
+          text: 
+            literal: "tests"
+    single_test:
+      object:
+        action: 
+          text: 
+            literal: "test"
+        test:
+          any: text
+    tests:
+      object:
+        tests:
+          list: any
+    test:
+      object:
+        test:
+          object:
+            name: 
+              any: keyword
+            scenarios:
+              any: list
+            backgrounds:
+              any: list
+  update:
+    list_tests:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: test
+            encoder: tests_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    single_test:
+      - when:
+          encoder: is_admin
+        model:
+          test:
+            key: test
+        cmds:
+          - effect: test
+            encoder: test_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    tests:
+      model:
+        tests:
+          key: tests
+      cmds:
+        - effect: notify
+          encoder: tests
+    test:
+      model:
+        test:
+          key: test
+      cmds:
+        - effect: notify
+          encoder: test
+  encoders:
+    tests:
+      object:
+        tests:
+          key: tests
+    test:
+      object:
+        test:
+          key: test
+    tests_query:
+      object:
+        query:
+          keyword: tests
+    test_query:
+      object:
+        query:
+          keyword: test
+        test:
+          key: test

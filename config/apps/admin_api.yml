@@ -21,6 +21,7 @@ spec:
     - projects_api
     - issues_api
     - milestones_api
+    - tests_api
   config:
     role:
       keyword: admin

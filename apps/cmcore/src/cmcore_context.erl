@@ -57,6 +57,7 @@ ready(cast, {update, Data}, #{ app := App,
             Log({cmcore, decoded, Msg, App, Id}),
             case cmcore_util:update_spec(Spec, Msg, Decoded, Model, Config) of 
                 {ok, UpdateSpec} ->
+                    Log({cmcore, updating, UpdateSpec, App, Id}),
                     case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
                             case cmsession:attach(Id, model, Model2) of

@@ -373,6 +373,7 @@ spec:
         - effect: db_put
           encoder: import_finished_event
     wordpress_error:
+      cmds:
         - effect: db_put
           encoder: import_error_event
     import_status:

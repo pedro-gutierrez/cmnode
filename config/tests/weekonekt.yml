@@ -162,9 +162,27 @@ spec:
               object:
                 token: 
                   any: text
-    - title: "Invalid wordpress file uploaded" 
+    - title: "Non xml file"
       steps:
-        - title: "Upload an invalid file"
+        - title: "Read dummy.jpg"
+          file:
+            at: "/Users/pedrogutierrez/Documents/dummy.jpg"
+          as: file
+    - title: "Non wordpress xml file"
+      steps:
+        - title: "Read dummy.xml"
+          file:
+            at: "/Users/pedrogutierrez/Documents/dummy.xml"
+          as: file
+    - title: "Wordpress xml file"
+      steps:
+        - title: "Read wordpress.xml"
+          file:
+            at: "/Users/pedrogutierrez/Documents/wordpress.xml"
+          as: file
+    - title: "Import file uploaded"
+      steps:
+        - title: "Upload "
           send:
             to: weekonekt_file_api
             spec:
@@ -180,43 +198,8 @@ spec:
                       key: latest
                       in: data
                 body:
-                  file: 
-                    at: "/Users/pedrogutierrez/Documents/dummy.xml"
-        - title: "Verify the file was uploaded"
-          receive:
-            from: weekonekt_file_api
-            spec:
-              object:
-                id:
-                  text: any
-                size:
-                  number: any
-                type:
-                  text: 
-                    literal: "application/xml"
-                created:
-                  number: any
-            as: wordpress
-    - title: "Small wordpress file uploaded" 
-      steps:
-        - title: "Upload an sample wordpress file"
-          send:
-            to: weekonekt_file_api
-            spec:
-              request:
-                method: post
-                headers:
-                  content_type:
-                    text:
-                      literal: "application/xml"
-                  cmauth:
-                    key: token
-                    in:
-                      key: latest
-                      in: data
-                body:
-                  file: 
-                    at: "/Users/pedrogutierrez/Documents/wordpress.xml"
+                  key: file
+                  in: data
         - title: "Verify the file was uploaded"
           receive:
             from: weekonekt_file_api
@@ -293,8 +276,39 @@ spec:
               object:
                 imports:
                   list: empty
+    
+    - title: "Non xml error"
+      purpose: "Verify that the weekonekt admin is able to import small files"
+      tags: weekonekt, import, upload, non_xml_import
+      backgrounds:
+        - "Weekonekt admin api is online"
+        - "Weekonekt files api is online"
+        - "Weekonekt admin database is empty"
+        - "Admin user Marcos"
+        - "Marcos logged in"
+        - "A weekonekt import"
+        - "An import token"
+        - "Non xml file"
+        - "Import file uploaded"
+        - "File attached to import"
+      steps:
+        - title: "Verify the import got an error"
+          receive:
+            from: weekonekt_admin_api
+            spec:
+              object:
+                import:
+                  object:
+                    id: 
+                      any: text
+                    status:
+                      text:
+                        literal: "error"
+                    date:
+                      any: number
 
-    - title: "Invalid wordpress import"
+
+    - title: "Non wordpress xml import"
       purpose: "Verify that the weekonekt admin is able to create a new import"
       tags: weekonekt, import, upload
       backgrounds:
@@ -305,7 +319,8 @@ spec:
         - "Marcos logged in"
         - "A weekonekt import"
         - "An import token"
-        - "Invalid wordpress file uploaded"
+        - "Non wordpress xml file"
+        - "Import file uploaded"
         - "File attached to import"
       steps:
         - title: "Verify the import was finished"
@@ -347,7 +362,8 @@ spec:
         - "Marcos logged in"
         - "A weekonekt import"
         - "An import token"
-        - "Small wordpress file uploaded"
+        - "Wordpress xml file"
+        - "Import file uploaded"
         - "File attached to import"
       steps:
         - title: "Verify the import was finished"

@@ -23,6 +23,10 @@ spec:
       stage:
         text: 
           literal: "Not started"
+      import_stats: 
+        object:
+          reviews: 0
+          images: 0
   update:
     show_import_ui:
       model:
@@ -44,7 +48,7 @@ spec:
       model:
         import_action_view: 
           keyword: import_progress_view
-        import_progress: 25
+        import_progress: 15
         stage:
           text:
             literal: "Creating a new import"
@@ -59,7 +63,7 @@ spec:
           key: import
           in:
             key: data
-        import_progress: 50
+        import_progress: 30
         stage:
           text:
             literal: "Requesting permission to upload data"
@@ -73,23 +77,75 @@ spec:
         token:
           key: token
           in: data
-        import_progress: 75
+        import_progress: 45
         stage:
-          literal: "Uploading"
+          text:
+            literal: "Uploading"
       cmds:
         - effect: file
           encoder: import_upload_request
+    import_file_uploaded:
+      model:
+        uploaded_file:
+          key: id
+          in: data
+        import_progress: 60
+        stage:
+          text:
+            literal: "Attaching file to import"
+      cmds:
+        - effect: ws
+          encoder: import_attachment
+        - effect: ui
+          encoder: import_layout_view
+    import_file_attached:
+      model:
+        import_progress: 75 
+        stage:
+          literal: "Starting to import"
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+    import_started:
+      model:
+        import_progress: 90 
+        stage:
+          literal: "Processing data"
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+    import_error:
+      model:
+        import_action_view: 
+          keyword: import_error_view 
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+    import_finished:
+      model:  
+        import_progress: 100
+        stage:
+          literal: "Import finished!"
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
+    import_summary:
+      model:
+        import_action_view: 
+          keyword: import_summary_view 
+        import_stats:
+          key: import
+          in: data
+      cmds:
+        - effect: ui
+          encoder: import_layout_view
   encoders:
     import_create_request:
       object:
-        effect:
-          keyword: ws
         action:
           keyword: create_import
     import_token_request:
       object:
-        effect:
-          keyword: ws
         action:
           keyword: token
         subject:
@@ -101,8 +157,6 @@ spec:
           keyword: import
     import_upload_request:
       object:
-        effect: 
-          keyword: http
         method:
           keyword: post
         headers:
@@ -114,6 +168,16 @@ spec:
         body:
           file: 
             key: files
+    import_attachment:
+      object:
+        action:
+          text:
+            literal: "attach"
+        file:
+          key: uploaded_file
+        import:
+          key: id
+          in: import
     select_file:
       view:
         tag: div
@@ -201,6 +265,8 @@ spec:
                   key: import_progress
                 stage:
                   key: stage
+                stats:
+                  key: import_stats
             sidebar:
               keyword: weekonekt_admin_sidebar
     import_upload_summary_view:
@@ -274,14 +340,128 @@ spec:
           - text:
               key: name
               in: item
+    import_error_view:
+      view:
+        tag: div
+        attrs:
+          key: "import_error"
+        children:
+          - tag: span
+            children:
+              - text:
+                  literal: "Ooops, there was an error!"
+          - view: progress
+            params:
+              object:
+                value: 
+                  text:
+                    number: 100
+                max:
+                  text:
+                    number: 100
+          - view: button
+            params:
+              object:
+                click: 
+                  keyword: start_importing
+                title: 
+                  text:
+                    literal: "Try again"
+          - tag: div
+            attrs:
+              class: "mt-2 d-block"
+            children:
+              - view: link
+                params:
+                  object:
+                    id: 
+                      text:
+                        literal: "re-import"
+                    click: 
+                      text: 
+                        literal: "import"
+                    title: 
+                      text:
+                        literal: "Choose a different file"
+    import_summary_view:
+      view:
+        tag: div
+        children:
+          - tag: span
+            children:
+              - text:
+                  literal: "Import Summary"
+          - view: import_stats_view
+            params:
+              object:
+                stats:
+                  key: stats
+                  in: data
+          - tag: div
+            attrs:
+              class: "mt-2"
+            children:
+              - view: button
+                params:
+                  object:
+                    click: 
+                      text: 
+                        literal: "import"
+                    title: 
+                      text:
+                        literal: "Do another import"
+    import_stats_view:
+      view:
+        tag: div
+        attrs:
+          key: "info"
+          class: "card mt-2"
+        children:
+          - tag: div
+            attrs:
+              class: "card-body columns"
+            children:
+              - tag: div
+                attrs:
+                  class: "col-3"
+                children:
+                  - tag: div
+                    children:
+                      - tag: strong
+                        children:
+                          - text:
+                              literal: "Reviews"
+                  - tag: div
+                    children:
+                      - tag: strong
+                        children:
+                          - text:
+                              literal: "Images"
+              
+              - tag: div
+                attrs:
+                  class: "col-3"
+                children:
+                  - tag: div
+                    children:
+                      - text:
+                          key: reviews
+                          in: stats
+                  - tag: div
+                    children:
+                      - text:
+                          key: images
+                          in: stats
   decoders:
     show_import_ui:
       object:
         effect:
           keyword: ui
         event:
-          text:
-            literal: "import"
+          one_of:
+            - text:
+                literal: "import"
+            - keyword: import
     start_importing:
       object:
         effect:
@@ -313,6 +493,51 @@ spec:
                   any: text
                 date:
                   any: number
+    import_error:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "error"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_started:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "started"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_finished:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "finished"
+                id:
+                  any: text
+                date:
+                  any: number
     import_token:
       object:
         effect:
@@ -321,3 +546,41 @@ spec:
           object:
             token:
               any: text
+    import_file_uploaded:
+      object:
+        effect:
+          keyword: file
+        data:
+          object:
+            status:
+              text:
+                literal: "ok"
+            id:
+              any: text
+    import_file_attached:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                id:
+                  any: text
+                file:
+                  any: text
+                status:
+                  text:
+                    literal: "ok"
+    import_summary:  
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                reviews:
+                  any: number
+                images:
+                  any: number

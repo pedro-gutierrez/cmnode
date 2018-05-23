@@ -290,6 +290,12 @@ term(#{ type := object, spec := Spec}) ->
                              cmscheme_ast:call(list, terms(Spec))
                             ]);
 
+term(#{ type := object }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(object),
+                             cmscheme_ast:call(list)
+                            ]);
+
 
 term(#{ type := file, spec := Spec }) ->
     cmscheme_ast:call(list, [

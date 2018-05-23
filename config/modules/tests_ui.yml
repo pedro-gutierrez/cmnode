@@ -1,0 +1,150 @@
+version: 1.0
+type: module
+category: ui
+name: tests_ui
+spec:
+  init:
+    model:
+      tests: []
+      test: {}
+  decoders:
+    show_tests:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text: 
+            literal: "tests"
+    tests:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            tests:
+              list:
+                object:
+                  name: 
+                    any: text
+                  backgrounds:
+                    any: number
+                  scenarios:
+                    any: number
+  update:
+    show_tests:
+      cmds:
+        - effect: ui
+          encoder: tests_view
+        - effect: ws
+          encoder: tests
+    tests:
+      model:
+        tests:
+          key: tests
+          in: 
+            key: data
+      cmds:
+        - effect: ui
+          encoder: tests_view
+  encoders:
+    tests:
+      object:
+        action: tests
+    test_selection:
+      object:
+        name:
+          keyword: show_test
+        test:
+          key: name
+          in: item
+    test_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: name
+            in: item
+        children:
+          - tag: td
+            children:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                  onclick:
+                    encoder: test_selection
+                children:
+                  - text:
+                      key: name
+                      in: item
+          - tag: td
+            children:
+              - text:
+                  key: backgrounds 
+                  in: item
+          - tag: td
+            children:
+              - text:
+                  key: scenarios 
+                  in: item
+    tests_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+                - object:
+                    title:
+                      text: 
+                        literal: "Backgrounds"
+                - object:
+                    title:
+                      text: 
+                        literal: "Scenarios"
+            items:
+              key: tests
+            item_view:
+              keyword: test_table_item_view
+    tests_sections_view:
+      view:
+        tag: div
+        children:
+          - view: tests_table_view
+            params:
+              object:
+                tests:
+                  key: tests
+                  in: data
+    tests_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "Tests"
+            view:
+              keyword: tests_sections_view
+            data:
+              key: data
+    tests_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: tests_main_view
+            contents:
+              object:
+                tests: 
+                  key: tests
+                test:
+                  key: test
+            sidebar:
+              keyword: admin_sidebar

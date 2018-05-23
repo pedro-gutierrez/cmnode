@@ -86,6 +86,8 @@ decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
         Num -> {ok, Num}
     end;
 
+decode_term(#{ type := number}, _, _) -> no_match;
+
 decode_term(#{ type := empty}, empty, _) -> {ok, empty};
 decode_term(#{ type := empty}, _, _) -> no_match;
 
@@ -102,8 +104,6 @@ decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data) and
             end;
         Other -> Other
     end;
-
-
 
 decode_term(#{ type := list, with := Member}, Data, _) when is_list(Data) ->
     case lists:member(Member, Data) of
@@ -130,7 +130,11 @@ decode_term(#{ type := list, without := Member}, Data, _) when is_list(Data) ->
 decode_term(#{ type := first, spec := Spec }, Data, Config) when is_list(Data) ->
     decode_first_item(Spec, Data, Config);
 
-decode_term(#{ type := list}, List, _) when is_list(List) -> {ok, List};
+decode_term(#{ type := list}, List, _) when is_list(List) -> {ok, List}; 
+
+decode_term(#{ type := list}, _, _ ) -> no_match;
+
+
 decode_term(#{ type := email}, Email, _) ->
     case cmkit:is_email(Email) of 
         true -> {ok, Email};
