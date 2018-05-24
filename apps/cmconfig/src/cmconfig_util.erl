@@ -209,7 +209,8 @@ compile_scenarios(Specs) ->
 compile_scenario(#{ <<"title">> := Title, 
                     <<"tags">> := Tags, 
                     <<"backgrounds">> := Backgrounds,
-                    <<"steps">> := Steps
+                    <<"steps">> := Steps,
+                    <<"purpose">> := Purpose
                   }) ->
     
     Title2 = cmkit:to_lower(Title),
@@ -219,29 +220,45 @@ compile_scenario(#{ <<"title">> := Title,
        tags => compile_tags(Tags) ++ compile_title(Title2),
        backgrounds => lists:map(fun(T) -> cmkit:to_lower(T)
                                 end, Backgrounds),
-       steps => compile_steps(Steps)
+       steps => compile_steps(Steps),
+       purpose => Purpose
      };
+
+compile_scenario(#{ <<"title">> := _, 
+                    <<"tags">> := _, 
+                    <<"backgrounds">> := _,
+                    <<"steps">> := _
+                  }=Spec) ->
+    compile_scenario(Spec#{ 
+                            <<"purpose">> => <<"No purpose defined">> 
+                          });
 
 compile_scenario(#{ <<"title">> := _, 
                     <<"tags">> := _, 
                     <<"backgrounds">> := _ 
                   }=Spec) ->
-    compile_scenario(Spec#{ <<"steps">> => []});
+    compile_scenario(Spec#{ 
+                       <<"steps">> => [],
+                       <<"purpose">> => <<"No purpose defined">> 
+                          });
     
 compile_scenario(#{ <<"title">> := _, 
                     <<"tags">> := _, 
                     <<"steps">> := _ 
                   }=Spec) ->
-    compile_scenario(Spec#{ <<"backgrounds">> => [] });
-
+    compile_scenario(Spec#{ 
+                       <<"backgrounds">> => [],
+                       <<"purpose">> => <<"No purpose defined">> 
+                          });
+    
 compile_scenario(#{ <<"title">> := _, 
                     <<"steps">> := _ 
                   }=Spec) ->
-    
     compile_scenario(Spec#{ 
                        <<"tags">> => [],
-                       <<"backgrounds">> => [] 
-                      }).
+                       <<"backgrounds">> => [],
+                       <<"purpose">> => <<"No purpose defined">> 
+                          }).
     
 
 compile_tags(Tags) when is_binary(Tags) ->

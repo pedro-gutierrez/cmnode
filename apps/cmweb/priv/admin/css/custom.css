@@ -55,6 +55,7 @@ tbody tr td {
 a { text-decoration: none !important; }
 
 .mb-6 { margin-bottom: 6px; }
+.mt-4 { margin-top: .8rem; }
 .section-view { margin-bottom: 15px; }
 
 .btn-label {

@@ -180,6 +180,7 @@
 
    
     (define (compile-view v ctx)
+      (console-log "compiling view" v ctx)
       (case (length v)
         ('3
          (let* ((tag (car v))

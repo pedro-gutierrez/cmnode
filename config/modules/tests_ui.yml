@@ -15,6 +15,16 @@ spec:
         event:
           text: 
             literal: "tests"
+    show_test:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name: 
+              keyword: "show_test"
+            test:
+              any: text
     tests:
       object:
         effect:
@@ -30,6 +40,30 @@ spec:
                     any: number
                   scenarios:
                     any: number
+    test:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            test:
+              object:
+                name:
+                  any: text
+                scenarios:
+                  list:
+                    object:
+                      title:
+                        any: text
+                      purpose:
+                        any: text
+                      tags:
+                        list: any
+                backgrounds:
+                  list:
+                    object:
+                      title:
+                        any: text
   update:
     show_tests:
       cmds:
@@ -46,6 +80,22 @@ spec:
       cmds:
         - effect: ui
           encoder: tests_view
+    show_test:
+      model:
+        test: 
+          key: test
+          in: event
+      cmds:
+        - effect: ws
+          encoder: test_info
+    test:
+      model:
+        test:
+          key: test
+          in: data
+      cmds:
+        - effect: ui
+          encoder: test_view
   encoders:
     tests:
       object:
@@ -57,6 +107,12 @@ spec:
         test:
           key: name
           in: item
+    test_info:
+      object:
+        action: 
+          keyword: test
+        test:
+          key: test
     test_table_item_view:
       view:
         tag: "tr"
@@ -145,6 +201,168 @@ spec:
                 tests: 
                   key: tests
                 test:
+                  key: test
+            sidebar:
+              keyword: admin_sidebar
+    test_scenario_tag_view:
+      view:
+        tag: span
+        attrs:
+          class: "mr-2 label label-rounded"
+        children:
+          - text:
+              key: item
+        
+    test_scenario_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: title
+            in: item
+        children:
+          - tag: td
+            children:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                children:
+                  - text:
+                      key: title
+                      in: item
+              - tag: div
+                children:
+                  - text:
+                      key: purpose
+                      in: item
+              - tag: div
+                children:
+                  loop:
+                    key: tags
+                    in: item
+                  with: test_scenario_tag_view
+
+    test_scenarios_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+            items:
+              key: scenarios
+            item_view:
+              keyword: test_scenario_table_item_view
+    test_scenarios_view:
+      view: 
+        tag: div
+        children:
+          - tag: h4
+            children:
+              - text:
+                  literal: "Scenarios"
+          - view: test_scenarios_table_view
+            params:
+              object:
+                scenarios:
+                  key: scenarios
+    test_background_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: title
+            in: item
+        children:
+          - tag: td
+            children:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                children:
+                  - text:
+                      key: title
+                      in: item
+    test_backgrounds_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+            items:
+              key: backgrounds
+            item_view:
+              keyword: test_background_table_item_view
+    test_backgrounds_view:
+      view: 
+        tag: div
+        attrs:
+          class: "mt-4"
+        children:
+          - tag: h4
+            attrs:
+              class: "mt-2"
+            children:
+              - text:
+                  literal: "Backgrounds"
+          - view: test_backgrounds_table_view
+            params:
+              object:
+                backgrounds:
+                  key: backgrounds
+    test_sections_view:
+      view:
+        tag: div
+        children:
+          - view: test_scenarios_view
+            params:
+              object:
+                scenarios:
+                  key: scenarios
+                  in: data
+          - view: test_backgrounds_view
+            params:
+              object:
+                backgrounds:
+                  key: backgrounds
+                  in: data
+
+    test_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              key: name
+              in:
+                key: test
+                in: data
+            view:
+              keyword: test_sections_view
+            data:
+              key: test
+              in: data
+    test_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: test_main_view
+            contents:
+              object:
+                test: 
                   key: test
             sidebar:
               keyword: admin_sidebar

@@ -79,8 +79,7 @@
                  ('ok 
                   (encode-from key (car (cdr input2))))
                  (else
-                   (console-error "encode error" (list spec2 input))
-                   (list 'error 'encode-error spec2 input)))))
+                   (list 'error 'encode-error spec2 input2)))))
             (else (console-error "unsupported encode spec " spec))))))))
 
 
