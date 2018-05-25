@@ -119,6 +119,9 @@ spec:
                 children:
                   loop:
                     key: items
+                  context:
+                    maybe:
+                      key: context
                   with:
                     key: item_view
 
@@ -129,3 +132,60 @@ spec:
           - text:
               key: title
               in: item
+    text_view:
+      view:
+        tag: span
+        children:
+          - text:
+              key: data
+    info_item_view:
+      view:
+        tag: div
+        attrs:
+          class: "columns col-12 mt-2"
+        children:
+          - tag: div
+            attrs:
+              class: "col-6"
+            children:
+              - tag: strong
+                children:
+                  - text:
+                      key: title
+                      in: item
+          - tag: div
+            attrs:
+              class: "col-6"
+            children:
+              - tag: div
+                children:
+                  - view:
+                      key: view
+                      in: item
+                    params:
+                      object:
+                        data:
+                          key: value
+                          in: item
+    info_view:
+      view:
+        tag: div
+        attrs:
+          class: "section-view"
+        children:
+          - tag: h4
+            children:
+              - text:
+                  key: title
+          - tag: div
+            attrs:
+              key: "info"
+              class: "card"
+            children:
+              - tag: div
+                attrs:
+                  class: "card-body columns"
+                children:
+                  loop:
+                    key: items
+                  with: info_item_view

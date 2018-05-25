@@ -66,4 +66,9 @@ a { text-decoration: none !important; }
     background: white;
     border-color: #bababa;
     color: #50596b;
-} 
+}
+
+.tag {
+    text-transform: uppercase;
+    font-size: 14px;
+}

@@ -215,7 +215,7 @@ compile_scenario(#{ <<"title">> := Title,
     
     Title2 = cmkit:to_lower(Title),
 
-    #{ title => Title2,
+    #{ title => Title,
        id => Title2,
        tags => compile_tags(Tags) ++ compile_title(Title2),
        backgrounds => lists:map(fun(T) -> cmkit:to_lower(T)
@@ -640,15 +640,21 @@ compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
 
 
 compile_term(#{ <<"loop">> := From,
+                <<"context">> := _,
                 <<"with">> := View }) when is_map(From) ->
 
     #{ loop => compile_term(From),
        with => compile_term(View) };
 
 compile_term(#{ <<"loop">> := From,
+                <<"context">> := _,
                 <<"with">> := _ } = Spec) when is_binary(From) ->
 
     compile_term(Spec#{ <<"loop">> => #{ <<"key">> => From }});
+
+compile_term(#{ <<"loop">> := _} = Spec)  ->
+
+    compile_term(Spec#{ <<"context">> => #{} });
 
 compile_term(#{ <<"are_set">> := Specs }) when is_list(Specs) ->
     #{ type => are_set,
@@ -793,7 +799,12 @@ compile_term([]) ->
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
 
-compile_term(Text) when is_binary(Text) -> Text.
+compile_term(Text) when is_binary(Text) -> Text;
+
+compile_term(Spec) ->
+    cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
+    #{ type => unknown, spec => Spec }.
+
 
 %compile_from(From) when is_binary(From)-> compile_keyword(From);
 %compile_from(From) when is_map(From) ->
@@ -969,7 +980,13 @@ compile_view(#{ <<"text">> := Spec}) ->
 compile_view(#{ <<"iterate">> := From,
                 <<"using">> := ItemView }) ->
     #{ iterate => compile_term(From), 
-       using => compile_keyword(ItemView) }.
+       using => compile_keyword(ItemView) };
+
+
+compile_view(Spec) ->
+    cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),
+    #{ view => not_supported,
+       spec => Spec }.
 
 compile_view_name(Text) when is_binary(Text) ->
     compile_keyword(Text);

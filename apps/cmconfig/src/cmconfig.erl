@@ -2,6 +2,7 @@
 -export([
          tests/0,
          test/1,
+         scenario/2,
          buckets/0, 
          templates/0, 
          modules/0,
@@ -22,8 +23,6 @@ templates() -> all(template).
 modules() -> all(module).
 apps() -> all(app).
 buckets() -> all(bucket).
-tests() -> all(test).
-test(Name) -> find(test, Name).
 module(Name) -> find(module, Name).
 app(Name) -> find(app, Name).
 
@@ -60,3 +59,19 @@ effect_contract() ->
 effects() ->
     [ #{ name => M:effect_info(),
          mod => M } || M <-erlang:loaded(), cmkit:implements(M, effect_contract())].    
+
+tests() -> all(test).
+test(Name) -> find(test, Name).
+
+scenario(Test, Scenario) ->
+    case test(Test) of 
+        {ok, #{ scenarios := Scenarios}} ->
+            case lists:filter(fun(#{ title := Title}) -> 
+                                      cmkit:to_lower(Scenario) =:= cmkit:to_lower(Title)
+                              end, Scenarios) of 
+                [Spec] -> {ok, Spec#{ test => Test} };
+                [] -> {error, not_found};
+                Other -> {error, Other}
+            end;
+        Other -> Other
+    end.

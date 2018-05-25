@@ -488,7 +488,7 @@ view_children(Spec) when is_list(Spec) ->
                              cmscheme_ast:call(list, view_children(Spec, []))
                             ]);
 
-view_children(#{ loop := From, with := View }) ->
+view_children(#{ loop := From, context := Context, with := View }) ->
 
     ViewAst = case is_binary(View) of
                   true -> cmscheme_ast:sym(View);
@@ -505,11 +505,20 @@ view_children(#{ loop := From, with := View }) ->
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(name),
                                                                                ViewAst
+                                                                              ]),
+
+                                                      cmscheme_ast:call(list, [
+                                                                               cmscheme_ast:sym(context),
+                                                                               term(Context)
                                                                               ])
 
                                                      ])
 
-                            ]).
+                            ]);
+
+
+view_children(#{ loop := _,  with := _}=Spec) ->
+    view_children(Spec#{ context => #{} }).
 
 
 view_children([], Out) -> lists:reverse(Out);

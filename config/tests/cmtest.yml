@@ -165,5 +165,88 @@ spec:
                       any: list
                     scenarios:
                       any: list
+    
+    - title: "Attempt to find a scenario that does not exist"
+      purpose: "Verify that the tests api returns proper errors"
+      tags: admin, tests
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+      steps:
+        - title: "Get some unknown scenario info"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "scenario"
+                test:
+                  text:
+                    literal: "cmtest"
+                scenario:
+                  text:
+                    literal: "Some scenario that should not exist"
+        - title: "Verify we got a proper not found error"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                scenario:
+                  object:
+                    test:
+                      text: 
+                        literal: "cmtest"
+                    title:
+                      text: 
+                        literal: "Some scenario that should not exist"
+                    error:
+                      text:
+                        literal: "not_found"
 
-
+    - title: "Get a single scenario info"
+      purpose: "Verify that the admin user is able to retrieve info about a scenario"
+      tags: admin, tests
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+      steps:
+        - title: "Get this scenario info info"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "scenario"
+                test:
+                  text:
+                    literal: "cmtest"
+                scenario:
+                  text:
+                    literal: "Get a single scenario info"
+        - title: "Verify we got the scenario info"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                scenario:
+                  object:
+                    test:
+                      text: 
+                        literal: "cmtest"
+                    title:
+                      text: 
+                        literal: "Get a single scenario info"
+                    tags:
+                      any: list
+                    backgrounds:
+                      any: list
+                    steps:
+                      any: list
+                    purpose:
+                      any: text

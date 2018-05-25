@@ -16,6 +16,15 @@ spec:
             literal: "test"
         test:
           any: text
+    scenario_query:
+      object:
+        action:
+          text:
+            literal: "scenario"
+        test:
+          any: text
+        scenario:
+          any: text
     tests:
       object:
         tests:
@@ -30,6 +39,32 @@ spec:
               any: list
             backgrounds:
               any: list
+    scenario:
+      object:
+        scenario:
+          object:
+            test:
+              any: text
+            title:
+              any: text
+            steps:
+              any: list
+            backgrounds:
+              any: list
+            tags:
+              any: list
+            purpose: 
+              any: text
+    no_such_scenario:
+      object:
+        scenario:
+          object:
+            test:
+              any: text
+            title:
+              any: text
+            error:
+              keyword: not_found
   update:
     list_tests:
       - when:
@@ -52,6 +87,20 @@ spec:
       - cmds:
           - effect: notify
             encoder: forbidden
+    scenario_query:
+      - when:
+          encoder: is_admin
+        model:
+          test:
+            key: test
+          scenario:
+            key: scenario
+        cmds:
+          - effect: test
+            encoder: scenario_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
     tests:
       model:
         tests:
@@ -66,6 +115,20 @@ spec:
       cmds:
         - effect: notify
           encoder: test
+    scenario:
+      model:
+        scenario:
+          key: scenario
+      cmds:
+        - effect: notify
+          encoder: scenario
+    no_such_scenario:
+      model:
+        scenario:
+          key: scenario
+      cmds:
+        - effect: notify
+          encoder: scenario
   encoders:
     tests:
       object:
@@ -75,6 +138,10 @@ spec:
       object:
         test:
           key: test
+    scenario:
+      object:
+        scenario:
+          key: scenario
     tests_query:
       object:
         query:
@@ -85,3 +152,12 @@ spec:
           keyword: test
         test:
           key: test
+    scenario_query:
+      object:
+        query:
+          keyword: scenario
+        test:
+          key: test
+        scenario:
+          key: scenario
+    

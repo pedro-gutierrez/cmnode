@@ -30,8 +30,27 @@ effect_apply(#{ query := test,
 
                       #{ name => Id,
                          config => cmkit:to_list(Config, property, value),
-                         scenarios => Scenarios,
-                         backgrounds => maps:values(Backgrounds) }
+                         scenarios => lists:map(fun(S) ->
+                                                       maps:with([title, tags, purpose], S) 
+                                                end, Scenarios),
+                         backgrounds => lists:map(fun(B) ->
+
+                                                       maps:with([title], B) 
+                                                  end, maps:values(Backgrounds)) }
           end,
 
-    cmcore:update(SessionId, #{ test => Res}).
+    cmcore:update(SessionId, #{ test => Res});
+
+
+effect_apply(#{ query := scenario,
+                test := Test,
+                scenario := Scenario}, SessionId) ->
+    Res = case cmconfig:scenario(Test, Scenario) of 
+              {error, E} ->
+                  #{ test => Test,
+                     title => Scenario,
+                     error => E};
+              {ok, S} -> S
+          end,
+
+    cmcore:update(SessionId, #{ scenario => Res}).

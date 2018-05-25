@@ -120,17 +120,14 @@
       (let ((v (resolve-view spec ctx)))
         (case (car v)
           ('ok
-           (let ((v-ctx (view-ctx (get 'params spec) ctx)))
-            (case (car v-ctx)
-              ('ok
+           (let ((v-ctx (list (list 'context (get 'context ctx)))))
                (let ((items (encode (get 'items spec) ctx))
                      (item-view (car (cdr v))))
                  (case (car items)
                    ('ok (map (lambda (item)
-                               (let ((v-ctx2 (set 'item item (car (cdr v-ctx)))))
-                                (compile-view item-view v-ctx2)))  (car (cdr items)))) 
-                   (else (console-error "unable to convert spec into a list of items" spec)))))
-              (else (console-error "invalid context for subview" (list spec v-ctx))))))
+                               (let ((v-ctx2 (set 'item item v-ctx)))
+                                 (compile-view item-view v-ctx2)))  (car (cdr items)))) 
+                   (else (console-error "unable to convert spec into a list of items" spec))))))
           (else (console-error "no such view" spec)))))
     
     (define (attr-name attr)
@@ -180,7 +177,6 @@
 
    
     (define (compile-view v ctx)
-      (console-log "compiling view" v ctx)
       (case (length v)
         ('3
          (let* ((tag (car v))
@@ -211,7 +207,6 @@
                 (case (car encoded)
                   ('ok (cdr encoded))
                   (else (console-error "unable to compile text" encoded)))))
-             ;('iterate (compile-views value ctx)) 
              (else (console-error "unknown directive" v)))))
         ('1 v)
         (else (console-error "unknown view" v ))))

@@ -25,6 +25,18 @@ spec:
               keyword: "show_test"
             test:
               any: text
+    show_scenario:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name: 
+              keyword: "show_scenario"
+            test:
+              any: text
+            scenario:
+              any: text
     tests:
       object:
         effect:
@@ -64,6 +76,26 @@ spec:
                     object:
                       title:
                         any: text
+    scenario:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            scenario:
+              object:
+                test:
+                  any: text
+                title:
+                  any: text
+                tags:
+                  any: list
+                steps:
+                  any: list
+                backgrounds:
+                  any: list
+                purpose:
+                  any: text
   update:
     show_tests:
       cmds:
@@ -88,6 +120,14 @@ spec:
       cmds:
         - effect: ws
           encoder: test_info
+    show_scenario:
+      model:
+        scenario: 
+          key: scenario
+          in: event
+      cmds:
+        - effect: ws
+          encoder: scenario_info
     test:
       model:
         test:
@@ -96,6 +136,14 @@ spec:
       cmds:
         - effect: ui
           encoder: test_view
+    scenario:
+      model:
+        scenario:
+          key: scenario
+          in: data
+      cmds:
+        - effect: ui
+          encoder: scenario_view
   encoders:
     tests:
       object:
@@ -107,12 +155,31 @@ spec:
         test:
           key: name
           in: item
+    scenario_selection:
+      object:
+        name:
+          keyword: show_scenario
+        scenario:
+          key: title
+          in: item
+        test:
+          key: test
+          in: context
     test_info:
       object:
         action: 
           keyword: test
         test:
           key: test
+    scenario_info:
+      object:
+        action:
+          keyword: scenario
+        test:
+          key: name
+          in: test
+        scenario:
+          key: scenario
     test_table_item_view:
       view:
         tag: "tr"
@@ -208,11 +275,17 @@ spec:
       view:
         tag: span
         attrs:
-          class: "mr-2 label label-rounded"
+          class: "mr-2 label label-rounded tag"
         children:
           - text:
               key: item
-        
+    test_scenario_tags_view:
+      view:
+        tag: div
+        children:
+          loop:
+            key: data 
+          with: test_scenario_tag_view
     test_scenario_table_item_view:
       view:
         tag: "tr"
@@ -226,22 +299,18 @@ spec:
               - tag: a
                 attrs:
                   class: "c-hand"
-                children:
-                  - text:
-                      key: title
-                      in: item
-              - tag: div
+                  onclick:
+                    encoder: scenario_selection
                 children:
                   - text:
                       key: purpose
                       in: item
-              - tag: div
-                children:
-                  loop:
-                    key: tags
-                    in: item
-                  with: test_scenario_tag_view
-
+                  - view: test_scenario_tags_view
+                    params:
+                      object:
+                        data: 
+                          key: tags
+                          in: item
     test_scenarios_table_view:
       view:
         view: table
@@ -255,6 +324,10 @@ spec:
                         literal: "Name"
             items:
               key: scenarios
+            context:
+              object:
+                test:
+                  key: test
             item_view:
               keyword: test_scenario_table_item_view
     test_scenarios_view:
@@ -268,8 +341,39 @@ spec:
           - view: test_scenarios_table_view
             params:
               object:
+                test:
+                  key: test
                 scenarios:
                   key: scenarios
+    test_background_link_view:
+      view:
+        tag: a
+        attrs:
+          class: "c-hand"
+        children:
+          - text:
+              key: item
+    test_background_link_block_view:
+      view:
+        tag: div
+        attrs:
+          key:
+            key: item
+        children:
+          - view: test_background_link_view
+            params:
+              object:
+                item:
+                  key: item
+    test_background_links_view:
+      view:
+        tag: div
+        attrs:
+          class: "links"
+        children:
+          loop:
+            key: data
+          with: test_background_link_block_view
     test_background_table_item_view:
       view:
         tag: "tr"
@@ -280,13 +384,13 @@ spec:
         children:
           - tag: td
             children:
-              - tag: a
-                attrs:
-                  class: "c-hand"
-                children:
-                  - text:
+              - view: test_background_link_view
+                params:
+                  object:
+                    item:
                       key: title
                       in: item
+
     test_backgrounds_table_view:
       view:
         view: table
@@ -300,6 +404,10 @@ spec:
                         literal: "Name"
             items:
               key: backgrounds
+            context:
+              object:
+                test:
+                  key: test
             item_view:
               keyword: test_background_table_item_view
     test_backgrounds_view:
@@ -317,6 +425,8 @@ spec:
           - view: test_backgrounds_table_view
             params:
               object:
+                test:
+                  key: test
                 backgrounds:
                   key: backgrounds
     test_sections_view:
@@ -326,12 +436,18 @@ spec:
           - view: test_scenarios_view
             params:
               object:
+                test:
+                  key: name 
+                  in: data
                 scenarios:
                   key: scenarios
                   in: data
           - view: test_backgrounds_view
             params:
               object:
+                test:
+                  key: name 
+                  in: data
                 backgrounds:
                   key: backgrounds
                   in: data
@@ -364,5 +480,93 @@ spec:
               object:
                 test: 
                   key: test
+            sidebar:
+              keyword: admin_sidebar
+    
+    scenario_info_view:
+      view:
+        view: info_view
+        params:
+          object:
+            title: 
+              text:
+                literal: "Scenario info"
+            items:
+              list:
+                - object:
+                    title:
+                      text:
+                        literal: "Test"
+                    value:
+                      key: test
+                    view:
+                      keyword: text_view
+                - object:
+                    title:
+                      text: 
+                        literal: "Tags"
+                    value:
+                      key: tags
+                    view:
+                      keyword: test_scenario_tags_view
+                - object:
+                    title:
+                      text: 
+                        literal: "Backgrounds"
+                    value:
+                      key: backgrounds
+                    view:
+                      keyword: test_background_links_view
+    scenario_steps_view:
+      view:
+        tag: div
+        attrs:
+          class: "mt-4"
+        children:
+          - tag: h4
+            attrs:
+              class: "mt-2"
+            children:
+              - text:
+                  literal: "Steps"
+
+    scenario_sections_view:
+      view:
+        tag: div
+        children:
+          - view: scenario_info_view
+            params:
+              key: data
+          - view: scenario_steps_view
+            params:
+              key: data
+    scenario_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              key: purpose
+              in:
+                key: scenario
+                in: data
+            view:
+              keyword: scenario_sections_view
+            data:
+              key: scenario
+              in: data
+    scenario_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: scenario_main_view
+            contents:
+              object:
+                scenario: 
+                  key: scenario
             sidebar:
               keyword: admin_sidebar
