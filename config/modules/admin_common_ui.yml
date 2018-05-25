@@ -167,6 +167,15 @@ spec:
                         data:
                           key: value
                           in: item
+    properties_view:
+      view:
+        tag: div
+        attrs:
+          class: "columns"
+        children:
+          loop:
+            key: items
+          with: info_item_view
     info_view:
       view:
         tag: div
@@ -189,3 +198,14 @@ spec:
                   loop:
                     key: items
                   with: info_item_view
+    json_view:
+      view:
+        tag: pre
+        attrs:
+          class: "code"
+          data-lang: "json"
+        children:
+          - tag: code
+            children:
+              - json:
+                  key: source

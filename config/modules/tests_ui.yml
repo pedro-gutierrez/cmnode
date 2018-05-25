@@ -517,6 +517,55 @@ spec:
                       key: backgrounds
                     view:
                       keyword: test_background_links_view
+    scenario_step_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: title
+            in: item
+        children:
+          - tag: td
+            children:
+              - text:
+                  key: title
+                  in: item
+          - tag: td
+            children:
+              - text:
+                  key: type
+                  in: item
+          - tag: td
+            children:
+              - view: json_view
+                params:
+                  object:
+                    source:
+                      key: spec
+                      in: item
+    scenario_steps_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+                - object:
+                    title: 
+                      text:
+                        literal: "Type"
+                - object:
+                    title: 
+                      text:
+                        literal: "Spec"
+            items:
+              key: steps
+            item_view:
+              keyword: scenario_step_table_item_view
     scenario_steps_view:
       view:
         tag: div
@@ -529,7 +578,11 @@ spec:
             children:
               - text:
                   literal: "Steps"
-
+          - view: scenario_steps_table_view
+            params:
+              object:
+                steps:
+                  key: steps
     scenario_sections_view:
       view:
         tag: div

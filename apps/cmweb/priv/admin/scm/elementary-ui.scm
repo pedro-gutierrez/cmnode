@@ -175,7 +175,18 @@
            (js-array->list files))
           ('#f (js-ref target "value")))))
 
-   
+    (define (compile-json-view v ctx)
+      (let ((source (encode (get 'source v) ctx))
+            (indent (encode (get 'indent v) ctx)))
+        (case (car source)
+          ('ok
+           (case (car indent)
+             ('ok
+                (json-stringify (car (cdr source)) (car (cdr indent))))
+             (else (console-error "cannot encode json view indent value" v indent))))
+          (else 
+            (console-error "cannot encode json view source" v source)))))
+
     (define (compile-view v ctx)
       (case (length v)
         ('3
@@ -207,6 +218,7 @@
                 (case (car encoded)
                   ('ok (cdr encoded))
                   (else (console-error "unable to compile text" encoded)))))
+             ('json (compile-json-view value ctx))
              (else (console-error "unknown directive" v)))))
         ('1 v)
         (else (console-error "unknown view" v ))))

@@ -2,7 +2,6 @@
   (let ((state (make-eq-hashtable)))
    
     (define (conn) (hashtable-ref state 'ws '()))
-    (define json (js-eval "JSON"))
     (define object (js-eval "Object"))
     (define window (js-eval "window"))
     (define location (js-ref window "location"))
@@ -35,32 +34,6 @@
                 (decoded-v (json-decode-value v)))
             (json-decode (cdr keys) obj (set (string->symbol k) decoded-v out)))))) 
       
-    (define (js-key k)
-      (case (symbol? k)
-        ('#t (symbol->string k))
-        ('#f k)))
-
-    (define (js-val v)
-      (case (string? v)
-        ('#t v)
-        ('#f
-         (case (symbol? v)
-           ('#t (symbol->string v))
-           ('#f
-            (case (list? v)
-              ('#t (list->js v (js-obj)))
-              ('#f (console-error "cannot encode " v))))))))
-
-
-    (define (list->js data r)
-      (case (null? data)
-        ('#t r)
-        ('#f
-         (let* ((pair (car data))
-                (k (car pair))
-                (v (car (cdr pair))))
-           (js-set! r (js-key k) (js-val v))
-           (list->js (cdr data) r)))))
 
     (define (ws-connect url)
       (js-new "WebSocket" url))

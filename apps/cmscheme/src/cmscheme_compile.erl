@@ -252,7 +252,20 @@ term(#{ encoder := Name }) when is_atom(Name) ->
                              cmscheme_ast:sym(encoder),
                              cmscheme_ast:sym(Name)
                             ]);
-    
+
+
+term(#{ json := Source,
+        indent := Indent }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(json),
+                             cmscheme_ast:call(list, [ 
+                                cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(source),
+                                                       term(Source)]),
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(indent),
+                                                       term(Indent)])
+                                                     ])]);
+
 term(#{ iterate := From, using := ItemView }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(iterate),

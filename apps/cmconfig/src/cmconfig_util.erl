@@ -982,6 +982,13 @@ compile_view(#{ <<"iterate">> := From,
     #{ iterate => compile_term(From), 
        using => compile_keyword(ItemView) };
 
+compile_view(#{ <<"json">> := Spec,
+                <<"indent">> := Indent }) ->
+    #{ json => compile_term(Spec),
+       indent => compile_term(Indent) };
+
+compile_view(#{ <<"json">> := _} = Spec) ->
+    compile_view(Spec#{ <<"indent">> => 2 });
 
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),

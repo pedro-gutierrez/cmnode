@@ -1,3 +1,36 @@
+(define json (js-eval "JSON"))
+
+(define (js-key k)
+  (case (symbol? k)
+    ('#t (symbol->string k))
+    ('#f k)))
+
+(define (js-val v)
+  (case (string? v)
+    ('#t v)
+    ('#f
+     (case (symbol? v)
+       ('#t (symbol->string v))
+       ('#f
+        (case (list? v)
+          ('#t (list->js v (js-obj)))
+          ('#f (console-error "cannot encode " v))))))))
+
+(define (list->js data r)
+  (case (null? data)
+    ('#t r)
+    ('#f
+     (let* ((pair (car data))
+            (k (car pair))
+            (v (car (cdr pair))))
+       (js-set! r (js-key k) (js-val v))
+       (list->js (cdr data) r)))))
+
+(define (json-stringify source spaces) 
+  (let ((r (list->js source (js-obj))))
+    (console-log "js-obj" r)
+    (js-invoke json "stringify" r '() spaces)))
+
 (define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))
 
 (define (js-defined? v) 
