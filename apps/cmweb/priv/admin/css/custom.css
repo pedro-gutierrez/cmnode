@@ -80,3 +80,7 @@ div.admin-content {
     text-transform: uppercase;
     font-size: 14px;
 }
+
+.links a {
+    display: block;
+}

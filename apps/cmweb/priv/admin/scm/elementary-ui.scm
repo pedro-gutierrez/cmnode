@@ -116,18 +116,28 @@
               (else (console-error "no such view" spec)))))
           (else (console-error "cannot encode view context" spec ctx v-ctx)))))
     
+    (define (compile-items-shared-context spec ctx)
+      (let ((context-spec (get 'context spec)))
+        (case context-spec 
+          ('undef (list 'ok '()))
+          (else (encode context-spec ctx)))))
+
     (define (compile-views spec ctx)
       (let ((v (resolve-view spec ctx)))
         (case (car v)
           ('ok
-           (let ((v-ctx (list (list 'context (get 'context ctx)))))
-               (let ((items (encode (get 'items spec) ctx))
-                     (item-view (car (cdr v))))
-                 (case (car items)
-                   ('ok (map (lambda (item)
-                               (let ((v-ctx2 (set 'item item v-ctx)))
-                                 (compile-view item-view v-ctx2)))  (car (cdr items)))) 
-                   (else (console-error "unable to convert spec into a list of items" spec ctx))))))
+           (let ((items-shared-ctx (compile-items-shared-context spec ctx)))
+             (case (car items-shared-ctx)
+               ('ok
+                   (let ((items (encode (get 'items spec) ctx))
+                         (v-ctx (set 'context (car (cdr items-shared-ctx)) '()))
+                         (item-view (car (cdr v))))
+                     (case (car items)
+                       ('ok (map (lambda (item)
+                                   (let ((v-ctx2 (set 'item item v-ctx)))
+                                     (compile-view item-view v-ctx2)))  (car (cdr items)))) 
+                       (else (console-error "unable to convert spec into a list of items" spec ctx)))))
+               (else (console-error "unable to encode items shared context" items-shared-ctx)))))
           (else (console-error "no such view" spec)))))
     
     (define (attr-name attr)

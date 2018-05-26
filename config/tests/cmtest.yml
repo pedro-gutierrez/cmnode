@@ -99,8 +99,9 @@ spec:
                   any: text
   scenarios:
     - title: "Get all tests"
-      purpose: "Verify that the admin user is able to retrieve all tests"
-      tags: admin, tests
+      tags: 
+        - admin
+        - tests
       backgrounds:
         - "Admin api is online"
         - "Admin database is empty"
@@ -133,7 +134,9 @@ spec:
                           
     - title: "Get a single test info"
       purpose: "Verify that the admin user is able to retrieve info about a test"
-      tags: admin, tests
+      tags: 
+        - admin 
+        - tests
       backgrounds:
         - "Admin api is online"
         - "Admin database is empty"
@@ -167,8 +170,10 @@ spec:
                       any: list
     
     - title: "Attempt to find a scenario that does not exist"
-      purpose: "Verify that the tests api returns proper errors"
-      tags: admin, tests
+      tags: 
+        - admin
+        - tests
+        - not_found
       backgrounds:
         - "Admin api is online"
         - "Admin database is empty"
@@ -208,7 +213,10 @@ spec:
 
     - title: "Get a single scenario info"
       purpose: "Verify that the admin user is able to retrieve info about a scenario"
-      tags: admin, tests
+      tags: 
+        - admin 
+        - tests
+        - scenario
       backgrounds:
         - "Admin api is online"
         - "Admin database is empty"
@@ -248,12 +256,13 @@ spec:
                       any: list
                     steps:
                       any: list
-                    purpose:
-                      any: text
     
     - title: "Get a single background info"
       purpose: "Verify that the admin user is able to retrieve info about a background"
-      tags: admin, tests, backgrounds
+      tags: 
+        - admin
+        - tests
+        - backgrounds
       backgrounds:
         - "Admin api is online"
         - "Admin database is empty"

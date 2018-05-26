@@ -79,10 +79,6 @@ spec:
                     object:
                       title:
                         any: text
-                      purpose:
-                        any: text
-                      tags:
-                        list: any
                 backgrounds:
                   list:
                     object:
@@ -106,8 +102,6 @@ spec:
                   any: list
                 backgrounds:
                   any: list
-                purpose:
-                  any: text
     background:
       object:
         effect:
@@ -361,15 +355,13 @@ spec:
         children:
           - tag: td
             children:
-              - tag: a
-                attrs:
-                  class: "c-hand"
-                  onclick:
-                    encoder: scenario_selection
-                children:
-                  - text:
-                      key: purpose
-                      in: item
+              - view: scenario_link_view
+                params:
+                  object:
+                    item: 
+                      key: item
+                    context:
+                      key: context
     test_scenarios_table_view:
       view:
         view: table
@@ -404,35 +396,58 @@ spec:
                   key: test
                 scenarios:
                   key: scenarios
-    test_background_link_view:
+    background_link_view:
       view:
         tag: a
         attrs:
           class: "c-hand"
+          onclick:
+            encoder: background_selection
         children:
           - text:
-              key: item
-    test_background_link_block_view:
-      view:
-        tag: div
-        attrs:
-          key:
-            key: item
-        children:
-          - view: test_background_link_view
-            params:
-              object:
-                item:
-                  key: item
-    test_background_links_view:
+              key: title
+              in: item
+    background_links_view:
       view:
         tag: div
         attrs:
           class: "links"
         children:
           loop:
-            key: data
-          with: test_background_link_block_view
+            key: backgrounds
+            in: data
+          context:
+            object:
+              test:
+                key: test
+                in: data
+          with: background_link_view
+    scenario_link_view:
+      view:
+        tag: a
+        attrs:
+          class: "c-hand"
+          onclick:
+            encoder: scenario_selection
+        children:
+          - text:
+              key: title
+              in: item
+    scenario_links_view:
+      view:
+        tag: div
+        attrs:
+          class: "links"
+        children:
+          loop:
+            key: scenarios
+            in: data
+          context:
+            object:
+              test:
+                key: test
+                in: data
+          with: scenario_link_view
     test_background_table_item_view:
       view:
         tag: "tr"
@@ -443,15 +458,13 @@ spec:
         children:
           - tag: td
             children:
-              - tag: a
-                attrs:
-                  class: "c-hand"
-                  onclick:
-                    encoder: background_selection
-                children:
-                  - text:
-                      key: title
-                      in: item
+              - view: background_link_view
+                params:
+                  object:
+                    item: 
+                      key: item
+                    context:
+                      key: context
     test_backgrounds_table_view:
       view:
         view: table
@@ -575,9 +588,13 @@ spec:
                       text: 
                         literal: "Backgrounds"
                     value:
-                      key: backgrounds
+                      object:
+                        test:
+                          key: test
+                        backgrounds:
+                          key: backgrounds
                     view:
-                      keyword: test_background_links_view
+                      keyword: background_links_view
     scenario_step_table_item_view:
       view:
         tag: "tr"
@@ -656,7 +673,7 @@ spec:
         params:
           object:
             title:
-              key: purpose
+              key: title 
               in:
                 key: scenario
                 in: data
@@ -680,28 +697,6 @@ spec:
                   key: scenario
             sidebar:
               keyword: admin_sidebar
-    scenario_link_view:
-      view:
-        tag: a
-        attrs:
-          class: "c-hand"
-          onclick:
-            encoder: scenario_selection
-        children:
-          - text:
-              key: title
-              in: item
-    scenario_links_view:
-      view:
-        tag: div
-        children:
-          loop:
-            key: scenarios
-            in: data
-          context:
-            key: test
-            in: data
-          with: scenario_link_view
     background_info_view:
       view:
         view: info_view

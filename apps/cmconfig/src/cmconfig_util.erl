@@ -164,118 +164,80 @@ compile_bucket(#{ <<"name">> := Name,
      }.
 
 compile_test(#{ <<"name">> := Name,
-                     <<"spec">> := #{ 
-                         <<"config">> := Config,
-                         <<"scenarios">> := Scenarios,
-                         <<"backgrounds">> := Backgrounds 
-                        }
-                   }) ->
+                <<"spec">> := Spec
+              }) ->
+    
+        
+    Config = maps:get(<<"config">>, Spec, #{}),
+    Scenarios = compile_scenarios(maps:get(<<"scenarios">>, Spec, [])),
+    Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
+
     #{ type => test,
        name => cmkit:to_atom(Name),
        config => compile_config(Config),
-       scenarios => compile_scenarios(Scenarios),
-       backgrounds => compile_backgrounds(Backgrounds)
-     };
-
-compile_test(#{ <<"name">> := Name,
-                     <<"spec">> := #{ 
-                         <<"config">> := Config,
-                         <<"backgrounds">> := Backgrounds 
-                        }
-                   }) ->
-
-    #{ type => test,
-       name => cmkit:to_atom(Name),
-       scenarios => #{},
-       config => compile_config(Config),
-       backgrounds => compile_backgrounds(Backgrounds)
-     };
-
-compile_test(#{ <<"name">> := Name,
-                     <<"spec">> := #{ 
-                         <<"scenarios">> := Scenarios
-                        }
-                   }) ->
-
-    #{ type => test,
-       name => cmkit:to_atom(Name),
-       backgrounds => #{},  
-       scenarios => compile_scenarios(Scenarios)
+       scenarios => Scenarios,
+       backgrounds => compile_backgrounds(Backgrounds, Scenarios)
      }.
 
 compile_scenarios(Specs) -> 
     lists:map(fun compile_scenario/1, Specs).
 
-compile_scenario(#{ <<"title">> := Title, 
-                    <<"tags">> := Tags, 
-                    <<"backgrounds">> := Backgrounds,
-                    <<"steps">> := Steps,
-                    <<"purpose">> := Purpose
-                  }) ->
-    
-    Title2 = cmkit:to_lower(Title),
+compile_scenario(#{ <<"title">> := Title }=Spec) ->
+
+    Id = test_item_id(Title),
+    Tags = maps:get(<<"tags">>, Spec, []),
+    Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
+    Steps =  maps:get(<<"steps">>, Spec, []),
 
     #{ title => Title,
-       id => Title2,
-       tags => compile_tags(Tags) ++ compile_title(Title2),
-       backgrounds => lists:map(fun(T) -> cmkit:to_lower(T)
+       id => Id,
+       tags => compile_tags(Tags),
+       backgrounds => lists:map(fun(T) -> 
+                                        #{ id => test_item_id(T),
+                                           title => T }
                                 end, Backgrounds),
-       steps => compile_steps(Steps),
-       purpose => Purpose
-     };
+       steps => compile_steps(Steps)
+     }.
 
-compile_scenario(#{ <<"title">> := _, 
-                    <<"tags">> := _, 
-                    <<"backgrounds">> := _,
-                    <<"steps">> := _
-                  }=Spec) ->
-    compile_scenario(Spec#{ 
-                            <<"purpose">> => <<"No purpose defined">> 
-                          });
-
-compile_scenario(#{ <<"title">> := _, 
-                    <<"tags">> := _, 
-                    <<"backgrounds">> := _ 
-                  }=Spec) ->
-    compile_scenario(Spec#{ 
-                       <<"steps">> => [],
-                       <<"purpose">> => <<"No purpose defined">> 
-                          });
+compile_background(#{ <<"title">> := Title }=Spec, Scenarios) ->
     
-compile_scenario(#{ <<"title">> := _, 
-                    <<"tags">> := _, 
-                    <<"steps">> := _ 
-                  }=Spec) ->
-    compile_scenario(Spec#{ 
-                       <<"backgrounds">> => [],
-                       <<"purpose">> => <<"No purpose defined">> 
-                          });
-    
-compile_scenario(#{ <<"title">> := _, 
-                    <<"steps">> := _ 
-                  }=Spec) ->
-    compile_scenario(Spec#{ 
-                       <<"tags">> => [],
-                       <<"backgrounds">> => [],
-                       <<"purpose">> => <<"No purpose defined">> 
-                          }).
-    
+    Id = test_item_id(Title),
+    Tags = maps:get(<<"tags">>, Spec, []),
+    Steps =  maps:get(<<"steps">>, Spec, []),
 
-compile_tags(Tags) when is_binary(Tags) ->
-    lists:map(fun(T) ->
-                      cmkit:to_atom(cmkit:bin_trim(T))
-              end, cmkit:bin_split(cmkit:to_lower(Tags), <<",">>));
+    RelatedScenarios = lists:filter(fun(#{ backgrounds := BackgroundRefs }) ->
+                                            lists:any(fun(#{ id := BackgroundId }) ->
+                                                                 BackgroundId =:= Id
+                                                         end, BackgroundRefs)
+                                    end, Scenarios),
 
-compile_tags([]) -> [].
 
-compile_title(Title) when is_binary(Title) ->
-    T1 = cmkit:bin_split(Title, <<" ">>),
-    T2 = lists:map(fun (T) -> 
-                           cmkit:bin_split(T, <<",">>)
-                   end, T1),
-    lists:map(fun (T) ->
-                      cmkit:to_atom(cmkit:bin_trim(T))
-              end, lists:flatten(T2)).
+    #{ title => Title,
+       id => Id,
+       tags => compile_tags(Tags),
+       scenarios => lists:map(fun(S) -> 
+                                        maps:with([id, title], S)
+                                end, RelatedScenarios),
+       steps => compile_steps(Steps)
+     }.
+
+
+test_item_id(Title) ->
+    cmkit:hash(cmkit:to_lower(Title)).
+
+
+compile_backgrounds(Specs, Scenarios) ->
+    lists:foldl(fun(Spec, Out) -> 
+                        #{ id := Key } = Compiled = compile_background(Spec, Scenarios),
+                    Out#{ Key => Compiled } 
+                end, #{}, Specs).
+
+compile_tags(Tags) when is_list(Tags) ->
+    lists:map(fun cmkit:to_atom/1, Tags);
+
+compile_tags(Spec) ->
+    cmkit:danger({cmconfig, compile, invalid_tags, Spec}),
+    [].
 
 compile_steps(Steps) -> 
     compile_steps(Steps, []).
@@ -288,15 +250,6 @@ compile_step(#{ <<"title">> := Title }=Spec) ->
     maps:merge(
       compile_term(Spec),
       #{ title => Title } ).
-
-compile_backgrounds(Specs) ->
-    lists:foldl(fun(Spec, Out) -> 
-                        #{ id := Key } = Compiled = compile_background(Spec),
-                    Out#{ Key => Compiled } 
-                end, #{}, Specs).
-
-compile_background(Spec) ->
-    compile_scenario(Spec).
 
 compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
     Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
@@ -640,11 +593,12 @@ compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
 
 
 compile_term(#{ <<"loop">> := From,
-                <<"context">> := _,
+                <<"context">> := Context,
                 <<"with">> := View }) when is_map(From) ->
 
     #{ loop => compile_term(From),
-       with => compile_term(View) };
+       with => compile_term(View),
+       context => compile_term(Context) };
 
 compile_term(#{ <<"loop">> := From,
                 <<"context">> := _,

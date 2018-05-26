@@ -76,8 +76,6 @@ spec:
               any: list
             tags:
               any: list
-            purpose: 
-              any: text
     no_such_scenario:
       object:
         scenario:

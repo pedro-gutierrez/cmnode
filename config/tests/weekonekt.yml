@@ -253,7 +253,9 @@ spec:
                       any: number
   scenarios:
     - title: "List imports"
-      tags: weekonekt, import 
+      tags: 
+        - weekonekt
+        - import 
       backgrounds:
         - "Weekonekt admin api is online"
         - "Weekonekt files api is online"
@@ -278,8 +280,10 @@ spec:
                   list: empty
     
     - title: "Non xml error"
-      purpose: "Verify that the weekonekt admin is able to import small files"
-      tags: weekonekt, import, upload, non_xml_import
+      tags: 
+        - weekonekt
+        - import
+        - non_xml_error
       backgrounds:
         - "Weekonekt admin api is online"
         - "Weekonekt files api is online"
@@ -309,8 +313,10 @@ spec:
 
 
     - title: "Non wordpress xml import"
-      purpose: "Verify that the weekonekt admin is able to create a new import"
-      tags: weekonekt, import, upload
+      tags: 
+        - weekonekt
+        - import
+        - non wordpress error
       backgrounds:
         - "Weekonekt admin api is online"
         - "Weekonekt files api is online"
@@ -351,9 +357,11 @@ spec:
                     reviews:
                       number: 0
 
-    - title: "Small wordpress import"
-      purpose: "Verify that the weekonekt admin is able to import small files"
-      tags: weekonekt, import, upload, sample_import
+    - title: "Sample wordpress import"
+      tags: 
+        - weekonekt 
+        - import
+        - sample
       backgrounds:
         - "Weekonekt admin api is online"
         - "Weekonekt files api is online"

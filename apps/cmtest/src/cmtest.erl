@@ -11,10 +11,10 @@ run(Test) ->
         Other -> Other
     end.
 
-run(Test, Scenario) ->
+run(Test, Tag) ->
     case cmconfig:test(Test) of
         {ok, #{ scenarios := Scenarios }=Spec} ->
-            {ok, SSpecs} = cmtest_util:scenarios(Scenario, Scenarios),
+            {ok, SSpecs} = cmtest_util:scenarios_by_tag(Tag, Scenarios),
             cmtest_runner:run(Spec, SSpecs);
         Other -> Other
     end.

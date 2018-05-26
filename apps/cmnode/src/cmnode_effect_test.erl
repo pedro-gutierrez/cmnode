@@ -30,13 +30,9 @@ effect_apply(#{ query := test,
 
                       #{ name => Id,
                          config => cmkit:to_list(Config, property, value),
-                         scenarios => lists:map(fun(S) ->
-                                                       maps:with([title, tags, purpose], S) 
-                                                end, Scenarios),
-                         backgrounds => lists:map(fun(B) ->
+                         scenarios => lists:map(fun metadata/1, Scenarios),
+                         backgrounds => lists:map(fun metadata/1, maps:values(Backgrounds)) }
 
-                                                       maps:with([title], B) 
-                                                  end, maps:values(Backgrounds)) }
           end,
 
     cmcore:update(SessionId, #{ test => Res});
@@ -45,25 +41,46 @@ effect_apply(#{ query := test,
 effect_apply(#{ query := scenario,
                 test := Test,
                 scenario := Scenario}, SessionId) ->
-    Res = case cmconfig:scenario(Test, Scenario) of 
-              {error, E} ->
+    
+    Res = case cmconfig:test(Test) of 
+              {error, E } ->
                   #{ test => Test,
                      title => Scenario,
                      error => E};
-              {ok, S} -> S
+              {ok, #{ scenarios := Scenarios }} ->
+                  case cmkit:find_by(title, Scenario, Scenarios) of 
+                      not_found ->
+                          #{ test => Test,
+                             title => Scenario,
+                             error => not_found };
+                      {ok, Spec} ->
+                          Spec#{ test => Test}
+                  end
           end,
-
+    
     cmcore:update(SessionId, #{ scenario => Res});
 
 effect_apply(#{ query := background,
                 test := Test,
-                background := Background }, SessionId) ->
-    Res = case cmconfig:background(Test, Background) of 
-              {error, E} ->
+                background := Background }, SessionId) when is_binary(Background) ->
+    
+    Res = case cmconfig:test(Test) of 
+              {error, E } ->
                   #{ test => Test,
                      title => Background,
                      error => E};
-              {ok, S} -> S
+              {ok, #{ backgrounds := Backgrounds }} ->
+                  case cmkit:find_by(title, Background, maps:values(Backgrounds))  of 
+                      not_found ->
+                          #{ test => Test,
+                             title => Background,
+                             error => not_found };
+                      {ok, Spec} ->
+                          Spec#{ test => Test}
+                  end
           end,
 
     cmcore:update(SessionId, #{ background => Res}).
+
+metadata(Spec) ->
+    maps:with([title, id, tags], Spec).

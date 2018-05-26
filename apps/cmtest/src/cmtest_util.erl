@@ -1,6 +1,6 @@
 -module(cmtest_util).
 -export([start/3,
-         scenarios/2,
+         scenarios_by_tag/2,
          steps/2,
          run/2,
          close/2]).
@@ -13,9 +13,9 @@ start(Test, #{ title := Title}=Scenario, Runner) ->
             {error, {Title, Other}}
     end.
 
-scenarios(Token, Scenarios) ->
+scenarios_by_tag(Tag, Scenarios) ->
     {ok, lists:filter(fun(#{ tags := Tags}) ->
-                              lists:member(Token, Tags)
+                              lists:member(Tag, Tags)
                       end, Scenarios)}.
 
 steps(#{ steps := Steps,
@@ -32,9 +32,9 @@ resolve_backgrounds(Backgrounds, Test) ->
     resolve_backgrounds(Backgrounds, Test, []).
 
 resolve_backgrounds([], _, Out) -> {ok, lists:reverse(Out)};
-resolve_backgrounds([B|Rem], #{ backgrounds := Backgrounds }=Test, Out) ->
-    case maps:get(B, Backgrounds, undef) of 
-        undef -> {error, {undefined, background, B}};
+resolve_backgrounds([#{ id := BId }=BRef|Rem], #{ backgrounds := Backgrounds }=Test, Out) ->
+    case maps:get(BId, Backgrounds, undef) of 
+        undef -> {error, {undefined, background, BRef}};
         Resolved -> resolve_backgrounds(Rem, Test, [Resolved|Out])
     end.
 
