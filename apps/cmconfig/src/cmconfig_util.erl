@@ -736,8 +736,8 @@ compile_term(#{ <<"host">> := Host,
 
     #{ transport => cmkit:to_atom(Transport),
        port => cmkit:to_number(Port), 
-       host => cmkit:to_list(Host),
-       path => cmkit:to_list(Path)
+       host => Host,
+       path => Path
      };
 
 compile_term(#{ <<"probe">> := Spec }) ->

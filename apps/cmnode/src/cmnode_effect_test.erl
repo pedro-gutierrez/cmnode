@@ -53,4 +53,17 @@ effect_apply(#{ query := scenario,
               {ok, S} -> S
           end,
 
-    cmcore:update(SessionId, #{ scenario => Res}).
+    cmcore:update(SessionId, #{ scenario => Res});
+
+effect_apply(#{ query := background,
+                test := Test,
+                background := Background }, SessionId) ->
+    Res = case cmconfig:background(Test, Background) of 
+              {error, E} ->
+                  #{ test => Test,
+                     title => Background,
+                     error => E};
+              {ok, S} -> S
+          end,
+
+    cmcore:update(SessionId, #{ background => Res}).

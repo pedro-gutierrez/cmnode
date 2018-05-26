@@ -25,6 +25,15 @@ spec:
           any: text
         scenario:
           any: text
+    background_query:
+      object:
+        action:
+          text:
+            literal: "background"
+        test:
+          any: text
+        background:
+          any: text
     tests:
       object:
         tests:
@@ -38,6 +47,20 @@ spec:
             scenarios:
               any: list
             backgrounds:
+              any: list
+    background:
+      object:
+        background:
+          object:
+            test:
+              any: text
+            title: 
+              any: text
+            scenarios:
+              any: list
+            steps:
+              any: list
+            tags:
               any: list
     scenario:
       object:
@@ -101,6 +124,20 @@ spec:
       - cmds:
           - effect: notify
             encoder: forbidden
+    background_query:
+      - when:
+          encoder: is_admin
+        model:
+          test:
+            key: test
+          background:
+            key: background
+        cmds:
+          - effect: test
+            encoder: background_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
     tests:
       model:
         tests:
@@ -129,6 +166,13 @@ spec:
       cmds:
         - effect: notify
           encoder: scenario
+    background: 
+      model:
+        background:
+          key: background
+      cmds:
+        - effect: notify
+          encoder: background
   encoders:
     tests:
       object:
@@ -142,6 +186,10 @@ spec:
       object:
         scenario:
           key: scenario
+    background:
+      object:
+        background:
+          key: background
     tests_query:
       object:
         query:
@@ -160,4 +208,11 @@ spec:
           key: test
         scenario:
           key: scenario
-    
+    background_query:
+      object:
+        query:
+          keyword: background
+        test:
+          key: test
+        background:
+          key: background

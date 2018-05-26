@@ -6,29 +6,30 @@
     ('#f k)))
 
 (define (js-val v)
-  (case (string? v)
-    ('#t v)
-    ('#f
+  (case (list? v)
+    ('#t (list->js v (js-obj)))
+    (else 
      (case (symbol? v)
        ('#t (symbol->string v))
-       ('#f
-        (case (list? v)
-          ('#t (list->js v (js-obj)))
-          ('#f (console-error "cannot encode " v))))))))
-
+       (else v)))))
+     
 (define (list->js data r)
   (case (null? data)
     ('#t r)
     ('#f
-     (let* ((pair (car data))
-            (k (car pair))
-            (v (car (cdr pair))))
-       (js-set! r (js-key k) (js-val v))
-       (list->js (cdr data) r)))))
+     (let ((pair (car data)))
+       (case (list? pair)
+         ('#t
+          (let ((k (car pair))
+                (v (car (cdr pair))))
+            (js-set! r (js-key k) (js-val v))
+            (list->js (cdr data) r)))
+         (else 
+            (console-error "unexpected non-pair value" pair)))))))
+
 
 (define (json-stringify source spaces) 
   (let ((r (list->js source (js-obj))))
-    (console-log "js-obj" r)
     (js-invoke json "stringify" r '() spaces)))
 
 (define (js-lambda fn) (js-closure (lambda args (apply fn (list args)))))
@@ -323,12 +324,18 @@
           ('#f (list 'error 'invalid-entry next)))))))
 
 (define (decode-list spec in)
-  (case (number? spec)
-    ('#t (decode-list-size spec in))
-    ('#f 
-     (case (length in)
-       ('0 (list 'error 'list-size-mismatch (length in)))
-       (else (decode-non-empty-list spec in '()))))))
+  (case spec 
+    ('any
+     (case (or (list? in) (= 0 (length in)))
+       ('#t (list 'ok in))
+       (else (list 'error 'not-a-list in))))
+    (else 
+      (case (number? spec)
+        ('#t (decode-list-size spec in))
+        ('#f 
+         (case (length in)
+           ('0 (list 'error 'list-size-mismatch (length in)))
+           (else (decode-non-empty-list spec in '()))))))))
 
 (define (decode-list-size size in)
   (case (eq? size (length in))

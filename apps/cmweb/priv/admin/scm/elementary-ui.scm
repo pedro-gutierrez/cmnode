@@ -127,7 +127,7 @@
                    ('ok (map (lambda (item)
                                (let ((v-ctx2 (set 'item item v-ctx)))
                                  (compile-view item-view v-ctx2)))  (car (cdr items)))) 
-                   (else (console-error "unable to convert spec into a list of items" spec))))))
+                   (else (console-error "unable to convert spec into a list of items" spec ctx))))))
           (else (console-error "no such view" spec)))))
     
     (define (attr-name attr)

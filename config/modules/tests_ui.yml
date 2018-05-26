@@ -37,6 +37,18 @@ spec:
               any: text
             scenario:
               any: text
+    show_background:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name: 
+              keyword: "show_background"
+            test:
+              any: text
+            background:
+              any: text
     tests:
       object:
         effect:
@@ -96,6 +108,24 @@ spec:
                   any: list
                 purpose:
                   any: text
+    background:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            background:
+              object:
+                test:
+                  any: text
+                title:
+                  any: text
+                tags:
+                  any: list
+                steps:
+                  any: list
+                scenarios:
+                  any: list
   update:
     show_tests:
       cmds:
@@ -128,6 +158,14 @@ spec:
       cmds:
         - effect: ws
           encoder: scenario_info
+    show_background:
+      model:
+        background: 
+          key: background
+          in: event
+      cmds:
+        - effect: ws
+          encoder: background_info
     test:
       model:
         test:
@@ -144,6 +182,14 @@ spec:
       cmds:
         - effect: ui
           encoder: scenario_view
+    background:
+      model:
+        background:
+          key: background
+          in: data
+      cmds:
+        - effect: ui
+          encoder: background_view
   encoders:
     tests:
       object:
@@ -165,6 +211,16 @@ spec:
         test:
           key: test
           in: context
+    background_selection:
+      object:
+        name:
+          keyword: show_background
+        background:
+          key: title
+          in: item
+        test:
+          key: test
+          in: context
     test_info:
       object:
         action: 
@@ -180,6 +236,15 @@ spec:
           in: test
         scenario:
           key: scenario
+    background_info:
+      object:
+        action:
+          keyword: background
+        test:
+          key: name
+          in: test
+        background:
+          key: background
     test_table_item_view:
       view:
         tag: "tr"
@@ -305,12 +370,6 @@ spec:
                   - text:
                       key: purpose
                       in: item
-                  - view: test_scenario_tags_view
-                    params:
-                      object:
-                        data: 
-                          key: tags
-                          in: item
     test_scenarios_table_view:
       view:
         view: table
@@ -384,13 +443,15 @@ spec:
         children:
           - tag: td
             children:
-              - view: test_background_link_view
-                params:
-                  object:
-                    item:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                  onclick:
+                    encoder: background_selection
+                children:
+                  - text:
                       key: title
                       in: item
-
     test_backgrounds_table_view:
       view:
         view: table
@@ -532,17 +593,17 @@ spec:
                   in: item
           - tag: td
             children:
-              - text:
-                  key: type
-                  in: item
-          - tag: td
-            children:
               - view: json_view
                 params:
                   object:
                     source:
-                      key: spec
-                      in: item
+                      object:
+                        type:
+                          key: type
+                          in: item
+                        spec:
+                          key: spec
+                          in: item
     scenario_steps_table_view:
       view:
         view: table
@@ -554,10 +615,6 @@ spec:
                     title: 
                       text:
                         literal: "Name"
-                - object:
-                    title: 
-                      text:
-                        literal: "Type"
                 - object:
                     title: 
                       text:
@@ -621,5 +678,167 @@ spec:
               object:
                 scenario: 
                   key: scenario
+            sidebar:
+              keyword: admin_sidebar
+    scenario_link_view:
+      view:
+        tag: a
+        attrs:
+          class: "c-hand"
+          onclick:
+            encoder: scenario_selection
+        children:
+          - text:
+              key: title
+              in: item
+    scenario_links_view:
+      view:
+        tag: div
+        children:
+          loop:
+            key: scenarios
+            in: data
+          context:
+            key: test
+            in: data
+          with: scenario_link_view
+    background_info_view:
+      view:
+        view: info_view
+        params:
+          object:
+            title: 
+              text:
+                literal: "Background info"
+            items:
+              list:
+                - object:
+                    title:
+                      text:
+                        literal: "Test"
+                    value:
+                      key: test
+                    view:
+                      keyword: text_view
+                - object:
+                    title:
+                      text: 
+                        literal: "Tags"
+                    value:
+                      key: tags
+                    view:
+                      keyword: test_scenario_tags_view
+                - object:
+                    title:
+                      text: 
+                        literal: "Scenarios"
+                    value:
+                      object:
+                        test:
+                          key: test
+                        scenarios:
+                          key: scenarios
+                    view:
+                      keyword: scenario_links_view
+    background_step_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: title
+            in: item
+        children:
+          - tag: td
+            children:
+              - text:
+                  key: title
+                  in: item
+          - tag: td
+            children:
+              - view: json_view
+                params:
+                  object:
+                    source:
+                      object:
+                        type:
+                          key: type
+                          in: item
+                        spec:
+                          key: spec
+                          in: item
+    background_steps_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+                - object:
+                    title: 
+                      text:
+                        literal: "Spec"
+            items:
+              key: steps
+            item_view:
+              keyword: background_step_table_item_view
+    background_steps_view:
+      view:
+        tag: div
+        attrs:
+          class: "mt-4"
+        children:
+          - tag: h4
+            attrs:
+              class: "mt-2"
+            children:
+              - text:
+                  literal: "Steps"
+          - view: background_steps_table_view
+            params:
+              object:
+                steps:
+                  key: steps
+    background_sections_view:
+      view:
+        tag: div
+        children:
+          - view: background_info_view
+            params:
+              key: data
+          - view: background_steps_view
+            params:
+              key: data
+    background_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              key: title
+              in:
+                key: background 
+                in: data
+            view:
+              keyword: background_sections_view
+            data:
+              key: background
+              in: data
+    background_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: background_main_view
+            contents:
+              object:
+                background: 
+                  key: background
             sidebar:
               keyword: admin_sidebar

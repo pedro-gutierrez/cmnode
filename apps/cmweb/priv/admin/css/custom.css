@@ -62,6 +62,14 @@ a { text-decoration: none !important; }
     padding: .35rem .4rem !important;
 }
 
+div.admin-content {
+    overflow-y: auto;
+}
+
+.code code {
+    background: transparent;
+}
+
 .admin-content .btn.btn-primary, .admin-content .label-primary {
     background: white;
     border-color: #bababa;

@@ -250,3 +250,46 @@ spec:
                       any: list
                     purpose:
                       any: text
+    
+    - title: "Get a single background info"
+      purpose: "Verify that the admin user is able to retrieve info about a background"
+      tags: admin, tests, backgrounds
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+      steps:
+        - title: "Get info for background with title 'John logged in'"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "background"
+                test:
+                  text:
+                    literal: "cmtest"
+                background:
+                  text:
+                    literal: "John logged in"
+        - title: "Verify we got the info for that background"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                background:
+                  object:
+                    test:
+                      text: 
+                        literal: "cmtest"
+                    title:
+                      text: 
+                        literal: "John logged in"
+                    scenarios:
+                      any: list
+                    steps:
+                      any: list
+                    tags:
+                      any: list
