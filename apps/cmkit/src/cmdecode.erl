@@ -130,6 +130,9 @@ decode_term(#{ type := list, without := Member}, Data, _) when is_list(Data) ->
 decode_term(#{ type := first, spec := Spec }, Data, Config) when is_list(Data) ->
     decode_first_item(Spec, Data, Config);
 
+decode_term(#{ type := list, value := Specs }, Data, Config) ->
+    decode_all_items(Specs, Data, Config, []);
+
 decode_term(#{ type := list}, List, _) when is_list(List) -> {ok, List}; 
 
 decode_term(#{ type := list}, _, _ ) -> no_match;
@@ -179,4 +182,13 @@ decode_first_item(Spec, [Item|Rem], Config) ->
         {ok, Decoded} -> {ok, Decoded};
         no_match ->
             decode_first_item(Spec, Rem, Config)
+    end.
+
+decode_all_items([], _, _, Out) -> {ok, lists:reverse(Out)};
+decode_all_items(Specs, [], _, _) when length(Specs) > 0 -> no_match;
+decode_all_items([Spec|Rem], Data, Config, Out) ->
+    case decode_term(#{ type => first, spec => Spec }, Data, Config) of 
+        no_match -> no_match;
+        {ok, Decoded} ->
+            decode_all_items(Rem, Data, Config, [Decoded|Out])
     end.

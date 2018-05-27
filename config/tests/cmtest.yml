@@ -97,6 +97,26 @@ spec:
                   any: text
                 email:
                   any: text
+
+    - title: "Tests queue status"
+      steps:
+        - title: "Get the test queue status"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: test_queue
+        - title: "Verify we got the test queue status"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                test_queue:
+                  object:
+                    scheduled: 0
+                    running: 0
   scenarios:
     - title: "Get all tests"
       tags: 
@@ -302,3 +322,15 @@ spec:
                       any: list
                     tags:
                       any: list
+
+    - title: "Get tests queue status"
+      tags: 
+        - admin
+        - tests
+        - queue
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+        - "Tests queue status"

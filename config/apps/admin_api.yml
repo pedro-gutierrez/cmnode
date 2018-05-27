@@ -22,6 +22,7 @@ spec:
     - issues_api
     - milestones_api
     - tests_api
+    - queues_api
   config:
     role:
       keyword: admin

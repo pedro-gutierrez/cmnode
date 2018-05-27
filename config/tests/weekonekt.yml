@@ -189,7 +189,7 @@ spec:
               request:
                 method: post
                 headers:
-                  content_type:
+                  content-type:
                     text:
                       literal: "application/xml"
                   cmauth:

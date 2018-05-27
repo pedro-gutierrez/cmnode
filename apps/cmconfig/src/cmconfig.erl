@@ -11,7 +11,8 @@
          apps/0,
          app/1,
          mount/3,
-         effects/0
+         effects/0,
+         queues/0
         ]).
 
 all(Type) -> cmconfig_cache:all(Type).
@@ -24,6 +25,7 @@ apps() -> all(app).
 buckets() -> all(bucket).
 module(Name) -> find(module, Name).
 app(Name) -> find(app, Name).
+queues() -> all(queue).
 
 mount(App, Port, Transport) ->
     case port(Port) of 

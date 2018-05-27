@@ -138,9 +138,9 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "nodes"
-                style: "fa fa-4x fa-desktop"
-                title: "Nodes"
+                name: "queues"
+                style: "fa fa-4x fa-cogs"
+                title: "Queues"
           - view: sidebar_icon
             params:
               object:

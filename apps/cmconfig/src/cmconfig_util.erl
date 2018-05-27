@@ -24,7 +24,8 @@ compile(#{ <<"type">> := <<"app">> }=Spec) -> {ok, compile_app(Spec)};
 compile(#{ <<"type">> := <<"bucket">> }=Spec) -> {ok, compile_bucket(Spec)};
 compile(#{ <<"type">> := <<"template">> }=Spec) -> {ok, compile_template(Spec)};
 compile(#{ <<"type">> := <<"module">> }=Spec) -> {ok, compile_module(Spec)};
-compile(#{ <<"type">> := <<"test">> }=Spec) -> {ok, compile_test(Spec)}.
+compile(#{ <<"type">> := <<"test">> }=Spec) -> {ok, compile_test(Spec)};
+compile(#{ <<"type">> := <<"queue">> }=Spec) -> {ok, compile_queue(Spec)}.
 
 deps(#{ <<"type">> := T, 
         <<"name">> := N }=Spec) -> 
@@ -95,6 +96,20 @@ compile_port_app_mounts(Mounts) when is_map(Mounts) ->
                        [#{ transport => compile_keyword(Transport),
                          path => cmkit:to_list(Path) }|List]
                end, [], Mounts).
+
+
+compile_queue(#{ <<"name">> := Name,
+                 <<"spec">> := #{
+                    <<"concurrency">> := C,
+                    <<"max">> := M
+                    }}) ->
+    
+    Worker = cmkit:to_atom(cmkit:bin_join([Name, <<"queue">>], <<"_">>)),
+
+    #{ type => queue,
+       name => cmkit:to_atom(Name),
+       worker => Worker, 
+       capacity => #{ max => M, concurrency => C }}.
 
 
 compile_template(#{ <<"name">> := Name,
@@ -1042,7 +1057,8 @@ compare(#{ <<"type">> := <<"module">>,
     {ok, Children2} = cmconfig_cache:children(module, cmkit:to_atom(Name2)),
     length(Children1) =< length(Children2);
 
-compare(#{ <<"type">> := <<"module">> }, _) -> false.
+compare(#{ <<"type">> := <<"module">> }, _) -> false;
+compare(_, _) -> false.
 
 
 
