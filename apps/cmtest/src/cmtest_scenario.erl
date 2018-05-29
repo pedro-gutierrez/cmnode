@@ -27,7 +27,7 @@ callback_mode() ->
     state_functions.
 
 start_link(Test, Spec, Runner) ->
-    gen_statem:start_link({local, ?MODULE}, ?MODULE, [Test, Spec, Runner], []).
+    gen_statem:start_link(?MODULE, [Test, Spec, Runner], []).
 
 init([#{ name := Name,
          config := #{ retries := Retries,

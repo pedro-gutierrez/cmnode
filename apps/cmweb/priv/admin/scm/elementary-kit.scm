@@ -200,6 +200,24 @@
            (else (list 'error 'not-a-list-of-files files)))))
       (else (list 'error 'invalid-file-spec spec)))))
 
+(define (encode-either options in)
+  (case (length options)
+    ('0 (list 'error 'no-conditions-matched))
+    (else 
+      (let* ((pair (car options))
+             (cond-spec (get 'condition pair))
+             (value-spec (get 'spec pair))
+             (cond-verified (eval-condition cond-spec in)))
+        (case cond-verified
+          ('#t 
+           (let ((encoded-value (encode value-spec in)))
+             (case (car encoded-value)
+               ('ok (list 'ok (car (cdr encoded-value))))
+               (else 
+                 (console-error "cannot encode value from spec" pair)
+                 (list 'error 'invalid-value-spec pair)))))
+          ('#f (encode-either (cdr options) in)))))))
+
 (define (encode spec input) 
   (case (list? spec)
     ('#f
@@ -222,6 +240,7 @@
           ('maybe (encode-maybe value-spec input))
           ('files (encode-files value-spec input))
           ('file (encode-file value-spec input))
+          ('either (encode-either value-spec input))
           (else
             (console-error "invalid value spec" spec)
             '(error invalid-spec)))))))

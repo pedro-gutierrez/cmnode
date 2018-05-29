@@ -34,10 +34,35 @@ spec:
           any: text
         background:
           any: text
+    schedule_test:
+      object:
+        action:
+          text:
+            literal: "schedule"
+        test:
+          any: text
+    clear_scheduled_tests:
+      object:
+        action:
+          text:
+            literal: "clear_tests"
+    test_reports_query:
+      object:
+        action:
+          text:
+            literal: "test_reports"
+        days:
+          any: number
     tests:
       object:
         tests:
           list: any
+    tests_status:
+      object:
+        tests:
+          one_of:
+            - any: object
+            - any: keyword
     test:
       object:
         test:
@@ -86,6 +111,33 @@ spec:
               any: text
             error:
               keyword: not_found
+    test_reports:
+      object:
+        test_reports:
+          list:
+            one_of:
+              - object:
+                  query:
+                    any: keyword
+                  status:
+                    keyword: error
+                  error:
+                    any: data
+              - object:
+                  query: 
+                    any: keyword
+                  millis:
+                    any: number
+                  status:
+                    keyword: ok
+                  scenarios:
+                    object:
+                      fail:
+                        any: number
+                      success:
+                        any: number
+                      total:
+                        any: number
   update:
     list_tests:
       - when:
@@ -136,6 +188,39 @@ spec:
       - cmds:
           - effect: notify
             encoder: forbidden
+    schedule_test:
+      - when:
+          encoder: is_admin
+        model:
+          test:
+            key: test
+        cmds:
+          - effect: test
+            encoder: test_schedule_request
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    clear_scheduled_tests:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: test
+            encoder: clear_queue_request
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    test_reports_query:
+      - when:
+          encoder: is_admin
+        model:
+          days:
+            key: days
+        cmds:
+          - effect: test
+            encoder: test_reports_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
     tests:
       model:
         tests:
@@ -171,6 +256,20 @@ spec:
       cmds:
         - effect: notify
           encoder: background
+    tests_status:
+      model:
+        status:
+          key: tests
+      cmds:
+        - effect: notify
+          encoder: tests_status
+    test_reports:
+      model:
+        reports:
+          key: test_reports
+      cmds:
+        - effect: notify
+          encoder: test_reports
   encoders:
     tests:
       object:
@@ -214,3 +313,27 @@ spec:
           key: test
         background:
           key: background
+    test_schedule_request:
+      object:
+        query:
+          keyword: schedule
+        test:
+          key: test
+    tests_status:
+      object:
+        tests:
+          key: status
+    clear_queue_request:
+      object:
+        query: 
+          keyword: clear_queue
+    test_reports_query:
+      object:
+        query:
+          keyword: reports
+        days: 
+          key: days
+    test_reports:
+      object:
+        test_reports:
+          key: reports

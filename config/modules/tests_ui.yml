@@ -7,6 +7,8 @@ spec:
     model:
       tests: []
       test: {}
+      activity_panel:
+        keyword: hidden
   decoders:
     show_tests:
       object:
@@ -49,6 +51,12 @@ spec:
               any: text
             background:
               any: text
+    toggle_activity:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: toggle_activity
     tests:
       object:
         effect:
@@ -184,6 +192,27 @@ spec:
       cmds:
         - effect: ui
           encoder: background_view
+    toggle_activity:
+      - when:
+          eq:
+            - key: activity_panel
+            - keyword: visible
+        model:
+          activity_panel:
+            keyword: hidden
+        cmds:
+          - effect: ui
+            encoder: tests_view
+      - when:
+          eq:
+            - key: activity_panel
+            - keyword: hidden 
+        model:
+          activity_panel:
+            keyword: visible
+        cmds:
+          - effect: ui
+            encoder: tests_view
   encoders:
     tests:
       object:
@@ -301,15 +330,128 @@ spec:
                 tests:
                   key: tests
                   in: data
-    tests_main_view:
+    tests_header_button_view:
       view:
-        view: main
+        view: button
         params:
           object:
             title:
-              text:
+              key: title
+              in: item
+            click:
+              key: id
+              in: item
+    default_tests_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "without-inspector"
+        children:
+          - tag: div
+            attrs:
+              class: "columns col-12"
+            children:
+              - tag: div
+                attrs:
+                  class: "col-8"
+                children:
+                  - tag: h2
+                    attrs:
+                      class: "content-view"
+                    children:
+                      - text:
+                          key: title
+              - tag: div
+                attrs:
+                  class: "col-4 text-right header-buttons"
+                children:
+                  loop:
+                    key: actions
+                  with: tests_header_button_view
+          - view:
+              key: content_view
+            params:
+              object:
+                data:
+                  key: data
+    tests_layout_view_with_inspector:
+      view:
+        tag: div
+        attrs:
+          key: "with-inspector"
+        children:
+          - tag: div
+            attrs:
+              class: "columns"
+            children:
+              - tag: div
+                attrs:
+                  class: "col-8"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "columns col-12"
+                    children:
+                      - tag: div
+                        attrs:
+                          class: "col-6"
+                        children:
+                          - tag: h2
+                            attrs:
+                              class: "content-view"
+                            children:
+                              - text:
+                                  key: title
+                      - tag: div
+                        attrs:
+                          class: "col-6 text-right header-buttons"
+                        children:
+                          loop:
+                            key: actions
+                          with: tests_header_button_view
+                  - view:
+                      key: content_view
+                    params:
+                      object:
+                        data:
+                          key: data
+              - tag: div
+                attrs:
+                  class: "columns col-4"
+                children:
+                  - text:
+                      literal: "Inspector panel goes here"
+    tests_main_view:
+      view:
+        view:
+          either:
+            - when:
+                eq:
+                  - key: activity_panel
+                    in: data
+                  - keyword: hidden
+              keyword: default_tests_layout_view
+            - keyword: tests_layout_view_with_inspector
+        params:
+          object:
+            title:
+              text: 
                 literal: "Tests"
-            view:
+            actions:
+              list:
+                - object:
+                    title:
+                      text: 
+                        literal: "Show reports"
+                    id: 
+                      keyword: show_test_reports
+                - object:
+                    title:
+                      text: 
+                        literal: "Toggle activity"
+                    id: 
+                      keyword: toggle_activity 
+            content_view:
               keyword: tests_sections_view
             data:
               key: data
@@ -328,6 +470,8 @@ spec:
                   key: tests
                 test:
                   key: test
+                activity_panel:
+                  key: activity_panel
             sidebar:
               keyword: admin_sidebar
     test_scenario_tag_view:

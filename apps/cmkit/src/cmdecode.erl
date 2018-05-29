@@ -78,6 +78,9 @@ decode_term(#{ type := number, value := Num}, Bin, _) when is_binary(Bin) ->
         Num -> {ok, Num}
     end;
 
+decode_term(#{ type := number, spec := Spec}, Num, Config) ->
+    decode_term(Spec, Num, Config);
+
 decode_term(#{ type := number}, Num, _) when is_number(Num) -> {ok, Num};
 
 decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
@@ -88,8 +91,35 @@ decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
 
 decode_term(#{ type := number}, _, _) -> no_match;
 
+decode_term(#{ type := greater_than, spec := Min }, Num, _) when is_number(Min) and is_number(Num) ->
+    case Num >= Min of 
+        true -> {ok, Num};
+        false -> no_match
+    end;
+
+decode_term(#{ type := greater_than, spec := Spec }, Num, Config) when is_map(Spec) and is_number(Num) ->
+    case cmencode:encode(Spec, Config) of 
+        {ok, Min} when is_number(Min) ->
+            case Num >= Min of 
+                true -> {ok, Num};
+                false -> no_match
+            end;
+        Other -> 
+            cmkit:danger({cmdecode, greatear_than, Spec, not_a_number, Other}),
+            no_match
+    end;
+    
+decode_term(#{ type := greater_than }, _, _) -> no_match;
+
 decode_term(#{ type := empty}, empty, _) -> {ok, empty};
 decode_term(#{ type := empty}, _, _) -> no_match;
+
+
+decode_term(#{ type := list, spec := #{ size := Size }}, Data, _) when is_number(Size) and is_list(Data) -> 
+    case length(Data) of 
+        Size -> {ok, Data};
+        _ -> no_match
+    end;
 
 decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) -> 
     decode_list(Spec, Data, Config);

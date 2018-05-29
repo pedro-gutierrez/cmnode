@@ -364,6 +364,20 @@ merge_updates_spec([K|Rem], U1, U2) ->
     merge_updates_spec(Rem, U1, 
                        maps:put(K, maps:get(K, U2, []) ++ maps:get(K, U1), U2)).
 
+compile_option(#{ <<"when">> := When } = Spec) ->
+
+    #{ type => condition,
+       condition => compile_term(When),
+       spec => compile_term(maps:without([<<"when">>], Spec)) 
+     };
+
+compile_option(Spec) ->
+
+    #{ type => condition,
+       condition => #{ type => true },
+       spec => compile_term(Spec) 
+     }.
+
 compile_term(#{ <<"decoders">> := Decs }) ->
     compile_decoders(Decs);
 
@@ -384,6 +398,10 @@ compile_term(#{ <<"views">> := Views }) ->
 
 compile_term(#{ <<"effects">> := Effects }) ->
     compile_effects(Effects);
+
+compile_term(#{ <<"either">> := Specs }) when is_list(Specs) ->
+    #{ type => either,
+       options => lists:map(fun compile_option/1, Specs) };
 
 
 compile_term(#{ <<"spec">> := Spec,
@@ -531,6 +549,13 @@ compile_term(#{ <<"number">> := Num }) when is_number(Num) ->
 
 compile_term(#{ <<"number">> := <<"any">> }) ->
     #{ type => number };
+
+compile_term(#{ <<"number">> := Spec }) when is_map(Spec) ->
+    #{ type => number, spec => compile_term(Spec) };
+
+compile_term(#{ <<"at_least">> := Spec }) ->
+    #{ type => greater_than,
+       spec => compile_term(Spec) };
 
 compile_term(#{ <<"literal">> := Text }) ->
     #{ value => Text };

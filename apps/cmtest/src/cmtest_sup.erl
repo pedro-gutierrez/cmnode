@@ -9,11 +9,12 @@ start_link() ->
 
 init([]) ->
     
-    Runner = cmkit:child_spec(cmtest_runner,
-                            cmtest_runner,
-                            [],
-                            permanent,
-                            worker),
+    
+    RunnerSup = cmkit:child_spec(cmtest_runner_sup,
+                                   cmtest_runner_sup,
+                                   [],
+                                   permanent,
+                                   supervisor),
 
     ScenarioSup = cmkit:child_spec(cmtest_scenario_sup,
                                    cmtest_scenario_sup,
@@ -28,7 +29,7 @@ init([]) ->
                              supervisor),
     
     {ok, { {one_for_one, 0, 1}, [
-                                 Runner, 
+                                 RunnerSup, 
                                  ScenarioSup,
                                  WsSup
                                 ]}}.

@@ -254,6 +254,10 @@ term(#{ encoder := Name }) when is_atom(Name) ->
                             ]);
 
 
+
+
+
+
 term(#{ json := Source,
         indent := Indent }) ->
     cmscheme_ast:call(list, [
@@ -289,6 +293,34 @@ term(#{ maybe := Spec }) ->
                              cmscheme_ast:sym(maybe),
                              term(Spec)
                             ]);
+
+term(#{  type := either, 
+         options := Options }) ->
+
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(either),
+                             cmscheme_ast:call(list, lists:map(fun term/1, Options))
+                            ]);
+
+
+term(#{ type := condition,
+        condition := Cond,
+        spec := Spec }) ->
+
+    cmscheme_ast:call(list, [
+                             
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(condition),
+                                                      condition(Cond)
+                                                     ]),
+
+                             cmscheme_ast:call(list, [
+                                                      cmscheme_ast:sym(spec),
+                                                      term(Spec)
+                                                     ])
+
+                            ]);
+    
 
 
 term(#{ type := list }) ->

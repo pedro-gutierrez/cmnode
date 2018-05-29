@@ -19,10 +19,20 @@ run(#{ scenarios := Scenarios }=Test) ->
     run(Test, Scenarios);
 
 run(All) ->
-    gen_statem:call(?MODULE, {tests, All}).
+    case cmtest_runner_sup:start_child() of 
+        {ok, Pid} ->
+            gen_statem:call(Pid, {tests, All});
+        Other -> 
+            Other
+    end.
 
 run(Test, Scenarios) ->
-    gen_statem:call(?MODULE, {scenarios, Test, Scenarios}).
+    case cmtest_runner_sup:start_child() of 
+        {ok, Pid} ->
+            gen_statem:call(Pid, {scenarios, Test, Scenarios});
+        Other -> 
+            Other
+    end.
 
 progress(T, S, Info, Pid) ->
     gen_statem:cast(Pid, {progress, T, S, Info}).
@@ -44,11 +54,11 @@ callback_mode() ->
     state_functions.
 
 start_link() ->
-    gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_statem:start_link(?MODULE, [], []).
 
 init([]) ->
     Log = cmkit:log_fun(true),
-    Log({cmtest, node(), self()}),
+    Log({cmtest, runner, self()}),
     {ok, ready, #{ log => Log, 
                    started => cmkit:now(),
                    failures => [] 
@@ -56,7 +66,9 @@ init([]) ->
 
 
 ready({call, From}, {tests, Tests}, Data) ->
-    case start_test(Tests, Data#{ tests => Tests,
+    case start_test(Tests, Data#{ report_to => From,
+                                  query => all,
+                                  tests => Tests,
                                   total => 0,
                                   success => 0,
                                   fail => 0, 
@@ -64,15 +76,15 @@ ready({call, From}, {tests, Tests}, Data) ->
         {ok, Data2} ->
             {keep_state, Data2, ok(From)}; 
         {finished, Data2} ->
-            report(Data2),
-            {keep_state, Data2, ok(From)}; 
+            report(Data2);
         Other ->
-            cmkit:danger({cmtest, error, Other}),
-            {keep_state, Data, ok(From)}
+            report(Other, Data)
     end;
     
-ready({call, From}, {scenarios, Test, Scenarios}, #{ log := Log} = Data) ->
-    case start_scenario(Test, Scenarios, Data#{ test => Test,
+ready({call, From}, {scenarios, Test, Scenarios}, Data) ->
+    case start_scenario(Test, Scenarios, Data#{ report_to => From,
+                                                query => test,
+                                                test => Test,
                                                 total => 0,
                                                 success => 0,
                                                 fail => 0, 
@@ -80,11 +92,9 @@ ready({call, From}, {scenarios, Test, Scenarios}, #{ log := Log} = Data) ->
         {ok, Data2} ->
             {keep_state, Data2, ok(From)}; 
         {finished, Data2} ->
-            report(Data2),
-            {keep_state, Data2, ok(From)}; 
+            report(Data2);
         Other ->
-            Log({cmtest, error, Other}),
-            {keep_state, Data, ok(From)}
+            report(Other, Data)
     end;
 
 ready({call, From}, stop, #{ pid := Pid }=Data) ->
@@ -95,7 +105,7 @@ ready(cast, {progress, _, _, _}, #{ pid := Pid }=Data) ->
     cmtest_scenario:next(Pid),
     {keep_state, Data};
 
-ready(cast, {success, _, _, _}, #{ log := Log, 
+ready(cast, {success, _, _, _}, #{ 
                                       pid := Pid,
                                       test := Test,
                                       scenarios:= Rem,
@@ -107,15 +117,13 @@ ready(cast, {success, _, _, _}, #{ log := Log,
         {ok, Data3 } ->
             {keep_state, Data3};
         {finished, Data3} ->
-            report(Data3),
-            {keep_state, Data3}; 
+            report(Data3);
         {error, E} ->
-            Log({cmtest, error, E}),
-            {keep_state, Data2}
+            report(E, Data2)
     end;
 
 ready(cast, {fail, _, Title, Info
-            }, #{ log := Log, 
+            }, #{  
                   pid := Pid,
                   test := #{ name := Name }=Test,
                   scenarios := Rem,
@@ -134,15 +142,12 @@ ready(cast, {fail, _, Title, Info
         {ok, Data3} ->
             {keep_state, Data3};
         {finished, Data3} ->
-            report(Data3),
-            {keep_state, Data3}; 
+            report(Data3);
         {error, E} ->
-            Log({cmtest, error, E}),
-            {keep_state, Data2}
+            report(E, Data2)
     end.
     
-terminate(Reason, _, #{ log := Log}) ->
-    Log({cmtest, node(), self(), terminated, Reason}),
+terminate(_, _, _) ->
     ok.
 
 start_test([], Data) ->
@@ -177,23 +182,41 @@ start_scenario(#{ name := Name }=Test, [S|Rem], #{ total := Total }=Data) ->
 start_scenario(_, _, Data) ->
     {finished, Data#{ finished => cmkit:now() }}.
 
-report(#{ started := T1, 
+report(#{ report_to := {From, _},
+          started := T1, 
           finished := T2,
           total := Total,
           success := Success,
           fail := Fail,
           failures := Failures 
-        }) ->
-    
+        }=Data) ->
+
     S = severity(Fail, Success, Total),
     Millis = trunc((T2-T1)/1000),
 
-    cmkit:S({cmtest, Failures, 
-               {scenarios, 
-                    {total, Total}, 
-                    {passed, Success},
-                    {failed, Fail}},
-               {millis, Millis}}).
+    Report = #{ query => query(Data),
+                status => ok,
+                scenarios => #{ total => Total,
+                                success => Success,
+                                fail => Fail },
+                millis => Millis,
+                failures => Failures},
+
+    cmkit:S({cmtest, Report}),
+    gen_statem:cast(From, finished),
+    save(Report),
+    {stop, normal}.
+
+report(Error, #{ report_to := {From, _}}=Data) ->
+    
+    Report = #{ query => query(Data),
+                status => error,
+                error => Error },
+    
+    cmkit:danger({cmtest, Report}),
+    gen_statem:cast(From, finished),
+    save(Report), 
+    {stop, normal}.
 
 
 severity(_, _, 0) -> success;
@@ -202,4 +225,18 @@ severity(_, 0, _) -> danger;
 severity(_, _, _) -> warning.
 
 
+query(#{ query := all }) -> all;
+query(#{ query := test, test := #{ name := Name}}) -> Name.
+
+save(#{ query := Query} = Report) -> 
+    Id = cmkit:uuid(),
+    Now = calendar:local_time(), 
+    Pairs = [{{report, Id},Report}, 
+             {{report, Query}, Id},
+             {{report, cmcalendar:to_bin(Now, year)}, Id},
+             {{report, cmcalendar:to_bin(Now, month)}, Id},
+             {{report, cmcalendar:to_bin(Now, date)}, Id}
+            ],
+
+    cmdb:put(tests, Pairs).
 

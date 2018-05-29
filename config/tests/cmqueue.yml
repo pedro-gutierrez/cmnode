@@ -1,0 +1,181 @@
+version: 1.0
+type: test 
+name: cmqueue
+spec:
+  config:
+    retries: 100
+    wait: 5
+  backgrounds: 
+    - title: "Admin api is online"
+      steps:
+        - title: "Connect to the Admin api"
+          connect:
+            app: admin_api
+            port: admin
+            transport: ws
+        - title: "Check the Admin api is ready"
+          probe:
+            app: admin_api
+            status: up
+    - title: "Admin database is empty"
+      steps:
+        - title: "Send a reset command to Admin" 
+          send:
+            to: admin_api
+            spec:
+              object:
+                action:
+                  text:
+                    literal: "reset"
+                token:
+                  text:
+                    literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
+        - title: "Verify status is ok"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                status:
+                  text:
+                    literal: "ok"
+    - title: "Admin user John"
+      steps:
+        - title: "Register as John"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text:
+                    literal: register
+                first: 
+                  text:
+                    literal: John
+                last: 
+                  text:
+                    literal: Chrichton
+                username: 
+                  text:
+                    literal: john@farscape.com
+                password: 
+                  text:
+                    literal: foo
+                password_confirm: 
+                  text:
+                    literal: foo
+        - title: "Verify we got a user id and email" 
+          receive:
+            from: admin_api
+            spec:
+              object:
+                id:
+                  any: text
+                email:
+                  any: text
+    - title: "John logged in"
+      steps:
+        - title: "Log in as John"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: login
+                username: 
+                  text: 
+                    literal: john@farscape.com
+                password: 
+                  text:
+                    literal: foo
+        - title: "Verify we got a user id and email"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                id:
+                  any: text
+                email:
+                  any: text
+  scenarios:
+    - title: "List queues"
+      tags:
+        - queue
+        - list
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+      steps:
+        - title: "Get all queues"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: queues
+        - title: "Verify we got a list of queues"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                queues:
+                  list:
+                    - object:
+                        name: 
+                          text:
+                            literal: "tests"
+                        capacity:
+                          object:
+                            max: 10
+                            concurrency: 1
+                        status:
+                          object:
+                            pending:
+                              any: number
+                            active:
+                              any: number
+
+    - title: "Get the status of a queue"
+      tags:
+        - queue
+        - status
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+      steps:
+        - title: "Get the status of the 'tests' queues"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "queue"
+                queue:
+                  text:
+                    literal: "tests"
+        - title: "Verify we got the status of the queue"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                queue:
+                  object:
+                    name: 
+                      text:
+                        literal: "tests"
+                    capacity:
+                      object:
+                        max: 10
+                        concurrency: 1
+                    status:
+                      object:
+                        pending:
+                          any: number
+                        active:
+                          any: number

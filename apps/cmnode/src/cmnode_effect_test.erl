@@ -80,7 +80,34 @@ effect_apply(#{ query := background,
                   end
           end,
 
-    cmcore:update(SessionId, #{ background => Res}).
+    cmcore:update(SessionId, #{ background => Res});
+
+
+effect_apply(#{ query := schedule,
+                test := Test }, SessionId) ->
+
+    Res = case cmtest:schedule(Test) of 
+              {ok, Status } -> Status;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ tests => Res});
+
+effect_apply(#{ query := clear_queue }, SessionId) ->
+
+    Res = case cmtest:clear() of 
+              {ok, Status } -> Status;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ tests => Res});
+
+effect_apply(#{ query := reports,
+                days := Days }, SessionId) ->
+
+    Res = case cmtest:reports(Days) of 
+              {ok, Reports } -> Reports;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ test_reports => Res}).
 
 metadata(Spec) ->
     maps:with([title, id, tags], Spec).

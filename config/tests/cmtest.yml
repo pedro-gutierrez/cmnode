@@ -98,25 +98,48 @@ spec:
                 email:
                   any: text
 
-    - title: "Tests queue status"
+    - title: "Tests queue is empty"
       steps:
-        - title: "Get the test queue status"
+        - title: "Clear the tests queue"
           send:
             to: admin_api
             spec:
               object:
                 action: 
                   text: 
-                    literal: test_queue
-        - title: "Verify we got the test queue status"
+                    literal: clear_tests
+        - title: "Ensure the queue is empty"
           receive:
             from: admin_api
             spec:
               object:
-                test_queue:
+                tests:
                   object:
-                    scheduled: 0
-                    running: 0
+                    pending: 0
+    
+    - title: "A test was scheduled"
+      steps:
+        - title: "Schedule a test"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "schedule"
+                test:
+                  text:
+                    literal: "cmqueue"
+        
+        - title: "Ensure the test is pending"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                tests:
+                  object:
+                    active: 1
+         
   scenarios:
     - title: "Get all tests"
       tags: 
@@ -323,14 +346,50 @@ spec:
                     tags:
                       any: list
 
-    - title: "Get tests queue status"
+    - title: "Schedule a test and get test reports"
       tags: 
         - admin
         - tests
-        - queue
+        - schedule
+        - reports
       backgrounds:
         - "Admin api is online"
         - "Admin database is empty"
         - "Admin user John"
         - "John logged in"
-        - "Tests queue status"
+        - "A test was scheduled"
+      steps:
+        - title: "Get test reports for today"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "test_reports"
+                days: 1
+
+        - title: "Verify we got one test report"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                test_reports:
+                  list:
+                    object:
+                      query:
+                        any: text
+                      millis:
+                        any: number
+                      status:
+                        text:
+                          literal: "ok"
+                      scenarios:
+                        object:
+                          fail: 
+                            any: number
+                          success:
+                            any: number
+                          total:
+                            any: number
+

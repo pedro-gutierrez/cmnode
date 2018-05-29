@@ -1,0 +1,81 @@
+version: 1.0
+type: module
+category: server
+name: queues_api
+spec:
+  decoders:
+    list_queues:
+      object:
+        action: 
+          text: 
+            literal: "queues"
+    query_queue:
+      object:
+        action: 
+          text: 
+            literal: "queue"
+        queue:
+          any: text
+    queues:
+      object:
+        queues:
+          list: any
+    queue:
+      object:
+        queue:
+          object: any
+  update:
+    list_queues:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: queue
+            encoder: queues_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    query_queue:
+      - when:
+          encoder: is_admin
+        model:
+          queue:
+            key: queue
+        cmds:
+          - effect: queue
+            encoder: queue_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    queues:
+      model:
+        queues:
+          key: queues
+      cmds:
+        - effect: notify
+          encoder: queues
+    queue:
+      model:
+        queue:
+          key: queue
+      cmds:
+        - effect: notify
+          encoder: queue
+  encoders:
+    queues_query:
+      object:
+        query:
+          keyword: queues
+    queue_query:
+      object:
+        query:
+          keyword: queue
+        queue:
+          key: queue
+    queues:
+      object:
+        queues:
+          key: queues
+    queue:
+      object:
+        queue:
+          key: queue

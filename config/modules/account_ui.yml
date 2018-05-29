@@ -323,17 +323,15 @@ spec:
 
     button:
       view:
-        tag: div
+        tag: button
+        attrs:
+          class: "btn btn-primary"
+          onclick:
+            maybe:
+              key: click
         children:
-          - tag: button
-            attrs:
-              class: "btn btn-primary"
-              onclick:
-                maybe:
-                  key: click
-            children:
-              - text:
-                  key: title
+          - text:
+              key: title
     link:
       view:
         tag: div
