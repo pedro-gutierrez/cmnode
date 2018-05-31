@@ -8,15 +8,29 @@ spec:
       tests: []
       test: {}
       activity_panel:
-        keyword: hidden
+        keyword: visible
+      test_activity:
+        object:
+          max: 0
+          active: 0
+          pending: 0
+          state:
+            text:
+              literal: "green"
+          items:
+            object:
+              pending: []
+              active: []
   decoders:
     show_tests:
       object:
         effect:
           keyword: ui
         event:
-          text: 
-            literal: "tests"
+          one_of:
+            - text: 
+                literal: "tests"
+            - keyword: tests
     show_test:
       object:
         effect:
@@ -25,6 +39,16 @@ spec:
           object:
             name: 
               keyword: "show_test"
+            test:
+              any: text
+    schedule_test:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: schedule
             test:
               any: text
     show_scenario:
@@ -57,6 +81,44 @@ spec:
           keyword: ui
         event:
           keyword: toggle_activity
+    show_test_reports:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: show_test_reports
+    show_test_report:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: show_test_report
+            report:
+              any: text
+    tests_activity:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            tests:
+              object:
+                active:
+                  any: number
+                pending:
+                  any: number
+                state:
+                  any: text
+                max:
+                  any: number
+                items:
+                  object:
+                    active: 
+                      any: list
+                    pending:
+                      any: list
     tests:
       object:
         effect:
@@ -128,6 +190,45 @@ spec:
                   any: list
                 scenarios:
                   any: list
+    test_reports:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            test_reports:
+              list: any
+    test_report:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            test_report:
+              object:
+                id:
+                  any: text
+                query:
+                  any: text
+                millis:
+                  any: number
+                status:
+                  any: text
+                scenarios:
+                  object:
+                    fail: 
+                      any: number
+                    success:
+                      any: number
+                    total:
+                      any: number
+                failures:
+                  list:
+                    object:
+                      scenario:
+                        any: text
+                      failure:
+                        any: object
   update:
     show_tests:
       cmds:
@@ -135,6 +236,8 @@ spec:
           encoder: tests_view
         - effect: ws
           encoder: tests
+        - effect: ws
+          encoder: test_activity_query
     tests:
       model:
         tests:
@@ -144,6 +247,29 @@ spec:
       cmds:
         - effect: ui
           encoder: tests_view
+    test_reports:
+      model:
+        test_reports:
+          key: test_reports
+          in: data
+      cmds:
+        - effect: ui
+          encoder: test_reports_view
+    test_report:
+      model:
+        test_report:
+          key: test_report
+          in: data
+      cmds:
+        - effect: ui
+          encoder: test_report_view
+    tests_activity:
+      model:
+        test_activity:
+          key: tests
+          in: data
+      cmds:
+        - effect: ui
     show_test:
       model:
         test: 
@@ -168,6 +294,20 @@ spec:
       cmds:
         - effect: ws
           encoder: background_info
+    show_test_reports:
+      model:
+        test_reports: []
+      cmds:
+        - effect: ws
+          encoder: test_reports
+    show_test_report:
+      model:
+        report: 
+          key: report
+          in: event
+      cmds:
+        - effect: ws
+          encoder: test_report
     test:
       model:
         test:
@@ -202,7 +342,6 @@ spec:
             keyword: hidden
         cmds:
           - effect: ui
-            encoder: tests_view
       - when:
           eq:
             - key: activity_panel
@@ -212,11 +351,36 @@ spec:
             keyword: visible
         cmds:
           - effect: ui
-            encoder: tests_view
+    schedule_test:
+      model:
+        test: 
+          key: test
+          in: event
+      cmds:
+        - effect: ws
+          encoder: schedule_test
   encoders:
     tests:
       object:
         action: tests
+    test_reports:
+      object:
+        action: test_reports
+        days: 1
+    schedule_test:
+      object:
+        action: 
+          text:
+            literal: "schedule"
+        test:
+          key: test
+    test_activity_query:
+      object:
+        action: 
+          text:
+            literal: "test_activity"
+        test:
+          key: test
     test_selection:
       object:
         name:
@@ -268,6 +432,12 @@ spec:
           in: test
         background:
           key: background
+    test_report:
+      object:
+        action:
+          keyword: test_report
+        report:
+          key: report
     test_table_item_view:
       view:
         tag: "tr"
@@ -277,6 +447,8 @@ spec:
             in: item
         children:
           - tag: td
+            attrs:
+              key: "name"
             children:
               - tag: a
                 attrs:
@@ -288,15 +460,36 @@ spec:
                       key: name
                       in: item
           - tag: td
+            attrs:
+              key: "backgrounds"
             children:
               - text:
                   key: backgrounds 
                   in: item
           - tag: td
+            attrs:
+              key: "scenarios"
             children:
               - text:
                   key: scenarios 
                   in: item
+          - tag: td
+            attrs:
+              class: "text-center"
+            children:
+              - view: button
+                params:
+                  object:
+                    click:
+                      object:
+                        name:
+                          keyword: schedule
+                        test:
+                          key: name
+                          in: item
+                    title:
+                      text:
+                        literal: "Schedule"
     tests_table_view:
       view:
         view: table
@@ -316,6 +509,11 @@ spec:
                     title:
                       text: 
                         literal: "Scenarios"
+
+                - object:
+                    title:
+                      text: 
+                        literal: " "
             items:
               key: tests
             item_view:
@@ -332,27 +530,147 @@ spec:
                   in: data
     tests_header_button_view:
       view:
-        view: button
-        params:
-          object:
-            title:
+        tag: a
+        attrs:
+          class: "c-hand d-inline-block"
+          onclick:
+            key: target
+            in: item
+        children:
+          - text:
               key: title
               in: item
-            click:
-              key: id
-              in: item
-    default_tests_layout_view:
+    test_in_progress_item_view:
       view:
         tag: div
         attrs:
-          key: "without-inspector"
+          class: "item columns"
+          key: 
+            key: id
+            in: item
+        children:
+          - tag: span
+            attrs:
+              class: "title col-6"
+            children:
+              - text: 
+                  key: name
+                  in: item
+          - tag: span
+            attrs:
+              class: "info text-gray text-right col-6"
+            children:
+              - text: 
+                  literal: "a few secs ago"
+    tests_in_progress_view:
+      view:
+        tag: div
+        attrs:
+          key:
+            key: title
+          class: "tests-in-progress"
+        children:
+          - tag: h6
+            children:
+              - text:
+                  key: title
+          - tag: div
+            children:
+              loop: 
+                key: items
+              with: test_in_progress_item_view
+    tests_activity_view:
+      view:
+        tag: div
+        attrs: 
+          class: "p-2"
+          key: "activity-panel"
         children:
           - tag: div
             attrs:
+              class: "text-center"
+            children:
+              - tag: span
+                children:
+                  - text:
+                      format:
+                        pattern: "~a test(s) running"
+                        params:
+                          - text:
+                              key: active
+
+          - view: progress
+            params:
+              object:
+                value:
+                  sum:
+                    - key: active
+                    - key: pending
+                max:
+                  key: max
+          
+          - view: tests_in_progress_view
+            when:
+              not:
+                eq:
+                  - number: 0
+                  - key: pending
+            params:
+              object:
+                pending:
+                  key: pending
+                title:
+                  literal: "Pending tests"
+                items:
+                  key: pending
+                  in: items
+
+    inspector_panel_view:
+      view:
+        tag: div
+        attrs:
+          class: "card inspector-panel"
+          key: "inspector-panel"
+        children:
+          - tag: h6
+            attrs:
+              class: "panel-title"
+            children:
+              - text: 
+                  key: title
+          - tag: div
+            children:
+              - view: 
+                  key: content_view
+                params:
+                  key: data
+    tests_inspector_view:
+      view:
+        view: inspector_panel_view
+        params:
+          object:
+            title:
+              text:
+                literal: "Tests activity"
+            content_view:
+              keyword: tests_activity_view
+            data:
+              key: activity
+    tests_layout_view_without_inspector:
+      view:
+        tag: div
+        attrs:
+          key: 
+            key: title
+        children:
+          - tag: div
+            attrs:
+              key: "layout-header"
               class: "columns col-12"
             children:
               - tag: div
                 attrs:
+                  key: "title"
                   class: "col-8"
                 children:
                   - tag: h2
@@ -363,7 +681,8 @@ spec:
                           key: title
               - tag: div
                 attrs:
-                  class: "col-4 text-right header-buttons"
+                  key: "nav-buttons"
+                  class: "col-4 text-right header-buttons padding-top-10"
                 children:
                   loop:
                     key: actions
@@ -381,47 +700,57 @@ spec:
           key: "with-inspector"
         children:
           - tag: div
-            attrs:
-              class: "columns"
             children:
               - tag: div
                 attrs:
-                  class: "col-8"
+                  key: "layout-header"
+                  class: "columns"
                 children:
                   - tag: div
                     attrs:
-                      class: "columns col-12"
+                      class: "column col-6"
                     children:
-                      - tag: div
+                      - tag: h2
                         attrs:
-                          class: "col-6"
+                          class: "content-view"
                         children:
-                          - tag: h2
-                            attrs:
-                              class: "content-view"
-                            children:
-                              - text:
-                                  key: title
-                      - tag: div
-                        attrs:
-                          class: "col-6 text-right header-buttons"
-                        children:
-                          loop:
-                            key: actions
-                          with: tests_header_button_view
-                  - view:
-                      key: content_view
-                    params:
-                      object:
-                        data:
-                          key: data
+                          - text:
+                              key: title
+                  - tag: div
+                    attrs:
+                      class: "column col-6 text-right header-buttons padding-top-10"
+                    children:
+                      loop:
+                        key: actions
+                      with: tests_header_button_view
               - tag: div
                 attrs:
-                  class: "columns col-4"
+                  attrs: "layout-content"
+                  class: "columns"
                 children:
-                  - text:
-                      literal: "Inspector panel goes here"
-    tests_main_view:
+                  - tag: div
+                    attrs:
+                      class: "column col-8"
+                    children:
+                      - view:
+                          key: content_view
+                        params:
+                          object:
+                            data:
+                              key: data
+
+                  - tag: div
+                    attrs:
+                      class: "column col-4"
+                    children:
+                      - view: tests_inspector_view
+                        params:
+                          object:
+                            activity:
+                              key: test_activity
+                              in: data
+
+    tests_layout_view:
       view:
         view:
           either:
@@ -430,8 +759,37 @@ spec:
                   - key: activity_panel
                     in: data
                   - keyword: hidden
-              keyword: default_tests_layout_view
+              keyword: tests_layout_view_without_inspector
             - keyword: tests_layout_view_with_inspector
+        params:
+          object:
+            title:
+              key: title
+            actions:
+              merge:
+                - key: actions
+                - list:
+                   - object:
+                      target: 
+                        keyword: toggle_activity
+                      title:
+                        either:
+                          - when:
+                              eq:
+                                - key: activity_panel
+                                  in: data
+                                - keyword: hidden
+                            text: 
+                              literal: "Show activity"
+                          - text: 
+                              literal: "Hide activity"
+            content_view:
+              key: content_view
+            data: 
+              key: data
+    tests_main_view:
+      view: 
+        view: tests_layout_view
         params:
           object:
             title:
@@ -443,14 +801,8 @@ spec:
                     title:
                       text: 
                         literal: "Show reports"
-                    id: 
+                    target: 
                       keyword: show_test_reports
-                - object:
-                    title:
-                      text: 
-                        literal: "Toggle activity"
-                    id: 
-                      keyword: toggle_activity 
             content_view:
               keyword: tests_sections_view
             data:
@@ -472,6 +824,203 @@ spec:
                   key: test
                 activity_panel:
                   key: activity_panel
+                test_activity:
+                  key: test_activity
+            sidebar:
+              keyword: admin_sidebar
+    test_report_badge_view:
+      view:
+        tag: div
+        attrs:
+          class:
+            either:
+              - when:
+                  eq:
+                    - key: fail
+                    - number: 0
+                text:
+                  literal: "margin-auto size-16-16 circle bg-success"
+              - when:
+                  eq:
+                    - key: success
+                    - number: 0
+                text:
+                  literal: "margin-auto  size-16-16 circle bg-error"
+              - text:
+                  literal: "margin-auto size-16-16 circle bg-warning"
+    test_reports_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: query
+            in: item
+        children:
+          - tag: td
+            attrs:
+              key: "badge"
+              class: "text-center"
+            children:
+              - view: test_report_badge_view
+                params:
+                  key: scenarios
+                  in: item
+          - tag: td
+            attrs:
+              key: "test"
+            children:
+              - tag: a
+                attrs:
+                  class: "c-hand"
+                  onclick:
+                    object:
+                      name: 
+                        keyword: show_test_report
+                      report:
+                        key: id
+                        in: item
+                children:
+                  - text:
+                      key: query
+                      in: item
+          - tag: td
+            attrs:
+              key: "scenarios"
+            children:
+              - text:
+                  key: total
+                  in:
+                    key: scenarios
+                    in: item
+          - tag: td
+            attrs:
+              key: "passed"
+            children:
+              - text:
+                  key: success
+                  in:
+                    key: scenarios
+                    in: item
+          - tag: td
+            attrs:
+              key: "failed"
+            children:
+              - text:
+                  key: fail
+                  in:
+                    key: scenarios
+                    in: item
+          - tag: td
+            attrs:
+              key: "time"
+            children:
+              - text:
+                  key: millis
+                  in: item
+          - tag: td
+            attrs:
+              class: "text-center"
+            children:
+              - view: button
+                params:
+                  object:
+                    click:
+                      object:
+                        name:
+                          keyword: schedule
+                        test:
+                          key: query
+                          in: item
+                    title:
+                      text:
+                        literal: "Schedule again"
+          
+    test_reports_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: ""
+                - object:
+                    title: 
+                      text:
+                        literal: "Test"
+                - object:
+                    title: 
+                      text:
+                        literal: "Scenarios"
+                - object:
+                    title: 
+                      text:
+                        literal: "Passed"
+                - object:
+                    title: 
+                      text:
+                        literal: "Failed"
+                - object:
+                    title: 
+                      text:
+                        literal: "Time"
+                - object:
+                    title: 
+                      text:
+                        literal: " "
+            items:
+              key: test_reports
+            item_view:
+              keyword: test_reports_table_item_view
+    test_reports_sections_view:
+      view:
+        tag: div
+        children:
+          - view: test_reports_table_view
+            params:
+              object:
+                test_reports:
+                  key: test_reports
+                  in: data
+    test_reports_main_view:
+      view: 
+        view: tests_layout_view
+        params:
+          object:
+            title:
+              text: 
+                literal: "Reports"
+            actions:
+              list:
+                - object:
+                    title:
+                      text: 
+                        literal: "Show tests"
+                    target: 
+                      keyword: tests
+            content_view:
+              keyword: test_reports_sections_view
+            data:
+              key: data
+    test_reports_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: test_reports_main_view
+            contents:
+              object:
+                test_reports: 
+                  key: test_reports
+                activity_panel:
+                  key: activity_panel
+                test_activity:
+                  key: test_activity
             sidebar:
               keyword: admin_sidebar
     test_scenario_tag_view:
@@ -650,29 +1199,38 @@ spec:
     test_sections_view:
       view:
         tag: div
+        attrs:
+          key: "test-sections"
         children:
           - view: test_scenarios_view
             params:
               object:
                 test:
                   key: name 
-                  in: data
+                  in:
+                    key: test
+                    in: data
                 scenarios:
                   key: scenarios
-                  in: data
+                  in:
+                    key: test
+                    in: data
           - view: test_backgrounds_view
             params:
               object:
                 test:
                   key: name 
-                  in: data
+                  in: 
+                    key: test
+                    in: data
                 backgrounds:
                   key: backgrounds
-                  in: data
-
+                  in:
+                    key: test
+                    in: data
     test_main_view:
-      view:
-        view: main
+      view: 
+        view: tests_layout_view_without_inspector
         params:
           object:
             title:
@@ -680,11 +1238,18 @@ spec:
               in:
                 key: test
                 in: data
-            view:
+            actions:
+              list:
+                - object:
+                    title:
+                      text: 
+                        literal: "Back to tests"
+                    target: 
+                      keyword: tests
+            content_view:
               keyword: test_sections_view
             data:
-              key: test
-              in: data
+              key: data
     test_view:
       view:
         view: layout
@@ -698,9 +1263,134 @@ spec:
               object:
                 test: 
                   key: test
+                activity_panel:
+                  key: activity_panel
+                test_activity:
+                  key: test_activity
             sidebar:
               keyword: admin_sidebar
-    
+    test_report_stats_view:
+      view:
+        tag: div
+        attrs:
+          key: "report-stats"
+          class: "report-stats card"
+        children:
+          - tag: div
+            attrs:
+              class: "columns"
+            children:
+              - tag: div
+                attrs:
+                  class: "report-stats-metric column col-4"
+                children:
+                  - tag: h6
+                    attrs:
+                      class: "panel-title pb-0"
+                    children:
+                      - text:
+                          literal: "scenarios"
+                  - tag: div
+                    attrs:
+                      class: "stats-metric"
+                    children:
+                      - text:
+                          key: total
+                          in:
+                            key: scenarios
+                            in: report
+              - tag: div
+                attrs:
+                  class: "report-stats-metric column col-4"
+                children:
+                  - tag: h6
+                    attrs:
+                      class: "panel-title pb-0"
+                    children:
+                      - text:
+                          literal: "Passed"
+                  - tag: div
+                    attrs:
+                      class: "stats-metric"
+                    children:
+                      - text:
+                          key: success
+                          in:
+                            key: scenarios
+                            in: report
+              - tag: div
+                attrs:
+                  class: "column col-4"
+                children:
+                  - tag: h6
+                    attrs:
+                      class: "panel-title pb-0"
+                    children:
+                      - text:
+                          literal: "Failed"
+                  - tag: div
+                    attrs:
+                      class: "stats-metric"
+                    children:
+                      - text:
+                          key: fail
+                          in:
+                            key: scenarios
+                            in: report
+    test_report_sections_view:
+      view:
+        tag: div
+        attrs:
+          key: "report-sections"
+        children:
+          - view: test_report_stats_view
+            params:
+              object:
+                report: 
+                  key: test_report
+                  in: data
+    test_report_main_view:
+      view: 
+        view: tests_layout_view
+        params:
+          object:
+            title:
+              text:
+                key: query
+                in: 
+                  key: test_report
+                  in: data
+            actions:
+              list:
+                - object:
+                    title:
+                      text: 
+                        literal: "Back to reports"
+                    target: 
+                      keyword: show_test_reports
+            content_view:
+              keyword: test_report_sections_view
+            data:
+              key: data
+    test_report_view:
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: test_report_main_view
+            contents:
+              object:
+                test_report: 
+                  key: test_report
+                activity_panel:
+                  key: activity_panel
+                test_activity:
+                  key: test_activity
+            sidebar:
+              keyword: admin_sidebar
     scenario_info_view:
       view:
         view: info_view
@@ -804,6 +1494,8 @@ spec:
     scenario_sections_view:
       view:
         tag: div
+        attrs:
+          key: "scenario-sections"
         children:
           - view: scenario_info_view
             params:
@@ -812,16 +1504,24 @@ spec:
             params:
               key: data
     scenario_main_view:
-      view:
-        view: main
+      view: 
+        view: tests_layout_view_without_inspector
         params:
           object:
             title:
-              key: title 
+              key: title
               in:
                 key: scenario
                 in: data
-            view:
+            actions:
+              list:
+                - object:
+                    title:
+                      text: 
+                        literal: "Back to tests"
+                    target: 
+                      keyword: tests
+            content_view:
               keyword: scenario_sections_view
             data:
               key: scenario
@@ -944,6 +1644,8 @@ spec:
     background_sections_view:
       view:
         tag: div
+        attrs:
+          key: "background-sections"
         children:
           - view: background_info_view
             params:
@@ -952,8 +1654,8 @@ spec:
             params:
               key: data
     background_main_view:
-      view:
-        view: main
+      view: 
+        view: tests_layout_view_without_inspector
         params:
           object:
             title:
@@ -961,7 +1663,15 @@ spec:
               in:
                 key: background 
                 in: data
-            view:
+            actions:
+              list:
+                - object:
+                    title:
+                      text: 
+                        literal: "Back to tests"
+                    target: 
+                      keyword: tests
+            content_view:
               keyword: background_sections_view
             data:
               key: background

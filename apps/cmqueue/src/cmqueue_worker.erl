@@ -114,17 +114,25 @@ terminate(Reason, _, #{ name := Name}) ->
     cmkit:log({cmqueue, Name, terminate, Reason}),
     ok.
 
-reply_status(From, #{ cap := Cap, status := Status}=Data) ->
+reply_status(From, #{ name := Name, queue := Q, cap := Cap, status := Status}=Data) ->
     S = maps:merge(Cap, Status),
     State = state(Data),
-    Reply = {ok, S#{ state => State }},
-    {next_state, State, Data, [{reply, From, Reply}]}.
+    Info = S#{ state => State, 
+                     items =>  #{ pending => [ maps:without([spec], J) || J  <- queue:to_list(Q) ],
+                                  active => []
+                                }},
+    cmkit:log({cmqueue, Name, status, Info}),
+    {next_state, State, Data, [{reply, From, {ok, Info}}]}.
 
 clear(#{ status := Status}=Data) ->
     Data#{ queue => queue:new(), status => Status#{ pending => 0, failed => 0 }}.
 
 
-start({M, F, Args}=Job, #{ name := Name }=Data) ->
+start(#{ id := _,
+         timestamp := _,
+         type := _,
+         name := _,
+         spec := {M, F, Args} } = Job, #{ name := Name }=Data) ->
     
     case apply(M, F, Args) of 
         ok -> 
@@ -151,9 +159,6 @@ failed(Job, Reason, #{ name := Name,
                        status := #{ failed := F}=Status}=Data) ->
     cmkit:danger({cmqueue, Name, failed, Job, Reason}),
     Data#{ status => Status#{ failed => F + 1}}.
-
-
-
 
 state(#{ cap := #{ concurrency := C,
                    max := M }, 

@@ -393,3 +393,45 @@ spec:
                           total:
                             any: number
 
+    - title: "Get current test activity"
+      tags:
+        - admin
+        - tests
+        - activity
+        - status
+      backgrounds:
+        - "Admin api is online"
+        - "Admin database is empty"
+        - "Admin user John"
+        - "John logged in"
+      steps:
+        - title: "Get the current test activity"
+          send:
+            to: admin_api
+            spec:
+              object:
+                action: 
+                  text: 
+                    literal: "test_activity"
+
+        - title: "Verify we got the current test stats"
+          receive:
+            from: admin_api
+            spec:
+              object:
+                tests:
+                  object:
+                    active:
+                      any: number
+                    concurrency:
+                      any: number
+                    pending:
+                      any: number
+                    state:
+                      any: text
+                    items:
+                      object:
+                        pending:
+                          any: list
+                        active:
+                          any: list

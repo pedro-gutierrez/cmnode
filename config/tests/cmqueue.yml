@@ -179,3 +179,10 @@ spec:
                           any: number
                         active:
                           any: number
+                        items:
+                          object:
+                            pending:
+                              any: list
+                            active:
+                              any: list
+

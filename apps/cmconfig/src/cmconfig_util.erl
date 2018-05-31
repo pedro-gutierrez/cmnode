@@ -378,6 +378,9 @@ compile_option(Spec) ->
        spec => compile_term(Spec) 
      }.
 
+compile_terms(Specs) -> 
+    lists:map(fun compile_term/1, Specs).
+
 compile_term(#{ <<"decoders">> := Decs }) ->
     compile_decoders(Decs);
 
@@ -516,6 +519,11 @@ compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
        spec => compile_term(Spec)
      };
 
+compile_term(#{ <<"merge">> := Specs }) when is_list(Specs) -> 
+    #{ type => merge,
+       spec => compile_terms(Specs)
+     };
+
 compile_term(#{ <<"map">> := #{ <<"value">> := From,
                                 <<"options">> := Options }}) ->
     #{ type => map,
@@ -600,7 +608,21 @@ compile_term(#{ <<"text">> := Spec }) ->
     
     maps:merge(#{ type => text},
                compile_term(Spec));
-   
+  
+
+compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
+                                   <<"params">> := Params }}) when is_list(Params) -> 
+    #{ type => format,
+       pattern => compile_term(Pattern),
+       params => compile_terms(Params) };
+
+compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
+                                   <<"params">> := Params }}) when is_map(Params) -> 
+    #{ type => format,
+       pattern => compile_term(Pattern),
+       params => compile_term(Params) };
+
+
 compile_term(#{ <<"files">> := Spec }) -> 
     #{ type => files,
        spec => compile_term(Spec) 

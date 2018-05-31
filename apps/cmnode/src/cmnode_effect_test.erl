@@ -107,7 +107,23 @@ effect_apply(#{ query := reports,
               {ok, Reports } -> Reports;
               {error, E} -> E
           end,
-    cmcore:update(SessionId, #{ test_reports => Res}).
+    cmcore:update(SessionId, #{ test_reports => Res});
+
+effect_apply(#{ query := report,
+                report := Id }, SessionId) ->
+
+    Res = case cmtest:report(Id) of 
+              {ok, Report } -> Report;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ test_report => Res});
+
+effect_apply(#{ query := status }, SessionId) ->
+    Res = case cmtest:status() of 
+              {ok, Status } -> Status;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ tests => Res }).
 
 metadata(Spec) ->
     maps:with([title, id, tags], Spec).

@@ -27,6 +27,18 @@
          (else 
             (console-error "unexpected non-pair value" pair)))))))
 
+(define (assoc? in)
+  (case (list? in)
+    ('#f '#f)
+    ('#t 
+     (case (length in)
+       ('0 '#t)
+       (else 
+         (case (pair? (car in))
+           ('#t (assoc? (cdr in)))
+           ('#f '#f)))))))
+
+
 
 (define (json-stringify source spaces) 
   (let ((r (list->js source (js-obj))))
@@ -218,6 +230,54 @@
                  (list 'error 'invalid-value-spec pair)))))
           ('#f (encode-either (cdr options) in)))))))
 
+(define (encode-sum specs in)
+  (fold-numbers + specs in 0))
+
+(define (fold-numbers fn specs in out)
+  (case (length specs)
+    ('0 (list 'ok out))
+    (else 
+      (let* ((next (car specs))
+             (encoded (encode next in)))
+        (case (car encoded)
+          ('ok
+           (let ((v (car (cdr encoded))))
+             (case (number? v)
+               ('#t (fold-numbers fn (cdr specs) in (fn v out)))
+               (else (list 'error not-a-number encoded)))))
+          (else encoded))))))
+
+
+(define (fold-lists fn specs in out)
+  (case (length specs)
+    ('0 (list 'ok out))
+    (else 
+      (let* ((spec (car specs))
+             (encoded (encode spec in)))
+        (case (car encoded)
+          ('ok
+           (let ((v (car (cdr encoded))))
+            (case (list? v)
+              ('#t (fold-lists fn (cdr specs) in (fn out v)))
+              (else (list 'error 'not-a-list encoded)))))
+          (else encoded))))))
+
+(define (encode-merge specs in)
+  (fold-lists append specs in '()))
+
+(define (encode-format spec in)
+  (let* ((pattern (get 'pattern spec))
+         (params (get 'params spec))
+         (encoded-pattern (encode pattern spec in))
+         (encoded-params (encode-list params in '())))
+    (case (car encoded-pattern)
+      ('ok
+       (case (car encoded-params) 
+         ('ok
+          (list 'ok (apply format (cons (car (cdr encoded-pattern)) (car (cdr encoded-params))))))
+         (else (list 'error cannot-encode-params spec in))))
+      (else (list 'error cannot-encode-pattern spec in)))))
+
 (define (encode spec input) 
   (case (list? spec)
     ('#f
@@ -225,13 +285,14 @@
        ('#t (list 'ok spec))
        ('#f 
         (console-error "invalid spec" spec)
-        '(error invalid-spec))))
+        (list 'error 'invalid-spec spec))))
     ('#t 
       (let ((type-spec (car spec))
             (value-spec (car (cdr spec))))
         (case type-spec
           ('symbol (list 'ok value-spec))
           ('text (encode-text value-spec input))
+          ('format (encode-format value-spec input))
           ('number (encode-number value-spec input))
           ('from (encode-from value-spec input))
           ('object (encode-object value-spec input '()))
@@ -241,6 +302,8 @@
           ('files (encode-files value-spec input))
           ('file (encode-file value-spec input))
           ('either (encode-either value-spec input))
+          ('sum (encode-sum value-spec input))
+          ('merge (encode-merge value-spec input))
           (else
             (console-error "invalid value spec" spec)
             '(error invalid-spec)))))))
@@ -400,7 +463,7 @@
   (case in 
     ('undef '(error not-an-object in))
     (else
-      (case (list? in)
+      (case (assoc? in)
         ('#f '(error not-an-object in))
         ('#t 
           (case (length spec)

@@ -53,6 +53,18 @@ spec:
             literal: "test_reports"
         days:
           any: number
+    test_report_query:
+      object:
+        action:
+          text:
+            literal: "test_report"
+        report:
+          any: text 
+    test_status_query:
+      object:
+        action:
+          text:
+            literal: "test_activity"
     tests:
       object:
         tests:
@@ -60,9 +72,43 @@ spec:
     tests_status:
       object:
         tests:
-          one_of:
-            - any: object
-            - any: keyword
+          object:
+            active:
+              any: number
+            max: 
+              any: number
+            pending:
+              any: number
+            concurrency:
+              any: number
+            state:
+              any: keyword 
+            items:
+              object:
+                active:
+                  list:
+                    object:
+                      id:
+                        any: number
+                      timestamp:
+                        any: number
+                      type:
+                        any: keyword
+                      name:
+                        any: text 
+                pending:
+                  list:
+                    object:
+                      id:
+                        any: number
+                      timestamp:
+                        any: number
+                      type:
+                        any: keyword
+                      name:
+                        any: text 
+                      id:
+                        any: number
     test:
       object:
         test:
@@ -124,6 +170,8 @@ spec:
                   error:
                     any: data
               - object:
+                  id:
+                    any: text
                   query: 
                     any: keyword
                   millis:
@@ -138,6 +186,10 @@ spec:
                         any: number
                       total:
                         any: number
+    test_report:
+      object:
+        test_report:
+          object: any
   update:
     list_tests:
       - when:
@@ -221,6 +273,27 @@ spec:
       - cmds:
           - effect: notify
             encoder: forbidden
+    test_report_query:
+      - when:
+          encoder: is_admin
+        model:
+          test_report:
+            key: report 
+        cmds:
+          - effect: test
+            encoder: test_report_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    test_status_query:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: test
+            encoder: test_status_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
     tests:
       model:
         tests:
@@ -265,11 +338,18 @@ spec:
           encoder: tests_status
     test_reports:
       model:
-        reports:
+        test_reports:
           key: test_reports
       cmds:
         - effect: notify
           encoder: test_reports
+    test_report:
+      model:
+        test_report:
+          key: test_report
+      cmds:
+        - effect: notify
+          encoder: test_report
   encoders:
     tests:
       object:
@@ -319,6 +399,10 @@ spec:
           keyword: schedule
         test:
           key: test
+    test_status_query:
+      object:
+        query:
+          keyword: status 
     tests_status:
       object:
         tests:
@@ -333,7 +417,17 @@ spec:
           keyword: reports
         days: 
           key: days
+    test_report_query:
+      object:
+        query:
+          keyword: report
+        report: 
+          key: test_report
     test_reports:
       object:
         test_reports:
-          key: reports
+          key: test_reports
+    test_report:
+      object:
+        test_report:
+          key: test_report

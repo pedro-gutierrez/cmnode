@@ -323,11 +323,15 @@ term(#{ type := condition,
     
 
 
-term(#{ type := list }) ->
+
+
+term(#{ type := merge, spec := Specs }) -> 
     cmscheme_ast:call(list, [
-                             cmscheme_ast:sym(list),
-                             cmscheme_ast:sym(any)
+                             cmscheme_ast:sym(merge),
+                             cmscheme_ast:call(list, terms(Specs))
                             ]);
+
+
 
 term(#{ type := object, spec := Spec}) ->
     cmscheme_ast:call(list, [
@@ -367,6 +371,26 @@ term(#{ type := file }) ->
                              cmscheme_ast:sym(any)
                             ]);
 
+
+term(#{ type := format, 
+        pattern := Pattern,
+        params := Params }) ->
+
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(format),
+                             cmscheme_ast:call(list, [
+                                               cmscheme_ast:call(list, [ 
+                                                                        cmscheme_ast:sym(pattern),
+                                                                        term(Pattern) 
+                                                                       ]),
+
+                                               cmscheme_ast:call(list, [ 
+                                                                        cmscheme_ast:sym(params),
+                                                                        cmscheme_ast:call(list, terms(Params))
+                                                                       ])
+
+                                                    ])
+                            ]);
 
 term(#{ size := Size }) ->
     cmscheme_ast:call(list, [
@@ -443,6 +467,12 @@ term(#{ text := #{ literal := Text}}) ->
                              cmscheme_ast:str(Text)
                             ]);
 
+term(#{ type := text, value := Text}) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(text),    
+                             cmscheme_ast:str(Text)
+                            ]);
+
 term(#{ type := text, key := Key, in := In }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
@@ -514,6 +544,25 @@ term(#{ type := equal, spec := Specs}) when is_list(Specs) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(equal),
                              cmscheme_ast:call(list, lists:map(fun term/1, Specs))
+                            ]);
+
+
+term(#{ type := sum, spec := Operands }) when is_list(Operands) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(sum),
+                             cmscheme_ast:call(list, lists:map(fun term/1, Operands))
+                            ]);
+
+
+term(#{ type := list, value := Specs }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(list),
+                             cmscheme_ast:call(list, terms(Specs))
+                            ]);
+term(#{ type := list }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(list),
+                             cmscheme_ast:sym(any)
                             ]);
 
 term(Text) when is_binary(Text) ->

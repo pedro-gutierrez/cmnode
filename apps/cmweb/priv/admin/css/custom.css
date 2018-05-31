@@ -49,7 +49,7 @@ tbody tr td {
     padding: 10px 20px;
     border-right: 1px solid #ededed;
     font-weight: inherit;
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 a { text-decoration: none !important; }
@@ -85,6 +85,69 @@ div.admin-content {
     display: block;
 }
 
-.header-buttons button {
+.padding-top-15 {
+    padding-top: 15px;
+}
+
+.padding-top-10 {
+    padding-top: 10px;
+}
+
+.header-buttons button, .header-buttons a {
     margin-left: .4rem;
 }
+
+.header-buttons a {
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #b8bbbc;
+    margin-left: 15px;
+}
+
+.header-buttons a:hover {
+    text-decoration: underline !important;
+}
+
+div.card.inspector-panel {
+    border: 1px solid #ededed;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 15px;
+}
+
+div.tests-in-progress div.item {
+    border-bottom: 1px solid #ededed;
+    padding-top: 10px;
+    padding-bottom: 10px;
+
+}
+
+.inspector-panel h6, h6.panel-title {
+    padding: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+    background-color: #fff;
+    font-size: 12px;
+    color: #b8bbbc;
+    font-weight: bold;
+}
+
+.stats-metric {
+    text-align: center;
+    font-size: 32px;
+}
+
+.card {
+    padding-bottom: 15px;
+}   
+
+
+.margin-auto { margin: 0 auto; }
+.size-16-16 { height: 16px; width: 16px; }
+.pb-0 { padding-bottom: 0px !important; }
+

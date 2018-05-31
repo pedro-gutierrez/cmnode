@@ -231,7 +231,7 @@ query(#{ query := test, test := #{ name := Name}}) -> Name.
 save(#{ query := Query} = Report) -> 
     Id = cmkit:uuid(),
     Now = calendar:local_time(), 
-    Pairs = [{{report, Id},Report}, 
+    Pairs = [{{report, Id},Report#{ id => Id } }, 
              {{report, Query}, Id},
              {{report, cmcalendar:to_bin(Now, year)}, Id},
              {{report, cmcalendar:to_bin(Now, month)}, Id},
