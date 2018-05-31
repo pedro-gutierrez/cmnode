@@ -208,6 +208,8 @@ spec:
               object:
                 id:
                   any: text
+                timestamp:
+                  any: number
                 query:
                   any: text
                 millis:
@@ -223,12 +225,11 @@ spec:
                     total:
                       any: number
                 failures:
-                  list:
-                    object:
-                      scenario:
-                        any: text
-                      failure:
-                        any: object
+                  one_of:
+                    - list:
+                        size: 0
+                    - list:
+                        object: any
   update:
     show_tests:
       cmds:
@@ -1337,6 +1338,127 @@ spec:
                           in:
                             key: scenarios
                             in: report
+    
+    test_report_failure_step_view:
+      view:
+        tag: div
+        children:
+          - text:
+              key: title
+              in: data
+          - view: json_view
+            params:
+              object:
+                source:
+                  object:
+                    type:
+                      key: type
+                      in: data
+                    spec:
+                      key: spec
+                      in: data
+    test_report_failure_connections_view:
+      view:
+        tag: div
+        children:
+          - view: json_view
+            params:
+              object:
+                source:
+                  object:
+                    spec:
+                      key: conns
+                      in: data
+    test_report_failure_data_view:
+      view:
+        tag: div
+        children:
+          - view: json_view
+            params:
+              object:
+                source:
+                  object:
+                    spec:
+                      key: data
+                      in: data
+    test_report_failure_view:
+      view:
+        tag: div
+        attrs:
+          class: "card"
+        children:
+          - tag: div
+            attrs:
+              class: "card-body"
+            children:
+              - view: properties_view
+                params:
+                  object:
+                    items:
+                      list:
+                        - object: 
+                            title:
+                              text:
+                                literal: "Scenario"
+                            view: 
+                              keyword: text_view
+                            value:
+                              key: scenario
+                              in:
+                                key: failure
+                                in: item
+                        - object: 
+                            title:
+                              text:
+                                literal: "Step"
+                            view: 
+                              keyword: test_report_failure_step_view
+                            value:
+                              key: step
+                              in:
+                                key: failure
+                                in: item
+                        - object: 
+                            title:
+                              text:
+                                literal: "Connections"
+                            view: 
+                              keyword: test_report_failure_connections_view
+                            value:
+                              key: world
+                              in:
+                                key: failure
+                                in: item
+                        - object: 
+                            title:
+                              text:
+                                literal: "Data"
+                            view: 
+                              keyword: test_report_failure_data_view
+                            value:
+                              key: world
+                              in:
+                                key: failure
+                                in: item
+                                
+    test_report_failures_view:
+      view:
+        tag: div
+        attrs:
+          class: "mt-4"
+          key: "report-failures"
+        children:
+          - tag: div
+            children:
+              - tag: h4
+                children:
+                  - text:
+                      literal: "Failures"
+          - tag: div
+            children:
+              loop:
+                key: failures
+              with: test_report_failure_view
     test_report_sections_view:
       view:
         tag: div
@@ -1349,6 +1471,26 @@ spec:
                 report: 
                   key: test_report
                   in: data
+          - view: test_report_failures_view
+            when:
+              not:
+                eq:
+                  - number: 0
+                  - key: fail
+            params:
+              object:
+                fail:
+                  key: fail
+                  in:
+                    key: scenarios
+                    in: 
+                      key: test_report
+                      in: data
+                failures:
+                  key: failures
+                  in: 
+                    key: test_report
+                    in: data
     test_report_main_view:
       view: 
         view: tests_layout_view

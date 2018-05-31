@@ -3,7 +3,8 @@
          scenarios_by_tag/2,
          steps/2,
          run/2,
-         close/2]).
+         close/2, 
+         report_sort_fun/2]).
 
 start(Test, #{ title := Title}=Scenario, Runner) ->
     case cmtest_scenario:start(Test, Scenario, Runner) of 
@@ -220,3 +221,7 @@ close(#{ conns := _Conns }, _Pid) ->
     %                      cmtest_ws_sup:stop(Pid)
     %              end, maps:values(Conns)),
     ok.
+
+report_sort_fun(#{ timestamp := T1}, #{ timestamp := T2}) ->
+    T1 > T2.
+

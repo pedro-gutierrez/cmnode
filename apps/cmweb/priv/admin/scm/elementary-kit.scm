@@ -7,7 +7,12 @@
 
 (define (js-val v)
   (case (list? v)
-    ('#t (list->js v (js-obj)))
+    ('#t
+     (case (assoc? v)
+       ('#t 
+        (list->js v (js-obj)))
+       ('#f 
+        (list->js-array (map js-val v)))))
     (else 
      (case (symbol? v)
        ('#t (symbol->string v))
@@ -17,15 +22,22 @@
   (case (null? data)
     ('#t r)
     ('#f
-     (let ((pair (car data)))
-       (case (list? pair)
-         ('#t
-          (let ((k (car pair))
-                (v (car (cdr pair))))
-            (js-set! r (js-key k) (js-val v))
-            (list->js (cdr data) r)))
-         (else 
-            (console-error "unexpected non-pair value" pair)))))))
+     (case (list? data)
+       ('#f (console-error "unexpected non-list data" data))
+       ('#t 
+         (case (assoc? data)
+           ('#f (console-error "unexpected non-object data" data))
+           ('#t 
+             (let ((pair (car data)))
+               (case (list? pair)
+                 ('#t
+                  (let* ((k (car pair))
+                         (v (car (cdr pair))) 
+                         (js-value (js-val v)))
+                    (js-set! r (js-key k) js-value)
+                    (list->js (cdr data) r)))
+                 (else 
+                    (console-error "unexpected non-pair value" pair)))))))))))
 
 (define (assoc? in)
   (case (list? in)
@@ -33,10 +45,13 @@
     ('#t 
      (case (length in)
        ('0 '#t)
-       (else 
-         (case (pair? (car in))
-           ('#t (assoc? (cdr in)))
-           ('#f '#f)))))))
+       (else
+         (let ((first (car in)))
+           (case (and (list? first)
+                      (= 2 (length first))
+                      (not (list? (car first))))
+             ('#t (assoc? (cdr in)))
+             (else '#f))))))))
 
 
 
@@ -91,16 +106,19 @@
         m)))) 
 
 (define (encode-object spec input out)
-  (case (length spec)
-    ('0 (list 'ok out))
-    (else
-      (let* ((entry-spec (car spec))
-             (k (car entry-spec))
-             (value-spec (car (cdr entry-spec)))
-             (encoded (encode value-spec input)))
-        (case (car encoded )
-          ('ok (encode-object (cdr spec) input (set k (car (cdr encoded)) out)))
-          (else encoded))))))
+  (case spec
+    ('any (list 'ok '()))
+    (else 
+      (case (length spec)
+        ('0 (list 'ok out))
+        (else
+          (let* ((entry-spec (car spec))
+                 (k (car entry-spec))
+                 (value-spec (car (cdr entry-spec)))
+                 (encoded (encode value-spec input)))
+            (case (car encoded )
+              ('ok (encode-object (cdr spec) input (set k (car (cdr encoded)) out)))
+              (else encoded))))))))
 
 (define (encode-from spec input)
   (case (length input)
@@ -466,16 +484,19 @@
       (case (assoc? in)
         ('#f '(error not-an-object in))
         ('#t 
-          (case (length spec)
-            ('0 (list 'ok out))
+          (case spec
+            ('any (list 'ok in))
             (else 
-              (let* ((entry-spec (car spec))
-                     (k (car entry-spec))
-                     (v-spec (car (cdr entry-spec)))
-                     (decoded (decode-term v-spec (get k in))))
-                (case (car decoded)
-                  ('ok (decode-object (cdr spec) in (set k (car (cdr decoded)) out)))
-                  (else decoded))))))))))
+              (case (length spec)
+                ('0 (list 'ok out))
+                (else 
+                  (let* ((entry-spec (car spec))
+                         (k (car entry-spec))
+                         (v-spec (car (cdr entry-spec)))
+                         (decoded (decode-term v-spec (get k in))))
+                    (case (car decoded)
+                      ('ok (decode-object (cdr spec) in (set k (car (cdr decoded)) out)))
+                      (else decoded))))))))))))
 
 (define (decode spec in)
   (case (car spec)

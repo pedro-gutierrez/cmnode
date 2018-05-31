@@ -111,6 +111,11 @@ div.admin-content {
     text-decoration: underline !important;
 }
 
+div.card {
+    border: 1px solid #ededed;
+    padding-bottom: 15px;
+}
+
 div.card.inspector-panel {
     border: 1px solid #ededed;
     padding-left: 15px;
@@ -141,11 +146,6 @@ div.tests-in-progress div.item {
     text-align: center;
     font-size: 32px;
 }
-
-.card {
-    padding-bottom: 15px;
-}   
-
 
 .margin-auto { margin: 0 auto; }
 .size-16-16 { height: 16px; width: 16px; }

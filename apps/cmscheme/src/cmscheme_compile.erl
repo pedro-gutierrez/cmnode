@@ -342,7 +342,7 @@ term(#{ type := object, spec := Spec}) ->
 term(#{ type := object }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(object),
-                             cmscheme_ast:call(list)
+                             cmscheme_ast:sym(any)
                             ]);
 
 

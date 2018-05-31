@@ -74,7 +74,11 @@ reports(Days) ->
                                       _ -> Reports
                                   end                
                           end, [], sets:to_list(Ids)),
-    {ok, Reports}.
+    
+    Reports2 = lists:sort(fun cmtest_util:report_sort_fun/2, Reports),
+    Reports3 = cmkit:top(20, Reports2),
+    {ok, Reports3}.
+
 
 
 status() -> 
