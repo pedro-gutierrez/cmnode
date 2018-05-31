@@ -872,7 +872,7 @@ spec:
             children:
               - tag: a
                 attrs:
-                  class: "c-hand"
+                  class: "d-block c-hand"
                   onclick:
                     object:
                       name: 
@@ -884,6 +884,16 @@ spec:
                   - text:
                       key: query
                       in: item
+              
+              - tag: span
+                attrs:
+                  class: "text-gray"
+                children:
+                  - timestamp:
+                      format: human
+                      value:
+                        key: timestamp
+                        in: item
           - tag: td
             attrs:
               key: "scenarios"

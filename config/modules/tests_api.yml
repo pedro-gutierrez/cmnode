@@ -172,6 +172,8 @@ spec:
               - object:
                   id:
                     any: text
+                  timestamp:
+                    any: number
                   query: 
                     any: keyword
                   millis:

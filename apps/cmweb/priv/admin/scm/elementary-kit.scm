@@ -1,4 +1,5 @@
 (define json (js-eval "JSON"))
+(define (now) (js-invoke (js-new "Date") "getTime"))
 
 (define (js-key k)
   (case (symbol? k)
@@ -94,6 +95,23 @@
                   (case (boolean? v)
                     ('#t 'boolean)
                     (else 'other)))))))))))
+
+(define (to-human-timestamp-since since millis)
+  (let* ((secs (/ (- since millis) 1000))
+         (secs-abs (abs secs))
+         (ago (> secs 0)))
+    (case (> secs-abs 60)
+      ('#f (list 'seconds secs-abs ago))
+      ('#t 
+       (case (> secs-abs 3600)
+         ('#f (list 'minutes (floor (/ secs-abs 60)) ago))
+         ('#t 
+          (case (> secs-abs 86400)
+            ('#f (list 'hours (floor (/ secs-abs 3600)) ago))
+            ('#t (list 'days (floor (/ secs-abs 86400)) ago)))))))))
+
+(define (to-human-timestamp millis)
+  (to-human-timestamp-since (now) millis))
 
 (define (map-push-at k v m)
   (let ((v2 (map-get k m)))

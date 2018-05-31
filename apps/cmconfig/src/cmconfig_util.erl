@@ -1006,6 +1006,11 @@ compile_view(#{ <<"json">> := Spec,
 compile_view(#{ <<"json">> := _} = Spec) ->
     compile_view(Spec#{ <<"indent">> => 2 });
 
+compile_view(#{ <<"timestamp">> :=  #{ <<"format">> := Format,
+                                       <<"value">> := Value }}) ->
+    #{ timestamp => #{ format => cmkit:to_atom(Format),
+                       value => compile_term(Value) }};
+
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),
     #{ view => not_supported,

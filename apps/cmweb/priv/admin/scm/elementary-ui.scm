@@ -196,6 +196,28 @@
              (else (console-error "cannot encode json view indent value" v indent))))
           (else 
             (console-error "cannot encode json view source" v source)))))
+        
+    (define (format-human-timestamp spec)
+      (case (length spec)
+        ('3 
+         (let* ((unit (car spec))
+               (unit-str (case unit
+                           ('secoends "seconds")
+                           ('minutes "minute(s)")
+                           ('hours "hour(s)")
+                           ('days "day(s)")))
+               (amount (car (cdr spec)))
+               (ago (car (cdr (cdr spec)))))
+            (case ago
+              ('#t (format "about ~s ~a ago" amount unit-str))
+              ('#f (format "in about ~s ~a" amount unit-str)))))
+        (else (console-error "invalid human timestamp spec" spec))))
+
+    (define (compile-timestamp-view v ctx)
+      (let ((value (encode (get 'value v) ctx)))
+        (case (car value)
+          ('ok (format-human-timestamp (to-human-timestamp (car (cdr value)))))
+          (else (console-error "cannot not encode timestamp view" value)))))
 
     (define (compile-view v ctx)
       (case (length v)
@@ -229,6 +251,7 @@
                   ('ok (cdr encoded))
                   (else (console-error "unable to compile text" encoded)))))
              ('json (compile-json-view value ctx))
+             ('timestamp (compile-timestamp-view value ctx))
              (else (console-error "unknown directive" v)))))
         ('1 v)
         (else (console-error "unknown view" v ))))

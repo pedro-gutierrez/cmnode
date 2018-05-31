@@ -270,6 +270,21 @@ term(#{ json := Source,
                                                        term(Indent)])
                                                      ])]);
 
+
+term(#{ timestamp := #{ format := Format,
+                        value := Value}}) -> 
+
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(timestamp),
+                             cmscheme_ast:call(list, [ 
+                                                      cmscheme_ast:call(list, [
+                                                                               cmscheme_ast:sym(format),
+                                                                               term(Format)]),
+                                                      cmscheme_ast:call(list, [ cmscheme_ast:sym(value),
+                                                                                term(Value)])
+                                                     ])]);
+
+
 term(#{ iterate := From, using := ItemView }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(iterate),
