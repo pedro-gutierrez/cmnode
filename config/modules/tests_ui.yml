@@ -7,6 +7,7 @@ spec:
     model:
       tests: []
       test: {}
+      selected_test: ""
       activity_panel:
         keyword: hidden 
       schedule_panel:
@@ -226,6 +227,8 @@ spec:
                   any: number
                 query:
                   any: text
+                settings:
+                  any: text
                 millis:
                   any: number
                 status:
@@ -256,7 +259,7 @@ spec:
     show_tests:
       cmds:
         - effect: ui
-          encoder: tests_view
+          encoder: test_reports_view
         - effect: ws
           encoder: subscribe_to_tests
         - effect: ws
@@ -265,6 +268,8 @@ spec:
           encoder: test_activity_query
         - effect: ws
           encoder: settings_query
+        - effect: ui
+          encoder: tests_view
     test_settings:
       model:
         settings:
@@ -280,7 +285,6 @@ spec:
             key: data
       cmds:
         - effect: ui
-          encoder: tests_view
     test_reports:
       model:
         test_reports:
@@ -288,7 +292,6 @@ spec:
           in: data
       cmds:
         - effect: ui
-          encoder: test_reports_view
     test_report:
       model:
         test_report:
@@ -303,6 +306,8 @@ spec:
           key: tests
           in: data
       cmds:
+        - effect: ws
+          encoder: test_reports
         - effect: ui
     show_test:
       model:
@@ -336,6 +341,8 @@ spec:
       cmds:
         - effect: ws
           encoder: test_reports
+        - effect: ui
+          encoder: test_reports_view
     show_test_report:
       model:
         report: 
@@ -401,7 +408,7 @@ spec:
           keyword: visible
         schedule_panel:
           keyword: visible
-        test: 
+        selected_test: 
           key: test
           in: event
       cmds:
@@ -424,7 +431,7 @@ spec:
           text:
             literal: "schedule"
         test:
-          key: test
+          key: selected_test
         settings:
           key: selected_settings
     test_activity_query:
@@ -607,19 +614,35 @@ spec:
             key: id
             in: item
         children:
-          - tag: span
+          - tag: div
             attrs:
-              class: "title col-6"
+              class: "col-12"
             children:
-              - text: 
-                  key: name
-                  in: item
-          - tag: span
-            attrs:
-              class: "info text-gray text-right col-6"
-            children:
-              - text: 
-                  literal: "a few secs ago"
+              - tag: div
+                children:
+                  - tag: strong
+                    children:
+                      - text: 
+                          key: name
+                          in: item
+              - tag: div
+                children:
+                  - view: test_report_settings_label
+                    params:
+                      object:
+                        data:
+                          key: info
+                          in: item
+                  - tag: span
+                    attrs:
+                      class: "text-gray"
+                      style: "font-size: 12px; margin-left: 5px;"
+                    children:
+                      - timestamp:
+                          format: human
+                          value:
+                            key: timestamp
+                            in: item
     tests_in_progress_view:
       view:
         tag: div
@@ -699,7 +722,7 @@ spec:
                 schedule_panel:
                   key: schedule_panel
                 test:
-                  key: test
+                  key: selected_test
                 settings:
                   key: settings
           - tag: div
@@ -742,7 +765,8 @@ spec:
                   key: pending
                   in: test_activity
                 title:
-                  literal: "Pending tests"
+                  text:
+                    literal: "Pending tests"
                 items:
                   key: pending
                   in: 
@@ -936,6 +960,8 @@ spec:
                   key: tests
                 test:
                   key: test
+                selected_test:
+                  key: selected_test
                 activity_panel:
                   key: activity_panel
                 schedule_panel:
@@ -1028,6 +1054,17 @@ spec:
                         in: item
           - tag: td
             attrs:
+              key: "settings"
+            children:
+              - tag: span
+                attrs:
+                  class: "label label-rounded settings"
+                children:
+                  - text:
+                      key: settings
+                      in: item
+          - tag: td
+            attrs:
               key: "scenarios"
             children:
               - text:
@@ -1053,13 +1090,6 @@ spec:
                   in:
                     key: scenarios
                     in: item
-          - tag: td
-            attrs:
-              key: "time"
-            children:
-              - text:
-                  key: millis
-                  in: item
           - tag: td
             attrs:
               class: "text-center"
@@ -1096,6 +1126,10 @@ spec:
                 - object:
                     title: 
                       text:
+                        literal: "Settings"
+                - object:
+                    title: 
+                      text:
                         literal: "Scenarios"
                 - object:
                     title: 
@@ -1105,10 +1139,6 @@ spec:
                     title: 
                       text:
                         literal: "Failed"
-                - object:
-                    title: 
-                      text:
-                        literal: "Time"
                 - object:
                     title: 
                       text:
@@ -1166,6 +1196,8 @@ spec:
                   key: test_activity
                 test:
                   key: test
+                selected_test:
+                  key: selected_test
                 activity_panel:
                   key: activity_panel
                 schedule_panel:
@@ -1433,6 +1465,14 @@ spec:
             params:
               key: data
 
+    test_report_settings_label:
+      view:
+        tag: span
+        attrs:
+          class: "label label-rounded settings"
+        children:
+          - text:
+              key: data
     test_report_stats_view:
       view:
         tag: div
@@ -1465,6 +1505,19 @@ spec:
                                   keyword: text_view
                                 value:
                                   key: query
+                                  in: report
+                      - view: info_item_view
+                        params:
+                          object:
+                            item:
+                              object:
+                                title:
+                                  text:
+                                    literal: "Settings"
+                                view:
+                                  keyword: test_report_settings_label
+                                value:
+                                  key: settings
                                   in: report
 
                       - view: info_item_view

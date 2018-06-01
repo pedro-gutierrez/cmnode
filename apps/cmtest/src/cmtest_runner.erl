@@ -1,8 +1,8 @@
 -module(cmtest_runner).
 -behaviour(gen_statem).
 -export([
-         run/1,
          run/2,
+         run/3,
          progress/4,
          success/4,
          fail/4,
@@ -15,21 +15,13 @@
         ]).
 
 
-run(#{ scenarios := Scenarios }=Test) ->
-    run(Test, Scenarios);
+run(#{ scenarios := Scenarios }=Test, Settings) ->
+    run(Test, Scenarios, Settings).
 
-run(All) ->
+run(Test, Scenarios, Settings) ->
     case cmtest_runner_sup:start_child() of 
         {ok, Pid} ->
-            gen_statem:call(Pid, {tests, All});
-        Other -> 
-            Other
-    end.
-
-run(Test, Scenarios) ->
-    case cmtest_runner_sup:start_child() of 
-        {ok, Pid} ->
-            gen_statem:call(Pid, {scenarios, Test, Scenarios});
+            gen_statem:call(Pid, {scenarios, Test, Scenarios, Settings});
         Other -> 
             Other
     end.
@@ -64,25 +56,9 @@ init([]) ->
                    failures => [] 
                  }}.
 
-
-ready({call, From}, {tests, Tests}, Data) ->
-    case start_test(Tests, Data#{ report_to => From,
-                                  query => all,
-                                  tests => Tests,
-                                  total => 0,
-                                  success => 0,
-                                  fail => 0, 
-                                  failures => [] } ) of 
-        {ok, Data2} ->
-            {keep_state, Data2, ok(From)}; 
-        {finished, Data2} ->
-            report(Data2);
-        Other ->
-            report(Other, Data)
-    end;
-    
-ready({call, From}, {scenarios, Test, Scenarios}, Data) ->
+ready({call, From}, {scenarios, Test, Scenarios, Settings}, Data) ->
     case start_scenario(Test, Scenarios, Data#{ report_to => From,
+                                                settings => Settings,
                                                 query => test,
                                                 test => Test,
                                                 total => 0,
@@ -163,8 +139,9 @@ start_scenario(_, [], #{ tests := [] } = Data) ->
 start_scenario(_, [], #{ tests := Tests }=Data) ->
     start_test(Tests, Data);
 
-start_scenario(#{ name := Name }=Test, [S|Rem], #{ total := Total }=Data) ->
-    case cmtest_util:start(Test, S, self() ) of 
+start_scenario(#{ name := Name }=Test, [S|Rem], #{ total := Total,
+                                                   settings := Settings }=Data) ->
+    case cmtest_util:start(Test, S, Settings, self() ) of 
         {ok, Pid} ->
             Data2 = Data#{ 
                       pid => Pid,
@@ -188,7 +165,8 @@ report(#{ report_to := {From, _},
           total := Total,
           success := Success,
           fail := Fail,
-          failures := Failures 
+          failures := Failures,
+          settings := #{ name := Settings }
         }=Data) ->
 
     S = severity(Fail, Success, Total),
@@ -196,6 +174,7 @@ report(#{ report_to := {From, _},
 
     Report = #{ timestamp => cmkit:now(),
                 query => query(Data),
+                settings => Settings,
                 status => ok,
                 scenarios => #{ total => Total,
                                 success => Success,

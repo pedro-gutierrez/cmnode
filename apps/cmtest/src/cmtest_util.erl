@@ -1,13 +1,13 @@
 -module(cmtest_util).
--export([start/3,
+-export([start/4,
          scenarios_by_tag/2,
          steps/2,
-         run/2,
+         run/3,
          close/2, 
          report_sort_fun/2]).
 
-start(Test, #{ title := Title}=Scenario, Runner) ->
-    case cmtest_scenario:start(Test, Scenario, Runner) of 
+start(Test, #{ title := Title}=Scenario, Settings, Runner) ->
+    case cmtest_scenario:start(Test, Scenario, Settings, Runner) of 
         {ok, Pid} ->
             {ok, Pid};
         Other -> 
@@ -80,14 +80,14 @@ connect_http(Name, #{ transport := Transport }=Config, World) ->
                                       url => Url}, World) }.
 
 
-run(#{ type := _ }, #{ retries := #{ left := 0}}) ->
+run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
     {error, max_retries_reached};
 
 run(#{ type := connect,
        as := Name,
        spec := #{ app := App,
                   port := Port,
-                  transport := Transport }}, #{ data := _Data}=World) ->
+                  transport := Transport }}, _, #{ data := _Data}=World) ->
     
     case cmconfig:mount(App, Port, Transport) of 
         {error, not_found} ->
@@ -102,16 +102,16 @@ run(#{ type := connect,
     end;
 
 run(#{ type := connect,
-       spec := #{ app := App }}=Spec, World) ->
+       spec := #{ app := App }}=Spec, Settings, World) ->
     
-    run(Spec#{ as => App }, World);
+    run(Spec#{ as => App }, Settings, World);
 
 run(#{ type := connect,
        as := Name,
        spec := #{ host := _,
                   port := _,
                   path := _,
-                  transport := _ } = Mount}, World) ->
+                  transport := _ } = Mount}, _, World) ->
     
     Config = Mount#{ debug => false ,
                      persistent => false 
@@ -122,7 +122,7 @@ run(#{ type := connect,
 run(#{ type := probe, 
        spec := #{ app := App,
                   status := Status 
-                }}, #{ conns := Conns }=World) ->
+                }}, _, #{ conns := Conns }=World) ->
     case maps:get(App, Conns, undef) of
         undef ->
             {error, {not_found, App, World}};
@@ -134,8 +134,8 @@ run(#{ type := probe,
 
 
 run(#{ type := expect, 
-       spec := Spec }, World) ->
-    case cmeval:eval(Spec, World) of 
+       spec := Spec }, Settings, World) ->
+    case cmeval:eval(Spec, World, Settings) of 
         true ->
             {ok, World};
         false ->
@@ -147,13 +147,13 @@ run(#{ type := send,
          to := App,
          spec := Spec 
         }
-     } , #{ conns := Conns }=World) ->
+     } , Settings, #{ conns := Conns }=World) ->
     case maps:get(App, Conns, undef) of 
         undef -> 
             {error, {not_found, App, Conns}};
         
         Conn ->
-            case cmencode:encode(Spec, World) of 
+            case cmencode:encode(Spec, World, Settings) of 
                 {ok, Encoded } ->
                     case Conn of 
                         #{  pid := Pid } -> 
@@ -185,7 +185,7 @@ run(#{ type := recv,
          as := As,
          from := App,
          spec := Spec
-        }} , #{ data := Data,
+        }} , Settings,  #{ data := Data,
                 conns := Conns
               }=World) ->
     case maps:get(App, Conns, undef) of 
@@ -193,7 +193,7 @@ run(#{ type := recv,
             {error, {not_found, App, Conns}};
         #{ inbox := Inbox } ->
             case cmdecode:decode(#{ type => first,
-                                    spec => Spec }, Inbox) of 
+                                    spec => Spec }, Inbox, Settings) of 
                 {ok, Decoded} ->
                     {ok, World#{ data => Data#{ As => Decoded }}};
                 no_match -> 
@@ -204,14 +204,14 @@ run(#{ type := recv,
 run(#{  type := file,
         as := As, 
         spec := #{ type := path,
-                   location := Path }}, #{ data := Data}=World) -> 
+                   location := Path }}, _, #{ data := Data}=World) -> 
     case file:read_file(Path) of 
         {ok, Bin} ->
            {ok, World#{ data => Data#{ As => Bin }}};
         Other -> Other
     end;
 
-run(Step, _) ->
+run(Step, _, _) ->
     {error, {unsupported, Step}}.
 
 close(#{ conns := _Conns }, _Pid) ->

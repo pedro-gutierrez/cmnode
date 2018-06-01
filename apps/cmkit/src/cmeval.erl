@@ -1,8 +1,11 @@
 -module(cmeval).
--export([eval/2, eval/4]).
+-export([eval/2, eval/3, eval/4]).
 
 eval(Spec, In) ->
     eval(Spec, #{}, In, #{}).
+
+eval(Spec, In, Config) ->
+    eval(Spec, #{}, In, Config).
 
 eval(#{ type := true }, _, _, _) -> true;
 eval(#{ type := false }, _, _, _) -> false;

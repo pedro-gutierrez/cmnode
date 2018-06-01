@@ -88,9 +88,10 @@ effect_apply(#{ query := background,
 
 
 effect_apply(#{ query := schedule,
+                settings := Settings,
                 test := Test }, SessionId) ->
 
-    Res = case cmtest:schedule(Test) of 
+    Res = case cmtest:schedule(Test, Settings) of 
               {ok, Status } -> Status;
               {error, E} -> E
           end,

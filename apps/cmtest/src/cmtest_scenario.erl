@@ -1,18 +1,18 @@
 -module(cmtest_scenario).
 -behaviour(gen_statem).
 -export([
-         start/3,
+         start/4,
          next/1,
          stop/1,
-         start_link/3,
+         start_link/4,
          init/1, 
          callback_mode/0, 
          terminate/3,
          ready/3
         ]).
 
-start(Test, Spec, Runner) ->
-    cmtest_scenario_sup:start(Test, Spec, Runner).
+start(Test, Spec, Settings, Runner) ->
+    cmtest_scenario_sup:start(Test, Spec, Settings, Runner).
 
 next(Pid) ->
     gen_statem:cast(Pid, next).
@@ -26,14 +26,14 @@ ok(Pid) ->
 callback_mode() ->
     state_functions.
 
-start_link(Test, Spec, Runner) ->
-    gen_statem:start_link(?MODULE, [Test, Spec, Runner], []).
+start_link(Test, Spec, Settings, Runner) ->
+    gen_statem:start_link(?MODULE, [Test, Spec, Settings, Runner], []).
 
 init([#{ name := Name,
          config := #{ retries := Retries,
                       wait := Wait 
                     } 
-       }=Test, #{ title := Title }=Scenario, Runner]) ->
+       }=Test, #{ title := Title }=Scenario, Settings, Runner]) ->
     Log = cmkit:log_fun(true),
     case cmtest_util:steps(Scenario, Test) of 
         {ok, Steps} ->
@@ -41,6 +41,7 @@ init([#{ name := Name,
                            test => Test, 
                            scenario => Scenario, 
                            steps => Steps, 
+                           settings => Settings,
                            world => #{ 
                                        retries => #{ max => Retries,
                                                      left => Retries,
@@ -81,6 +82,7 @@ terminate(_, _, _) ->
 
 run_steps(#{ test := #{ name := Name },
              scenario := #{ title := Title },
+             settings := #{ spec := Settings },
              steps := Steps,
              world := #{ retries := #{ 
                                        wait := Wait 
@@ -91,7 +93,7 @@ run_steps(#{ test := #{ name := Name },
 
     case Steps of 
         [Step|Rem] ->
-            Res = cmtest_util:run(Step, World),
+            Res = cmtest_util:run(Step, Settings, World),
             case Res of 
                 retry ->
                     World2 = retried(World),

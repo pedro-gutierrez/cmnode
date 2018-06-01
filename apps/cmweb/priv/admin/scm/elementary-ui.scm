@@ -208,9 +208,12 @@
                            ('days "day(s)")))
                (amount (car (cdr spec)))
                (ago (car (cdr (cdr spec)))))
-            (case ago
-              ('#t (format "~s ~a ago" amount unit-str))
-              ('#f (format "in ~s ~a" amount unit-str)))))
+           (case (= 0 amount) 
+             ('#t "right now")
+             (else 
+                (case ago
+                  ('#t (format "~s ~a ago" amount unit-str))
+                  ('#f (format "in ~s ~a" amount unit-str)))))))
         (else (console-error "invalid human timestamp spec" spec))))
 
     (define (compile-timestamp-view v ctx)

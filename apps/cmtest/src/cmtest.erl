@@ -1,12 +1,10 @@
 -module(cmtest).
 -export([
          subscribe/1, 
-         run/0, 
-         run/1, 
          run/2, 
+         run/3,
          clear/0, 
-         schedule/0, 
-         schedule/1, 
+         schedule/2, 
          reports/0, 
          reports/1, 
          report/1, 
@@ -16,46 +14,52 @@
 subscribe(SessionId) ->
     cmqueue:subscribe(tests_queue, tests, SessionId).
 
-run() -> 
-    cmtest_runner:run(cmconfig:tests()).
-
-run(Test) ->
-    case cmconfig:test(Test) of
-        {ok, Spec} -> 
-            cmtest_runner:run(Spec);
+run(Test, Settings) ->
+    case cmconfig:settings(Settings) of 
+        {ok, SettingsSpec } -> 
+            case cmconfig:test(Test) of
+                {ok, Spec} -> 
+                    cmtest_runner:run(Spec, SettingsSpec);
+                Other -> Other
+            end;
         Other -> Other
     end.
 
-run(Test, Tag) ->
-    case cmconfig:test(Test) of
-        {ok, #{ scenarios := Scenarios }=Spec} ->
-            {ok, SSpecs} = cmtest_util:scenarios_by_tag(Tag, Scenarios),
-            cmtest_runner:run(Spec, SSpecs);
+run(Test, Settings, Tag) ->
+    case cmconfig:settings(Settings) of 
+        {ok, SettingsSpec } -> 
+            case cmconfig:test(Test) of
+                {ok, #{ scenarios := Scenarios }=Spec} ->
+                    {ok, SSpecs} = cmtest_util:scenarios_by_tag(Tag, Scenarios),
+                    cmtest_runner:run(Spec, SSpecs, SettingsSpec);
+                Other -> Other
+            end;
         Other -> Other
     end.
 
 clear() ->
     cmqueue:clear(tests_queue). 
 
-schedule() ->
-    [ cmqueue:schedule(tests_queue, queue_job(T) ) ||
-        #{ name := T } <- cmconfig:tests() ].
-
-schedule(T) ->
-    case cmconfig:test(T) of
-        {ok, _ } ->
-            cmqueue:schedule(tests_queue, queue_job(T) ); 
+schedule(T, S) ->
+    case cmconfig:settings(S) of 
+        {ok, _ } -> 
+            case cmconfig:test(T) of
+                {ok, _ } ->
+                    cmqueue:schedule(tests_queue, queue_job(T, S) ); 
+                Other -> Other
+            end;
         Other -> Other
     end.
 
-queue_job(T) ->
+queue_job(T, S) ->
     Now = cmkit:now(),
 
     #{ id => Now,
        timestamp => Now,
        type => test,
        name => T,
-       spec => {cmtest, run, [T]}
+       info => S,
+       spec => {cmtest, run, [T, S]}
      }.
 
 report(Id) ->

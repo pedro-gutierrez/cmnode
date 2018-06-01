@@ -49,6 +49,8 @@ spec:
             literal: "schedule"
         test:
           any: text
+        settings:
+          any: text
     clear_scheduled_tests:
       object:
         action:
@@ -104,6 +106,8 @@ spec:
                         any: keyword
                       name:
                         any: text 
+                      info:
+                        any: text
                 pending:
                   list:
                     object:
@@ -117,6 +121,8 @@ spec:
                         any: text 
                       id:
                         any: number
+                      info:
+                        any: text
     test:
       object:
         test:
@@ -184,6 +190,8 @@ spec:
                     any: number
                   query: 
                     any: keyword
+                  settings:
+                    any: keyword 
                   millis:
                     any: number
                   status:
@@ -265,6 +273,8 @@ spec:
         model:
           test:
             key: test
+          settings:
+            key: settings
         cmds:
           - effect: test
             encoder: test_schedule_request
@@ -422,6 +432,8 @@ spec:
           keyword: schedule
         test:
           key: test
+        settings:
+          key: settings
     test_status_query:
       object:
         query:
