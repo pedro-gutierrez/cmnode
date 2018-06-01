@@ -1,0 +1,10 @@
+version: 1.0
+type: settings
+name: dev
+spec:
+  host: dev.netc.io
+  shp:
+    transport: 
+      keyword: https
+    port: 443
+    path: /dkv-09-shp/_api

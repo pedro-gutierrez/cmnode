@@ -57,13 +57,17 @@ spec:
                     message:
                       maybe:
                         key: message
-              - view:
-                  key: content_view
-                params:
-                  object:
-                    data:
-                      maybe:
-                        key: contents
+              - tag: div
+                attrs:
+                  class: "container"
+                children:
+                  - view:
+                      key: content_view
+                    params:
+                      object:
+                        data:
+                          maybe:
+                            key: contents
     main:
       view:
         tag: div
@@ -106,7 +110,8 @@ spec:
       view: 
         tag: div
         attrs:
-          class: "table-view"
+          class: "col-12 table-view"
+          style: "padding-right: .4rem;"
         children:
           - tag: table
             children:
@@ -142,6 +147,15 @@ spec:
         children:
           - text:
               key: data
+    date_view:
+      view: 
+        date:
+          format:
+            key: format
+            in: data
+          value:
+            key: value 
+            in: data
     info_item_view:
       view:
         tag: div

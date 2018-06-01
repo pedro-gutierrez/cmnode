@@ -9,6 +9,14 @@ spec:
         action: 
           text: 
             literal: "tests"
+    subscribe_to_tests:
+      object:
+        action: 
+          text: 
+            literal: "subscribe"
+        topic:
+          text:
+            literal: "tests"
     single_test:
       object:
         action: 
@@ -193,6 +201,15 @@ spec:
         test_report:
           object: any
   update:
+    subscribe_to_tests:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: test
+            encoder: subscribe_to_tests
+      - cmds:
+          - effect: notify
+            encoder: forbidden
     list_tests:
       - when:
           encoder: is_admin
@@ -353,6 +370,10 @@ spec:
         - effect: notify
           encoder: test_report
   encoders:
+    subscribe_to_tests:
+      object:
+        query:
+          keyword: subscribe
     tests:
       object:
         tests:

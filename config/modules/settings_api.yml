@@ -1,0 +1,68 @@
+version: 1.0
+type: module
+category: server
+name: settings_api
+spec:
+  decoders:
+    all_settings:
+      object:
+        action: 
+          text: 
+            literal: "settings"
+    single_settings:
+      object:
+        action: 
+          text: 
+            literal: "settings"
+        settings:
+          any: text
+    settings:
+      object:
+        settings:
+          one_of:
+            - any: list
+            - any: object
+  update:
+    all_settings:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: config
+            encoder: all_settings_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    single_settings:
+      - when:
+          encoder: is_admin
+        model:
+          settings:
+            key: settings
+        cmds:
+          - effect: config 
+            encoder: single_settings_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    settings:
+      model:
+        settings:
+          key: settings
+      cmds:
+        - effect: notify
+          encoder: settings
+  encoders:
+    all_settings_query:
+      object:
+        query:
+          keyword: settings
+    single_settings_query:
+      object:
+        query:
+          keyword: settings
+        settings:
+          key: settings
+    settings:
+      object:
+        settings:
+          key: settings

@@ -1,5 +1,10 @@
 -module(cmqueue).
--export([clear/1, status/1, schedule/2]).
+-export([
+         clear/1, 
+         status/1, 
+         schedule/2,
+         subscribe/3
+        ]).
 
 clear(Name) ->
     ask(Name, clear).
@@ -9,6 +14,9 @@ status(Name) ->
 
 schedule(Name, Job) ->
     ask(Name, {schedule, Job}).
+
+subscribe(Name, Topic, SessionId) ->
+    ask(Name, {subscribe, Topic, SessionId}).
 
 ask(Name, Msg) ->
     case erlang:whereis(Name) of

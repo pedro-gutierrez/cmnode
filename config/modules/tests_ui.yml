@@ -8,7 +8,9 @@ spec:
       tests: []
       test: {}
       activity_panel:
-        keyword: visible
+        keyword: hidden 
+      schedule_panel:
+        keyword: hidden
       test_activity:
         object:
           max: 0
@@ -41,6 +43,16 @@ spec:
               keyword: "show_test"
             test:
               any: text
+    pre_schedule_test:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: pre_schedule
+            test:
+              any: text
     schedule_test:
       object:
         effect:
@@ -50,6 +62,8 @@ spec:
             name:
               keyword: schedule
             test:
+              any: text
+            settings:
               any: text
     show_scenario:
       object:
@@ -230,15 +244,34 @@ spec:
                         size: 0
                     - list:
                         object: any
+    test_settings:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            settings:
+              list: any
   update:
     show_tests:
       cmds:
         - effect: ui
           encoder: tests_view
         - effect: ws
+          encoder: subscribe_to_tests
+        - effect: ws
           encoder: tests
         - effect: ws
           encoder: test_activity_query
+        - effect: ws
+          encoder: settings_query
+    test_settings:
+      model:
+        settings:
+          key: settings
+          in: data
+      cmds:
+        - effect: ui
     tests:
       model:
         tests:
@@ -297,6 +330,8 @@ spec:
           encoder: background_info
     show_test_reports:
       model:
+        activity_panel:
+          keyword: hidden 
         test_reports: []
       cmds:
         - effect: ws
@@ -354,20 +389,35 @@ spec:
           - effect: ui
     schedule_test:
       model:
-        test: 
-          key: test
+        selected_settings:
+          key: settings
           in: event
       cmds:
         - effect: ws
           encoder: schedule_test
+    pre_schedule_test:
+      model:
+        activity_panel:
+          keyword: visible
+        schedule_panel:
+          keyword: visible
+        test: 
+          key: test
+          in: event
+      cmds:
+        - effect: ui
   encoders:
     tests:
       object:
         action: tests
+    subscribe_to_tests:
+      object:
+        action: subscribe
+        topic: tests
     test_reports:
       object:
         action: test_reports
-        days: 1
+        days: 7 
     schedule_test:
       object:
         action: 
@@ -375,6 +425,8 @@ spec:
             literal: "schedule"
         test:
           key: test
+        settings:
+          key: selected_settings
     test_activity_query:
       object:
         action: 
@@ -382,6 +434,11 @@ spec:
             literal: "test_activity"
         test:
           key: test
+    settings_query:
+      object:
+        action: 
+          text:
+            literal: "settings"
     test_selection:
       object:
         name:
@@ -478,19 +535,19 @@ spec:
             attrs:
               class: "text-center"
             children:
-              - view: button
-                params:
-                  object:
-                    click:
-                      object:
-                        name:
-                          keyword: schedule
-                        test:
-                          key: name
-                          in: item
-                    title:
-                      text:
-                        literal: "Schedule"
+              - tag: a
+                attrs:
+                  class: "link c-hand"
+                  onclick:
+                    object:
+                      name:
+                        keyword: pre_schedule
+                      test:
+                        key: name
+                        in: item
+                children:
+                  - text:
+                      literal: "Schedule"
     tests_table_view:
       view:
         view: table
@@ -580,18 +637,79 @@ spec:
               loop: 
                 key: items
               with: test_in_progress_item_view
+    test_schedule_with_settings_button:
+      view:
+        tag: button
+        attrs:
+          class: "btn btn-primary d-block form-input mb-2"
+          onclick:
+            object:
+              name:
+                keyword: schedule
+              test:
+                key: test
+                in: context
+              settings:
+                key: name
+                in: item
+        children:
+          - text:
+              key: name
+              in: item 
+    schedule_panel_view:
+      view:
+        tag: div
+        attrs:
+          key: "schedule_panel"
+        children:
+          - tag: h6
+            children:
+              - text:
+                  literal: "Schedule a new test"
+          - tag: div
+            attrs:
+              class: "text-bold text-center"
+            children:
+              - text:
+                  key: test
+          - tag: div
+            attrs:
+              class: "mt-2 mb-2"
+            children:
+              loop: 
+                key: settings
+              with: test_schedule_with_settings_button
+              context:
+                object:
+                  test:
+                    key: test
     tests_activity_view:
       view:
         tag: div
         attrs: 
-          class: "p-2"
           key: "activity-panel"
         children:
+          - view: schedule_panel_view
+            when:
+              eq:
+                - keyword: visible
+                - key: schedule_panel
+            params:
+              object:
+                schedule_panel:
+                  key: schedule_panel
+                test:
+                  key: test
+                settings:
+                  key: settings
           - tag: div
             attrs:
+              key: "running-tests-panel"
               class: "text-center"
             children:
-              - tag: span
+              - tag: h6
+                attrs:
+                  style: "padding-bottom: 0px;"
                 children:
                   - text:
                       format:
@@ -599,17 +717,19 @@ spec:
                         params:
                           - text:
                               key: active
-
+                              in: test_activity
           - view: progress
             params:
               object:
                 value:
                   sum:
                     - key: active
+                      in: test_activity
                     - key: pending
+                      in: test_activity
                 max:
                   key: max
-          
+                  in: test_activity
           - view: tests_in_progress_view
             when:
               not:
@@ -620,11 +740,15 @@ spec:
               object:
                 pending:
                   key: pending
+                  in: test_activity
                 title:
                   literal: "Pending tests"
                 items:
                   key: pending
-                  in: items
+                  in: 
+                    key: items
+                    in: test_activity
+
 
     inspector_panel_view:
       view:
@@ -633,12 +757,6 @@ spec:
           class: "card inspector-panel"
           key: "inspector-panel"
         children:
-          - tag: h6
-            attrs:
-              class: "panel-title"
-            children:
-              - text: 
-                  key: title
           - tag: div
             children:
               - view: 
@@ -650,13 +768,10 @@ spec:
         view: inspector_panel_view
         params:
           object:
-            title:
-              text:
-                literal: "Tests activity"
             content_view:
               keyword: tests_activity_view
             data:
-              key: activity
+              key: data
     tests_layout_view_without_inspector:
       view:
         tag: div
@@ -667,12 +782,12 @@ spec:
           - tag: div
             attrs:
               key: "layout-header"
-              class: "columns col-12"
+              class: "columns"
             children:
               - tag: div
                 attrs:
                   key: "title"
-                  class: "col-8"
+                  class: "column col-8"
                 children:
                   - tag: h2
                     attrs:
@@ -683,7 +798,7 @@ spec:
               - tag: div
                 attrs:
                   key: "nav-buttons"
-                  class: "col-4 text-right header-buttons padding-top-10"
+                  class: "column col-4 text-right header-buttons padding-top-10"
                 children:
                   loop:
                     key: actions
@@ -747,10 +862,8 @@ spec:
                       - view: tests_inspector_view
                         params:
                           object:
-                            activity:
-                              key: test_activity
-                              in: data
-
+                            data:
+                              key: data
     tests_layout_view:
       view:
         view:
@@ -825,13 +938,17 @@ spec:
                   key: test
                 activity_panel:
                   key: activity_panel
+                schedule_panel:
+                  key: schedule_panel
                 test_activity:
                   key: test_activity
+                settings:
+                  key: settings
             sidebar:
               keyword: admin_sidebar
     test_report_badge_view:
       view:
-        tag: div
+        tag: span
         attrs:
           class:
             either:
@@ -840,15 +957,29 @@ spec:
                     - key: fail
                     - number: 0
                 text:
-                  literal: "margin-auto size-16-16 circle bg-success"
+                  literal: "size-16-16 circle bg-success d-inline-block"
               - when:
                   eq:
                     - key: success
                     - number: 0
                 text:
-                  literal: "margin-auto  size-16-16 circle bg-error"
+                  literal: "size-16-16 circle bg-error d-inline-block"
               - text:
-                  literal: "margin-auto size-16-16 circle bg-warning"
+                  literal: "size-16-16 circle bg-warning d-inline-block"
+    test_report_status_view:
+      view:
+        tag: span
+        attrs:
+          class: "ml-2"
+        children:
+          - text:
+              either:
+                - when:
+                    eq:
+                      - key: fail
+                      - number: 0
+                  literal: "Pass"
+                - literal: "Fail"
     test_reports_table_item_view:
       view:
         tag: "tr"
@@ -861,6 +992,7 @@ spec:
             attrs:
               key: "badge"
               class: "text-center"
+              style: "width: 40px;"
             children:
               - view: test_report_badge_view
                 params:
@@ -932,19 +1064,19 @@ spec:
             attrs:
               class: "text-center"
             children:
-              - view: button
-                params:
-                  object:
-                    click:
-                      object:
-                        name:
-                          keyword: schedule
-                        test:
-                          key: query
-                          in: item
-                    title:
-                      text:
-                        literal: "Schedule again"
+              - tag: a
+                attrs:
+                  class: "link c-hand"
+                  onclick:
+                    object:
+                      name:
+                        keyword: pre_schedule
+                      test:
+                        key: query
+                        in: item
+                children:
+                  - text:
+                      literal: "Schedule"
           
     test_reports_table_view:
       view:
@@ -1032,6 +1164,16 @@ spec:
                   key: activity_panel
                 test_activity:
                   key: test_activity
+                test:
+                  key: test
+                activity_panel:
+                  key: activity_panel
+                schedule_panel:
+                  key: schedule_panel
+                test_activity:
+                  key: test_activity
+                settings:
+                  key: settings
             sidebar:
               keyword: admin_sidebar
     test_scenario_tag_view:
@@ -1280,74 +1422,148 @@ spec:
                   key: test_activity
             sidebar:
               keyword: admin_sidebar
+    test_status_view:
+      view:
+        tag: div
+        children:
+          - view: test_report_badge_view
+            params:
+              key: data
+          - view: test_report_status_view
+            params:
+              key: data
+
     test_report_stats_view:
       view:
         tag: div
         attrs:
+          class: "columns"
           key: "report-stats"
-          class: "report-stats card"
         children:
           - tag: div
             attrs:
-              class: "columns"
+              class: "report-stats column col-4"
             children:
               - tag: div
                 attrs:
-                  class: "report-stats-metric column col-4"
+                  class: "card" 
+                  style: "margin-right: 15px; height: 100%; padding-left: 10px;"
                 children:
-                  - tag: h6
-                    attrs:
-                      class: "panel-title pb-0"
-                    children:
-                      - text:
-                          literal: "scenarios"
                   - tag: div
                     attrs:
-                      class: "stats-metric"
+                      class: "card-body"
                     children:
-                      - text:
-                          key: total
-                          in:
-                            key: scenarios
-                            in: report
+                      - view: info_item_view
+                        params:
+                          object:
+                            item:
+                              object:
+                                title:
+                                  text:
+                                    literal: "Test"
+                                view:
+                                  keyword: text_view
+                                value:
+                                  key: query
+                                  in: report
+
+                      - view: info_item_view
+                        params:
+                          object:
+                            item:
+                              object:
+                                title:
+                                  text:
+                                    literal: "Ran"
+                                view:
+                                  keyword: date_view
+                                value:
+                                  object:
+                                    format: 
+                                      text:
+                                        literal: "~a ~b ~e"
+                                    value:
+                                      key: timestamp
+                                      in: report
+                      - view: info_item_view
+                        params:
+                          object:
+                            item:
+                              object:
+                                title:
+                                  text:
+                                    literal: "Status"
+                                view:
+                                  keyword: test_status_view
+                                value:
+                                  key: scenarios
+                                  in: report
+
+          - tag: div
+            attrs:
+              class: "report-stats card column col-8"
+            children:
               - tag: div
                 attrs:
-                  class: "report-stats-metric column col-4"
+                  class: "columns"
                 children:
-                  - tag: h6
-                    attrs:
-                      class: "panel-title pb-0"
-                    children:
-                      - text:
-                          literal: "Passed"
                   - tag: div
                     attrs:
-                      class: "stats-metric"
+                      class: "report-stats-metric column col-4"
                     children:
-                      - text:
-                          key: success
-                          in:
-                            key: scenarios
-                            in: report
-              - tag: div
-                attrs:
-                  class: "column col-4"
-                children:
-                  - tag: h6
-                    attrs:
-                      class: "panel-title pb-0"
-                    children:
-                      - text:
-                          literal: "Failed"
+                      - tag: h6
+                        attrs:
+                          class: "panel-title pb-0"
+                        children:
+                          - text:
+                              literal: "scenarios"
+                      - tag: div
+                        attrs:
+                          class: "stats-metric"
+                        children:
+                          - text:
+                              key: total
+                              in:
+                                key: scenarios
+                                in: report
                   - tag: div
                     attrs:
-                      class: "stats-metric"
+                      class: "report-stats-metric column col-4"
                     children:
-                      - text:
-                          key: fail
-                          in:
-                            key: scenarios
-                            in: report
+                      - tag: h6
+                        attrs:
+                          class: "panel-title pb-0"
+                        children:
+                          - text:
+                              literal: "Passed"
+                      - tag: div
+                        attrs:
+                          class: "stats-metric"
+                        children:
+                          - text:
+                              key: success
+                              in:
+                                key: scenarios
+                                in: report
+                  - tag: div
+                    attrs:
+                      class: "report-stats-metric column col-4"
+                    children:
+                      - tag: h6
+                        attrs:
+                          class: "panel-title pb-0"
+                        children:
+                          - text:
+                              literal: "Failed"
+                      - tag: div
+                        attrs:
+                          class: "stats-metric"
+                        children:
+                          - text:
+                              key: fail
+                              in:
+                                key: scenarios
+                                in: report
     
     test_report_failure_step_view:
       view:
@@ -1391,6 +1607,141 @@ spec:
                     spec:
                       key: data
                       in: data
+    accordion_view:
+      view:
+        tag: div
+        attrs:
+          class: "accordion"
+        children:
+          - tag: input
+            attrs:
+              class: "d-hide"
+              type: "checkbox"
+              id:
+                key: id
+          - tag: label
+            attrs:
+              class: "c-hand accordion-header"
+              for:
+                key: id
+            children:
+              - view:
+                  key: view
+                  in: header
+                params:
+                  key: data
+                  in: header
+          - tag: div
+            attrs:
+              class: "accordion-body"
+            children:
+              - view:
+                  key: view
+                  in: body
+                params:
+                  key: data
+                  in: body
+   
+    test_report_failure_header_view:
+      view: 
+        tag: div
+        children:
+          - view: info_item_view
+            params:
+              object:
+                item:
+                  object:
+                    title:
+                      text:
+                        literal: "Scenario"
+                    view:
+                      keyword: text_view
+                    value:
+                      key: scenario
+          - view: info_item_view
+            params:
+              object:
+                item:
+                  object:
+                    title:
+                      text:
+                        literal: "Step"
+                    view:
+                      keyword: text_view
+                    value:
+                      key: step
+    
+    test_report_failure_body_item_view:
+      view:
+        tag: "tr"
+        children:
+          - tag: td
+            attrs:
+              class: "v-top"
+            children:
+              - view: json_view
+                params:
+                  object:
+                    source:
+                      key: step
+                      in: item
+          - tag: td
+            attrs:
+              class: "v-top"
+            children:
+              - view: json_view
+                params:
+                  object:
+                    source:
+                      key: conns
+                      in: item
+          - tag: td
+            attrs:
+              class: "v-top"
+            children:
+              - view: json_view
+                params:
+                  object:
+                    source:
+                      key: data
+                      in: item
+
+    test_report_failure_body_view:
+      view: 
+        tag: div
+        attrs:
+          style: "margin-top: 15px"
+        children:
+          - view: table
+            params:
+              object:
+                headers:
+                  list:
+                    - object:
+                        title:
+                          text:
+                            literal: "Step"
+                    - object:
+                        title:
+                          text:
+                            literal: "Connections"
+                    - object:
+                        title:
+                          text:
+                            literal: "Data"
+                items:
+                  list:
+                    - object:
+                        step:
+                          key: step
+                        conns:
+                          key: conns
+                          in: world
+                        data:
+                          key: data
+                          in: world
+                item_view:
+                  keyword: test_report_failure_body_item_view
     test_report_failure_view:
       view:
         tag: div
@@ -1401,56 +1752,46 @@ spec:
             attrs:
               class: "card-body"
             children:
-              - view: properties_view
+              - view: accordion_view
                 params:
                   object:
-                    items:
-                      list:
-                        - object: 
-                            title:
-                              text:
-                                literal: "Scenario"
-                            view: 
-                              keyword: text_view
-                            value:
+                    id: 
+                      text:
+                        literal: "failure-1"
+                    header:
+                      object:
+                        view:
+                          keyword: test_report_failure_header_view
+                        data:
+                          object:
+                            scenario:
                               key: scenario
                               in:
                                 key: failure
                                 in: item
-                        - object: 
-                            title:
-                              text:
-                                literal: "Step"
-                            view: 
-                              keyword: test_report_failure_step_view
-                            value:
+                            step:
+                              key: title
+                              in:
+                                key: step
+                                in:
+                                  key: failure
+                                  in: item
+                    body:
+                      object:
+                        view:
+                          keyword: test_report_failure_body_view
+                        data:
+                          object:
+                            step:
                               key: step
                               in:
                                 key: failure
                                 in: item
-                        - object: 
-                            title:
-                              text:
-                                literal: "Connections"
-                            view: 
-                              keyword: test_report_failure_connections_view
-                            value:
+                            world:
                               key: world
                               in:
                                 key: failure
                                 in: item
-                        - object: 
-                            title:
-                              text:
-                                literal: "Data"
-                            view: 
-                              keyword: test_report_failure_data_view
-                            value:
-                              key: world
-                              in:
-                                key: failure
-                                in: item
-                                
     test_report_failures_view:
       view:
         tag: div
@@ -1508,10 +1849,7 @@ spec:
           object:
             title:
               text:
-                key: query
-                in: 
-                  key: test_report
-                  in: data
+                literal: "Test report"
             actions:
               list:
                 - object:

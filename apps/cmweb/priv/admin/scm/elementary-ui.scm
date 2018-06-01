@@ -113,7 +113,7 @@
                  (case condition-verified
                    ('#t (compile-view (car (cdr v)) view-params))
                    ('#f ""))))
-              (else (console-error "no such view" spec)))))
+              (else (console-error "could not resolve view" spec ctx v)))))
           (else (console-error "cannot encode view context" spec ctx v-ctx)))))
     
     (define (compile-items-shared-context spec ctx)
@@ -138,7 +138,7 @@
                                      (compile-view item-view v-ctx2)))  (car (cdr items)))) 
                        (else (console-error "unable to convert spec into a list of items" spec ctx)))))
                (else (console-error "unable to encode items shared context" items-shared-ctx)))))
-          (else (console-error "no such view" spec)))))
+          (else (console-error "could not resolve view" spec ctx v)))))
     
     (define (attr-name attr)
       (case (symbol? attr)
@@ -202,15 +202,15 @@
         ('3 
          (let* ((unit (car spec))
                (unit-str (case unit
-                           ('secoends "seconds")
+                           ('seconds "seconds")
                            ('minutes "minute(s)")
                            ('hours "hour(s)")
                            ('days "day(s)")))
                (amount (car (cdr spec)))
                (ago (car (cdr (cdr spec)))))
             (case ago
-              ('#t (format "about ~s ~a ago" amount unit-str))
-              ('#f (format "in about ~s ~a" amount unit-str)))))
+              ('#t (format "~s ~a ago" amount unit-str))
+              ('#f (format "in ~s ~a" amount unit-str)))))
         (else (console-error "invalid human timestamp spec" spec))))
 
     (define (compile-timestamp-view v ctx)
@@ -218,6 +218,16 @@
         (case (car value)
           ('ok (format-human-timestamp (to-human-timestamp (car (cdr value)))))
           (else (console-error "cannot not encode timestamp view" value)))))
+    
+    (define (compile-date-view v ctx)
+      (let ((value (encode (get 'value v) ctx))
+            (format (encode (get 'format v) ctx)))
+        (case (car value)
+          ('ok 
+           (case (car format)
+             ('ok (date->string (js-new "Date" (car (cdr value))) (car (cdr format))))
+             (else (console-error "invalid format in date view spec" v ctx))))
+          (else (console-error "invalid value in date view spec" v ctx)))))
 
     (define (compile-view v ctx)
       (case (length v)
@@ -252,6 +262,7 @@
                   (else (console-error "unable to compile text" encoded)))))
              ('json (compile-json-view value ctx))
              ('timestamp (compile-timestamp-view value ctx))
+             ('date (compile-date-view value ctx))
              (else (console-error "unknown directive" v)))))
         ('1 v)
         (else (console-error "unknown view" v ))))

@@ -16,6 +16,7 @@
          compile_assets/1,
          compile_effects/1,
          compile_test/1,
+         compile_settings/1,
          compare/2
         ]).
 
@@ -25,7 +26,8 @@ compile(#{ <<"type">> := <<"bucket">> }=Spec) -> {ok, compile_bucket(Spec)};
 compile(#{ <<"type">> := <<"template">> }=Spec) -> {ok, compile_template(Spec)};
 compile(#{ <<"type">> := <<"module">> }=Spec) -> {ok, compile_module(Spec)};
 compile(#{ <<"type">> := <<"test">> }=Spec) -> {ok, compile_test(Spec)};
-compile(#{ <<"type">> := <<"queue">> }=Spec) -> {ok, compile_queue(Spec)}.
+compile(#{ <<"type">> := <<"queue">> }=Spec) -> {ok, compile_queue(Spec)};
+compile(#{ <<"type">> := <<"settings">> }=Spec) -> {ok, compile_settings(Spec)}.
 
 deps(#{ <<"type">> := T, 
         <<"name">> := N }=Spec) -> 
@@ -97,6 +99,11 @@ compile_port_app_mounts(Mounts) when is_map(Mounts) ->
                          path => cmkit:to_list(Path) }|List]
                end, [], Mounts).
 
+compile_settings(#{ <<"name">> := Name,
+                    <<"spec">> := Spec }) ->
+    #{ type => settings,
+       name => cmkit:to_atom(Name),
+       spec => compile_term(Spec) }.
 
 compile_queue(#{ <<"name">> := Name,
                  <<"spec">> := #{
@@ -657,9 +664,14 @@ compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
 compile_term(#{ <<"loop">> := From,
                 <<"context">> := Context,
                 <<"with">> := View }) when is_map(From) ->
+    
+    ItemViewSpec = case is_binary(View) of 
+                       true -> cmkit:to_atom(View);
+                       false -> compile_term(View)
+                   end,
 
     #{ loop => compile_term(From),
-       with => compile_term(View),
+       with => ItemViewSpec,
        context => compile_term(Context) };
 
 compile_term(#{ <<"loop">> := From,
@@ -815,7 +827,23 @@ compile_term([]) ->
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
 
-compile_term(Text) when is_binary(Text) -> Text;
+compile_term(Text) when is_binary(Text) -> 
+    
+    #{ type => text, value => Text };
+
+compile_term(Term) when is_map(Term) ->
+    #{ type => object,
+       spec => maps:fold(fun(K, V, Out) ->
+                            K2 = cmkit:to_atom(K),
+                            V2 = compile_term(V),
+                            Out#{ K2 => V2 }
+                         end, #{}, Term) };
+
+compile_term(Terms) when is_list(Terms) ->
+    #{ type => list,
+       spec => lists:foldr(fun(T, Out) ->
+                                   [compile_term(T)|Out]
+                         end, [], Terms) };
 
 compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
@@ -1008,8 +1036,16 @@ compile_view(#{ <<"json">> := _} = Spec) ->
 
 compile_view(#{ <<"timestamp">> :=  #{ <<"format">> := Format,
                                        <<"value">> := Value }}) ->
+    
     #{ timestamp => #{ format => cmkit:to_atom(Format),
                        value => compile_term(Value) }};
+
+compile_view(#{ <<"date">> :=  #{ <<"format">> := Format,
+                                  <<"value">> := Value }}) ->
+    
+    #{ date  => #{ 
+         format => compile_term(Format),
+         value => compile_term(Value) }};
 
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),

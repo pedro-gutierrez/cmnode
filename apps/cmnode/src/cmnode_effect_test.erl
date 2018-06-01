@@ -5,6 +5,10 @@
 
 effect_info() -> test.
 
+
+effect_apply(#{ query := subscribe }, SessionId) ->
+    cmtest:subscribe(SessionId);
+
 effect_apply(#{ query := tests }, SessionId) ->
     Res = [ #{ name => Name,
                scenarios => length(Scenarios),

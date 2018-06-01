@@ -97,7 +97,7 @@
                     (else 'other)))))))))))
 
 (define (to-human-timestamp-since since millis)
-  (let* ((secs (/ (- since millis) 1000))
+  (let* ((secs (floor (/ (- since millis) 1000)))
          (secs-abs (abs secs))
          (ago (> secs 0)))
     (case (> secs-abs 60)
@@ -561,7 +561,7 @@
                ('#t (all-equal? (cdr exprs) in v))
                ('#f '#f))))
           (else 
-            (console-error "cannot eval condition " next encoded)
+            (console-error "cannot eval condition " next encoded exprs in expected)
             '#f))))))
 
 (define (to-string v)

@@ -156,6 +156,12 @@ spec:
           - view: sidebar_icon
             params:
               object:
+                name: "settings"
+                style: "fa fa-4x fa-sliders"
+                title: "Settings"
+          - view: sidebar_icon
+            params:
+              object:
                 name: "tests"
                 style: "fa fa-4x fa-check"
                 title: "Tests"

@@ -1,0 +1,124 @@
+version: 1.0
+type: module
+category: ui
+name: settings_ui
+spec:
+  init:
+    model:
+      settings:
+        list: []
+  decoders:
+    show_settings:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            literal: "settings"
+    settings:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            settings:
+              any: list
+  update:
+    settings:
+      model:
+        settings:
+          key: settings
+          in: 
+            key: data
+      cmds:
+        - effect: ui
+          encoder: settings_view
+    show_settings:
+      cmds:
+        - effect: ui
+          encoder: settings_view
+        - effect: ws
+          encoder: settings
+  encoders:
+    settings:
+      object: 
+        action:
+          keyword: settings 
+    setting_table_item_view:
+      view:
+        tag: "tr"
+        attrs:
+          key:
+            key: name
+            in: item
+        children:
+          - tag: td
+            attrs:
+              class: "v-top"
+            children:
+              - text:
+                  key: name
+                  in: item
+          - tag: td
+            attrs:
+              class: "v-top"
+            children:
+              - view: json_view
+                params:
+                  object:
+                    source:
+                      key: spec
+                      in: item
+    settings_table_view:
+      view:
+        view: table
+        params:
+          object:
+            headers:
+              list:
+                - object:
+                    title: 
+                      text:
+                        literal: "Name"
+                - object:
+                    title: 
+                      text:
+                        literal: "Spec"
+            items:
+              key: data
+            item_view:
+              keyword: setting_table_item_view
+    settings_section_view:
+      view:
+        view: section
+        params:
+          object:
+            view:
+              keyword: settings_table_view
+            data:
+              key: data
+    settings_main_view:
+      view:
+        view: main
+        params:
+          object:
+            title:
+              text:
+                literal: "settings"
+            view:
+              keyword: settings_table_view
+            data:
+              key: data
+    settings_view: 
+      view:
+        view: layout
+        params:
+          object:
+            message:
+              key: message
+            content_view:
+              keyword: settings_main_view
+            contents:
+              key: settings
+            sidebar:
+              keyword: admin_sidebar

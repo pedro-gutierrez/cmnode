@@ -283,7 +283,18 @@ term(#{ timestamp := #{ format := Format,
                                                       cmscheme_ast:call(list, [ cmscheme_ast:sym(value),
                                                                                 term(Value)])
                                                      ])]);
+term(#{ date := #{ format := Format,
+                   value := Value}}) -> 
 
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(date),
+                             cmscheme_ast:call(list, [ 
+                                                      cmscheme_ast:call(list, [
+                                                                               cmscheme_ast:sym(format),
+                                                                               term(Format)]),
+                                                      cmscheme_ast:call(list, [ cmscheme_ast:sym(value),
+                                                                                term(Value)])
+                                                     ])]);
 
 term(#{ iterate := From, using := ItemView }) ->
     cmscheme_ast:call(list, [

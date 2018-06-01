@@ -33,6 +33,7 @@ spec:
               - tracker_ui 
               - tests_ui
               - queues_ui
+              - settings_ui
     scheme:
       data: 
         key: scheme

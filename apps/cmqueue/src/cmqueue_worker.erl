@@ -25,6 +25,7 @@ init([#{ name := Name,
          capacity := Cap }]) ->
     cmkit:log({queue, Name, ok}),
     Data = #{ name => Name,
+              subscriptions => #{},
               cap => Cap,
               status => initial(),
               queue => queue:new() },
@@ -39,73 +40,131 @@ green(cast, {failed, Job, Reason}, Data) ->
     Data3 = Data2#{ status => Status#{ active => A - 1 }},
     {next_state, state(Data3), Data3};
 
-green(cast, finished, #{ status := #{ active := A}=Status}=Data) -> 
+green(cast, finished, #{ subscriptions := Subs,
+                         status := #{ active := A}=Status}=Data) -> 
     Data2 = Data#{ status => Status#{ active => A - 1}},
+    Info = status_info(Data2),
+    notify(Info, Subs),
     {next_state, state(Data2), Data2};
 
 green({call, From}, status, Data) ->
-    reply_status(From, Data);
+    Info = status_info(Data),
+    State = state(Data),
+    {next_state, State, Data, [{reply, From, {ok, Info}}]};
 
-green({call, From}, clear, Data) ->
+green({call, From}, clear, #{ subscriptions := Subs }=Data) ->
     Data2 = clear(Data),
-    reply_status(From, Data2);
+    Info = status_info(Data2),
+    State = state(Data2),
+    notify(Info, Subs),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
 
-green({call, From}, {schedule, Job}, #{ status := #{ active := A },
+green({call, From}, {subscribe, Topic, Id}, Data) ->
+    Data2 = subscribe(Topic, Id, Data),
+    Info = status_info(Data2),
+    State = state(Data2),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+
+green({call, From}, {schedule, Job}, #{ subscriptions := Subs,
+                                        status := #{ active := A },
                                         cap := #{ concurrency := A }}=Data) ->
     
     Data2 = enqueue(Job, Data),
-    reply_status(From, Data2);
+    Info = status_info(Data2),
+    State = state(Data2),
+    notify(Info, Subs),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
 
-green({call, From}, {schedule, Job}, #{ status := #{ active := A }=Status}=Data) ->
+green({call, From}, {schedule, Job}, #{  subscriptions := Subs,
+                                         status := #{ active := A }=Status}=Data) ->
     Data2 = Data#{ status => Status#{ active => A + 1}},
     Data3 = start(Job, Data2),
-    reply_status(From, Data3).
+    Info = status_info(Data3),
+    State = state(Data3),
+    notify(Info, Subs),
+    {next_state, State, Data3, [{reply, From, {ok, Info}}]}.
 
 yellow(info, _Msg, Data) ->
     {next_state, state(Data), Data};
 
-yellow(cast, {failed, Job, Reason}, Data) ->
+yellow(cast, {failed, Job, Reason}, #{ subscriptions := Subs }=Data) ->
     Data2 = failed(Job, Reason, Data),
     {Job, Data3} = dequeue(Data2),
     Data4 = start(Job, Data3),
+    Info = status_info(Data4),
+    notify(Info, Subs),
     {next_state, state(Data4), Data4};
 
-yellow(cast, finished, Data) ->
+yellow(cast, finished, #{ subscriptions := Subs }=Data) ->
     {Job, Data2} = dequeue(Data),
     Data3 = start(Job, Data2),
-    {next_state, state(Data3), Data3};
+    Info = status_info(Data3),
+    State = state(Data3),
+    notify(Info, Subs),
+    {next_state, State, Data3};
 
 yellow({call, From}, status, Data) ->
-    reply_status(From, Data);
+    Info = status_info(Data),
+    State = state(Data),
+    {next_state, State, Data, [{reply, From, {ok, Info}}]};
 
-yellow({call, From}, clear, Data) ->
+yellow({call, From}, clear, #{ subscriptions := Subs }=Data) ->
     Data2 = clear(Data),
-    reply_status(From, Data2);
+    Info = status_info(Data2),
+    State = state(Data2),
+    notify(Info, Subs),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
 
-yellow({call, From}, {schedule, Job}, Data) ->
+yellow({call, From}, {subscribe, Topic, Id}, Data) ->
+    Data2 = subscribe(Topic, Id, Data),
+    Info = status_info(Data2),
+    State = state(Data2),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+
+yellow({call, From}, {schedule, Job}, #{ subscriptions := Subs }=Data) ->
     Data2 = enqueue(Job, Data),
-    reply_status(From, Data2).
+    Info = status_info(Data2),
+    State = state(Data2),
+    notify(Info, Subs),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]}.
 
 red(info, _Msg, Data) ->
     {next_state, state(Data), Data};
 
-red(cast, {failed, Job, Reason}, Data) ->
+red(cast, {failed, Job, Reason}, #{ subscriptions := Subs }=Data) ->
     Data2 = failed(Job, Reason, Data),
     {Job, Data3} = dequeue(Data2),
     Data4 = start(Job, Data3),
-    {next_state, state(Data4), Data4};
+    Info = status_info(Data4),
+    State = state(Data4),
+    notify(Info, Subs),
+    {next_state, State, Data4};
 
-red(cast, finished, Data) ->
+red(cast, finished, #{ subscriptions := Subs }=Data) ->
     {Job, Data2} = dequeue(Data),
     Data3 = start(Job, Data2),
-    {next_state, state(Data3), Data3};
-
+    Info = status_info(Data3),
+    State = state(Data3),
+    notify(Info, Subs),
+    {next_state, State, Data3};
+    
 red({call, From}, status, Data) ->
-    reply_status(From, Data);
+    Info = status_info(Data),
+    State = state(Data),
+    {next_state, State, Data, [{reply, From, {ok, Info}}]};
 
-red({call, From}, clear, Data) ->
+red({call, From}, clear, #{ subscriptions := Subs}=Data) ->
     Data2 = clear(Data),
-    reply_status(From, Data2);
+    Info = status_info(Data2),
+    State = state(Data2),
+    notify(Info, Subs),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+
+red({call, From}, {subscribe, Topic, Id}, Data) ->
+    Data2 = subscribe(Topic, Id, Data),
+    Info = status_info(Data2),
+    State = state(Data2),
+    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
 
 red({call, From}, {schedule, _Job}, Data) ->
     {keep_state, Data, {reply, From, {error, full}}}.
@@ -114,19 +173,27 @@ terminate(Reason, _, #{ name := Name}) ->
     cmkit:log({cmqueue, Name, terminate, Reason}),
     ok.
 
-reply_status(From, #{ name := Name, queue := Q, cap := Cap, status := Status}=Data) ->
+status_info(#{ queue := Q, cap := Cap, status := Status}=Data) ->
     S = maps:merge(Cap, Status),
     State = state(Data),
-    Info = S#{ state => State, 
-                     items =>  #{ pending => [ maps:without([spec], J) || J  <- queue:to_list(Q) ],
-                                  active => []
-                                }},
-    cmkit:log({cmqueue, Name, status, Info}),
-    {next_state, State, Data, [{reply, From, {ok, Info}}]}.
+    S#{ state => State, 
+        items =>  #{ pending => [ maps:without([spec], J) || J  <- queue:to_list(Q) ],
+                     active => []
+                   }}.
 
 clear(#{ status := Status}=Data) ->
     Data#{ queue => queue:new(), status => Status#{ pending => 0, failed => 0 }}.
 
+subscribe(Topic, Id, #{ subscriptions := Subs }=Data) ->
+    Data#{ subscriptions => Subs#{ Id => Topic }}.
+
+
+notify(Info, Subs) ->
+    NotesSent = maps:fold( fun(Id, Topic, Sent) ->
+                cmsession:tell(Id, #{ Topic => Info }),
+                Sent + 1
+               end, 0, Subs),
+    cmkit:log({cmqueue, notify, NotesSent}).
 
 start(#{ id := _,
          timestamp := _,

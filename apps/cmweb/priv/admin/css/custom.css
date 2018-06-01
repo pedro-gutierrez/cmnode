@@ -1,4 +1,4 @@
-.columns { margin-left: 0 !important; margin-right: 0 !important; }
+.columns { margin-right: 0 !important; }
 #sidebar { width: 80px; min-width: 80px; background: white; border-right: 1px solid #ededed; }
 .off-canvas-content { background: #f6f6f6; padding: .9rem .4rem .4rem 5rem !important; }
 .off-canvas-overlay { display: none; }
@@ -97,7 +97,7 @@ div.admin-content {
     margin-left: .4rem;
 }
 
-.header-buttons a {
+.header-buttons a, a.link {
     letter-spacing: 2px;
     text-transform: uppercase;
     text-align: left;
@@ -114,6 +114,7 @@ div.admin-content {
 div.card {
     border: 1px solid #ededed;
     padding-bottom: 15px;
+    padding-left: 15px;
 }
 
 div.card.inspector-panel {
@@ -147,7 +148,13 @@ div.tests-in-progress div.item {
     font-size: 32px;
 }
 
+.tests-in-progress {
+    padding-left: 8px;
+    padding-right: 8px
+}
+
+.report-stats-metric { padding-top: 15px; }
 .margin-auto { margin: 0 auto; }
 .size-16-16 { height: 16px; width: 16px; }
 .pb-0 { padding-bottom: 0px !important; }
-
+.v-top { vertical-align: top !important; }

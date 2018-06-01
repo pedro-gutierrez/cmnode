@@ -70,4 +70,21 @@ effect_apply(#{ query := module, module := Mod}, SessionId) ->
                      module => Mod 
                    }
     end,
-    cmcore:update(SessionId, Res).
+    cmcore:update(SessionId, Res);
+
+effect_apply(#{ query := settings, settings := Name}, SessionId) ->
+    Res = case cmconfig:settings(Name) of 
+        {ok, Spec} -> 
+                  #{ settings => Spec };
+        {error, E} -> 
+            #{ error => E,
+               query => settings,
+               settings => Name
+             }
+    end,
+
+    cmcore:update(SessionId, Res);
+
+effect_apply(#{ query := settings}, SessionId) ->
+    cmcore:update(SessionId, #{ settings => cmconfig:settings() }).
+

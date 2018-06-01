@@ -1,5 +1,20 @@
 -module(cmtest).
--export([run/0, run/1, run/2, clear/0, schedule/0, schedule/1, reports/0, reports/1, report/1, status/0]).
+-export([
+         subscribe/1, 
+         run/0, 
+         run/1, 
+         run/2, 
+         clear/0, 
+         schedule/0, 
+         schedule/1, 
+         reports/0, 
+         reports/1, 
+         report/1, 
+         status/0
+        ]).
+
+subscribe(SessionId) ->
+    cmqueue:subscribe(tests_queue, tests, SessionId).
 
 run() -> 
     cmtest_runner:run(cmconfig:tests()).
