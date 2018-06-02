@@ -56,22 +56,31 @@ init([]) ->
                    failures => [] 
                  }}.
 
-ready({call, From}, {scenarios, Test, Scenarios, Settings}, Data) ->
-    case start_scenario(Test, Scenarios, Data#{ report_to => From,
-                                                settings => Settings,
-                                                query => test,
-                                                test => Test,
-                                                total => 0,
-                                                success => 0,
-                                                fail => 0, 
-                                                failures => [] } ) of 
-        {ok, Data2} ->
-            {keep_state, Data2, ok(From)}; 
-        {finished, Data2} ->
-            report(Data2);
-        Other ->
-            report(Other, Data)
+ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
+                                                    spec := SettingsSpec }}, Data) ->
+    case cmencode:encode(SettingsSpec) of 
+        {ok, EncodedSettings} -> 
+            case start_scenario(Test, Scenarios, Data#{ report_to => From,
+                                                        settings => #{ name => SettingsName,
+                                                                       value => EncodedSettings },
+                                                        query => test,
+                                                        test => Test,
+                                                        total => 0,
+                                                        success => 0,
+                                                        fail => 0, 
+                                                        failures => [] } ) of 
+                {ok, Data2} ->
+                    {keep_state, Data2, ok(From)}; 
+                {finished, Data2} ->
+                    report(Data2);
+                Other ->
+                    report(Other, Data)
+            end;
+        
+        {error, E} ->
+            report(E, Data)
     end;
+
 
 ready({call, From}, stop, #{ pid := Pid }=Data) ->
     cmtest_scenario:stop(Pid),
@@ -140,7 +149,7 @@ start_scenario(_, [], #{ tests := Tests }=Data) ->
     start_test(Tests, Data);
 
 start_scenario(#{ name := Name }=Test, [S|Rem], #{ total := Total,
-                                                   settings := Settings }=Data) ->
+                                                   settings := #{ value := Settings } }=Data) ->
     case cmtest_util:start(Test, S, Settings, self() ) of 
         {ok, Pid} ->
             Data2 = Data#{ 

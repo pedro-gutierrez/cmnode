@@ -47,14 +47,14 @@ world_with_new_conn(App, Props, #{ conns := Conns }=World) ->
 
 connect(Name, #{ transport := Transport }=Config, World) ->
     case Transport of 
-        ws -> 
+        <<"ws">> -> 
             connect_ws(Name, Config, World);
-        wss -> 
+        <<"wss">> -> 
             connect_ws(Name, Config, World);
 
-        http ->
+        <<"http">> ->
             connect_http(Name, Config, World);
-        https ->
+        <<"https">> ->
             connect_http(Name, Config, World)
     end.
 
@@ -85,39 +85,39 @@ run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
 
 run(#{ type := connect,
        as := Name,
-       spec := #{ app := App,
-                  port := Port,
-                  transport := Transport }}, _, #{ data := _Data}=World) ->
-    
-    case cmconfig:mount(App, Port, Transport) of 
-        {error, not_found} ->
-            {error, {not_found, App, Port, Transport}};
-        {ok, Mount } ->
-            Config = Mount#{ debug => false ,
-                             host => "localhost",
-                             persistent => false 
-                           },
+       spec := Spec }, Settings, World) ->
+    case cmencode:encode(Spec, #{ world => World, 
+                                  settings => Settings }) of
+        {ok, #{ app := App,
+                port := Port,
+                transport := Transport } } ->
             
-            connect(Name, Config, World)
-    end;
+            case cmconfig:mount(App, Port, Transport) of
+                {error, not_found} ->
+                    {error, {not_found, App, Port, Transport}};
+                {ok, Mount } ->
+                    Config = Mount#{ debug => false ,
+                                     host => "localhost",
+                                     persistent => false
+                                   },
 
-run(#{ type := connect,
-       spec := #{ app := App }}=Spec, Settings, World) ->
-    
-    run(Spec#{ as => App }, Settings, World);
+                    connect(Name, Config, World)
+            end;
 
-run(#{ type := connect,
-       as := Name,
-       spec := #{ host := _,
+        {ok, #{ host := _,
                   port := _,
                   path := _,
-                  transport := _ } = Mount}, _, World) ->
-    
-    Config = Mount#{ debug => false ,
-                     persistent => false 
-                   },
+                  transport := _ } = Mount } ->
 
-    connect(Name, Config, World);
+            Config = Mount#{ debug => false ,
+                             persistent => false
+                           },
+
+            connect(Name, Config, World);
+
+        Other ->
+            Other
+    end;
 
 run(#{ type := probe, 
        spec := #{ app := App,
@@ -131,6 +131,10 @@ run(#{ type := probe,
         _ ->
             retry
     end;
+
+
+
+
 
 
 run(#{ type := expect, 

@@ -49,7 +49,7 @@ mount(App, Port, Transport) ->
 mount(_, []) -> {error, not_found};
 mount(Transport, [#{ mounts := Mounts }]) ->
     case lists:filter(fun(#{ transport := T }) ->
-                              T =:= Transport
+                              cmkit:to_bin(T) =:= cmkit:to_bin(Transport)
                       end, Mounts) of 
         [] -> {error, not_found};
         [M] -> {ok, M};

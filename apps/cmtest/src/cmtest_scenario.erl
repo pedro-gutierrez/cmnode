@@ -82,7 +82,7 @@ terminate(_, _, _) ->
 
 run_steps(#{ test := #{ name := Name },
              scenario := #{ title := Title },
-             settings := #{ spec := Settings },
+             settings := Settings,
              steps := Steps,
              world := #{ retries := #{ 
                                        wait := Wait 

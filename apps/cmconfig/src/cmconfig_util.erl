@@ -748,26 +748,6 @@ compile_term(#{ <<"connect">> := Spec }) ->
     #{ type => connect,
        spec => compile_term(Spec) };
 
-compile_term(#{ <<"app">> := App,
-                <<"port">> := Port,
-                <<"transport">> := Transport }) ->
-
-    #{ transport => cmkit:to_atom(Transport),
-       port => cmkit:to_atom(Port),
-       app => cmkit:to_atom(App)
-     };
-
-compile_term(#{ <<"host">> := Host,
-                <<"port">> := Port,
-                <<"path">> := Path,
-                <<"transport">> := Transport }) ->
-
-    #{ transport => cmkit:to_atom(Transport),
-       port => cmkit:to_number(Port), 
-       host => Host,
-       path => Path
-     };
-
 compile_term(#{ <<"probe">> := Spec }) ->
     
     #{ type => probe,

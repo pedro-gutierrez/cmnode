@@ -144,7 +144,7 @@ div.tests-in-progress div.item {
 
 .stats-metric {
     text-align: center;
-    font-size: 32px;
+    font-size: 48px;
 }
 
 .tests-in-progress {
@@ -152,7 +152,7 @@ div.tests-in-progress div.item {
     padding-right: 8px
 }
 
-.report-stats-metric { padding-top: 15px; }
+.report-stats-metric { padding-top: 24px; }
 .margin-auto { margin: 0 auto; }
 .size-16-16 { height: 16px; width: 16px; }
 .pb-0 { padding-bottom: 0px !important; }

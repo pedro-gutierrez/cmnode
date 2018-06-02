@@ -1981,11 +1981,16 @@ spec:
             in: item
         children:
           - tag: td
+            attrs:
+              class: "v-top"
+              style: "padding-top: 40px"
             children:
               - text:
                   key: title
                   in: item
           - tag: td
+            attrs:
+              class: "v-top"
             children:
               - view: json_view
                 params:
@@ -2131,11 +2136,16 @@ spec:
             in: item
         children:
           - tag: td
+            attrs:
+              class: "v-top"
+              style: "padding-top: 40px;"
             children:
               - text:
                   key: title
                   in: item
           - tag: td
+            attrs:
+              class: "v-top"
             children:
               - view: json_view
                 params:
