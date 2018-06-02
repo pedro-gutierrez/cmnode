@@ -19,6 +19,12 @@ post(Url, #{ 'content-type' := CT }=Headers, Data) ->
 handle({error,socket_closed_remotely}) ->
     {error, closed};
 
+handle({error,{failed_connect, _}}) ->
+    {error, failed_connect};
+
+handle({error,E}) ->
+    {error, E};
+
 handle({ok, {{_, 404, _}, _, _}}) ->
     {error, not_found};
 

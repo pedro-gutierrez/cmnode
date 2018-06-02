@@ -1932,6 +1932,12 @@ spec:
                   key: activity_panel
                 test_activity:
                   key: test_activity
+                schedule_panel:
+                  key: schedule_panel
+                settings:
+                  key: settings
+                selected_test:
+                  key: selected_test
             sidebar:
               keyword: admin_sidebar
     scenario_info_view:
