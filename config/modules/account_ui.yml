@@ -349,6 +349,40 @@ spec:
                   key: title
     login_view:
       view:
+        view: landing_layout
+        params:
+          content_view:
+            keyword: login_panel_view
+          content:
+            object:
+              message:
+                key: message
+              email:
+                key: email
+              password:
+                key: password
+    signup_view:
+      view:
+        view: landing_layout
+        params:
+          content_view:
+            keyword: signup_panel_view
+          content:
+            object:
+              message:
+                key: message
+              email:
+                key: email
+              password:
+                key: password
+              first:
+                key: first
+              last:
+                key: last
+              password_confirm:
+                key: password_confirm
+    login_panel_view:
+      view:
         tag: div 
         attrs:
           class: container
@@ -357,7 +391,8 @@ spec:
             attrs:
               key: title
             children:
-              - text: "Welcome"
+              - text: 
+                  literal: "Login"
           - view: user_message
             params:
               object:
@@ -391,25 +426,29 @@ spec:
                   keyword: send_login
                 title:
                   literal: "Login"
-          - view: link
-            params:
-              object:
-                id: 
-                  literal: recover_password 
-                click:
-                  keyword: show_recover_password
-                title:
-                  literal: "Recover password"
-          - view: link
-            params:
-              object:
-                id: 
-                  literal: signup
-                click:
-                  keyword: show_signup
-                title:
-                  literal: "Create an account"
-    signup_view:
+          - tag: div
+            attrs:
+              class: "mt-2"
+            children:
+              - tag: a
+                attrs: 
+                  class: "link c-hand"
+                  style: "margin-left: 0px !important;"
+                  onclick:
+                    keyword: show_recover_password
+                children:
+                  - text: 
+                      literal: Recover password
+              
+              - tag: a
+                attrs: 
+                  class: "link c-hand"
+                  onclick:
+                    keyword: show_signup
+                children:
+                  - text:
+                      literal: "Create an account"
+    signup_panel_view:
       view:
         tag: div
         attrs:
@@ -477,25 +516,76 @@ spec:
                   keyword: send_signup
                 title:
                   literal: "Signup"
-          - view: link
-            params:
-              object:
-                id: 
-                  literal: recover_password 
-                click:
-                  keyword: show_recover_password
-                title:
-                  literal: "Recover password"
-          - view: link
-            params:
-              object:
-                id: 
-                  literal: signin
-                click:
-                  keyword: show_login
-                title:
-                  literal: "Login"
+          - tag: div
+            attrs:
+              class: "mt-2"
+            children:
+              - tag: a
+                attrs:
+                  class: "link c-hand"
+                  style: "margin-left: 0px !important;"
+                  onclick:
+                    keyword: show_recover_password
+                children:
+                  - text:
+                      literal: "Recover password"
+
+              - tag: a
+                attrs:
+                  class: "link c-hand"
+                  onclick:
+                    keyword: show_login
+                children:
+                  - text:
+                      literal: "Login"
+    landing_layout:
+      view:
+        tag: div
+        attrs:
+          class: "landing"
+        children:
+          - tag: div
+            attrs:
+              class: "columns"
+              style: "margin-top: 200px;"
+            children:
+              - tag: div
+                attrs:
+                  class: "column col-4"
+                children: []
+              - tag: div
+                attrs:
+                  class: "column col-4"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "card"
+                    children:
+                      - tag: div
+                        attrs:
+                          class: "card-body"
+                        children:
+                          - view:
+                              key: content_view
+                            params:
+                              key: content
+              - tag: div
+                attrs:
+                  class: "column col-4"
+                children: []
     recover_password_view:
+      view:
+        view: landing_layout
+        params:
+          content_view:
+            keyword: recover_password_panel_view
+          content:
+            object:
+              message:
+                key: message
+              email:
+                key: email
+    recover_password_panel_view:
       view:
         tag: div 
         attrs:
@@ -527,24 +617,27 @@ spec:
                   keyword: recover_password
                 title:
                   literal: "Recover password"
-          - view: link
-            params:
-              object:
-                id: 
-                  literal: signin
-                click:
-                  keyword: show_login
-                title:
-                  literal: "Login"
-          - view: link
-            params:
-              object:
-                id: 
-                  literal: signup
-                click:
-                  keyword: show_signup
-                title:
-                  literal: "Create an account"
+          - tag: div
+            attrs:
+              class: "mt-2"
+            children:
+              - tag: a
+                attrs:
+                  class: "link c-hand"
+                  style: "margin-left: 0px !important"
+                  onclick:
+                    keyword: show_login
+                children:
+                  - text:
+                      literal: "Login"
+              - tag: a
+                attrs:
+                  class: "link c-hand"
+                  onclick:
+                    keyword: show_signup
+                children:
+                  - text:
+                      literal: "Create an account"
     user_logged_in:
       object:
         event: 

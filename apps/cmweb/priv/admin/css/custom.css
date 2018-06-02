@@ -1,5 +1,7 @@
 .columns { margin-right: 0 !important; }
 #sidebar { width: 80px; min-width: 80px; background: white; border-right: 1px solid #ededed; }
+.landing { height: 100% }
+.landing { background: #f6f6f6;} 
 .off-canvas-content { background: #f6f6f6; padding: .9rem .4rem .4rem 5rem !important; }
 .off-canvas-overlay { display: none; }
 body { font-family: 'Montserrat', sans-serif; }
@@ -60,7 +62,7 @@ tbody tr td {
     padding: .35rem .4rem !important;
 }
 
-div.admin-content {
+div.landing, div.admin-content {
     overflow-y: auto;
 }
 
@@ -68,7 +70,7 @@ div.admin-content {
     background: transparent;
 }
 
-.admin-content .btn.btn-primary, .admin-content .label-primary {
+.landing .btn.btn-primary, .admin-content .btn.btn-primary, .admin-content .label-primary {
     background: white;
     border-color: #ededed;
     color: #50596b;
@@ -112,8 +114,8 @@ div.admin-content {
 
 div.card {
     border: 1px solid #ededed;
-    padding-bottom: 15px;
-    padding-left: 15px;
+ /*   padding-bottom: 15px;
+    padding-left: 15px; */
 }
 
 div.card.inspector-panel {
@@ -159,3 +161,6 @@ div.tests-in-progress div.item {
 .v-top { vertical-align: top !important; }
 a.link:hover { text-decoration: underline; }
 .settings { text-transform: uppercase; font-size: 12px; }
+input {
+    border-color: #ededed !important;
+}
