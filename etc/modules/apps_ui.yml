@@ -162,7 +162,7 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "tests"
+                name: "show_test_reports"
                 style: "fa fa-4x fa-check"
                 title: "Tests"
           - view: sidebar_icon

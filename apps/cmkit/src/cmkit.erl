@@ -26,8 +26,8 @@ danger(Term) ->
 warning(Term) ->
     print(Term, yellow).
 
-home() -> env("CMNODE_HOME").
-etc() -> filename:join([home(), "config"]).
+home() -> env("CMHOME").
+etc() -> filename:join([home(), "etc"]).
 
 env(Key) -> os:getenv(Key).
 

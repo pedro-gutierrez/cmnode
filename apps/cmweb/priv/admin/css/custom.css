@@ -2,6 +2,7 @@
 #sidebar { width: 80px; min-width: 80px; background: white; border-right: 1px solid #ededed; }
 .landing { height: 100% }
 .landing { background: #f6f6f6;} 
+.off-canvas { height: 100% !important; }
 .off-canvas-content { background: #f6f6f6; padding: .9rem .4rem .4rem 5rem !important; }
 .off-canvas-overlay { display: none; }
 body { font-family: 'Montserrat', sans-serif; }

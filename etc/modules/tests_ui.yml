@@ -9,7 +9,7 @@ spec:
       test: {}
       selected_test: ""
       activity_panel:
-        keyword: hidden 
+        keyword: visible
       schedule_panel:
         keyword: hidden
       test_activity:
@@ -101,7 +101,10 @@ spec:
         effect:
           keyword: ui
         event:
-          keyword: show_test_reports
+          one_of:
+            - keyword: show_test_reports
+            - text: 
+                literal: "show_test_reports"
     show_test_report:
       object:
         effect:
@@ -165,10 +168,12 @@ spec:
                       title:
                         any: text
                 backgrounds:
-                  list:
-                    object:
-                      title:
-                        any: text
+                  one_of:
+                    - list:
+                        object:
+                          title:
+                            any: text
+                    - list: empty
     scenario:
       object:
         effect:
@@ -258,8 +263,6 @@ spec:
   update:
     show_tests:
       cmds:
-        - effect: ui
-          encoder: test_reports_view
         - effect: ws
           encoder: subscribe_to_tests
         - effect: ws
@@ -336,13 +339,19 @@ spec:
     show_test_reports:
       model:
         activity_panel:
-          keyword: hidden 
+          keyword: visible
         test_reports: []
       cmds:
-        - effect: ws
-          encoder: test_reports
         - effect: ui
           encoder: test_reports_view
+        - effect: ws
+          encoder: subscribe_to_tests
+        - effect: ws
+          encoder: test_reports
+        - effect: ws
+          encoder: test_activity_query
+        - effect: ws
+          encoder: settings_query
     show_test_report:
       model:
         report: 
@@ -904,23 +913,7 @@ spec:
             title:
               key: title
             actions:
-              merge:
-                - key: actions
-                - list:
-                   - object:
-                      target: 
-                        keyword: toggle_activity
-                      title:
-                        either:
-                          - when:
-                              eq:
-                                - key: activity_panel
-                                  in: data
-                                - keyword: hidden
-                            text: 
-                              literal: "Show activity"
-                          - text: 
-                              literal: "Hide activity"
+              key: actions
             content_view:
               key: content_view
             data: 
@@ -1723,7 +1716,19 @@ spec:
                       keyword: text_view
                     value:
                       key: step
-    
+          - view: info_item_view
+            params:
+              object:
+                item:
+                  object:
+                    title:
+                      text:
+                        literal: "Reason"
+                    view:
+                      keyword: text_view
+                    value:
+                      key: reason
+                      
     test_report_failure_body_item_view:
       view:
         tag: "tr"
@@ -1746,17 +1751,7 @@ spec:
                 params:
                   object:
                     source:
-                      key: conns
-                      in: item
-          - tag: td
-            attrs:
-              class: "v-top"
-            children:
-              - view: json_view
-                params:
-                  object:
-                    source:
-                      key: data
+                      key: world 
                       in: item
 
     test_report_failure_body_view:
@@ -1777,29 +1772,21 @@ spec:
                     - object:
                         title:
                           text:
-                            literal: "Connections"
-                    - object:
-                        title:
-                          text:
-                            literal: "Data"
+                            literal: "World"
                 items:
                   list:
                     - object:
                         step:
                           key: step
-                        conns:
-                          key: conns
-                          in: world
-                        data:
-                          key: data
-                          in: world
+                        world:
+                          key: world
                 item_view:
                   keyword: test_report_failure_body_item_view
     test_report_failure_view:
       view:
         tag: div
         attrs:
-          class: "card"
+          class: "card mb-2"
         children:
           - tag: div
             attrs:
@@ -1826,6 +1813,13 @@ spec:
                               key: title
                               in:
                                 key: step
+                                in:
+                                  key: failure
+                                  in: item
+                            reason:
+                              key: error
+                              in: 
+                                key: reason
                                 in:
                                   key: failure
                                   in: item
@@ -1897,7 +1891,7 @@ spec:
                     in: data
     test_report_main_view:
       view: 
-        view: tests_layout_view
+        view: tests_layout_view_without_inspector
         params:
           object:
             title:

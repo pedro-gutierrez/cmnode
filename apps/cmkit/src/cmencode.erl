@@ -136,11 +136,14 @@ encode(#{ type := greater_than,
     end;
 
 encode(#{ type := sum,
-          spec := Specs }, In, Config) ->
+          spec := Specs } = Spec, In, Config) ->
     Res = lists:foldl(fun({ok, V}, Total) when is_number(V) -> 
                         Total + V;
                    (Other, _) -> 
-                        {error, {not_a_number, Other}}
+                        {error, #{ status => encode_error,
+                                   spec => Spec,
+                                   data => Other,
+                                   reason => not_a_number }}
                 end, 0, lists:map(fun(S) ->
                                        encode(S, In, Config)
                                end, Specs)),

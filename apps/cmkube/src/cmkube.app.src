@@ -1,14 +1,12 @@
-{application, cmtest,
+{application, cmkube,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { cmtest_app, []}},
+  {mod, { cmkube_app, []}},
   {applications,
    [kernel,
     stdlib,
-    cmkube,
-    cmqueue,
-    cmdb
+    kuberl
    ]},
   {env,[]},
   {modules, []},

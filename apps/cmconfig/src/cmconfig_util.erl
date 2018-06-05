@@ -438,6 +438,12 @@ compile_term(#{ <<"app">> := App,
        status => cmkit:to_atom(Status)
      };
 
+compile_term(#{ <<"connection">> := Name,
+                <<"status">> := Status }) ->
+    #{ connection => cmkit:to_atom(Name),
+       status => cmkit:to_atom(Status)
+     };
+
 compile_term(#{ <<"data">> := <<"any">> }) ->
     #{ type => data };
 
@@ -525,6 +531,12 @@ compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
     #{ type => list,
        spec => compile_term(Spec)
      };
+
+compile_term(#{ <<"first">> := Spec }) when is_map(Spec) ->
+    #{ type => first,
+       spec => compile_term(Spec)
+     };
+
 
 compile_term(#{ <<"merge">> := Specs }) when is_list(Specs) -> 
     #{ type => merge,
@@ -781,8 +793,8 @@ compile_term(#{ <<"response">> := Spec }) ->
     };
 
 compile_term(#{ <<"status">> := Status }) ->
-    #{ type => http,
-       status => Status
+    #{  type => http, 
+        status => Status
      };
 
 compile_term(#{ <<"method">> := Method ,
@@ -803,6 +815,9 @@ compile_term(null) ->
 compile_term([]) -> 
     #{ type => list, value => [] };
 
+compile_term(#{ <<"kube">> := Spec}) ->
+    #{ type => kube,
+       spec => compile_kube_spec(Spec) };
 
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
@@ -829,6 +844,10 @@ compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
     #{ type => unknown, spec => Spec }.
 
+compile_kube_spec(#{ <<"query">> := Verb,
+                     <<"resource">> := Resource}) ->
+    #{ query => cmkit:to_atom(Verb),
+       resource => cmkit:to_atom(Resource) }.
 
 %compile_from(From) when is_binary(From)-> compile_keyword(From);
 %compile_from(From) when is_map(From) ->

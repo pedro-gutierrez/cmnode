@@ -55,7 +55,9 @@ connect(Name, #{ transport := Transport }=Config, World) ->
         <<"http">> ->
             connect_http(Name, Config, World);
         <<"https">> ->
-            connect_http(Name, Config, World)
+            connect_http(Name, Config, World);
+        <<"kubernetes">> -> 
+            connect_kubernetes(Name, Config, World)
     end.
 
 
@@ -63,6 +65,7 @@ connect_ws(Name, Config, World) ->
     Url = cmkit:url(Config),
     {ok, Pid } = cmtest_ws_sup:new(Name, Config, self()),
     {ok, world_with_new_conn(Name, #{ transport => ws,
+                                      class => websocket,
                                       pid => Pid,
                                       status => undef,
                                       url => Url }, World)}.
@@ -76,16 +79,33 @@ connect_http(Name, #{ transport := Transport }=Config, World) ->
                  {error, S} -> S
              end,
     {ok, world_with_new_conn(Name, #{ transport => Transport,
+                                      class => http,
                                       status => Status,
                                       url => Url}, World) }.
 
+connect_kubernetes(Name, Config, World) ->
+
+    Status = case cmkube:query(Config#{ 
+                                 verb => get,
+                                 resource => api_versions 
+                                }) of 
+
+        {ok, _, _} ->  up;
+        _ -> down
+    end,
+
+    {ok, world_with_new_conn(Name, Config#{ class => kubernetes,
+                                            status => Status }, World) }.
+
 
 run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
-    {error, max_retries_reached};
+    {error, #{ error => max_retries_reached, 
+               info => none }};
 
 run(#{ type := connect,
        as := Name,
        spec := Spec }, Settings, World) ->
+
     case cmencode:encode(Spec, #{ world => World, 
                                   settings => Settings }) of
         {ok, #{ app := App,
@@ -115,27 +135,37 @@ run(#{ type := connect,
 
             connect(Name, Config, World);
 
-        Other ->
-            Other
+        {ok, #{ kubernetes := #{ host := _,
+                                 token := _ } = Config }} -> 
+            
+            connect(Name, Config#{ transport => <<"kubernetes">> }, World);
+
+        {error, E} ->
+            {error, #{ error => encode_error,
+                       info => E }}
     end;
 
 run(#{ type := probe, 
-       spec := #{ app := App,
-                  status := Status 
-                }}, _, #{ conns := Conns }=World) ->
-    case maps:get(App, Conns, undef) of
+       spec := #{
+         status := Status 
+        } = Spec }, _, #{ conns := Conns }=World) ->
+
+    case maps:get(app, Spec, maps:get(connection, Spec, undef)) of 
         undef ->
-            {error, {not_found, App, World}};
-        #{ status := Status } ->
-            {ok, World};
-        _ ->
-            retry
+            {error, #{ error => no_such_connection,
+                       info => missing_app_or_connection_in_spec }};
+        Name ->
+
+            case maps:get(Name, Conns, undef) of
+                undef ->
+                    {error, #{ error => not_such_connection,
+                               info => Name}};
+                #{ status := Status } ->
+                    {ok, World};
+                _ ->
+                    retry
+            end
     end;
-
-
-
-
-
 
 run(#{ type := expect, 
        spec := Spec }, Settings, World) ->
@@ -151,21 +181,22 @@ run(#{ type := send,
          to := App,
          spec := Spec 
         }
-     } , Settings, #{ conns := Conns }=World) ->
+     }, Settings, #{ conns := Conns }=World) ->
     case maps:get(App, Conns, undef) of 
         undef -> 
-            {error, {not_found, App, Conns}};
+            {error, #{ error => no_such_connection,
+                       info => App }};
         
         Conn ->
             case cmencode:encode(Spec, World, Settings) of 
                 {ok, Encoded } ->
                     case Conn of 
-                        #{  pid := Pid } -> 
+                        #{  class := websocket, pid := Pid } -> 
                             cmwsc:send(Pid, Encoded),
                             {ok, World#{ conns => Conns#{ 
                                                     App => Conn#{inbox => []}
                                                    }}};
-                        #{ transport := Transport, url := Url }  ->
+                        #{ class := http, transport := Transport, url := Url }  ->
                             case Encoded of 
                                 #{ body := Body,
                                     headers := Headers } -> 
@@ -176,11 +207,26 @@ run(#{ type := send,
                                     {ok, World#{ conns => Conns#{
                                                             App => Conn#{inbox => [Res]}
                                                            }}};
-                                _ ->
-                                    {error, {wrong_http_request, Encoded}}
+                                Other ->
+                                    {error, #{ error => wrong_http_request,
+                                               info => Other } }
+                            end;
+
+                        #{ class := kubernetes } = Config ->
+                            case Encoded of 
+                                #{ list := R } -> 
+                                    {ok, Res, _} = cmkube:query(Config#{ verb => list,
+                                                                resource => R }),
+                                    {ok, World#{ conns => Conns#{ 
+                                                            App => Conn#{inbox => [Res]}
+                                                             }}};
+                                Other ->
+                                    {error, #{ error => unsupported_kubernetes_query,
+                                               info => Other }}
                             end
                     end;
-                Other -> Other
+                {error, E} -> {error, #{ error => encode_error,
+                                         info => E }}
             end
     end;
 
@@ -194,7 +240,8 @@ run(#{ type := recv,
               }=World) ->
     case maps:get(App, Conns, undef) of 
         undef -> 
-            {error, {not_found, App, Conns}};
+            {error, #{ error => no_such_connection,
+                       info => App }};
         #{ inbox := Inbox } ->
             case cmdecode:decode(#{ type => first,
                                     spec => Spec }, Inbox, Settings) of 
@@ -212,11 +259,37 @@ run(#{  type := file,
     case file:read_file(Path) of 
         {ok, Bin} ->
            {ok, World#{ data => Data#{ As => Bin }}};
-        Other -> Other
+        _ -> {error, #{ error => file_error,
+                        info => Path}}
+    end;
+
+run(#{ type := kube,
+       spec := #{
+            resource := Resource,
+            query := Verb
+        }} = Spec, Settings, #{ data := Data }=World ) ->
+
+    case kube_settings(Settings) of 
+        {ok, Host, Token} -> 
+            case cmkube:query(#{ host => Host,
+                                token => Token,
+                                verb => Verb,
+                                resource => Resource }) of 
+                {ok, Result, _} ->
+                    Key = maps:get(as, Spec, latest),
+                    { ok, World#{ data => Data#{ Key => Result }}};
+                {error, E} ->
+                    {error, #{ error => kubernetes_error,
+                               info => E }}
+            end;
+        {error, E } -> 
+            {error, #{ error => settings_error,
+                       info => E }}
     end;
 
 run(Step, _, _) ->
-    {error, {unsupported, Step}}.
+    {error, #{ error => unsupported,
+               info => Step }}.
 
 close(#{ conns := _Conns }, _Pid) ->
     %lists:foreach(fun(#{ name := Name,
@@ -225,6 +298,14 @@ close(#{ conns := _Conns }, _Pid) ->
     %                      cmtest_ws_sup:stop(Pid)
     %              end, maps:values(Conns)),
     ok.
+
+
+kube_settings(#{ kubernetes := #{ api := Host, 
+                            token := Token }}) ->
+    {ok, Host, Token};
+
+kube_settings(_) ->
+    {error, wrong_kube_settings}.
 
 report_sort_fun(#{ timestamp := T1}, #{ timestamp := T2}) ->
     T1 > T2.

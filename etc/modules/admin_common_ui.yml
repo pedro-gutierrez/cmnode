@@ -211,7 +211,8 @@ spec:
             children:
               - tag: div
                 attrs:
-                  class: "card-body columns"
+                  class: "card-body"
+                  style: "padding-left: 25px;"
                 children:
                   loop:
                     key: items
