@@ -175,15 +175,16 @@ report(#{ report_to := {From, _},
           success := Success,
           fail := Fail,
           failures := Failures,
-          settings := #{ name := Settings }
+          settings := #{ name := SettingsName }=Settings
         }=Data) ->
-
+    
     S = severity(Fail, Success, Total),
     Millis = trunc((T2-T1)/1000),
-
+    
+    Q = query(Data),
     Report = #{ timestamp => cmkit:now(),
-                query => query(Data),
-                settings => Settings,
+                query => Q,
+                settings => SettingsName,
                 status => ok,
                 scenarios => #{ total => Total,
                                 success => Success,
@@ -192,19 +193,23 @@ report(#{ report_to := {From, _},
                 failures => Failures},
 
     cmkit:S({cmtest, Report}),
-    gen_statem:cast(From, finished),
     save(Report),
+    gen_statem:cast(From, finished),
+    slack(Settings, Q, S, Total, Success, Fail),
     {stop, normal}.
 
-report(Error, #{ report_to := {From, _}}=Data) ->
+report(Error, #{ report_to := {From, _},
+                 settings := Settings }=Data) ->
     
-    Report = #{ query => query(Data),
+    Q = query(Data),
+    Report = #{ query => Q,
                 status => error,
                 error => Error },
     
     cmkit:danger({cmtest, Report}),
-    gen_statem:cast(From, finished),
     save(Report), 
+    gen_statem:cast(From, finished),
+    slack(Settings, Q, Error),
     {stop, normal}.
 
 
@@ -228,4 +233,61 @@ save(#{ query := Query} = Report) ->
             ],
 
     cmdb:put(tests, Pairs).
+
+
+slack(#{ name := Name,
+         value := #{ 
+           slack := #{ 
+             tests := #{ 
+               enabled := true,
+               token := T,
+               channel := Ch
+              }
+            }
+          }
+       }, Q, S, Total, Success, Fail) ->
+
+    Env = cmkit:to_bin(Name),
+    Test = cmkit:to_bin(Q),
+    TotalBin = cmkit:to_bin(Total),
+    SuccessBin = cmkit:to_bin(Success),
+    FailBin = cmkit:to_bin(Fail),
+    Subject = <<"Test ", Test/binary, " did finish on ", Env/binary>>,
+    Text = <<TotalBin/binary, " scenario(s), ", 
+             SuccessBin/binary, " passed, ", 
+             FailBin/binary, " failed">>,
+
+    cmslack:S(#{ token => T,
+                 channel => Ch,
+                 subject => Subject,
+                 text => Text });
+
+slack(_, Q, _, _, _, _) ->
+    cmkit:log({cmtest, Q, slack_notification, skipped}).
+
+
+slack(#{ name := Name,
+         value := #{ 
+           slack := #{ 
+             tests := #{ 
+               enabled := true,
+               token := T,
+               channel := Ch
+              }
+            }
+          }
+       }, Q, _) ->
+    
+    Env = cmkit:to_bin(Name),
+    Test = cmkit:to_bin(Q),
+    Subject = <<"Test ", Test/binary, " failed to run on ", Env/binary>>,
+    Text = <<"Visit https://tests.netc.io for more details">>,
+    cmslack:danger(#{ token => T,
+                 channel => Ch,
+                 subject => Subject,
+                 text => Text });
+
+slack(_, Q, _) ->
+    cmkit:log({cmtest, Q, slack_notification, skipped}).
+
 

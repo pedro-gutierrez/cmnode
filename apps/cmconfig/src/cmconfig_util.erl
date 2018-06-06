@@ -854,6 +854,23 @@ compile_term(Terms) when is_list(Terms) ->
                                    [compile_term(T)|Out]
                          end, [], Terms) };
 
+
+compile_term(true) -> 
+    #{ type => keyword,
+       value => true };
+
+compile_term(<<"yes">>) -> 
+    #{ type => keyword,
+       value => true };
+
+compile_term(false) -> 
+    #{ type => keyword,
+       value => false };
+
+compile_term(<<"no">>) -> 
+    #{ type => keyword,
+       value => false };
+
 compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
     #{ type => unknown, spec => Spec }.

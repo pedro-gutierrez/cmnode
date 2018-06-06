@@ -8,7 +8,8 @@
     jsone,
     cowboy,
     uuid,
-    os_mon
+    os_mon,
+    slacker
    ]},
   {env,[]},
   {modules, []},
