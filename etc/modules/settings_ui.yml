@@ -44,76 +44,56 @@ spec:
       object: 
         action:
           keyword: settings 
-    setting_table_item_view:
+    settings_item_view:
       view:
-        tag: "tr"
-        attrs:
-          key:
-            key: name
-            in: item
-        children:
-          - tag: td
-            attrs:
-              class: "v-top"
-            children:
-              - text:
-                  key: name
-                  in: item
-          - tag: td
-            attrs:
-              class: "v-top"
-            children:
-              - view: json_view
-                params:
+        view: accordion_view
+        params:
+          object:
+            id:
+              key: name
+              in: item
+            header:
+              object:
+                view:
+                  keyword: text_view
+                data:
+                  object:
+                    data:
+                      key: name
+                      in: item
+            body:
+              object:
+                view:
+                  keyword: json_view
+                data:
                   object:
                     source:
                       key: spec
                       in: item
-    settings_table_view:
-      view:
-        view: table
-        params:
-          object:
-            headers:
-              list:
-                - object:
-                    title: 
-                      text:
-                        literal: "Name"
-                - object:
-                    title: 
-                      text:
-                        literal: "Spec"
-            items:
-              key: data
-            item_view:
-              keyword: setting_table_item_view
-    settings_section_view:
-      view:
-        view: section
-        params:
-          object:
-            view:
-              keyword: settings_table_view
-            data:
-              key: data
     settings_main_view:
       view:
-        view: main
-        params:
-          object:
-            title:
-              text:
-                literal: "settings"
-            view:
-              keyword: settings_table_view
-            data:
-              key: data
+        tag: div
+        attrs:
+          class: "card"
+        children:
+          - tag: h1
+            attrs:
+              class: "content-view"
+            children:
+              - text:
+                  literal: "Settings"
+          - tag: div
+            children:
+              loop:
+                key: data
+              with: settings_item_view
     settings_view: 
       view:
         view: layout
         params:
           object:
+            theme:
+              key: theme
             message:
               key: message
             content_view:

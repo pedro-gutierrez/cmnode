@@ -269,6 +269,31 @@
 (define (encode-sum specs in)
   (fold-numbers + specs in 0))
 
+(define (encode-percentage spec in)
+  (let ((r (encode-ratio spec in)))
+    (case (car r)
+      ('ok 
+       (list 'ok (floor (* 100 (car (cdr r))))))
+      (else r))))
+
+(define (encode-ratio spec in)
+  (let ((num-spec (get 'num spec))
+        (den-spec (get 'den spec)))
+    (case num-spec
+      ('undef (console-error "invalid ratio spec" spec))
+      (else 
+        (case den-spec
+          ('undef (console-error "invalid ratio spec" spec))
+          (else 
+            (let ((num (encode num-spec in))
+                  (den (encode den-spec in)))
+              (case (car num)
+                ('ok
+                 (case (car den)
+                   ('ok (list 'ok (/ (car (cdr num)) (car (cdr den)))))
+                   (else den)))
+                (else num)))))))))
+
 (define (fold-numbers fn specs in out)
   (case (length specs)
     ('0 (list 'ok out))
@@ -339,6 +364,8 @@
           ('file (encode-file value-spec input))
           ('either (encode-either value-spec input))
           ('sum (encode-sum value-spec input))
+          ('ratio (encode-ratio value-spec input))
+          ('percentage (encode-percentage value-spec input))
           ('merge (encode-merge value-spec input))
           (else
             (console-error "invalid value spec" spec)

@@ -6,13 +6,28 @@ spec:
   encoders:
     progress:
       view:
-        tag: progress
+        tag: div
         attrs:
-          class: "progress"
-          value:
-            key: value
-          max:
-            key: max
+          class: "bar bar-sm"
+        children:
+          - tag: div
+            attrs:
+              class: "bar-item"
+              role: "progressbar"
+              aria-valuenow: 
+                key: value
+              aria-valuemin: 0
+              aria-valuemax:
+                key: max
+              style: 
+                format:
+                  pattern: "width: ~a%;"
+                  params:
+                    - percentage:
+                        num:
+                          key: value
+                        den:
+                          key: max
     sidebar_icon:
       view:
         tag: div
@@ -37,7 +52,12 @@ spec:
       view:
         tag: div
         attrs:
-          class: "off-canvas"
+          class:
+            text:
+              format:
+                pattern: "off-canvas ~a"
+                params:
+                  - key: theme
           key: "layout"
         children:
           - tag: div
@@ -115,11 +135,6 @@ spec:
         children:
           - tag: table
             children:
-              - tag: thead
-                children:
-                  loop:
-                    key: headers
-                  with: table_header
               - tag: tbody
                 children:
                   loop:
@@ -197,22 +212,17 @@ spec:
     info_view:
       view:
         tag: div
-        attrs:
-          class: "section-view"
         children:
-          - tag: h4
+          - tag: h5
             children:
               - text:
                   key: title
           - tag: div
             attrs:
+              class: "container"
               key: "info"
-              class: "card"
             children:
               - tag: div
-                attrs:
-                  class: "card-body"
-                  style: "padding-left: 25px;"
                 children:
                   loop:
                     key: items
@@ -222,7 +232,6 @@ spec:
         tag: pre
         attrs:
           class: "code"
-          data-lang: "json"
         children:
           - tag: code
             children:

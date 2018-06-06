@@ -726,6 +726,20 @@ compile_term(#{ <<"sum">> := Specs }) when is_list(Specs) ->
        spec => lists:map(fun compile_term/1, Specs)
      };
 
+compile_term(#{ <<"ratio">> := #{ <<"num">> := Num,
+                                    <<"den">> := Den }}) ->
+    #{ type => ratio,
+       num => compile_term(Num),
+       den => compile_term(Den)
+     };
+
+compile_term(#{ <<"percentage">> := #{ <<"num">> := Num,
+                                    <<"den">> := Den }}) ->
+    #{ type => percentage,
+       num => compile_term(Num),
+       den => compile_term(Den)
+     };
+
 compile_term(#{ <<"member">> := Spec }) -> 
    
     #{ type => member,

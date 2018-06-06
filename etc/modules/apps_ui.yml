@@ -52,10 +52,16 @@ spec:
                       key: name
                       in: item
           - tag: td
+            attrs:
+              class: "text-right"
             children:
-              - text:
-                  key: category
-                  in: item
+              - tag: span
+                attrs:
+                  class: "label label-rounded"
+                children:
+                  - text:
+                      key: category
+                      in: item
     apps_table_view:
       view:
         view: table
@@ -66,42 +72,40 @@ spec:
                 - object:
                     title: 
                       text:
-                        literal: "Name"
+                        literal: " "
                 - object:
                     title:
                       text: 
-                        literal: "Category"
+                        literal: " "
             items:
               key: data
             item_view:
               keyword: app_table_item_view
                     
-    apps_section_view:
-      view:
-        view: section
-        params:
-          object:
-            view:
-              keyword: apps_table_view
-            data:
-              key: data
     apps_main_view:
       view:
-        view: main
-        params:
-          object:
-            title:
-              text:
-                literal: "Apps"
-            view:
-              keyword: apps_table_view
-            data:
-              key: data
+        tag: div
+        attrs:
+          class: "card"
+        children:
+          - tag: h1
+            attrs:
+              class: "content-view"
+            children:
+              - text:
+                  literal: "Apps"
+          - view: apps_table_view
+            params:
+              object:
+                data:
+                  key: data
     apps_view: 
       view:
         view: layout
         params:
           object:
+            theme:
+              key: theme
             message:
               key: message
             content_view:

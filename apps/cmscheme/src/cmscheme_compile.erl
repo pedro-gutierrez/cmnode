@@ -579,6 +579,30 @@ term(#{ type := sum, spec := Operands }) when is_list(Operands) ->
                              cmscheme_ast:call(list, lists:map(fun term/1, Operands))
                             ]);
 
+term(#{ type := ratio, 
+        num := Num,
+        den := Den })  ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(ratio),
+                             cmscheme_ast:call(list, [
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(num), term(Num) ]),
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(den), term(Den)])
+
+                                                     ])
+                            ]);
+
+term(#{ type := percentage, 
+        num := Num,
+        den := Den })  ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(percentage),
+                             cmscheme_ast:call(list, [
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(num), term(Num) ]),
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(den), term(Den)])
+
+                                                     ])
+                            ]);
+
 
 term(#{ type := list, value := Specs }) ->
     cmscheme_ast:call(list, [
