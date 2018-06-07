@@ -27,7 +27,12 @@ compile(#{ <<"type">> := <<"template">> }=Spec) -> {ok, compile_template(Spec)};
 compile(#{ <<"type">> := <<"module">> }=Spec) -> {ok, compile_module(Spec)};
 compile(#{ <<"type">> := <<"test">> }=Spec) -> {ok, compile_test(Spec)};
 compile(#{ <<"type">> := <<"queue">> }=Spec) -> {ok, compile_queue(Spec)};
-compile(#{ <<"type">> := <<"settings">> }=Spec) -> {ok, compile_settings(Spec)}.
+compile(#{ <<"type">> := <<"settings">> }=Spec) -> {ok, compile_settings(Spec)};
+compile(#{ <<"type">> := <<"cron">> }=Spec) -> {ok, compile_cron(Spec)};
+
+compile(Spec) ->
+    cmkit:danger({cmconfig, unknown_spec, Spec}),
+    {error, Spec}.
 
 deps(#{ <<"type">> := T, 
         <<"name">> := N }=Spec) -> 
@@ -118,6 +123,44 @@ compile_queue(#{ <<"name">> := Name,
        worker => Worker, 
        capacity => #{ max => M, concurrency => C }}.
 
+compile_cron(#{ <<"name">> := Name,
+                <<"spec">> := #{ <<"schedule">> := Schedule,
+                                 <<"jobs">> := Jobs }}) ->
+
+    CronName = cmkit:to_atom(Name),
+    #{ type => cron,
+       name => CronName,
+       schedule  => compile_cron_schedule(Schedule),
+       jobs => compile_cron_jobs(Jobs) 
+     }.
+
+compile_cron_schedule(#{ <<"pm">> := #{ <<"hour">> := Hour,
+                                           <<"min">> := Min }}) ->
+    #{ type => daily,
+       hour => Hour,
+       min => Min,
+        period => pm };
+
+compile_cron_schedule(#{ <<"am">> := #{ <<"hour">> := Hour,
+                                           <<"min">> := Min }}) ->
+    #{ type => daily,
+       hour => Hour,
+       min => Min,
+        period => am }.
+
+compile_cron_jobs(Specs) ->
+    lists:map(fun(#{ <<"module">> := Mod,
+                        <<"fun">> := Fun,
+                        <<"args">> := Args }) ->
+                            
+                       {ok, EncodedArgs } = cmencode:encode(#{ type => list,
+                                                               value => compile_terms(Args) }),
+                       
+                       #{ module => cmkit:to_atom(Mod),
+                          function => cmkit:to_atom(Fun),
+                          args => EncodedArgs
+                        }
+               end, Specs).
 
 compile_template(#{ <<"name">> := Name,
                     <<"spec">> := #{

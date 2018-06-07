@@ -16,7 +16,9 @@
          queue/1,
          settings/0,
          settings/1,
-         settings/2
+         settings/2,
+         crons/0,
+         cron/1
         ]).
 
 all(Type) -> cmconfig_cache:all(Type).
@@ -42,6 +44,8 @@ settings(Name, true) ->
 
 settings(Name, false) -> settings(Name).
 
+crons() -> all(cron).
+cron(Name) -> find(cron, Name).
 
 
 mount(App, Port, Transport) ->

@@ -1,0 +1,29 @@
+version: 1.0
+type: cron
+name: daily_dev_tests
+spec:
+  schedule: 
+    am: 
+      hour: 9
+      min: 0
+  jobs:
+    - module: cmtest
+      fun: schedule
+      args: 
+        - keyword: cockroach
+        - keyword: dev
+    - module: cmtest
+      fun: schedule
+      args: 
+        - keyword: dkv
+        - keyword: dev
+    - module: cmtest
+      fun: schedule
+      args: 
+        - keyword: sphera_shp
+        - keyword: dev
+    - module: cmtest
+      fun: schedule
+      args: 
+        - keyword: kube
+        - keyword: dev

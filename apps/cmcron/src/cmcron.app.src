@@ -1,0 +1,18 @@
+{application, cmcron,
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { cmcron_app, []}},
+  {applications,
+   [kernel,
+    cmconfig,
+    erlcron,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
