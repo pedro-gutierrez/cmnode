@@ -175,35 +175,27 @@ spec:
       object:
         test_reports:
           list:
-            one_of:
-              - object:
-                  query:
-                    any: keyword
-                  status:
-                    keyword: error
-                  error:
-                    any: data
-              - object:
-                  id:
-                    any: text
-                  timestamp:
+            object:
+              id:
+                any: text
+              timestamp:
+                any: number
+              query: 
+                any: keyword
+              settings:
+                any: keyword 
+              millis:
+                any: number
+              status:
+                keyword: ok
+              scenarios:
+                object:
+                  fail:
                     any: number
-                  query: 
-                    any: keyword
-                  settings:
-                    any: keyword 
-                  millis:
+                  success:
                     any: number
-                  status:
-                    keyword: ok
-                  scenarios:
-                    object:
-                      fail:
-                        any: number
-                      success:
-                        any: number
-                      total:
-                        any: number
+                  total:
+                    any: number
     test_report:
       object:
         test_report:

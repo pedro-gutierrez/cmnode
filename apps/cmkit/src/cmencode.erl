@@ -6,8 +6,12 @@
 encode(Spec) -> encode(Spec, #{}).
 encode(Spec, In) -> encode(Spec, In, #{}).
 
+
 encode(#{ type := object, spec := Spec}, In, Config) ->
     encode_object(Spec, In, Config);
+    
+encode(#{ type := object }, _, _) ->
+    {ok, #{}};
 
 encode(#{ type := data, from := Key}, In, Config) when is_atom(Key) ->
     encode(Key, In, Config);

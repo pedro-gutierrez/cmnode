@@ -52,7 +52,7 @@ init([#{ name := Name,
                            runner => Runner
                          }};
         Other ->
-            cmkit:danger({cmtest, error, Name, Title, Other, Test, self()}),
+            cmkit:danger({cmtest, error, Name, Title, Other}),
             {stop, normal}
     end.
 

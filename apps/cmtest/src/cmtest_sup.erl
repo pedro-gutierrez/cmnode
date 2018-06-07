@@ -9,7 +9,6 @@ start_link() ->
 
 init([]) ->
     
-    
     RunnerSup = cmkit:child_spec(cmtest_runner_sup,
                                    cmtest_runner_sup,
                                    [],

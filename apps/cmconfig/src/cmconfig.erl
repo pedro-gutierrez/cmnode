@@ -15,7 +15,8 @@
          queues/0,
          queue/1,
          settings/0,
-         settings/1
+         settings/1,
+         settings/2
         ]).
 
 all(Type) -> cmconfig_cache:all(Type).
@@ -32,6 +33,16 @@ queues() -> all(queue).
 queue(Name) -> find(queue, Name).
 settings() -> all(settings).
 settings(Name) -> find(settings, Name).
+settings(Name, true) -> 
+    case settings(Name) of 
+        {ok, #{ spec := Spec}} ->
+            cmencode:encode(Spec);
+         Other -> Other
+    end;
+
+settings(Name, false) -> settings(Name).
+
+
 
 mount(App, Port, Transport) ->
     case port(Port) of 

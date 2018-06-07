@@ -58,6 +58,7 @@ decode_object([Key|Rem], Spec, Data, Config, Out) when is_map(Data) ->
     end.
 
 decode_term(#{ type := data }, Data, _) when is_binary(Data) -> {ok, Data};
+decode_term(#{ type := data }, _, _) -> no_match;
 decode_term(#{ type := keyword, value := Data}, Data, _) when is_atom(Data) -> {ok, Data};
 decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) ->
     decode_term(Spec, Data, Config);
@@ -68,8 +69,30 @@ decode_term(#{ type := keyword }, _, _) -> no_match;
 decode_term(#{ type := text, value := Text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_match;
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text}, Text, _) when is_list(Text) -> {ok, cmkit:to_bin(Text)};
+decode_term(#{ type := text}, Text, _) when is_list(Text) -> 
+    case cmkit:is_string(Text) of 
+        true -> 
+            {ok, cmkit:to_bin(Text)};
+        false -> 
+            no_match
+    end;
+
 decode_term(#{ type := text}, _, _) -> no_match;
+decode_term(#{ type := regexp, value := Spec}, Data, Config) -> 
+    case cmencode:encode(Spec, Data, Config) of 
+        {ok, EncodedRegex} ->
+            case re:run(Data, EncodedRegex) of 
+                {match, _} -> 
+                    {ok, Data};
+                nomatch -> 
+                    nomatch
+            end;
+        Other -> 
+            cmkit:danger({cmdecode, regexp, Spec, Other}),
+            no_match
+    end;
+
+
 decode_term(#{ type := number, value := Num}, Num, _) when is_number(Num) -> {ok, Num};
 decode_term(#{ type := number, value := Num}, _, _) when is_number(Num) -> no_match;
 decode_term(#{ type := number, value := Num}, Bin, _) when is_binary(Bin) ->
@@ -118,6 +141,14 @@ decode_term(#{ type := empty}, _, _) -> no_match;
 decode_term(#{ type := list, spec := #{ size := Size }}, Data, _) when is_number(Size) and is_list(Data) -> 
     case length(Data) of 
         Size -> {ok, Data};
+        _ -> no_match
+    end;
+
+decode_term(#{ type := list, 
+               size := Size, 
+               spec := Spec }, Data, Config) when is_list(Data) -> 
+    case length(Data) of 
+        Size ->  decode_list(Spec, Data, Config);
         _ -> no_match
     end;
 

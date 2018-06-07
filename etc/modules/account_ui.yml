@@ -805,7 +805,3 @@ spec:
             literal: "/ws"
         persistent: 
           keyword: true
-        ping:
-          object:
-            action:
-              keyword: ping

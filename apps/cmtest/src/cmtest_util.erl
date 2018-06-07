@@ -212,18 +212,22 @@ run(#{ type := send,
                                                info => Other } }
                             end;
 
-                        #{ class := kubernetes } = Config ->
-                            case Encoded of 
-                                #{ list := R } -> 
-                                    {ok, Res, _} = cmkube:query(Config#{ verb => list,
-                                                                resource => R }),
-                                    {ok, World#{ conns => Conns#{ 
-                                                            App => Conn#{inbox => [Res]}
-                                                             }}};
-                                Other ->
-                                    {error, #{ error => unsupported_kubernetes_query,
-                                               info => Other }}
-                            end
+                        #{ class := kubernetes, token := T, host := H } ->
+                             
+                            Q = Encoded#{ token => T,
+                                          host => H },
+                            
+                            cmkit:log({cmtest, out, maps:without([token], Q)}),
+                            Res = case cmkube:query(Q) of 
+                                      {ok, R, _} -> R;
+                                      {error, E} -> E
+                                  end,
+
+                            cmkit:log({cmtest, in, Res}),
+                            
+                            {ok, World#{ conns => Conns#{ 
+                                                    App => Conn#{inbox => [Res]}
+                                                   }}}
                     end;
                 {error, E} -> {error, #{ error => encode_error,
                                          info => E }}
@@ -309,4 +313,3 @@ kube_settings(_) ->
 
 report_sort_fun(#{ timestamp := T1}, #{ timestamp := T2}) ->
     T1 > T2.
-

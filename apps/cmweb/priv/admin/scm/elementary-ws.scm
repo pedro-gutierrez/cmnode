@@ -67,12 +67,6 @@
     (define (ws-persistent?)
       (eq? 'true (get 'persistent effect-settings)))
     
-    (define ws-ping 
-      (let ((ping (encode (get 'ping effect-settings) '())))
-        (case (car ping)
-          ('ok (car (cdr ping)))
-          (else '((action ping))))))
-    
     (define (connect)
       (let ((url (ws-url)))
         (case url
@@ -121,7 +115,7 @@
         ('#t (keep-alive))))
 
     (define (keep-alive)
-      (ws-send ws-ping)
+      (ws-send-str "")
       (hashtable-set! state 'timer (timer keep-alive 20)))
 
     (define (cancel-keep-alive)

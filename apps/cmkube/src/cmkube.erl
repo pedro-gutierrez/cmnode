@@ -16,12 +16,25 @@ query(#{ host := Host,
         resource := namespaces}) ->
     do(kuberl_core_v1_api, list_namespace, Host, Token);
 
-query(#{ verb := V,
-         resource := R}) ->
-    {error, #{ verb => V,
-               resource => R,
-               status => not_supported_yet }}.
+query(#{ host := Host,
+         token := Token,
+         namespace := Ns,
+         service := App,
+         verb := <<"list">>,
+         resource := <<"endpoints">> }) ->
+    do(kuberl_core_v1_api, list_namespaced_endpoints, Ns, 
+       #{ labelSelector => <<"app=", App/binary>> }, Host, Token);
+
+query(Q) ->
+    {error, #{ status => not_supported_yet,
+               query => Q#{ token => <<"NOT SHOWN">> }}}.
 
 do(Api, Op, Host, Token) ->
     Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),
     Api:Op(ctx:background(), #{cfg => Cfg}).
+
+do(Api, Op, Ns, Opts, Host, Token) ->
+    Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),
+    Api:Op(ctx:background(), Ns, #{ params => Opts,
+                                    cfg => Cfg }).
+

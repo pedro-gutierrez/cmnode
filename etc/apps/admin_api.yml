@@ -24,6 +24,7 @@ spec:
     - tests_api
     - queues_api
     - settings_api
+    - docker_api
   config:
     role:
       keyword: admin

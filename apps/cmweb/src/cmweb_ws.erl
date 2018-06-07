@@ -41,6 +41,8 @@ websocket_info(Data, #{ app := App,
     {reply, {text, cmkit:jsone(Data)}, State}.
 
 
+handle_data(<<>>, State) -> {ok, State};
+
 handle_data(Data, #{ app := App,
                      port := Port,
                      id := Id,

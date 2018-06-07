@@ -1,0 +1,53 @@
+version: 1.0
+type: module
+category: server
+name: docker_api 
+spec:
+  decoders:
+    tag_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                any: text
+          repository:
+            object:
+              name:
+                any: text
+              repo_name:
+                any: text
+  update:
+    tag_ready:
+      model:
+        docker_image:
+          object:
+            name:
+              key: repo_name
+              in: 
+                key: repository
+                in: body
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: slack
+          encoder: docker_image_pushed
+        - effect: notify
+          encoder: ok
+  encoders:
+    ok:
+      object:
+        status: 
+          keyword: ok
+    docker_image_pushed:
+      object:
+        settings:
+          keyword: dev
+        announcement:
+          keyword: image_pushed
+        image:
+          key: docker_image
+

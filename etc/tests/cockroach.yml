@@ -1,0 +1,74 @@
+version: 1.0
+type: test
+name: cockroach 
+spec:
+  config:
+    retries: 100
+    wait: 5
+  backgrounds:
+    - title: "Ensure Kubernetes API server is online"
+      steps:
+        - title: "Connect to the Api server"
+          connect:
+            kubernetes:
+              host:
+                key: api
+                in: 
+                  key: kubernetes
+                  in: settings
+              token:
+                key: token
+                in:
+                  key: kubernetes
+                  in: settings
+          as: kubernetes
+        - title: "Check it is online"
+          probe:
+            connection: kubernetes
+            status: up
+    - title: "Ensure there are 3 cockroach nodes running"
+      steps:
+        - title: "Get the endpoints for service cockroach-public"
+          send:
+            to: kubernetes
+            spec:
+              object:
+                verb: list
+                resource: endpoints 
+                service: "cockroach-public"
+                namespace: "nc"
+          as: kubernetes
+        
+        - title: "Verify we got 3 Ip addresses"
+          receive:
+            from: kubernetes
+            spec:
+              object:
+                items:
+                  list:
+                    size: 1
+                    object:
+                      subsets:
+                        list:
+                          size: 1
+                          object:
+                            addresses: 
+                              list:
+                                size: 3
+                                object: 
+                                  ip: 
+                                    any: text
+                                  nodeName:
+                                    any: text
+
+
+  scenarios:
+    - title: "Loose one cockroach node"
+      tags:
+        - cockroach
+        - kube
+      backgrounds:
+        - "Ensure Kubernetes API server is online"
+        - "Ensure there are 3 cockroach nodes running"
+      steps: []
+

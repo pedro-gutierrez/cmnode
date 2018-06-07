@@ -527,6 +527,12 @@ compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
        value => lists:map( fun compile_term/1, Items) 
      };
 
+compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }) when is_map(Spec) ->
+    #{ type => list,
+       size => Size,
+       spec => compile_term(Spec)
+     };
+
 compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
     #{ type => list,
        spec => compile_term(Spec)
@@ -622,6 +628,10 @@ compile_term(#{ <<"any">> := <<"boolean">> }) ->
 
 compile_term(#{ <<"boolean">> := <<"any">> }) ->
     #{ type => boolean };
+
+compile_term(#{ <<"regexp">> := Regex }) ->
+    #{ type => regexp,
+        value => compile_term(Regex) };
 
 compile_term(#{ <<"text">> := Spec }) ->
     
@@ -811,14 +821,14 @@ compile_term(#{ <<"status">> := Status }) ->
         status => Status
      };
 
-compile_term(#{ <<"method">> := Method ,
-                <<"body">> := BodySpec,
-                <<"headers">> := HeadersSpec }) ->
-    #{ type => http,
-       method => cmkit:to_atom(Method),
-        body => compile_term(BodySpec),
-        headers => compile_object(HeadersSpec)
-    };
+%compile_term(#{ <<"method">> := Method ,
+%                <<"body">> := BodySpec,
+%                <<"headers">> := HeadersSpec }) ->
+%    #{ type => http,
+%       method => cmkit:to_atom(Method),
+%        body => compile_term(BodySpec),
+%        headers => compile_object(HeadersSpec)
+%    };
 
 compile_term(#{}=Map) when map_size(Map) == 0 ->
     #{ type => object };
