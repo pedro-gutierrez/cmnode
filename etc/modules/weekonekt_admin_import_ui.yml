@@ -27,6 +27,138 @@ spec:
         object:
           reviews: 0
           images: 0
+  decoders:
+    show_import_ui:
+      object:
+        effect:
+          keyword: ui
+        event:
+          one_of:
+            - text:
+                literal: "import"
+            - keyword: import
+    start_importing:
+      object:
+        effect:
+          keyword: ui
+        event:
+          text:
+            keyword: start_importing
+    import_file_selected:
+      object:
+        effect:
+          keyword: ui
+        event:
+          keyword: import_file_selected
+        value:
+          list:
+            file: any
+    import_created:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "created"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_error:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "error"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_started:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "started"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_finished:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                status:
+                  text:
+                    literal: "finished"
+                id:
+                  any: text
+                date:
+                  any: number
+    import_token:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            token:
+              any: text
+    import_file_uploaded:
+      object:
+        effect:
+          keyword: file
+        data:
+          object:
+            status:
+              text:
+                literal: "ok"
+            id:
+              any: text
+    import_file_attached:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                id:
+                  any: text
+                file:
+                  any: text
+                status:
+                  text:
+                    literal: "ok"
+    import_summary:  
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            import:
+              object:
+                reviews:
+                  any: number
+                images:
+                  any: number
   update:
     show_import_ui:
       model:
@@ -184,7 +316,7 @@ spec:
         children:
           - tag: label
             attrs:
-              class: "c-hand label label-primary btn btn-label"
+              class: "c-hand btn btn-primary"
               for:
                 key: id
             children:
@@ -193,11 +325,14 @@ spec:
           - tag: input
             attrs:
               type: "file"
+              class: "d-hide"
               id: 
                 key: id
               onchange:
                 key: change
-              class: "d-hide"
+              oninput:
+                key: change
+              value: ""
     import_selectfile_view:
       view:
         tag: div
@@ -236,21 +371,25 @@ spec:
                   key: data
     import_main_view:
       view:
-        view: main
-        params:
-          object:
-            title:
-              text:
-                literal: "Import"
-            view:
-              keyword: import_main_sections_view
-            data:
-              key: data
+        tag: div
+        attrs:
+          class: "card"
+        children:
+          - tag: h1
+            children:
+              - text: "Import"
+          - view: import_main_sections_view
+            params:
+              object:
+                data:
+                  key: data
     import_layout_view: 
       view:
         view: layout
         params:
           object:
+            theme:
+              key: theme
             message:
               key: message
             content_view:
@@ -310,12 +449,9 @@ spec:
             params:
               object:
                 value: 
-                  text:
-                    key: progress
-                    in: data
-                max:
-                  text:
-                    number: 100
+                  key: progress
+                  in: data
+                max: 100
           - view: button
             params:
               object:
@@ -390,7 +526,7 @@ spec:
           - tag: span
             children:
               - text:
-                  literal: "Import Summary"
+                  literal: "Summary"
           - view: import_stats_view
             params:
               object:
@@ -412,175 +548,24 @@ spec:
                         literal: "Do another import"
     import_stats_view:
       view:
-        tag: div
-        attrs:
-          key: "info"
-          class: "card mt-2"
-        children:
-          - tag: div
-            attrs:
-              class: "card-body columns"
-            children:
-              - tag: div
-                attrs:
-                  class: "col-3"
-                children:
-                  - tag: div
-                    children:
-                      - tag: strong
-                        children:
-                          - text:
-                              literal: "Reviews"
-                  - tag: div
-                    children:
-                      - tag: strong
-                        children:
-                          - text:
-                              literal: "Images"
-              
-              - tag: div
-                attrs:
-                  class: "col-3"
-                children:
-                  - tag: div
-                    children:
-                      - text:
-                          key: reviews
-                          in: stats
-                  - tag: div
-                    children:
-                      - text:
-                          key: images
-                          in: stats
-  decoders:
-    show_import_ui:
-      object:
-        effect:
-          keyword: ui
-        event:
-          one_of:
-            - text:
-                literal: "import"
-            - keyword: import
-    start_importing:
-      object:
-        effect:
-          keyword: ui
-        event:
-          text:
-            keyword: start_importing
-    import_file_selected:
-      object:
-        effect:
-          keyword: ui
-        event:
-          keyword: import_file_selected
-        value:
-          list:
-            file: any
-    import_created:
-      object:
-        effect:
-          keyword: ws
-        data:
+        view: info_view
+        params:
           object:
-            import:
-              object:
-                status:
-                  text:
-                    literal: "created"
-                id:
-                  any: text
-                date:
-                  any: number
-    import_error:
-      object:
-        effect:
-          keyword: ws
-        data:
-          object:
-            import:
-              object:
-                status:
-                  text:
-                    literal: "error"
-                id:
-                  any: text
-                date:
-                  any: number
-    import_started:
-      object:
-        effect:
-          keyword: ws
-        data:
-          object:
-            import:
-              object:
-                status:
-                  text:
-                    literal: "started"
-                id:
-                  any: text
-                date:
-                  any: number
-    import_finished:
-      object:
-        effect:
-          keyword: ws
-        data:
-          object:
-            import:
-              object:
-                status:
-                  text:
-                    literal: "finished"
-                id:
-                  any: text
-                date:
-                  any: number
-    import_token:
-      object:
-        effect:
-          keyword: ws
-        data:
-          object:
-            token:
-              any: text
-    import_file_uploaded:
-      object:
-        effect:
-          keyword: file
-        data:
-          object:
-            status:
-              text:
-                literal: "ok"
-            id:
-              any: text
-    import_file_attached:
-      object:
-        effect:
-          keyword: ws
-        data:
-          object:
-            import:
-              object:
-                id:
-                  any: text
-                file:
-                  any: text
-                status:
-                  text:
-                    literal: "ok"
-    import_summary:  
-      object:
-        effect:
-          keyword: ws
-        data:
-          object:
-            import:
-              object:
-                reviews:
-                  any: number
-                images:
-                  any: number
+            title: ""
+            items:
+              list:
+                - object:
+                    title: "Reviews"
+                    view:
+                      keyword: text_view
+                    value:
+                      key: reviews
+                      in: stats
+
+                - object:
+                    title: "Pictures"
+                    view:
+                      keyword: text_view
+                    value:
+                      key: images 
+                      in: stats

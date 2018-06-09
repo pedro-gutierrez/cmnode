@@ -51,11 +51,11 @@ div.landing, div.admin-content {
     background: transparent;
 }
 
-.landing .btn.btn-primary, .admin-content .btn.btn-primary, .admin-content .label-primary {
+/* .landing .btn.btn-primary, .admin-content .btn.btn-primary, .admin-content .label-primary {
     background: white;
     border-color: #ededed;
     color: #50596b;
-}
+}*/
 
 .tag {
     text-transform: uppercase;
@@ -173,7 +173,7 @@ div.landing.dark {
     margin-top: 10px;
 }
 
-.dark button.btn.btn-primary {
+.dark button.btn.btn-primary, .dark label.btn.btn-primary {
     margin-top: 8px;
     color: white;
     border-radius: 4px;

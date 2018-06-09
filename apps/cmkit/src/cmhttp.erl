@@ -25,41 +25,20 @@ handle({error,{failed_connect, _}}) ->
 handle({error,E}) ->
     {error, E};
 
-handle({ok, {{_, 404, _}, _, _}}) ->
-    {error, not_found};
-
-handle({ok, {{_, 409, _}, _, _}}) ->
-    {error, conflict};
-
-handle({ok, {{_, 401, _}, _, _}}) ->
-    {error, unauth};
-
-handle({ok, {{_, 400, _}, _, _}}) ->
-    {error, invalid};
-
-handle({ok, {{_, 200, _}, _, []}}) -> 
-    ok;
-
 handle({ok, {{_, Code, _}, Headers, Body}}) ->
-    case decoded_mime(Headers) of
-        {error, no_content_type} ->
-            {ok, Body};
+    DecodedBody = case decoded_mime(Headers) of
+        {error, no_content_type} -> Body;
         {ok, json} ->
             case cmkit:jsond(Body) of 
-                {ok, Term} -> 
-                    case Code of 
-                        200 -> {ok, Term};
-                        _ -> {error, Term}
-                    end;
-                _ -> 
-                    {error, Body}
+                {ok, Term} -> Term;
+                _ -> Body
             end;
-        {ok, _} -> 
-            case Code of 
-                200 -> {ok, Body};
-                _ -> {error, Body}
-            end
-    end.
+        {ok, _} -> Body
+    end,
+
+    {ok, #{ status => Code,
+            headers => decoded_headers(Headers, #{}), 
+            body => DecodedBody }}.
 
 decoded_mime(Headers) ->
     case lists:keyfind("content-type", 1, Headers) of 
@@ -83,3 +62,10 @@ encoded_body(_, Data) ->
 encoded_url(Url) -> cmkit:to_list(Url).
 encoded_headers(H) when is_map(H) ->
     [{ cmkit:to_list(K), cmkit:to_list(V)} || {K, V} <- maps:to_list(H)].
+
+decoded_headers([], Out) -> Out;
+decoded_headers([{K, V}|Rem], Out) ->
+    BinKey = cmkit:to_bin(K),
+    BinValue = cmkit:to_bin(V),
+    decoded_headers(Rem, Out#{ BinKey => BinValue }).
+

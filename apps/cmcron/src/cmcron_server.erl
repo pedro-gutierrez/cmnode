@@ -8,7 +8,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
-    {ok, #{}}.
+    {ok, load_crons() }.
 
 handle_call(reload, _, Data) ->
     cancel_existing_jobs(Data),
@@ -51,7 +51,7 @@ load_cron(#{ name := Name,
              schedule := Schedule,
              jobs := Jobs}, Data) -> 
     Data#{ Name => 
-           [ erlcron:cron({ map_schedule(Schedule), {M, F, Args}})
+           [ load_cron({ map_schedule(Schedule), {M, F, Args}})
              || #{ module := M,
                    function := F,
                     args := Args } <- Jobs ]}.
@@ -68,6 +68,9 @@ status(Data) ->
               end, #{}, Data).
 
 
+load_cron(Spec) ->
+    erlcron:cron(Spec),
+    cmkit:log({cron, loaded, Spec}).
 
 
 

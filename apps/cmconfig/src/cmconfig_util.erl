@@ -457,17 +457,17 @@ compile_term(#{ <<"either">> := Specs }) when is_list(Specs) ->
        options => lists:map(fun compile_option/1, Specs) };
 
 
-compile_term(#{ <<"spec">> := Spec,
-                <<"from">> := From,
-                <<"as">> := Alias }) when is_binary(From) ->
-    #{ from => cmkit:to_atom(From),
-       spec => compile_term(Spec),
-       as => cmkit:to_atom(Alias)
-     };
-
-compile_term(#{ <<"spec">> := _,
-                <<"from">> := _ }=Spec)  ->
-    compile_term(Spec#{ <<"as">> => <<"latest">> });
+%#compile_term(#{ <<"spec">> := Spec,
+%#                <<"from">> := From,
+%#                <<"as">> := Alias }) when is_binary(From) ->
+%#    #{ from => cmkit:to_atom(From),
+%#       spec => compile_term(Spec),
+%#       as => cmkit:to_atom(Alias)
+%#     };
+%#
+%#compile_term(#{ <<"spec">> := _,
+%#                <<"from">> := _ }=Spec)  ->
+%#    compile_term(Spec#{ <<"as">> => <<"latest">> });
 
 compile_term(#{ <<"spec">> := Spec,
                 <<"to">> := To }) when is_binary(To) ->
@@ -496,6 +496,17 @@ compile_term(#{ <<"any">> := <<"data">> }) ->
 compile_term(#{ <<"file">> := <<"any">> }) ->
     #{ type => file };
 
+compile_term(#{ <<"base64">> := Spec,
+                <<"as">> := As }) ->
+
+    #{ type => base64,
+       as => cmkit:to_atom(As),
+      spec => compile_term(Spec) };
+
+compile_term(#{ <<"base64">> := Spec }) ->
+    #{ type => base64,
+      spec => compile_term(Spec) };
+
 compile_term(#{ <<"as">> := As,
                 <<"file">> := Spec }) when is_map(Spec) ->
     #{ type => file,
@@ -505,6 +516,11 @@ compile_term(#{ <<"as">> := As,
 
 compile_term(#{ <<"file">> := Spec }) when is_map(Spec) ->
     #{ type => file,
+       spec => compile_term(Spec) 
+     };
+
+compile_term(#{ <<"asset">> := Spec }) ->
+    #{ type => asset,
        spec => compile_term(Spec) 
      };
 
@@ -706,6 +722,23 @@ compile_term(#{ <<"size">> := Size}) ->
 compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from_data">> := _ }) -> from_data;
 
+compile_term(#{ <<"item">> := Num,
+                <<"in">> := In }) when is_map(In) ->
+    
+    #{ item => Num,
+       in => compile_term(In)
+     };
+
+compile_term(#{ <<"item">> := Num,
+                <<"in">> := In }) when is_binary(In) ->
+    
+    #{ item => Num,
+       in => compile_keyword(In)
+     };
+
+compile_term(#{ <<"item">> := Num }) when is_number(Num) ->
+    #{ item => Num };
+
 compile_term(#{ <<"key">> := Key, 
                 <<"in">> := In }) when is_binary(In) -> 
     #{ key => compile_keyword(Key),
@@ -839,11 +872,39 @@ compile_term(#{ <<"send">> := Spec }) ->
        spec => compile_term(Spec)
      };
 
-compile_term(#{ <<"receive">> := Spec }) ->
+
+compile_term(#{ <<"receive">> := 
+                #{ <<"from">> := From,
+                   <<"spec">> := Spec,
+                   <<"as">> := As }}) ->
     #{ type => recv,
-       spec => compile_term(Spec)
+       from => compile_keyword(From),
+       spec => compile_term(Spec),
+       as => compile_keyword(As)
      };
 
+compile_term(#{ <<"receive">> := 
+                #{ <<"from">> := From,
+                   <<"spec">> := Spec,
+                   <<"remember">> := Remember }}) ->
+    #{ type => recv,
+       from => compile_keyword(From),
+       spec => compile_term(Spec),
+       as => compile_object(Remember)
+     };
+
+compile_term(#{ <<"receive">> := 
+                #{ <<"from">> := From,
+                   <<"spec">> := Spec }}) ->
+
+    #{ type => recv,
+       from => compile_keyword(From),
+       spec => compile_term(Spec),
+       as => latest 
+     };
+
+
+    
 compile_term(#{ <<"expect">> := Spec }) ->
     #{ type => expect,
        spec => compile_term(Spec)

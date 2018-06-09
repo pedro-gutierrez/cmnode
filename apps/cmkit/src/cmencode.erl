@@ -29,6 +29,28 @@ encode(Key, In, _) when is_atom(Key) or is_binary(Key) ->
            {ok, V}
    end;
 
+
+encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(At) or is_map(At)) ->
+    case encode(At, In, Config) of 
+        {ok, In2} ->
+            case is_list(In2) of 
+                false ->
+                    {error, #{ status => not_a_list, 
+                               at => At }};
+                true ->
+                    case Num =< length(In2) of 
+                        false -> 
+                            {error, #{ status => list_too_small,
+                                       size => length(In2),
+                                       looking_for => Num }};
+                        true ->
+                            {ok, lists:nth(Num, In2)}
+                    end
+            end;
+        Other -> 
+            Other
+    end;
+
 encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) and ( is_atom(At) or is_binary(At))-> 
     case encode(At, In, Config) of 
         {ok, In2} ->
@@ -130,6 +152,22 @@ encode(#{ type := file,
             Other
     end;
 
+encode(#{ type := base64,
+          spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of
+        {ok, Data} ->
+            {ok, base64:encode(Data)};
+        Other -> 
+            Other
+    end;
+
+encode(#{ type := asset,
+          spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of
+        {ok, Name} ->
+            file:read_file(filename:join(cmkit:assets(), Name));
+        Other -> Other
+    end;
 
 encode(#{ type := greater_than,
           spec := [Spec1, Spec2] }, In, Config) ->

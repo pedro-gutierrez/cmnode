@@ -38,7 +38,7 @@
       
      
     (define (default-view)
-      (list "div" '() (list 'list (list (list 'text "nothing to render")))))
+      (list "div" '() (list 'list (list (list 'text " ")))))
     
     (define (views) (hashtable-ref state 'encoders '()))
     (define (model) (hashtable-ref state 'model '()))
@@ -100,6 +100,7 @@
         (else (eval-condition spec in))))
 
     (define (compile-view-ref spec ctx)
+      (console-log "compile-view" spec)
       (let* ((params-spec (get 'params spec))
              (condition-spec (get 'condition spec))
              (v-ctx (view-ctx params-spec ctx)))
@@ -164,7 +165,9 @@
           ('ok
            (case n
              ((string "onclick")
-              (let ((fn (js-lambda (lambda (args) (send-event (car (cdr v)) '())))))
+              (let ((fn (js-lambda (lambda (args) 
+                                     (console-log "onclick event" args)
+                                     (send-event (car (cdr v)) '())))))
                 (list "onclick" fn )))
              ((string "onchange")
               (let ((fn (js-lambda (lambda (args)
@@ -173,6 +176,13 @@
                                             (ev-value (map-event-value target)))
                                        (send-event (car (cdr v)) ev-value))))))
                 (list "oninput" fn)))
+             ((string "oninput")
+              (let ((fn (js-lambda (lambda (args)
+                                     (let* ((ev (car args))
+                                            (target (js-ref ev "target"))
+                                            (ev-value (map-event-value target)))
+                                       (send-event (car (cdr v)) ev-value))))))
+                (list "onchange" fn)))
              (else (list n (car (cdr v))))))
           (else 
             (console-error "error encoding attribute value" v)

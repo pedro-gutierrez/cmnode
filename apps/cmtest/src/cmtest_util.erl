@@ -234,38 +234,44 @@ run(#{ type := send,
             end
     end;
 
+
+
+
 run(#{ type := recv, 
-       spec := #{
-         as := As,
-         from := App,
-         spec := Spec
-        }} , Settings,  #{ data := Data,
-                conns := Conns
-              }=World) ->
-    case maps:get(App, Conns, undef) of 
+       from := Conn,
+       spec := Spec } = RecvSpec, Settings, #{ data := Data,
+                                    conns := Conns } = World ) ->
+
+    case maps:get(Conn, Conns, undef) of 
         undef -> 
             {error, #{ error => no_such_connection,
-                       info => App }};
+                       info => Conn}};
         #{ inbox := Inbox } ->
             case cmdecode:decode(#{ type => first,
                                     spec => Spec }, Inbox, Settings) of 
                 {ok, Decoded} ->
-                    {ok, World#{ data => Data#{ As => Decoded }}};
+                    case maps:get(as, RecvSpec, undef) of 
+                        undef -> 
+                            {ok, World };
+                        Key when is_atom(Key) ->
+                            {ok, World#{ data => maps:merge(Data, #{ Key => Decoded})}};
+                        
+                        RememberSpec when is_map(RememberSpec) -> 
+                            case cmencode:encode(RememberSpec, Decoded) of 
+                                {ok, Data2} ->
+                                    {ok, World#{ data => maps:merge(Data, Data2) }};
+
+                                {error, E} ->
+                                    {error, #{ error => encode_error,
+                                               info => E }} 
+                            end
+                    end;
                 no_match -> 
                     retry
             end
     end;
 
-run(#{  type := file,
-        as := As, 
-        spec := #{ type := path,
-                   location := Path }}, _, #{ data := Data}=World) -> 
-    case file:read_file(Path) of 
-        {ok, Bin} ->
-           {ok, World#{ data => Data#{ As => Bin }}};
-        _ -> {error, #{ error => file_error,
-                        info => Path}}
-    end;
+
 
 run(#{ type := kube,
        spec := #{
@@ -288,6 +294,16 @@ run(#{ type := kube,
             end;
         {error, E } -> 
             {error, #{ error => settings_error,
+                       info => E }}
+    end;
+
+
+run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
+    case cmencode:encode(Spec, Data, Settings) of 
+        {ok, Encoded} ->
+            { ok, World#{ data => Data#{ As => Encoded }}};
+        {error, E} ->
+            {error, #{ error => encode_error,
                        info => E }}
     end;
 

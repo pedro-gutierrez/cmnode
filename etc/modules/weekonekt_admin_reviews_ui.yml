@@ -5,7 +5,15 @@ name: weekonekt_admin_reviews_ui
 spec:
   init:
     model:
-      reviews: [] 
+      reviews: []
+      theme: "dark"
+  decoders:
+    ready:
+      object:
+        effect:
+          keyword: events
+        event:
+          keyword: user_logged_in
   update:
     ready:
       cmds:
@@ -35,6 +43,8 @@ spec:
         view: layout
         params:
           object:
+            theme:
+              key: theme
             message:
               key: message
             content_view:
@@ -104,10 +114,3 @@ spec:
 
 
                 
-  decoders:
-    ready:
-      object:
-        effect:
-          keyword: events
-        event:
-          keyword: user_logged_in

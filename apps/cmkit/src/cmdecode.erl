@@ -85,7 +85,7 @@ decode_term(#{ type := regexp, value := Spec}, Data, Config) ->
                 {match, _} -> 
                     {ok, Data};
                 nomatch -> 
-                    nomatch
+                    no_match
             end;
         Other -> 
             cmkit:danger({cmdecode, regexp, Spec, Other}),

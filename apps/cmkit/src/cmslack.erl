@@ -1,8 +1,8 @@
 -module(cmslack).
--export([danger/1, warn/1, success/1]).
+-export([danger/1, warning/1, success/1]).
 
 danger(Spec) -> post(Spec, <<"danger">>).
-warn(Spec) -> post(Spec, <<"warning">>).
+warning(Spec) -> post(Spec, <<"warning">>).
 success(Spec) -> post(Spec, <<"good">>).
 
 post(#{ token := T, 

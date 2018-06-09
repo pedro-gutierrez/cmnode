@@ -1,1 +1,0 @@
-../../admin/scm/elementary-ws.scm
