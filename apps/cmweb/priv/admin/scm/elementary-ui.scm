@@ -100,7 +100,6 @@
         (else (eval-condition spec in))))
 
     (define (compile-view-ref spec ctx)
-      (console-log "compile-view" spec)
       (let* ((params-spec (get 'params spec))
              (condition-spec (get 'condition spec))
              (v-ctx (view-ctx params-spec ctx)))
