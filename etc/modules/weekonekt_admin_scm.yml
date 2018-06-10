@@ -25,6 +25,7 @@ spec:
               - admin_common_ui
               - weekonekt_admin_reviews_ui
               - weekonekt_admin_import_ui
+              - weekonekt_admin_places_ui
     scheme:
       data:
         key: scheme

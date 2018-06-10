@@ -985,6 +985,10 @@ compile_term(<<"no">>) ->
     #{ type => keyword,
        value => false };
 
+compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }) ->
+    #{ lat => Lat, 
+       lon => Lon };
+
 compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
     #{ type => unknown, spec => Spec }.
@@ -1190,6 +1194,19 @@ compile_view(#{ <<"date">> :=  #{ <<"format">> := Format,
     #{ date  => #{ 
          format => compile_term(Format),
          value => compile_term(Value) }};
+
+
+compile_view(#{ <<"map">> := #{ <<"id">> := Id,
+                                <<"style">> := Style,
+                                <<"zoom">> := Zoom,
+                                <<"center">> := Center,
+                                <<"markers">> := Markers }}) ->
+
+    #{ map => #{ id => cmkit:to_atom(Id),
+                 style => cmkit:to_atom(Style),
+                 zoom => Zoom,
+                 center => compile_term(Center),
+                 markers => compile_terms(Markers) }};
 
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),

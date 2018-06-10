@@ -75,7 +75,7 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "apps"
+                name: "places"
                 style: "fa fa-4x fa-map-marker"
                 title: "Places"
           - view: sidebar_icon

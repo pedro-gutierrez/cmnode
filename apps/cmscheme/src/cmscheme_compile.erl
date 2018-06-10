@@ -270,6 +270,29 @@ term(#{ json := Source,
                                                        term(Indent)])
                                                      ])]);
 
+term(#{ map := #{ id := Id,
+                  style := Style,
+                  zoom := Zoom,
+                  center := Center,
+                  markers := Markers }}) ->
+
+                   cmscheme_ast:call(list, [ cmscheme_ast:sym(map),
+                                             cmscheme_ast:call(list, [
+                                                                      cmscheme_ast:call(list, [
+                                                                                               cmscheme_ast:sym(id), cmscheme_ast:sym(Id) ]),
+                                                                      cmscheme_ast:call(list, [
+                                                                                               cmscheme_ast:sym(style), cmscheme_ast:sym(Style) ]),
+
+                                                                      cmscheme_ast:call(list, [
+                                                                                               cmscheme_ast:sym(zoom), cmscheme_ast:number(Zoom) ]),
+
+                                                                      cmscheme_ast:call(list, [
+                                                                                               cmscheme_ast:sym(center), term(Center) ]),
+                                                                      cmscheme_ast:call(list, [
+                                                                                                 cmscheme_ast:sym(markers), cmscheme_ast:call(list, terms(Markers)) ]) 
+                                                                     ])]);
+
+
 
 term(#{ timestamp := #{ format := Format,
                         value := Value}}) -> 

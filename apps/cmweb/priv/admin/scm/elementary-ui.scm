@@ -165,7 +165,6 @@
            (case n
              ((string "onclick")
               (let ((fn (js-lambda (lambda (args) 
-                                     (console-log "onclick event" args)
                                      (send-event (car (cdr v)) '())))))
                 (list "onclick" fn )))
              ((string "onchange")
@@ -240,6 +239,50 @@
              ('ok (date->string (js-new "Date" (car (cdr value))) (car (cdr format))))
              (else (console-error "invalid format in date view spec" v ctx))))
           (else (console-error "invalid value in date view spec" v ctx)))))
+      
+    (define mapbox (js-eval "mapboxgl"))
+
+    (define (mapbox-add-markers m markers ctx)
+      (case (length markers)
+        ('0 m)
+        (else 
+          (let* ((marker-spec (car markers))
+                 (marker-data (encode marker-spec ctx)))
+            (case (car marker-data)
+              ('ok
+               (let* ((coords (mapbox-cooordinates (car (cdr marker-data))))
+                      (marker (js-new "mapboxgl.Marker")))
+                 (js-invoke marker "setLngLat" coords)
+                 (js-invoke marker "addTo" m)
+                 (mapbox-add-markers m (cdr markers) ctx)))
+              (else (mapbox-add-markers m (cdr markers) ctx)))))))
+    
+    (define (mapbox-cooordinates spec)
+      (list->js-array (list (get 'lon spec)
+                            (get 'lat spec))))
+
+    (define (mapbox-map spec ctx)
+      (let ((center (encode (get 'center spec) ctx)))
+        (case (car center)
+          ('ok
+            (js-set! mapbox 
+                "accessToken" 
+                "pk.eyJ1IjoiY29kZW11dGlueSIsImEiOiJjamk4b3RrZHAwbHVhM3BtNWx1eDg3eXFnIn0.jXq3glh_ARDIsVKUUo9jsw") 
+            (let ((m (js-new "mapboxgl.Map" 
+                        (js-obj 
+                            "container" (symbol->string (get 'id spec))
+                            "style" (format "mapbox://styles/mapbox/~a-v9" (symbol->string (get 'style spec)))
+                            "zoom" (get 'zoom spec)
+                            "center" (mapbox-cooordinates (car (cdr center)))))))
+              (mapbox-add-markers m (get 'markers spec) ctx)))
+          (else (console-error "cannot encode map center" center)))))
+
+    (define (compile-map-view v ctx)
+      (timer (lambda () 
+               (mapbox-map v ctx)) 0)
+      (list "div" 
+            (list (list "style" "width: 100%; min-height: 300px;")
+                  (list "id" (symbol->string (get 'id v)))) '()))
 
     (define (compile-view v ctx)
       (case (length v)
@@ -275,6 +318,7 @@
              ('json (compile-json-view value ctx))
              ('timestamp (compile-timestamp-view value ctx))
              ('date (compile-date-view value ctx))
+             ('map (compile-map-view value ctx))
              (else (console-error "unknown directive" v)))))
         ('1 v)
         (else (console-error "unknown view" v ))))

@@ -260,7 +260,7 @@ body {
 .off-canvas-content .card {
   /*   background-color: rgba(16, 16, 16, 0.19); */
   /*  background-color: rgba(31, 31, 31, 0.76);*/
-    border-radius: 8px;
+  /* border-radius: 8px; */
     background-color: rgba(20, 20, 20, 1);
     border-color: rgba(73, 73, 73, 0.37);
 }
@@ -298,4 +298,8 @@ body {
     border: 1px solid;
     background: transparent;
     color: rgb(102, 102, 102);
+}
+
+div.mapboxgl-ctrl {
+    display: none !important;
 }
