@@ -102,6 +102,18 @@ event({characters, Content }, _, #{ state := item_content, item := Item }=S) ->
 event({endElement, _, _, {"content", "encoded"}}, _, #{ state := item_content }=S) ->
     S#{ state => item };
 
+event({characters, "geo_latitude"}, _, S) ->
+    S#{ geo => lat };
+
+event({characters, Lat}, _, #{ geo := lat }= S) ->
+    S#{ lat => cmkit:to_number(Lat), geo => none };
+
+event({characters, "geo_longitude"}, _, S) ->
+    S#{ geo => lon };
+
+event({characters, Lon}, _, #{ geo := lon }= S) ->
+    S#{ lon => cmkit:to_number(Lon), geo => none };
+
 event({startElement, _, _, {_, "post_type" }, _}, _, #{ state := item }=S) ->
     S#{ state => item_type };
 
@@ -124,10 +136,13 @@ event({endElement, _, "item", _}, _, #{ callback := {Mod, Fun},
                                         stats := Stats,
                                         state := item, 
                                         item := Item  }=S) ->
+    
     Item2 = parseHtml(Item),
+    Item3 = Item2#{ geo => #{ lat => maps:get(lat, S, undef),
+                              lon => maps:get(lon, S, undef) }},
     S#{ state =>  none, 
         item => #{},
-        stats => Mod:Fun(Item2, Stats)  };
+        stats => Mod:Fun(Item3, Stats)  };
 
 event(endDocument, _, #{ stats := Stats }) ->
     {ok, Stats };
