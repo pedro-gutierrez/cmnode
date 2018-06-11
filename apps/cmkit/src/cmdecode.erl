@@ -208,6 +208,11 @@ decode_term(#{ type := email}, Email, _) ->
 decode_term(#{ type := object, spec := Spec}, In, Config) when is_map(In) ->
     decode_object(Spec, In, Config, #{});
 
+decode_term(#{ type := object, size := Size }, In, _) when (is_map(In) and map_size(In) =:= Size) ->
+    {ok, In};
+
+decode_term(#{ type := object, size := Size}, In, _) when (is_map(In) and map_size(In) =/= Size) ->
+    no_match;
 
 decode_term(#{ type := object }, In, _) when is_map(In) ->
     {ok, In};

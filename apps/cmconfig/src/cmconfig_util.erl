@@ -542,6 +542,9 @@ compile_term(#{ <<"data">> := Spec }) ->
     maps:merge(#{ type => data},
                compile_term(Spec));
 
+compile_term(#{<<"empty">> := <<"object">> }) ->
+    #{ type => object, size => 0 };
+
 compile_term(#{<<"empty">> := _}) ->
     #{ type => empty };
 
@@ -654,6 +657,12 @@ compile_term(#{ <<"literal">> := Text }) ->
 
 compile_term(#{ <<"object">> := <<"any">> }) ->
     #{ type => object };
+
+compile_term(#{ <<"object">> := <<"empty">> }) ->
+    #{ type => object, size => 0 };
+
+compile_term(#{ <<"empty">> := <<"object">> }) ->
+    #{ type => object, size => 0 };
 
 compile_term(#{ <<"any">> := <<"object">> }) ->
     #{ type => object };
@@ -925,6 +934,13 @@ compile_term(#{ <<"status">> := Status }) ->
         status => Status
      };
 
+compile_term(#{ <<"join">> := #{ 
+                    <<"terms">> := Terms 
+                   }
+              }) ->
+    #{ type => join,
+       terms => compile_terms(Terms) };
+
 %compile_term(#{ <<"method">> := Method ,
 %                <<"body">> := BodySpec,
 %                <<"headers">> := HeadersSpec }) ->
@@ -1004,6 +1020,9 @@ compile_kube_spec(#{ <<"query">> := Verb,
 
 compile_object(<<"any">>) -> 
     #{ type => object };
+
+compile_object(<<"empty">>) -> 
+    #{ type => object, size => 0 };
 
 compile_object(null) ->
     #{ type => object };

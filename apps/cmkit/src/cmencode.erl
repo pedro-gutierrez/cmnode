@@ -16,19 +16,29 @@ encode(#{ type := object }, _, _) ->
 encode(#{ type := data, from := Key}, In, Config) when is_atom(Key) ->
     encode(Key, In, Config);
 
-encode(Key, In, _) when is_atom(Key) or is_binary(Key) ->
-    case cmkit:value_at(Key, In) of
-       undef ->
-            E = #{ status => missing_key,
-                      key => Key,
-                      data => In },
-            cmkit:danger({cmencode, E}),
-           
-            {error, E};
-       V ->
-           {ok, V}
-   end;
-
+encode(Key, In, _) when ( is_atom(Key) or is_binary(Key)) ->
+    
+    case is_map(In) of 
+        true ->
+            case cmkit:value_at(Key, In) of
+               undef ->
+                    E = #{ status => missing_key,
+                              key => Key,
+                              data => In },
+                    cmkit:danger({cmencode, E}),
+                   
+                    {error, E};
+               V ->
+                   {ok, V}
+           end;
+        false ->
+                    E = #{ status => not_a_map,
+                              key => Key,
+                              data => In },
+                    cmkit:danger({cmencode, E}),
+                   
+                    {error, E}
+    end;
 
 encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(At) or is_map(At)) ->
     case encode(At, In, Config) of 
@@ -194,6 +204,16 @@ encode(#{ type := sum,
         Other -> Other
     end;
 
+encode(#{ type := join,
+          terms := Specs }=Spec, In, Config) ->
+
+    case encode_all(Specs, In, Config) of 
+        {ok, EncodedTerms} ->
+            {ok, cmkit:bin_join(EncodedTerms)};
+        Other -> 
+            fail_encoding(Spec, In, Other)
+    end;
+
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 
 encode_object(Spec, In, Config) ->
@@ -227,3 +247,14 @@ fail_encoding(Spec, In, Out) ->
              }
     }.
 
+encode_all(Specs, In, Config) ->
+    encode_all(Specs, In, Config, []).
+
+encode_all([], _, _, Out) -> {ok, lists:reverse(Out)};
+encode_all([Spec|Rem], In, Config, Out) ->
+    case encode(Spec, In, Config) of 
+        {ok, Encoded} ->
+            encode_all(Rem, In, Config, [Encoded|Out]);
+        Other ->
+            Other
+    end.
