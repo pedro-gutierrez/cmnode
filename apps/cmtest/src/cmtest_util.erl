@@ -23,11 +23,36 @@ steps(#{ steps := Steps,
          backgrounds := Backgrounds }, Test) ->
     case resolve_backgrounds(Backgrounds, Test) of 
         {ok, Resolved } ->
-            {ok, lists:flatten(lists:map(fun(#{ steps := Steps2 }) -> 
-                                            Steps2 
-                                    end, Resolved)) ++ Steps};
+            Steps3 = lists:flatten(lists:map(fun(B) -> 
+                                        maps:get(steps, B)
+                                    end, Resolved)) ++ Steps,
+            IndexedProcs = index_procedures(Test),
+            resolve_procedures(Steps3, IndexedProcs, []); 
         Other -> Other
     end.
+
+index_procedures(#{ procedures := Procs }) ->
+    lists:foldl(fun(#{ name := Name,
+                       spec := Spec }, Index) ->
+                    Index#{ Name => Spec }
+                end, #{}, Procs);
+
+index_procedures(_) -> #{}.
+
+resolve_procedures([], _, Steps) -> {ok, lists:reverse(Steps)};
+resolve_procedures([#{ type := procedure,
+                       name := ProcName }=S|Rem], Procs, Steps) ->
+    case maps:get(ProcName, Procs, undef) of 
+        undef ->
+            {error, #{ reason => undefined,
+                       type => procedure,
+                       name => ProcName }};
+        Spec ->
+            resolve_procedures(Rem, Procs, [S#{ spec => Spec }|Steps])
+    end;
+            
+resolve_procedures([S|Rem], Procs, Steps) ->
+    resolve_procedures(Rem, Procs, [S|Steps]).
 
 resolve_backgrounds(Backgrounds, Test) ->
     resolve_backgrounds(Backgrounds, Test, []).
@@ -105,7 +130,7 @@ run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
 run(#{ type := connect,
        as := Name,
        spec := Spec }, Settings, World) ->
-
+    
     case cmencode:encode(Spec, #{ world => World, 
                                   settings => Settings }) of
         {ok, #{ app := App,
@@ -124,21 +149,19 @@ run(#{ type := connect,
                     connect(Name, Config, World)
             end;
 
-        {ok, #{ host := _,
-                  port := _,
-                  path := _,
-                  transport := _ } = Mount } ->
-
-            Config = Mount#{ debug => false ,
-                             persistent => false
-                           },
-
-            connect(Name, Config, World);
-
         {ok, #{ kubernetes := #{ host := _,
                                  token := _ } = Config }} -> 
             
             connect(Name, Config#{ transport => <<"kubernetes">> }, World);
+        
+        
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _} = Mount} ->
+
+            connect(Name, Mount#{ debug => false,
+                                  persistent => false }, World);
 
         {error, E} ->
             {error, #{ error => encode_error,
@@ -297,6 +320,55 @@ run(#{ type := kube,
                        info => E }}
     end;
 
+run(#{ type := request,
+        as := As,
+        spec := #{ url := Url,
+                   method := Method,
+                   headers := Headers,
+                   body := Body } } = Spec, _, #{ data := Data }=World) -> 
+      
+      case Method of 
+          post -> 
+            cmkit:log({cmtest, As, out, Url, Headers, Body}),
+            {_, Res} = cmhttp:post(Url, Headers, Body),
+            cmkit:log({cmtest, As, in, Res}),
+            {ok, World#{ data => Data#{
+                                    As => Res
+                                   }}};
+          _ -> 
+              {error, #{ error => request_method_not_suppported,
+                         info => Spec }}
+        end;
+    
+run(#{ type := procedure,
+       params := Params,
+       spec := #{ type := ProcType,
+                  as := As,
+                  spec := Spec }}, Settings, World) ->
+    
+        case cmencode:encode(Params, World, Settings) of 
+            {ok, EncodedParams} ->
+                In = #{ params => EncodedParams,
+                        settings => Settings },
+                case cmencode:encode(As, In) of 
+                    {ok, EncodedAs} ->
+                        case cmencode:encode(Spec, In) of 
+                            {ok, EncodedProc} ->
+                                run(#{ type => ProcType,
+                                       as => EncodedAs,
+                                       spec => EncodedProc }, Settings, World);
+                            {error, E} ->
+                                {error, #{ error => encode_error,
+                                   info => E }}
+                        end;
+                    {error, E} ->
+                        {error, #{ error => encode_error,
+                                   info => E }}
+                end;
+            {error, E} -> 
+                {error, #{ error => encode_error,
+                           info => E }}
+        end;
 
 run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
     case cmencode:encode(Spec, Data, Settings) of 

@@ -148,14 +148,6 @@ term(K, #{ type := list, spec := Spec }) when is_map(Spec) ->
                                                ])
                             ]);
 
-term(K, #{ type := list, size := Size }) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K),
-                             cmscheme_ast:call(list, 
-                                               [ cmscheme_ast:sym(list),
-                                                 cmscheme_ast:number(Size)
-                                               ])
-                            ]);
-
 term(K, #{ type := view, spec := Spec}) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(Spec)]);
 
@@ -441,11 +433,6 @@ term(#{ type := format,
                                                     ])
                             ]);
 
-term(#{ size := Size }) ->
-    cmscheme_ast:call(list, [
-                             cmscheme_ast:sym(size),
-                             cmscheme_ast:number(Size)
-                            ]);
 
 
 term(#{ type := map, spec := #{ options := Options,
@@ -626,16 +613,34 @@ term(#{ type := percentage,
                                                      ])
                             ]);
 
+term(#{ type := list, size := Size }) ->
+    cmscheme_ast:call(list, 
+                      [ cmscheme_ast:sym(list),
+                        cmscheme_ast:number(Size)
+                      ]);
 
 term(#{ type := list, value := Specs }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(list),
                              cmscheme_ast:call(list, terms(Specs))
                             ]);
+
+term(#{ type := list, spec := Spec }) when is_map(Spec) ->
+    cmscheme_ast:call(list,[ cmscheme_ast:sym(list),
+                             term(Spec)
+                           ]);
+
+
 term(#{ type := list }) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(list),
                              cmscheme_ast:sym(any)
+                            ]);
+
+term(#{ size := Size }) ->
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(size),
+                             cmscheme_ast:number(Size)
                             ]);
 
 term(Text) when is_binary(Text) ->

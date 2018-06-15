@@ -1,6 +1,7 @@
 -module(cmqueue).
 -export([
-         clear/1, 
+         clear/1,
+         cancel/2,
          status/1, 
          schedule/2,
          subscribe/3
@@ -8,6 +9,9 @@
 
 clear(Name) ->
     ask(Name, clear).
+
+cancel(Name, Id) ->
+    ask(Name, {cancel, Id}).
 
 status(Name) -> 
     ask(Name, status).

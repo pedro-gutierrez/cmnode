@@ -105,6 +105,11 @@ effect_apply(#{ query := clear_queue }, SessionId) ->
           end,
     cmcore:update(SessionId, #{ tests => Res});
 
+effect_apply(#{ query := cancel,
+                test := Test }, _) ->
+
+    cmtest:cancel(Test);
+
 effect_apply(#{ query := reports,
                 days := Days }, SessionId) ->
 

@@ -87,6 +87,21 @@ encode(#{ type := text, value := Value }, _, _) ->
 encode(#{ type := number, value:= V }, _, _) when is_number(V) ->
     {ok, V};
 
+encode(#{ type := number, spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, V} ->
+            case cmkit:to_number(V) of 
+                error -> {error, #{ status => encode_error,
+                                    spec => Spec,
+                                    data => In,
+                                    reason => not_a_number }};
+
+                Num -> 
+                    {ok, Num}
+            end;
+        Other -> Other
+    end;
+
 encode(#{ type := member,
           spec := #{ value := ValueSpec,
                      in := CollectionSpec }}, In, Config) ->
@@ -130,24 +145,103 @@ encode(#{ type := config,
     {ok, maps:get(Key, Config)};
 
 
+encode(#{ type := url,
+          host := Host,
+          port := Port,
+          transport := Transport,
+          path := Path }, In, Config) ->
+    case encode(Host, In, Config) of 
+        {ok, EncodedHost} ->
+            case encode(Port, In, Config) of 
+                {ok, EncodedPort} ->
+                    case encode(Transport, In, Config) of 
+                        {ok, EncodedTransport} ->
+                            case encode(Path, In, Config) of 
+                                {ok, EncodedPath} ->
+                                    BinHost = cmkit:to_bin(EncodedHost),
+                                    BinPort = cmkit:to_bin(EncodedPort),
+                                    BinTransport = cmkit:to_bin(EncodedTransport),
+                                    BinPath = cmkit:to_bin(EncodedPath),
+
+                                    {ok, #{ url => <<BinTransport/binary, "://", 
+                                                     BinHost/binary, ":",
+                                                     BinPort/binary,
+                                                     BinPath/binary >>, 
+                                            transport => EncodedTransport, 
+                                            host => EncodedHost, 
+                                            port => EncodedPort, 
+                                            path => EncodedPath }};
+                                Other -> Other
+                            end;
+                        Other -> Other
+                    end;
+                Other -> Other
+            end;
+        Other -> Other
+    end;
+
 encode(#{ type := request,
-         spec := Spec }, In, Config) ->
-    encode(Spec, In, Config);
+          as := As,
+          spec := Spec }, In, Config) ->
+    case encode(As, In, Config) of 
+        {ok, EncodedAlias} ->
+            case encode(Spec, In, Config) of 
+                {ok, EncodedSpec} -> 
+                    {ok, EncodedSpec#{ as => EncodedAlias }};
+                Other -> Other
+            end;
+        Other -> Other
+    end;
 
 encode(#{ type := http,
           method := Method,
+          url := Url,
           body := Body,
           headers := Headers }, In, Config) ->
     case encode(Headers, In, Config) of 
         {ok, H} ->
             case encode(Body, In, Config) of 
                 {ok, B} ->
-                    {ok, #{ method => Method,
-                            headers => H,
-                            body => B }}; 
+                    case encode(Url, In, Config) of 
+                        {ok, #{ url := U }} ->
+                            {ok, #{ url => U,
+                                    method => Method,
+                                    headers => H,
+                                    body => B }}; 
+                        Other -> Other
+                    end;
                 Other -> Other
             end;
         Other -> Other
+    end;
+
+encode(#{ type := basic_auth,
+          spec := Creds }=Spec, In, Config) ->
+
+    case encode(Creds, In, Config) of 
+        {ok, #{ username := Username,
+                password := Password }} ->
+
+            UsernameBin = cmkit:to_bin(Username),
+            PasswordBin = cmkit:to_bin(Password),
+            Base64Encoded = base64:encode(<<UsernameBin/binary, ":", PasswordBin/binary>>),
+            Value = <<"Basic ", Base64Encoded/binary>>, 
+            {ok, Value };
+
+        {ok, Other} ->
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       data => In,
+                       reason => Other
+                     }
+            };
+        Other -> 
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       data => In,
+                       reason => Other
+                     }
+            }
     end;
 
 encode(#{ type := path,
@@ -175,7 +269,7 @@ encode(#{ type := asset,
           spec := Spec }, In, Config) ->
     case encode(Spec, In, Config) of
         {ok, Name} ->
-            file:read_file(filename:join(cmkit:assets(), Name));
+            cmkit:read_file(filename:join(cmkit:assets(), Name));
         Other -> Other
     end;
 

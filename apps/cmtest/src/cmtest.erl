@@ -1,8 +1,11 @@
 -module(cmtest).
 -export([
-         subscribe/1, 
+         subscribe/1,
+         run/1,
          run/2, 
          run/3,
+         stop/1,
+         cancel/1,
          clear/0, 
          schedule/2, 
          reports/0, 
@@ -13,6 +16,24 @@
 
 subscribe(SessionId) ->
     cmqueue:subscribe(tests_queue, tests, SessionId).
+
+cancel(Id) ->
+    cmqueue:cancel(tests_queue, Id).
+
+run(#{ id := Id,
+       test := Test,
+       settings := Settings }) -> 
+
+    case cmconfig:settings(Settings) of 
+        {ok, SettingsSpec } -> 
+            case cmconfig:test(Test) of
+                {ok, Spec} -> 
+                    cmtest_runner:run(Spec#{ id => Id }, SettingsSpec);
+                Other -> Other
+            end;
+        Other -> Other
+    end.
+
 
 run(Test, Settings) ->
     case cmconfig:settings(Settings) of 
@@ -37,6 +58,9 @@ run(Test, Settings, Tag) ->
         Other -> Other
     end.
 
+stop(Id) ->
+    cmtest_runner:stop(Id).
+
 clear() ->
     cmqueue:clear(tests_queue). 
 
@@ -56,10 +80,14 @@ queue_job(T, S) ->
 
     #{ id => Now,
        timestamp => Now,
-       type => test,
-       name => T,
-       info => S,
-       spec => {cmtest, run, [T, S]}
+       info => #{ test => T,
+                  settings => S,
+                  info => <<"Not started yet">> },
+       spec => #{ start => {cmtest, run, [#{ id => Now,
+                                 test => T,
+                                 settings => S}]},
+
+                  stop => {cmtest, stop, [Now]}}
      }.
 
 report(Id) ->

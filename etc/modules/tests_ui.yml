@@ -8,25 +8,38 @@ spec:
       tests: []
       test: {}
       selected_test: ""
-      test_activity:
+      tests_activity:
         object:
-          max: 0
-          active: 0
-          pending: 0
-          state:
-            text:
-              literal: "green"
-          items:
-            object:
-              pending: []
-              active: []
+          active:
+            current: 0
+            max: 0
+            items: []
+          pending:
+            current: 0
+            max: 0
+            items: []
   decoders:
+    show_activity:
+      object:
+        effect:
+          keyword: ui
+        event:
+          one_of:
+            - object:
+                tab:
+                  keyword: activity
+            - text: 
+                literal: "activity"
+            - keyword: activity
     show_tests:
       object:
         effect:
           keyword: ui
         event:
           one_of:
+            - object:
+                tab:
+                  keyword: tests
             - text: 
                 literal: "tests"
             - keyword: tests
@@ -62,6 +75,16 @@ spec:
               any: text
             settings:
               any: text
+    cancel_test:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name: 
+              keyword: cancel_test
+            id:
+              any: number
     show_scenario:
       object:
         effect:
@@ -86,18 +109,15 @@ spec:
               any: text
             background:
               any: text
-    toggle_activity:
-      object:
-        effect:
-          keyword: ui
-        event:
-          keyword: toggle_activity
     show_test_reports:
       object:
         effect:
           keyword: ui
         event:
           one_of:
+            - object:
+                tab:
+                  keyword: reports 
             - keyword: show_test_reports
             - text: 
                 literal: "show_test_reports"
@@ -119,20 +139,46 @@ spec:
           object:
             tests:
               object:
-                active:
-                  any: number
                 pending:
-                  any: number
-                state:
-                  any: text
-                max:
-                  any: number
-                items:
-                  object:
-                    active: 
-                      any: list
-                    pending:
-                      any: list
+                  current:
+                    any: number
+                  max:
+                    any: number
+                  items:
+                    one_of:
+                      - empty: list
+                      - list:
+                          object:
+                            id:
+                              any: number 
+                            test:
+                              any: text
+                            settings:
+                              any: text
+                            info:
+                              any: text
+                            timestamp:
+                              any: number
+                active:
+                  current: 
+                    any: number
+                  max:
+                    any: number
+                  items:
+                    one_of:
+                      - empty: list
+                      - list:
+                          object:
+                            id:
+                              any: number
+                            test:
+                              any: text
+                            settings:
+                              any: text
+                            info:
+                              any: text
+                            timestamp:
+                              any: number
     tests:
       object:
         effect:
@@ -269,6 +315,14 @@ spec:
           encoder: settings_query
         - effect: ui
           encoder: tests_view
+    show_activity:
+      cmds:
+        - effect: ws
+          encoder: subscribe_to_tests
+        - effect: ws
+          encoder: test_activity_query
+        - effect: ui
+          encoder: tests_activity_view
     test_settings:
       model:
         settings:
@@ -301,12 +355,10 @@ spec:
           encoder: test_report_view
     tests_activity:
       model:
-        test_activity:
+        tests_activity:
           key: tests
           in: data
       cmds:
-        - effect: ws
-          encoder: test_reports
         - effect: ui
     show_test:
       model:
@@ -380,25 +432,6 @@ spec:
       cmds:
         - effect: ui
           encoder: background_view
-    toggle_activity:
-      - when:
-          eq:
-            - key: activity_panel
-            - keyword: visible
-        model:
-          activity_panel:
-            keyword: hidden
-        cmds:
-          - effect: ui
-      - when:
-          eq:
-            - key: activity_panel
-            - keyword: hidden 
-        model:
-          activity_panel:
-            keyword: visible
-        cmds:
-          - effect: ui
     schedule_test:
       model:
         selected_settings:
@@ -413,8 +446,19 @@ spec:
           key: test
           in: event
       cmds:
+        - effect: ws
+          encoder: test_activity_query
         - effect: ui
-          encoder: schedule_test_view
+          encoder: tests_activity_view
+    cancel_test:
+      model:
+        test_job_id:
+          key: id 
+          in: event
+      cmds:
+        - effect: ws
+          encoder: cancel_test
+        - effect: ui
   encoders:
     tests:
       object:
@@ -436,6 +480,13 @@ spec:
           key: selected_test
         settings:
           key: selected_settings
+    cancel_test:
+      object:
+        action:
+          text:
+            literal: "cancel"
+        test:
+          key: test_job_id
     test_activity_query:
       object:
         action: 
@@ -517,9 +568,16 @@ spec:
             attrs:
               key: "name"
             children:
-              - tag: span
+              - tag: a
                 attrs:
-                  class: "d-block"
+                  class: "d-block c-hand"
+                  onclick:
+                    object:
+                      name:
+                        keyword: show_test
+                      test:
+                        key: name
+                        in: item
                 children:
                   - text:
                       key: name
@@ -542,20 +600,6 @@ spec:
             attrs:
               class: "text-right"
             children:
-              - tag: button
-                attrs:
-                  class: "btn btn-sm btn-primary c-hand mx-2"
-                  onclick:
-                    object:
-                      name:
-                        keyword: show_test
-                      test:
-                        key: name
-                        in: item
-                children:
-                  - text:
-                      literal: "View definition"
-              
               - tag: button
                 attrs:
                   class: "btn btn-sm btn-primary c-hand mx-2"
@@ -680,32 +724,34 @@ spec:
           key: "tests-main-view"
           class: "card"
         children:
-          - tag: div
-            attrs:
-              key: "tests-view-links"
-              class: "text-right"
-            children:
-              - tag: a
-                attrs:
-                  class: "link c-hand mx-2"
-                  onclick:
-                    keyword: show_test_reports
-                children:
-                  - text:
-                      literal: "Test reports"
-
           - tag: h1
             attrs:
               class: "content-view"
             children:
               - text:
-                  literal: "Test definitions"
+                  literal: "Tests"
           - view: tests_table_view
             params:
               object:
                 tests:
                   key: tests
                   in: data
+    tests_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "tests-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: tests 
+          - view: tests_main_view
+            params:
+              object:
+                data:
+                  key: data
     tests_view:
       view:
         view: layout
@@ -716,7 +762,7 @@ spec:
             message:
               key: message
             content_view:
-              keyword: tests_main_view
+              keyword: tests_layout_view
             contents:
               object:
                 tests: 
@@ -725,8 +771,6 @@ spec:
                   key: test
                 selected_test:
                   key: selected_test
-                test_activity:
-                  key: test_activity
                 settings:
                   key: settings
             sidebar:
@@ -788,9 +832,16 @@ spec:
             attrs:
               key: "test"
             children:
-              - tag: span
+              - tag: a
                 attrs:
-                  class: "d-block"
+                  class: "d-block c-hand"
+                  onclick:
+                    object:
+                      name: 
+                        keyword: show_test_report
+                      report:
+                        key: id
+                        in: item
                 children:
                   - text:
                       key: query
@@ -821,17 +872,13 @@ spec:
                 children:
                   - text:
                       format:
-                        pattern: "~a scenario(s), ~a passed, ~a failed"
+                        pattern: "~a/~a scenarios"
                         params:
-                          - key: total
+                          - key: success
                             in:
                               key: scenarios
                               in: item
-                          - key: success 
-                            in:
-                              key: scenarios
-                              in: item
-                          - key: fail 
+                          - key: total 
                             in:
                               key: scenarios
                               in: item
@@ -851,19 +898,6 @@ spec:
             attrs:
               class: "text-right"
             children:
-              - tag: button
-                attrs:
-                  class: "btn btn-primary btn-sm c-hand mx-2"
-                  onclick:
-                    object:
-                      name: 
-                        keyword: show_test_report
-                      report:
-                        key: id
-                        in: item
-                children:
-                  - text:
-                      literal: "View report"
               - tag: button
                 attrs:
                   class: "btn btn-primary btn-sm c-hand mx-2"
@@ -918,31 +952,33 @@ spec:
           key: "test-reports-main-view"
           class: "card"
         children:
-          - tag: div
-            attrs:
-              key: "test-reports-view-links"
-              class: "text-right"
-            children:
-              - tag: a
-                attrs:
-                  class: "link c-hand mx-2"
-                  onclick:
-                    keyword: tests
-                children:
-                  - text:
-                      literal: "Test definitions"
-
           - tag: h1
             attrs:
               class: "content-view"
             children:
               - text:
-                  literal: "Test reports"
+                  literal: "Reports"
           - view: test_reports_table_view
             params:
               test_reports:
                 key: test_reports
                 in: data
+    test_reports_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "test-reports-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: reports
+          - view: test_reports_main_view
+            params:
+              object:
+                data:
+                  key: data
     test_reports_view:
       view:
         view: layout
@@ -953,13 +989,11 @@ spec:
             message:
               key: message
             content_view:
-              keyword: test_reports_main_view
+              keyword: test_reports_layout_view
             contents:
               object:
                 test_reports: 
                   key: test_reports
-                test_activity:
-                  key: test_activity
                 test:
                   key: test
                 selected_test:
@@ -1148,19 +1182,6 @@ spec:
           key: "test-sections"
           class: "card"
         children:
-          - tag: div
-            attrs:
-              class: "text-right"
-            children:
-              - tag: a
-                attrs:
-                  class: "link c-hand"
-                  onclick:
-                    keyword: tests
-                children:
-                  - text:
-                      literal: "Back to tests"
-          
           - tag: h1
             attrs:
               class: "content-view"
@@ -1197,6 +1218,22 @@ spec:
                   in:
                     key: test
                     in: data
+    test_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "test-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: tests 
+          - view: test_sections_view
+            params:
+              object:
+                data:
+                  key: data
     test_view:
       view:
         view: layout
@@ -1207,13 +1244,11 @@ spec:
             message:
               key: message
             content_view:
-              keyword: test_sections_view
+              keyword: test_layout_view
             contents:
               object:
                 test: 
                   key: test
-                test_activity:
-                  key: test_activity
             sidebar:
               keyword: admin_sidebar
     test_status_view:
@@ -1260,18 +1295,6 @@ spec:
         attrs:
           class: "card"
         children:
-          - tag: div
-            attrs:
-              class: "text-right"
-            children:
-              - tag: a
-                attrs:
-                  class: "link c-hand"
-                  onclick:
-                    keyword: show_test_reports
-                children:
-                  - text:
-                      literal: "Back to reports"
           - tag: h1
             attrs:
               class: "content-view"
@@ -1608,6 +1631,22 @@ spec:
                   in: 
                     key: test_report
                     in: data
+    test_report_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "test-reports-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: reports
+          - view: test_report_sections_view
+            params:
+              object:
+                data:
+                  key: data
     test_report_view:
       view:
         view: layout
@@ -1618,13 +1657,11 @@ spec:
             message:
               key: message
             content_view:
-              keyword: test_report_sections_view
+              keyword: test_report_layout_view
             contents:
               object:
                 test_report: 
                   key: test_report
-                test_activity:
-                  key: test_activity
                 settings:
                   key: settings
                 selected_test:
@@ -1678,19 +1715,6 @@ spec:
         attrs:
           class: "card"
         children:
-          - tag: div
-            attrs:
-              class: "text-right"
-            children:
-              - tag: a 
-                attrs:
-                  class: "link c-hand"
-                  onclick:
-                    keyword: tests
-                children:
-                  - text:
-                      literal: "Back to tests"
-          
           - tag: h1
             attrs:
               class: "content-view"
@@ -1764,6 +1788,22 @@ spec:
             params:
               key: scenario
               in: data
+    test_scenario_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "test-scenario-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: tests 
+          - view: scenario_sections_view
+            params:
+              object:
+                data:
+                  key: data
     scenario_view:
       view:
         view: layout
@@ -1774,7 +1814,7 @@ spec:
             message:
               key: message
             content_view:
-              keyword: scenario_sections_view
+              keyword: test_scenario_layout_view
             contents:
               object:
                 scenario: 
@@ -1787,18 +1827,6 @@ spec:
         attrs:
           class: "card"
         children:
-          - tag: div
-            attrs:
-              class: "text-right"
-            children:
-              - tag: a
-                attrs:
-                  class: "link c-hand"
-                  onclick:
-                    keyword: tests
-                children:
-                  - text:
-                      literal: "Back to tests"
           - tag: h1
             attrs:
               class: "content-view"
@@ -1912,29 +1940,22 @@ spec:
             params:
               key: background
               in: data
-    background_main_view:
-      view: 
-        view: tests_layout_view_without_inspector
-        params:
-          object:
-            title:
-              key: title
-              in:
-                key: background 
-                in: data
-            actions:
-              list:
-                - object:
-                    title:
-                      text: 
-                        literal: "Back to tests"
-                    target: 
-                      keyword: tests
-            content_view:
-              keyword: background_sections_view
-            data:
-              key: background
-              in: data
+    test_background_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "test-background-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: tests 
+          - view: background_sections_view
+            params:
+              object:
+                data:
+                  key: data
     background_view:
       view:
         view: layout
@@ -1945,7 +1966,7 @@ spec:
             message:
               key: message
             content_view:
-              keyword: background_sections_view
+              keyword: test_background_layout_view
             contents:
               object:
                 background: 
@@ -1955,16 +1976,25 @@ spec:
     schedule_test_selection_view:
       view:
         tag: div
+        attrs:
+          style: "padding-left: 25px; padding-right: 25px;"
+          class: "text-center"
         children:
           - tag: div
-            attrs:
-              class: "text-secondary"
             children:
-              - text:
-                  literal: "Choose the environment to run this test against"
+              - tag: span
+                attrs:
+                  class: "text-secondary"
+                children:
+                  - text:
+                      literal: "Choose the environment to run test"
+              - tag: span
+                attrs:
+                  class: "mx-2"
+                children:
+                  - text:
+                      key: test
           - tag: div
-            attrs:
-              class: "mt-4"
             children:
               loop: 
                 key: settings
@@ -1973,8 +2003,7 @@ spec:
                 object:
                   test:
                     key: test
-
-    schedule_test_activity_view:
+    test_activity_progress_view:
       view:
         tag: div
         children:
@@ -1984,14 +2013,11 @@ spec:
             children:
               - text:
                   format:
-                    pattern: "~a test(s) running, ~a waiting, ~a max"
+                    pattern: "~a test(s) ~a, ~a max"
                     params:
-                      - key: active
-                        in: test_activity
-                      - key: pending
-                        in: test_activity
+                      - key: current
+                      - key: state
                       - key: max
-                        in: test_activity
                       
           - tag: div
             attrs:
@@ -2001,68 +2027,75 @@ spec:
                 params:
                   object:
                     value:
-                      sum:
-                        - key: active
-                          in: test_activity
-                        - key: pending
-                          in: test_activity
+                      key: current
                     max:
                       key: max
-                      in: test_activity
-          - view: tests_in_progress_view
-            when:
-              not:
-                eq:
-                  - number: 0
-                  - key: pending
-            params:
-              object:
-                pending:
-                  key: pending
-                  in: test_activity
-                title:
-                  text:
-                    literal: " "
-                items:
-                  key: pending
-                  in: 
-                    key: items
-                    in: test_activity
-    schedule_test_main_view:
+
+    test_activity_status_view:
       view:
         tag: div
         attrs:
-          key: "schedule-test-view"
-          class: "card"
+          class: "mt-2"
+          key:
+            key: test
+            in: item
         children:
+          - tag: button
+            attrs:
+              class: "btn btn-error btn-sm float-right"
+              onclick:
+                object:
+                  name:
+                    keyword: cancel_test
+                  id:
+                    key: id
+                    in: item
+            children:
+              - text: "Cancel"
+          - tag: div
+            children:
+              - text:
+                  key: test
+                  in: item
+              - tag: span
+                attrs:
+                  style: "font-size: 13px;"
+                  class: "label label-rounded mx-2"
+                children:
+                  - text:
+                      key: settings
+                      in: item
           - tag: div
             attrs:
-              class: "text-right"
+              class: "text-secondary"
             children:
-              - tag: a
-                attrs:
-                  class: "link c-hand"
-                  onclick:
-                    keyword: show_test_reports
+              - text:
+                  key: info
+                  in: item
+          - tag: div
+            attrs:
+              class: "text-secondary"
+            children:
+              - tag: span 
                 children:
-                  - text:
-                      literal: "Test reports"
-              - tag: a
-                attrs:
-                  class: "link c-hand"
-                  onclick:
-                    keyword: tests
-                children:
-                  - text:
-                      literal: "Test definitions"
+                  - timestamp:
+                      format: human
+                      value:
+                        key: timestamp
+                        in: item
+    tests_activity_main_view:
+      view:
+        tag: div
+        attrs:
+          key: "tests-main-view"
+          class: "card"
+        children:
           - tag: h1
             attrs:
               class: "content-view"
             children:
               - text:
-                  key: test
-                  in: data
-
+                  literal: "Activity"
           - tag: div
             attrs:
               class: "columns"
@@ -2072,6 +2105,11 @@ spec:
                   class: "column col-6"
                 children:
                   - view: schedule_test_selection_view
+                    when:
+                      not:
+                        eq:
+                          - text: ""
+                          - key: test
                     params:
                       object:
                         test:
@@ -2080,18 +2118,84 @@ spec:
                         settings:
                           key: settings
                           in: data
-
               - tag: div
                 attrs:
                   class: "column col-6"
                 children:
-                  - view: schedule_test_activity_view
+                  - view: test_activity_progress_view
                     params:
                       object:
-                        test_activity:
-                          key: test_activity
-                          in: data
-    schedule_test_view:
+                        current:
+                          key: current
+                          in:
+                            key: active
+                            in:
+                              key: tests_activity
+                              in: data
+                        max: 
+                          key: max
+                          in:
+                            key: active
+                            in:
+                              key: tests_activity
+                              in: data
+                        state: "running"
+                  - view: test_activity_progress_view
+                    params:
+                      object:
+                        current:
+                          key: current
+                          in:
+                            key: pending
+                            in:
+                              key: tests_activity
+                              in: data
+                        max: 
+                          key: max
+                          in:
+                            key: pending
+                            in:
+                              key: tests_activity
+                              in: data
+                        state: "waiting"
+                  - tag: div
+                    children:
+                      loop: 
+                        key: items
+                        in:
+                          key: active
+                          in:
+                            key: tests_activity
+                            in: data
+                      with: test_activity_status_view
+                  - tag: div
+                    children:
+                      loop: 
+                        key: items
+                        in:
+                          key: pending
+                          in:
+                            key: tests_activity
+                            in: data
+                      with: test_activity_status_view
+
+    tests_activity_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "tests-activity-layout-view"
+        children:
+          - view: tests_tab_view
+            params:
+              object:
+                active:
+                  keyword: activity 
+          - view: tests_activity_main_view
+            params:
+              object:
+                data:
+                  key: data
+    tests_activity_view:
       view:
         view: layout
         params:
@@ -2101,14 +2205,88 @@ spec:
             message:
               key: message
             content_view:
-              keyword: schedule_test_main_view
+              keyword: tests_activity_layout_view
             contents:
               object:
                 settings:
                   key: settings
                 test: 
                   key: selected_test
-                test_activity:
-                  key: test_activity
+                tests_activity:
+                  key: tests_activity
             sidebar:
               keyword: admin_sidebar
+    
+    tab_view_item_view:
+      view:
+        tag: li
+        attrs:
+          class:
+            either:
+              - when:
+                  eq:
+                    - key: active
+                      in: context
+                    - key: id
+                      in: item
+                text: "tab-item active"
+              - text: "tab-item"
+        children:
+          - tag: a
+            attrs:
+              class: "link"
+              href: "#"
+              onclick:
+                object:
+                  tab_view:
+                    key: name
+                    in: context
+                  tab:
+                    key: id
+                    in: item
+            children:
+              - text:
+                  key: title
+                  in: item
+    tab_view:
+      view:
+        tag: div
+        attrs:
+          class: "clearfix"
+        children:
+          - tag: ul
+            attrs:
+              class: "tab float-right"
+            children:
+              loop: items
+              with: tab_view_item_view
+              context:
+                object:
+                  name:
+                    key: name
+                  active:
+                    key: active
+    tests_tab_view:
+      view:
+        view: tab_view
+        params:
+          object:
+            name:
+              keyword: tests_tab_view
+            active:
+              key: active
+            items:
+              list:
+                - object:
+                    title: "Reports"
+                    id: 
+                      keyword: reports
+                - object:
+                    title: "Tests"
+                    id: 
+                      keyword: tests
+                - object:
+                    title: "Activity"
+                    id: 
+                      keyword: activity
+

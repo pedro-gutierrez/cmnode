@@ -485,7 +485,7 @@
 (define (decode-list-size size in)
   (case (eq? size (length in))
     ('#t (list 'ok in))
-    ('#f (list 'error list-size-mismatch size in))))
+    ('#f (list 'error 'list-size-mismatch size in))))
 
 (define (decode-non-empty-list spec in out)
   (case (length in)

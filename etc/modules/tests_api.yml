@@ -56,6 +56,13 @@ spec:
         action:
           text:
             literal: "clear_tests"
+    cancel_test:
+      object:
+        action:
+          text:
+            literal: "cancel"
+        test:
+          any: number
     test_reports_query:
       object:
         action:
@@ -84,45 +91,19 @@ spec:
         tests:
           object:
             active:
-              any: number
-            max: 
-              any: number
+              max:
+                any: number
+              current:
+                any: number
+              items:
+                any: list
             pending:
-              any: number
-            concurrency:
-              any: number
-            state:
-              any: keyword 
-            items:
-              object:
-                active:
-                  list:
-                    object:
-                      id:
-                        any: number
-                      timestamp:
-                        any: number
-                      type:
-                        any: keyword
-                      name:
-                        any: text 
-                      info:
-                        any: text
-                pending:
-                  list:
-                    object:
-                      id:
-                        any: number
-                      timestamp:
-                        any: number
-                      type:
-                        any: keyword
-                      name:
-                        any: text 
-                      id:
-                        any: number
-                      info:
-                        any: text
+              max:
+                any: number
+              current:
+                any: number
+              items:
+                any: list
     test:
       object:
         test:
@@ -273,6 +254,19 @@ spec:
       - cmds:
           - effect: notify
             encoder: forbidden
+    cancel_test:
+      - when:
+          encoder: is_admin
+        model:
+          test_job_id:
+            key: test
+        cmds:
+          - effect: test
+            encoder: test_cancel_request
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+      
     clear_scheduled_tests:
       - when:
           encoder: is_admin
@@ -426,6 +420,12 @@ spec:
           key: test
         settings:
           key: settings
+    test_cancel_request:
+      object:
+        query:
+          keyword: cancel
+        test:
+          key: test_job_id
     test_status_query:
       object:
         query:

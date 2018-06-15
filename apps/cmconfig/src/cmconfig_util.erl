@@ -236,13 +236,23 @@ compile_test(#{ <<"name">> := Name,
     Config = maps:get(<<"config">>, Spec, #{}),
     Scenarios = compile_scenarios(maps:get(<<"scenarios">>, Spec, [])),
     Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
+    Procedures = maps:get(<<"procedures">>, Spec, []),
 
     #{ type => test,
        name => cmkit:to_atom(Name),
        config => compile_config(Config),
        scenarios => Scenarios,
+       procedures => compile_procedures(Procedures),
        backgrounds => compile_backgrounds(Backgrounds, Scenarios)
      }.
+
+compile_procedures(Specs) ->
+    lists:map(fun compile_procedure/1, Specs).
+
+compile_procedure(#{ <<"name">> := Name,
+                     <<"spec" >> := Spec}) ->
+    #{ name => cmkit:to_atom(Name),
+       spec => compile_term(Spec) }.
 
 compile_scenarios(Specs) -> 
     lists:map(fun compile_scenario/1, Specs).
@@ -264,11 +274,11 @@ compile_scenario(#{ <<"title">> := Title }=Spec) ->
        steps => compile_steps(Steps)
      }.
 
-compile_background(#{ <<"title">> := Title }=Spec, Scenarios) ->
+compile_background(#{ <<"title">> := Title,
+                      <<"steps">> := Steps }=Spec, Scenarios) ->
     
     Id = test_item_id(Title),
     Tags = maps:get(<<"tags">>, Spec, []),
-    Steps =  maps:get(<<"steps">>, Spec, []),
 
     RelatedScenarios = lists:filter(fun(#{ backgrounds := BackgroundRefs }) ->
                                             lists:any(fun(#{ id := BackgroundId }) ->
@@ -519,7 +529,16 @@ compile_term(#{ <<"file">> := Spec }) when is_map(Spec) ->
        spec => compile_term(Spec) 
      };
 
-compile_term(#{ <<"asset">> := Spec }) ->
+compile_term(#{ <<"asset">> := Spec, 
+                <<"as">> := As }) ->
+    
+    #{ type => asset,
+       as => cmkit:to_atom(As),
+       spec => compile_term(Spec) 
+     };
+
+compile_term(#{ <<"asset">> := Spec}) ->
+    
     #{ type => asset,
        spec => compile_term(Spec) 
      };
@@ -544,6 +563,9 @@ compile_term(#{ <<"data">> := Spec }) ->
 
 compile_term(#{<<"empty">> := <<"object">> }) ->
     #{ type => object, size => 0 };
+
+compile_term(#{<<"empty">> := <<"list">> }) ->
+    #{ type => list, size => 0 };
 
 compile_term(#{<<"empty">> := _}) ->
     #{ type => empty };
@@ -821,6 +843,11 @@ compile_term(#{ <<"sum">> := Specs }) when is_list(Specs) ->
        spec => lists:map(fun compile_term/1, Specs)
      };
 
+compile_term(#{ <<"and">> := Specs }) when is_list(Specs) ->
+    #{ type => 'and',
+       spec => lists:map(fun compile_term/1, Specs)
+     };
+
 compile_term(#{ <<"ratio">> := #{ <<"num">> := Num,
                                     <<"den">> := Den }}) ->
     #{ type => ratio,
@@ -912,17 +939,22 @@ compile_term(#{ <<"receive">> :=
        as => latest 
      };
 
-
-    
 compile_term(#{ <<"expect">> := Spec }) ->
     #{ type => expect,
        spec => compile_term(Spec)
      };
 
+compile_term(#{ <<"request">> := Spec,
+                <<"as">> := As }) ->
+    #{ type => request,
+       as => compile_term(As),
+       spec => compile_term(Spec) 
+     };
+
 compile_term(#{ <<"request">> := Spec }) ->
     #{ type => request,
-      spec => compile_term(Spec) 
-    };
+       spec => compile_term(Spec) 
+     };
 
 compile_term(#{ <<"response">> := Spec }) ->
     #{ type => response,
@@ -941,14 +973,42 @@ compile_term(#{ <<"join">> := #{
     #{ type => join,
        terms => compile_terms(Terms) };
 
-%compile_term(#{ <<"method">> := Method ,
-%                <<"body">> := BodySpec,
-%                <<"headers">> := HeadersSpec }) ->
-%    #{ type => http,
-%       method => cmkit:to_atom(Method),
-%        body => compile_term(BodySpec),
-%        headers => compile_object(HeadersSpec)
-%    };
+compile_term(#{ <<"join">> := Terms}) when is_list(Terms) ->  
+    #{ type => join,
+       terms => compile_terms(Terms) };
+
+compile_term(#{ <<"url">> := Url,
+                <<"method">> := Method ,
+                <<"body">> := BodySpec,
+                <<"headers">> := HeadersSpec }) ->
+    #{ type => http,
+       url => compile_term(Url),
+       method => cmkit:to_atom(Method),
+       body => compile_term(BodySpec),
+       headers => compile_object(HeadersSpec)
+     };
+
+compile_term(#{ <<"host">> := Host,
+                <<"port">> := Port,
+                <<"transport">> := Transport,
+                <<"path">> := Path }) ->
+    
+    #{ type => url,
+       host => compile_term(Host),
+       port => compile_term(Port),
+       transport => compile_term(Transport),
+       path => compile_term(Path) };
+
+compile_term(#{ <<"procedure">> := Name,
+                <<"params">> := Params }) ->
+
+    #{ type => procedure,
+       name => cmkit:to_atom(Name),
+       params => compile_term(Params) };
+
+compile_term(#{ <<"basic-auth">> := Spec }) ->
+    #{ type => basic_auth,
+       spec => compile_term(Spec) };
 
 compile_term(#{}=Map) when map_size(Map) == 0 ->
     #{ type => object };

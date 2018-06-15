@@ -3,10 +3,10 @@ type: module
 category: server
 name: common_api
 spec:
-  decoders:
-    invalid:
-      priority: lowest
-      object: any
+  #  decoders:
+  #  invalid:
+  #    priority: lowest
+  #    object: any
   encoders:
     forbidden:
       object:

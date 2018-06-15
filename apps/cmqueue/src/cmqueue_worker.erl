@@ -5,9 +5,7 @@
          init/1, 
          callback_mode/0, 
          terminate/3,
-         green/3,
-         yellow/3,
-         red/3
+         ready/3
         ]).
 
 callback_mode() ->
@@ -28,161 +26,146 @@ init([#{ name := Name,
               subscriptions => #{},
               cap => Cap,
               status => initial(),
-              queue => queue:new() },
-    {ok, state(Data), Data}.
+              queue => queue:new(),
+              running => #{} },
+    {ok, ready, Data}.
 
-green(info, _Msg, Data) ->
-    {next_state, state(Data), Data};
 
-green(cast, {failed, Job, Reason}, Data) -> 
-    
-    #{ status := #{ active := A }=Status} = Data2 = failed(Job, Reason, Data),
-    Data3 = Data2#{ status => Status#{ active => A - 1 }},
-    {next_state, state(Data3), Data3};
+ready(info, _Msg, Data) ->
+    {keep_state, Data};
 
-green(cast, finished, #{ subscriptions := Subs,
-                         status := #{ active := A}=Status}=Data) -> 
-    Data2 = Data#{ status => Status#{ active => A - 1}},
-    Info = status_info(Data2),
-    notify(Info, Subs),
-    {next_state, state(Data2), Data2};
 
-green({call, From}, status, Data) ->
+ready({call, From}, status, Data) ->
     Info = status_info(Data),
-    State = state(Data),
-    {next_state, State, Data, [{reply, From, {ok, Info}}]};
+    {keep_state, Data, [{reply, From, {ok, Info}}]};
 
-green({call, From}, clear, #{ subscriptions := Subs }=Data) ->
+ready({call, From}, clear, #{ subscriptions := Subs }=Data) ->
     Data2 = clear(Data),
     Info = status_info(Data2),
-    State = state(Data2),
     notify(Info, Subs),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+    {keep_state, Data2, [{reply, From, {ok, Info}}]};
 
-green({call, From}, {subscribe, Topic, Id}, Data) ->
+ready({call, From}, {subscribe, Topic, Id}, Data) ->
     Data2 = subscribe(Topic, Id, Data),
     Info = status_info(Data2),
-    State = state(Data2),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+    {keep_state,  Data2, [{reply, From, {ok, Info}}]};
 
-green({call, From}, {schedule, Job}, #{ subscriptions := Subs,
-                                        status := #{ active := A },
-                                        cap := #{ concurrency := A }}=Data) ->
+
+ready(cast, {info, Id, JobInfo}, #{ name := Name,
+                                 subscriptions := Subs,
+                                 running := R }=Data) ->
+    case maps:get(Id, R, undef) of 
+        undef -> 
+            cmkit:warning({cmqueue, Name, info, Id, unknown_job}),
+            {keep_state, Data};
+        Job ->
+            Data2 = Data#{ running => R#{ Id => Job#{ info => JobInfo }}},
+            Info = status_info(Data2),
+            notify(Info, Subs),
+            {keep_state, Data2}
+    end;
+
+ready({call, From}, {cancel, Id}, #{ name := Name,
+                                     subscriptions := Subs,
+                                     running := R }=Data) ->
+
+    case maps:get(Id, R, undef) of 
+        undef -> 
+            Data2  =  remove_from_queue(Id, Data),
+            Info = status_info(Data2),
+            notify(Info, Subs),
+            cmkit:log({cmqueue, Name, cancelled, Id}),
+            {keep_state, Data2, [{reply, From, {ok, Info}}]};
+        Job ->
+            cancel_jobs([Job]),
+            Data2 = active_job_finished(Id, Data),
+            Data3 = start_next_job(Data2),
+            Info = status_info(Data3),
+            notify(Info, Subs),
+            cmkit:log({cmqueue, Name, cancelled, Id}),
+            {keep_state, Data3, [{reply, From, {ok, Info}}]}
+    end;
+
+
+ready(cast, {finished, Id}, #{ subscriptions := Subs,
+                                status := #{ pending := 0 } }=Data) -> 
     
-    Data2 = enqueue(Job, Data),
+    Data2 = active_job_finished(Id, Data),
     Info = status_info(Data2),
-    State = state(Data2),
     notify(Info, Subs),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+    {keep_state, Data2};
 
-green({call, From}, {schedule, Job}, #{  subscriptions := Subs,
-                                         status := #{ active := A }=Status}=Data) ->
-    Data2 = Data#{ status => Status#{ active => A + 1}},
-    Data3 = start(Job, Data2),
-    Info = status_info(Data3),
-    State = state(Data3),
-    notify(Info, Subs),
-    {next_state, State, Data3, [{reply, From, {ok, Info}}]}.
-
-yellow(info, _Msg, Data) ->
-    {next_state, state(Data), Data};
-
-yellow(cast, {failed, Job, Reason}, #{ subscriptions := Subs }=Data) ->
-    Data2 = failed(Job, Reason, Data),
-    {Job, Data3} = dequeue(Data2),
-    Data4 = start(Job, Data3),
-    Info = status_info(Data4),
-    notify(Info, Subs),
-    {next_state, state(Data4), Data4};
-
-yellow(cast, finished, #{ subscriptions := Subs }=Data) ->
-    {Job, Data2} = dequeue(Data),
-    Data3 = start(Job, Data2),
-    Info = status_info(Data3),
-    State = state(Data3),
-    notify(Info, Subs),
-    {next_state, State, Data3};
-
-yellow({call, From}, status, Data) ->
-    Info = status_info(Data),
-    State = state(Data),
-    {next_state, State, Data, [{reply, From, {ok, Info}}]};
-
-yellow({call, From}, clear, #{ subscriptions := Subs }=Data) ->
-    Data2 = clear(Data),
-    Info = status_info(Data2),
-    State = state(Data2),
-    notify(Info, Subs),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
-
-yellow({call, From}, {subscribe, Topic, Id}, Data) ->
-    Data2 = subscribe(Topic, Id, Data),
-    Info = status_info(Data2),
-    State = state(Data2),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
-
-yellow({call, From}, {schedule, Job}, #{ subscriptions := Subs }=Data) ->
-    Data2 = enqueue(Job, Data),
-    Info = status_info(Data2),
-    State = state(Data2),
-    notify(Info, Subs),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]}.
-
-red(info, _Msg, Data) ->
-    {next_state, state(Data), Data};
-
-red(cast, {failed, Job, Reason}, #{ subscriptions := Subs }=Data) ->
-    Data2 = failed(Job, Reason, Data),
-    {Job, Data3} = dequeue(Data2),
-    Data4 = start(Job, Data3),
-    Info = status_info(Data4),
-    State = state(Data4),
-    notify(Info, Subs),
-    {next_state, State, Data4};
-
-red(cast, finished, #{ subscriptions := Subs }=Data) ->
-    {Job, Data2} = dequeue(Data),
-    Data3 = start(Job, Data2),
-    Info = status_info(Data3),
-    State = state(Data3),
-    notify(Info, Subs),
-    {next_state, State, Data3};
+ready(cast, {finished, Id}, #{ subscriptions := Subs,
+                                status := #{ pending := _ } }=Data) -> 
     
-red({call, From}, status, Data) ->
-    Info = status_info(Data),
-    State = state(Data),
-    {next_state, State, Data, [{reply, From, {ok, Info}}]};
-
-red({call, From}, clear, #{ subscriptions := Subs}=Data) ->
-    Data2 = clear(Data),
-    Info = status_info(Data2),
-    State = state(Data2),
+    Data2 = active_job_finished(Id, Data),
+    Data3 = start_next_job(Data2),
+    Info = status_info(Data3),
     notify(Info, Subs),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+    {keep_state, Data3};
 
-red({call, From}, {subscribe, Topic, Id}, Data) ->
-    Data2 = subscribe(Topic, Id, Data),
+
+ready({call, From}, {schedule, Job}, #{ subscriptions := Subs,
+                                        status := #{ active := A, pending := P },
+                                        cap := #{ concurrency := A, max := Max }}=Data) ->
+    
+    Data2 = case P < Max of 
+        true -> 
+            enqueue(Job, Data);
+        false -> 
+            Data
+        end,
+
     Info = status_info(Data2),
-    State = state(Data2),
-    {next_state, State, Data2, [{reply, From, {ok, Info}}]};
+    notify(Info, Subs),
+    {keep_state, Data2, [{reply, From, {ok, Info}}]};
 
-red({call, From}, {schedule, _Job}, Data) ->
-    {keep_state, Data, {reply, From, {error, full}}}.
+
+ready({call, From}, {schedule, Job}, #{  subscriptions := Subs,
+
+                                         status := #{ active := A },
+                                         cap := #{ concurrency := Max }}=Data) when A < Max ->
+    Data2 = start_job(Job, Data),
+    Info = status_info(Data2),
+    notify(Info, Subs),
+    {keep_state, Data2, [{reply, From, {ok, Info}}]}.
 
 terminate(Reason, _, #{ name := Name}) ->
     cmkit:log({cmqueue, Name, terminate, Reason}),
     ok.
 
-status_info(#{ queue := Q, cap := Cap, status := Status}=Data) ->
-    S = maps:merge(Cap, Status),
-    State = state(Data),
-    S#{ state => State, 
-        items =>  #{ pending => [ maps:without([spec], J) || J  <- queue:to_list(Q) ],
-                     active => []
-                   }}.
+active_job_finished(Id, #{ status := #{ active := A } = Status,
+                            running := R } = Data) ->
+    
+    Data#{ status => Status#{ active => A - 1},
+                    running => maps:without([Id], R) }.
+
+status_info(#{ queue := Q, running := R, cap := #{ concurrency := Concurrency,
+                                                   max := Max }}) ->
+    Pending = lists:map(fun job_info/1, queue:to_list(Q)),
+    Running = lists:map(fun job_info/1, maps:values(R)),
+
+    #{ 
+       active => #{ max => Concurrency,
+                    current => length(Running),
+                    items => Running },
+       pending => #{ max => Max,
+                     current => length(Pending),
+                     items => Pending } }.
+    
+job_info(#{ id := Id,
+            timestamp := Timestamp,
+            info := Info  }) ->
+    
+    maps:merge(Info, #{ id => Id,
+                        timestamp => Timestamp }).
+
 
 clear(#{ status := Status}=Data) ->
-    Data#{ queue => queue:new(), status => Status#{ pending => 0, failed => 0 }}.
+    Data#{ subscriptions => #{},
+           queue => queue:new(), 
+           running => #{}, 
+           status => Status#{ active => 0, pending => 0 }}.
 
 subscribe(Topic, Id, #{ subscriptions := Subs }=Data) ->
     Data#{ subscriptions => Subs#{ Id => Topic }}.
@@ -195,19 +178,28 @@ notify(Info, Subs) ->
                end, 0, Subs),
     cmkit:log({cmqueue, notify, NotesSent}).
 
-start(#{ id := _,
+
+cancel_jobs(Jobs) -> 
+    [ cancel_job(J) || J <- Jobs].
+
+cancel_job(#{ spec := #{ stop :=  {M, F, Args} }}) ->
+    apply(M, F, Args).
+
+start_job(#{ id := Id,
          timestamp := _,
-         type := _,
-         name := _,
-         spec := {M, F, Args} } = Job, #{ name := Name }=Data) ->
+         info:= _,
+         spec := #{ start := {M, F, Args} }} = Job, #{ name := Name,
+                                          status := #{ active := A } = Status,
+                                          running := R, name := Name }=Data) ->
     
     case apply(M, F, Args) of 
         ok -> 
             cmkit:log({cmqueue, Name, started, Job}),
-            Data;
+            Data#{ status => Status#{ active => A + 1}, 
+                   running => R#{ Id => Job } };
         {error, E} ->
-            gen_statem:cast(self(), {failed, Job, E}),
-            Data
+            cmkit:danger({cmqueue, Name, failed, Job, E}),
+            start_next_job(Data)
     end.
 
 enqueue(Job, #{ queue := Q, 
@@ -222,24 +214,31 @@ dequeue(#{ queue := Q,
     {Job, Data#{ queue => Q2, 
                   status => Status#{ pending => P - 1}}}.
 
-failed(Job, Reason, #{ name := Name, 
-                       status := #{ failed := F}=Status}=Data) ->
-    cmkit:danger({cmqueue, Name, failed, Job, Reason}),
-    Data#{ status => Status#{ failed => F + 1}}.
+remove_from_queue(_, #{ name := Name, 
+                         status := #{ pending := 0 }}=Data) ->
+    cmkit:warning({cmqueue, Name, cancel, empty_queue}),
+    Data;
 
-state(#{ cap := #{ concurrency := C,
-                   max := M }, 
-         status := #{ pending := P, 
-                      active := A }}) -> 
-    case C > A of 
-        true -> green;
-        false -> 
-            case P of 
-                0 -> green;
-                _  ->
-                    case M > P of 
-                        true -> yellow;
-                        false -> red
-                    end
-            end
+remove_from_queue(Id, #{ name := Name, 
+                         queue := Q, 
+                         status := #{ pending := P } = Status }=Data) ->
+    {L2, Removed} = lists:partition(fun(#{ id := JobId }) ->
+                                      Id =/= JobId
+                              end, queue:to_list(Q)),
+    case Removed of 
+        [#{ id := Id }] ->
+            Q2 = queue:from_list(L2),
+            Data#{ queue => Q2, status => Status#{ pending => P -1 } };
+        _ -> 
+            cmkit:warning({cmqueue, Name, cancel, Id, unexpected, Removed}),
+            Data
     end.
+
+
+start_next_job(#{ status := #{ pending := 0 }}=Data) ->
+    Data;
+
+start_next_job(#{ status := #{ pending := _ }}=Data) ->
+
+    {NextJob, Data2} = dequeue(Data),
+    start_job(NextJob, Data2).

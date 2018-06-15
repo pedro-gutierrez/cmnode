@@ -188,6 +188,24 @@ div.landing.dark {
     border-color: #1482d0;
 }
 
+
+.dark button.btn.btn-error, .dark label.btn.btn-error {
+    margin-top: 8px;
+    color: white;
+    border-radius: 4px;
+    background: linear-gradient(rgba(211, 36, 38, 0.96), #8a1116);
+    border-color: #8a1116;
+}
+
+.dark button.btn.btn-error:hover {
+    background: linear-gradient(rgba(221, 38, 40, 0.96), #aa151b);
+    border-color: #aa151b;
+}
+
+
+
+
+
 .dark a.link {
     color: #3e3f3f;
     text-transform: none;
@@ -303,3 +321,30 @@ body {
 div.mapboxgl-ctrl {
     display: none !important;
 }
+
+.dark ul.tab {
+    border-bottom: 0 !important;
+}
+
+.dark .tab-item.active a {
+    border-bottom: 0 !important;
+    color: rgb(102, 187, 255) !important;
+}
+
+.dark .tab-item {
+    top: 5px;
+    margin-bottom: 0px;
+    position: relative;
+    padding-left: 14px;
+    padding-right: 5px;
+}
+
+.dark .tab-item.active {
+    background-color: rgba(20, 20, 20, 1);
+    border-top: 1px solid rgba(73, 73, 73, 0.37);!important;
+    border-left: 1px solid rgba(73, 73, 73, 0.37);!important;
+    border-right: 1px solid rgba(73, 73, 73, 0.37);!important;
+    z-index: 10;
+    border-radius: 5px;
+}
+

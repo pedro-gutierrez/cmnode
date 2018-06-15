@@ -16,6 +16,20 @@ eval(#{ type := equal,
                                 cmencode:encode(Spec, In, Config)
                         end, Specs));
 
+eval(#{ type := greater_than } = Spec, _, In, Config) -> 
+    case cmencode:encode(Spec, In, Config) of
+        {ok, V} -> V;
+        Other -> 
+            cmkit:log({cmeval, error, Spec, Other}),
+            false
+    end;
+
+eval(#{ type := 'and', 
+        spec := Specs }, _, In, Config) when is_list(Specs) -> 
+    all_true(lists:map(fun(Spec) ->
+                                eval(Spec, In, Config)
+                        end, Specs));
+
 eval(#{ type := member }=Spec, _, In, Config) ->
     case cmencode:encode(Spec, In, Config) of 
         {ok, true} -> true;
@@ -57,4 +71,7 @@ all_equal([], _) -> true;
 all_equal([V|Rem], V) -> all_equal(Rem, V);
 all_equal(_, _) -> false.
 
+all_true([]) -> true;
+all_true([true|Rem]) -> all_true(Rem);
+all_true([_|_]) -> false.
 

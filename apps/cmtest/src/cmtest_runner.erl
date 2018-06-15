@@ -6,7 +6,7 @@
          progress/4,
          success/4,
          fail/4,
-         stop/0,
+         stop/1,
          start_link/0,
          init/1, 
          callback_mode/0, 
@@ -39,8 +39,13 @@ ok(From) -> reply(From, ok).
 
 reply(From, Msg) -> [{reply, From, Msg}].
 
-stop() ->
-    gen_statem:call(?MODULE, stop).
+stop(Id) ->
+    case erlang:whereis(?MODULE) of 
+        undefined ->
+            ok;
+        _ -> 
+            gen_statem:call(?MODULE, {stop, Id})
+    end.
 
 callback_mode() ->
     state_functions.
@@ -90,11 +95,12 @@ ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
     end;
 
 
-ready({call, From}, stop, #{ pid := Pid }=Data) ->
+ready({call, From}, {stop, _}, #{ pid := Pid }=Data) ->
     cmtest_scenario:stop(Pid),
     {keep_state, Data#{ stats => null }, [{reply, From, ok}]};
 
-ready(cast, {progress, _, _, _}, #{ pid := Pid }=Data) ->
+ready(cast, {progress, _, Scenario, StepsRem}, #{ pid := Pid }=Data) ->
+    notify_progress(Scenario, StepsRem, Data),
     cmtest_scenario:next(Pid),
     {keep_state, Data};
 
@@ -182,8 +188,7 @@ start_scenario(_, _, Data) ->
 
 
 
-report(#{ report_to := {From, _},
-          settings := #{ name := SettingsName }=Settings,
+report(#{ settings := #{ name := SettingsName }=Settings,
           started := T1,
           finished := T2,
           failures := Failures,
@@ -211,21 +216,44 @@ report(#{ report_to := {From, _},
 
     cmkit:S({cmtest, Q, SettingsName, Failures, Stats, Millis}),
     save_report(Report),
-    gen_statem:cast(From, finished),
+    finish(Data),
     slack(Settings, #{ test => Q,
                        severity => S, 
                        stats => Stats }).
 
 
-notify_error(_, #{ report_to := { From, _ },
-                            settings := Settings  }=Data) ->
+finish(#{ report_to := {From, _},
+          test := #{ name := Test, 
+                     id := Id } }) ->
+
+    gen_statem:cast(From, {finished, Id}),
+    cmkit:log({cmtest, Test, finished});
+
+finish(#{ test := #{ name := Test }}) ->
+    
+    cmkit:log({cmtest, Test, finished}).
+
+notify_error(_, #{ settings := Settings  }=Data) ->
 
     Q = query(Data),
-    gen_statem:cast(From, finished),
+    finish(Data),
     slack(Settings, #{ test => Q,
                        severity => danger}).
 
+notify_progress(Scenario, _, #{ report_to := {From, _},
+                                settings := #{ name := Settings},
+                                test := #{ id := Id,
+                                           name := Name }}) ->
 
+    cmkit:log({cmtest, progress, Name, Settings, Scenario }),
+    gen_statem:cast(From, {info, Id, #{ test => Name,
+                                        settings => Settings,
+                                        info => Scenario }});
+
+notify_progress(Scenario, _, #{ settings := #{ name := Settings},
+                                test := #{ 
+                                  name := Name }}) ->
+    cmkit:log({cmtest, progress, Name, Settings, Scenario }).
 
 
 severity(_, _, 0) -> success;
