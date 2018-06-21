@@ -106,7 +106,7 @@ jsond(Bin) when is_binary(Bin) ->
     end;
 
 jsond(Str) when is_list(Str) ->
-    jsond(to_bin(Str)).
+    jsond(uniconvert(Str)).
 
 jsone(Term) ->
     jsone:encode(Term, [{float_format, [{decimals, 32}, compact]}]).
@@ -118,8 +118,11 @@ jsone(Term, Opts) ->
 err(Reason) ->
   {error, #{reason => Reason}}.
 
-fmt(Format, Args) ->
-  erlang:iolist_to_binary(io_lib:format(xmerl_ucs:to_utf8(Format), Args )).
+fmt(Format, Args) when is_list(Format) ->
+  erlang:iolist_to_binary(io_lib:format(xmerl_ucs:to_utf8(Format), Args ));
+
+fmt(Format, Args) when is_binary(Format) ->
+    fmt(binary_to_list(Format), Args).
 
 now() ->
     erlang:system_time(millisecond).

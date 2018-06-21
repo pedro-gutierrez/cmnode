@@ -7,7 +7,8 @@ init(Req, #{app := App}=State) ->
         {ok, #{ debug := Debug }=Spec} -> 
             Log = cmkit:log_fun(Debug),
             case request_body(Req) of 
-                {error, _} -> 
+                {error, E} -> 
+                    cmkit:log({cmweb, body_error, E}),
                     reply_and_ok(invalid, json, #{ error => json }, Req, State);
                 {ok, Data, Req2} ->
                     case cmsession:new(App) of 

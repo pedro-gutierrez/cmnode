@@ -29,6 +29,7 @@ compile(#{ <<"type">> := <<"test">> }=Spec) -> {ok, compile_test(Spec)};
 compile(#{ <<"type">> := <<"queue">> }=Spec) -> {ok, compile_queue(Spec)};
 compile(#{ <<"type">> := <<"settings">> }=Spec) -> {ok, compile_settings(Spec)};
 compile(#{ <<"type">> := <<"cron">> }=Spec) -> {ok, compile_cron(Spec)};
+compile(#{ <<"type">> := <<"task">> }=Spec) -> {ok, compile_task(Spec)};
 
 compile(Spec) ->
     cmkit:danger({cmconfig, unknown_spec, Spec}),
@@ -161,6 +162,14 @@ compile_cron_jobs(Specs) ->
                           args => EncodedArgs
                         }
                end, Specs).
+
+compile_task(#{ <<"name">> := Name,
+                <<"spec">> := Items }) ->
+
+    #{ type => task,
+       name => cmkit:to_atom(Name),
+       items => compile_terms(Items)
+     }.
 
 compile_template(#{ <<"name">> := Name,
                     <<"spec">> := #{
@@ -999,6 +1008,10 @@ compile_term(#{ <<"host">> := Host,
        transport => compile_term(Transport),
        path => compile_term(Path) };
 
+compile_term(#{ <<"multipart">> := #{ <<"files">> := FilesSpec } }) ->
+    #{ type => multipart,
+       files => compile_term(FilesSpec) };
+
 compile_term(#{ <<"procedure">> := Name,
                 <<"params">> := Params }) ->
 
@@ -1023,6 +1036,16 @@ compile_term(#{ <<"kube">> := Spec}) ->
     #{ type => kube,
        spec => compile_kube_spec(Spec) };
 
+compile_term(#{ <<"slack">> := #{ <<"settings">> := SettingsSpec,
+                                  <<"severity">> := SeveritySpec,
+                                  <<"subject">> := SubjectSpec,
+                                  <<"body">> := BodySpec }}) ->
+    #{ type => slack,
+       spec => #{ settings => compile_term(SettingsSpec),
+                  severity => compile_term(SeveritySpec),
+                  subject => compile_term(SubjectSpec),
+                  body => compile_term(BodySpec) }};
+        
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
 
@@ -1068,6 +1091,12 @@ compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }) ->
 compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
     #{ type => unknown, spec => Spec }.
+
+compile_kube_spec(#{ <<"deployment">> := Spec}) ->
+    #{ query => create,
+       resource => deployment,
+       params => compile_term(Spec)
+     };
 
 compile_kube_spec(#{ <<"query">> := Verb,
                      <<"resource">> := Resource}) ->

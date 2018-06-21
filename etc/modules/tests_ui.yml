@@ -276,7 +276,7 @@ spec:
                   any: text
                 settings:
                   any: text
-                millis:
+                seconds:
                   any: number
                 status:
                   any: text
@@ -288,7 +288,7 @@ spec:
                       any: number
                     total:
                       any: number
-                failures:
+                result:
                   one_of:
                     - list:
                         size: 0
@@ -775,6 +775,26 @@ spec:
                   key: settings
             sidebar:
               keyword: admin_sidebar
+    test_scenario_badge_view:
+      view:
+        tag: span
+        attrs:
+          class:
+            either:
+              - when:
+                  eq:
+                    - key: status
+                    - text: "success"
+                text:
+                  format:
+                    pattern: "~a circle bg-success d-inline-block"
+                    params:
+                      - key: size
+              - text:
+                  format:
+                    pattern: "~a circle bg-error d-inline-block"
+                    params:
+                      - key: size
     test_report_badge_view:
       view:
         tag: span
@@ -832,70 +852,74 @@ spec:
             attrs:
               key: "test"
             children:
-              - tag: a
-                attrs:
-                  class: "d-block c-hand"
-                  onclick:
-                    object:
-                      name: 
-                        keyword: show_test_report
-                      report:
-                        key: id
-                        in: item
+              - tag: div
                 children:
-                  - text:
-                      key: query
-                      in: item
+                  - view: test_report_badge_view
+                    params:
+                      object:
+                        scenarios:
+                          key: scenarios
+                          in: item
+                        size: 
+                          text:
+                            literal: "size-12-12"
+                  - tag: a
+                    attrs:
+                      class: "mx-2 c-hand"
+                      onclick:
+                        object:
+                          name: 
+                            keyword: show_test_report
+                          report:
+                            key: id
+                            in: item
+                    children:
+                      - text:
+                          key: query
+                          in: item
               
-              - view: test_report_badge_view
-                params:
-                  object:
-                    scenarios:
-                      key: scenarios
-                      in: item
-                    size: 
-                      text:
-                        literal: "size-12-12"
-              
-              - tag: span
+                  - tag: span
+                    attrs:
+                      style: "font-size: 13px"
+                      class: "label label-rounded"
+                    children:
+                      - text:
+                          key: settings
+                          in: item
+              - tag: div
                 attrs:
-                  class: "table-item-info"
+                  style: "padding-left: 12px"
                 children:
-                  - timestamp:
-                      format: human
-                      value:
-                        key: timestamp
-                        in: item
-              - tag: span
-                attrs:
-                  class: "table-item-info"
-                children:
-                  - text:
-                      format:
-                        pattern: "~a/~a scenarios"
-                        params:
-                          - key: success
-                            in:
-                              key: scenarios
-                              in: item
-                          - key: total 
-                            in:
-                              key: scenarios
-                              in: item
-
+                  - tag: span
+                    attrs:
+                      class: "table-item-info"
+                    children:
+                      - text:
+                          format:
+                            pattern: "~a/~a scenarios, ~a seconds"
+                            params:
+                              - key: success
+                                in:
+                                  key: scenarios
+                                  in: item
+                              - key: total 
+                                in:
+                                  key: scenarios
+                                  in: item
+                              - key: seconds
+                                in: item
+                  - tag: span
+                    attrs:
+                      class: "table-item-info d-block"
+                    children:
+                      - timestamp:
+                          format: human
+                          value:
+                            key: timestamp
+                            in: item
           - tag: td
             attrs:
-              key: "settings"
-            children:
-              - tag: span
-                attrs:
-                  class: "label label-rounded"
-                children:
-                  - text:
-                      key: settings
-                      in: item
-          - tag: td
-            attrs:
+              style: "vertical-align: top"
               class: "text-right"
             children:
               - tag: button
@@ -923,10 +947,6 @@ spec:
                     title: 
                       text:
                         literal: " "  
-                - object:
-                    title: 
-                      text:
-                        literal: " "
                 - object:
                     title: 
                       text:
@@ -1266,20 +1286,6 @@ spec:
           - view: test_report_status_view
             params:
               key: data
-          - tag: div
-            attrs:
-              class: "text-secondary"
-            children:
-              - text:
-                  format:
-                    pattern: "~a scenario(s), ~a passed, ~a failed"
-                    params:
-                      - key: total
-                        in: data 
-                      - key: success
-                        in: data 
-                      - key: fail
-                        in: data 
 
     test_report_settings_label:
       view:
@@ -1292,16 +1298,7 @@ spec:
     test_report_stats_view:
       view:
         tag: div
-        attrs:
-          class: "card"
         children:
-          - tag: h1
-            attrs:
-              class: "content-view"
-            children:
-              - text:
-                  literal: "Report summary"
-
           - view: info_view
             params:
               object:
@@ -1313,22 +1310,12 @@ spec:
                     - object:
                         title:
                           text:
-                            literal: "Test"
+                            literal: "Status"
                         view:
-                          keyword: text_view
+                          keyword: test_status_view
                         value:
-                          key: query
+                          key: scenarios
                           in: report
-                    - object:
-                        title:
-                          text:
-                            literal: "Settings"
-                        view:
-                          keyword: test_report_settings_label
-                        value:
-                          key: settings
-                          in: report
-
                     - object:
                         title:
                           text:
@@ -1346,12 +1333,33 @@ spec:
                     - object:
                         title:
                           text:
-                            literal: "Status"
+                            literal: "Scenarios"
                         view:
-                          keyword: test_status_view
+                          keyword: text_view
                         value:
-                          key: scenarios
-                          in: report
+                          format:
+                            pattern: "~a successful, out of ~a"
+                            params:
+                              - key: success
+                                in:
+                                  key: scenarios
+                                  in: report
+                              - key: total
+                                in:
+                                  key: scenarios
+                                  in: report
+                    - object:
+                        title:
+                          text:
+                            literal: "Total time"
+                        view:
+                          keyword: text_view
+                        value:
+                          format:
+                            pattern: "~a second(s)"
+                            params:
+                              - key: seconds
+                                in: report
 
     test_report_failure_step_view:
       view:
@@ -1431,7 +1439,6 @@ spec:
                 params:
                   key: data
                   in: body
-   
     test_report_failure_header_view:
       view: 
         tag: div
@@ -1526,7 +1533,90 @@ spec:
                           key: world
                 item_view:
                   keyword: test_report_failure_body_item_view
-    test_report_failure_view:
+
+    test_report_result_header_view:
+      view:
+        tag: div
+        attrs:
+          class: "columns"
+          key:
+            key: scenario
+        children:
+          - tag: div
+            attrs:
+              style: "padding-left: 0 !important"
+              class: "column col-9"
+            children:
+              - text:
+                  key: scenario
+          - tag: div
+            attrs:
+              class: "column col-3 text-right"
+            children:
+              - tag: span
+                attrs:
+                  class: "text-secondary mx-2"
+                children:
+                  - text:
+                      format:
+                        pattern: "~a ms"
+                        params:
+                          - key: elapsed
+              - view: test_scenario_badge_view
+                params:
+                  object:
+                    size:
+                      text: "size-12-12"
+                    status:
+                      key: status
+    test_report_result_success_view:
+      view:
+        tag: div
+        children:
+          - tag: span
+            attrs:
+              class: "text-secondary"
+            children:
+              - text: "No errors to show"
+    test_report_result_error_view:
+      view:
+        tag: div
+        children:
+          - view: test_report_failure_body_view
+            params:
+              object:
+                step:
+                  key: step
+                  in: failure
+                world:
+                  key: world
+                  in: failure
+    test_report_result_body_view:
+      view:
+        tag: div
+        children:
+          - view: test_report_result_success_view
+            when:
+              eq: 
+                - text: "success"
+                - key: status
+            params:
+              object: 
+                status: 
+                  key: status
+          - view: test_report_result_error_view
+            when:
+              eq: 
+                - text: "fail"
+                - key: status
+            params:
+              object: 
+                status: 
+                  key: status
+                failure:
+                  maybe:
+                    key: failure
+    test_report_result_item_view:
       view:
         tag: div
         attrs:
@@ -1537,98 +1627,72 @@ spec:
               object:
                 id: 
                   text:
-                    literal: "failure-1"
+                    key: scenario
+                    in: item
                 header:
                   object:
                     view:
-                      keyword: test_report_failure_header_view
+                      keyword: test_report_result_header_view
                     data:
-                      object:
-                        scenario:
-                          key: scenario
-                          in:
-                            key: failure
-                            in: item
-                        step:
-                          key: title
-                          in:
-                            key: step
-                            in:
-                              key: failure
-                              in: item
-                        reason:
-                          key: error
-                          in: 
-                            key: reason
-                            in:
-                              key: failure
-                              in: item
+                      key: item
                 body:
                   object:
                     view:
-                      keyword: test_report_failure_body_view
+                      keyword: test_report_result_body_view
                     data:
-                      object:
-                        step:
-                          key: step
-                          in:
-                            key: failure
-                            in: item
-                        world:
-                          key: world
-                          in:
-                            key: failure
-                            in: item
-    test_report_failures_view:
+                      key: item
+    test_report_result_view:
       view:
         tag: div
         attrs:
-          class: "card mt-4"
-          key: "report-failures"
+          style: "margin-top: 20px"
+          key: "test-report-result-view"
         children:
-          - tag: div
-            children:
-              - tag: h1
-                attrs:
-                  class: "content-view"
-                children:
-                  - text:
-                      literal: "Failures"
-          - tag: div
-            children:
-              loop:
-                key: failures
-              with: test_report_failure_view
+          loop:
+            key: result
+          with: test_report_result_item_view
     test_report_sections_view:
       view:
         tag: div
         attrs:
-          key: "report-sections"
+          key: "test-report-sections-view"
+          class: "card"
         children:
+          - tag: h1
+            attrs:
+              class: "content-view"
+            children:
+              - text:
+                  literal: "Report for "
+              - text:
+                  key: query
+                  in: 
+                    key: test_report
+                    in: data
+              - tag: span
+                attrs:
+                  style: "top: -5px; position: relative;"
+                  class: "label label-rounded mx-2"
+                children:
+                  - text:
+                      key: settings
+                      in:
+                        key: test_report
+                        in: data
+
+          
           - view: test_report_stats_view
             params:
               object:
                 report: 
                   key: test_report
                   in: data
-          - view: test_report_failures_view
-            when:
-              not:
-                eq:
-                  - number: 0
-                  - key: fail
+          - view: test_report_result_view
             params:
               object:
-                fail:
-                  key: fail
+                result:
+                  key: result
                   in:
-                    key: scenarios
-                    in: 
-                      key: test_report
-                      in: data
-                failures:
-                  key: failures
-                  in: 
                     key: test_report
                     in: data
     test_report_layout_view:

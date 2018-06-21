@@ -165,7 +165,7 @@ spec:
                 any: keyword
               settings:
                 any: keyword 
-              millis:
+              seconds:
                 any: number
               status:
                 keyword: ok

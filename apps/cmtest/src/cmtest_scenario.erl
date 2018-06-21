@@ -49,7 +49,8 @@ init([#{ name := Name,
                                                    },
                                        data => #{},
                                        conns => #{} },
-                           runner => Runner
+                           runner => Runner,
+                           started => cmkit:now() 
                          }};
         Other ->
             cmkit:danger({cmtest, error, Name, Title, Other}),
@@ -88,7 +89,8 @@ run_steps(#{ test := #{ name := Name },
                                        wait := Wait 
                                      }
                        } = World,
-             runner := Runner
+             runner := Runner,
+             started := Started
            }=Data) ->
 
     case Steps of 
@@ -101,22 +103,25 @@ run_steps(#{ test := #{ name := Name },
                         [{state_timeout, Wait, retry}]};
                 
                 {ok, World2} ->
-                    cmtest_runner:progress(Name, Title, length(Rem), Runner),
+                    Elapsed = cmkit:now() - Started,
+                    cmtest_runner:progress(Name, Title, length(Rem), Elapsed, Runner),
                     {keep_state, Data#{ world => World2, 
                                         steps => Rem 
                                       }};
                     
                 {error, E} ->
+                    Elapsed = cmkit:now() - Started,
                     cmtest_runner:fail(Name, Title, #{ test => Name,
                                                        scenario => Title,
                                                        step => Step,
                                                        world => World,
                                                        reason => E
-                                                     }, Runner),
+                                                     }, Elapsed, Runner),
                     {keep_state, Data#{ steps => Rem }}
             end;
         [] ->
-            cmtest_runner:success(Name, Title, 0, Runner),
+            Elapsed = cmkit:now() - Started,
+            cmtest_runner:success(Name, Title, 0, Elapsed, Runner),
             {keep_state, Data}
     end.
 

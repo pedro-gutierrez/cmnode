@@ -200,10 +200,17 @@ encode(#{ type := http,
           headers := Headers }, In, Config) ->
     case encode(Headers, In, Config) of 
         {ok, H} ->
-            case encode(Body, In, Config) of 
-                {ok, B} ->
-                    case encode(Url, In, Config) of 
-                        {ok, #{ url := U }} ->
+            case encode(Url, In, Config) of 
+                {ok, #{ url := U }} ->
+                    case encode(Body, In, Config) of 
+                        {ok, multipart, B, Boundary} ->
+                            {ok, #{ url => U,
+                                    method => Method,
+                                    headers => H#{ 'content-type' => 
+                                        "multipart/form-data; boundary=" 
+                                            ++ binary_to_list(Boundary) },
+                                    body => B }}; 
+                        {ok, B} ->
                             {ok, #{ url => U,
                                     method => Method,
                                     headers => H,
@@ -212,6 +219,32 @@ encode(#{ type := http,
                     end;
                 Other -> Other
             end;
+        Other -> Other
+    end;
+
+encode(#{ type := multipart,
+          files := FilesSpec }, In, Config) ->
+    case cmencode:encode(FilesSpec, In, Config) of 
+        {ok, Files} ->
+
+            Boundary = cmkit:uuid(),
+            StartBoundary = erlang:iolist_to_binary([<<"--">>, Boundary]),
+            LineSeparator = <<"\r\n">>,
+            Data = lists:foldl(fun(#{ name := Name,
+                                      mime := Mime, 
+                                      filename := Filename,
+                                      data := Data }, Acc) ->
+
+                                       erlang:iolist_to_binary([ Acc,
+                                                                 StartBoundary, LineSeparator,
+                                                                 <<"Content-Disposition: form-data; name=\"">>, Name, <<"\"; filename=\"">>, Filename, <<"\"">>, LineSeparator, 
+                                                                 <<"Content-Type: ">>, Mime, LineSeparator, LineSeparator,
+                                                                 Data,
+                                                                 LineSeparator 
+                                                               ])
+                               end, <<"">>, Files),
+            Data2 = erlang:iolist_to_binary([Data, StartBoundary, <<"--">>, LineSeparator]),
+            {ok, multipart, Data2, Boundary};
         Other -> Other
     end;
 
@@ -306,6 +339,20 @@ encode(#{ type := join,
             {ok, cmkit:bin_join(EncodedTerms)};
         Other -> 
             fail_encoding(Spec, In, Other)
+    end;
+
+encode(#{ type := format, 
+          pattern := PatternSpec,
+          params := ParamsSpec }, In, Config) -> 
+
+    case cmencode:encode(PatternSpec, In, Config) of 
+        {ok, Pattern} ->
+            case encode_all(ParamsSpec, In, Config) of 
+                {ok, Params} ->
+                    {ok, cmkit:fmt(Pattern, Params)};
+                Other -> Other
+            end;
+        Other -> Other
     end;
 
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.

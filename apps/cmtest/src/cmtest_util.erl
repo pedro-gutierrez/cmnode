@@ -110,7 +110,7 @@ connect_http(Name, #{ transport := Transport }=Config, World) ->
 
 connect_kubernetes(Name, Config, World) ->
 
-    Status = case cmkube:query(Config#{ 
+    Status = case cmkube:do(Config#{ 
                                  verb => get,
                                  resource => api_versions 
                                 }) of 
@@ -241,7 +241,7 @@ run(#{ type := send,
                                           host => H },
                             
                             cmkit:log({cmtest, out, maps:without([token], Q)}),
-                            Res = case cmkube:query(Q) of 
+                            Res = case cmkube:do(Q) of 
                                       {ok, R, _} -> R;
                                       {error, E} -> E
                                   end,

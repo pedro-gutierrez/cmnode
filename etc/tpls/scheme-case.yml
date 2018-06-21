@@ -1,9 +1,0 @@
-version: 1.0
-type: template
-name: scheme_case
-spec:
-  params:
-    object:
-      name: 
-        type: text
-  contents: ({{ match }} {{expression}})

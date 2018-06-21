@@ -14,30 +14,163 @@ spec:
           keyword: events
         event:
           keyword: user_logged_in
+    show_reviews:
+      object:
+        effect:
+          keyword: ui
+        event:
+          one_of:
+            - keyword: reviews
+            - text: reviews
   update:
     ready:
+      model:
+        reviews:
+          list:
+            - object:
+                id:
+                  text: "1234"
+                title: 
+                  text: "Expedition Bali 4x4 - Mount Batur - Bali"
+                date: 63671174497000
+                highlights:
+                  text: "Pure Blast! This was probably one of my favouri..."
+                location:
+                  object:
+                    lat: -8.2401299
+                    lon: 115.3774944
       cmds:
+        - effect: ws
+          encoder: reviews_query
+        - effect: ui
+          encoder: reviews_view
+    show_reviews:
+      model:
+        reviews:
+          list:
+            - object:
+                id:
+                  text: "1234"
+                title: 
+                  text: "Expedition Bali 4x4 - Mount Batur - Bali"
+                date: 63671174497000
+                highlights:
+                  text: "Pure Blast! This was probably one of my favouri..."
+                location:
+                  object:
+                    lat: -8.2401299
+                    lon: 115.3774944
+      cmds:
+        - effect: ws
+          encoder: reviews_query
         - effect: ui
           encoder: reviews_view
   encoders:
-    reviews_table_view:
+    reviews_query:
+      object:
+        app:
+          text: "weekonekt"
+        action:
+          text: "reviews"
+    review_item_view:
+      view:
+        tag: div
+        attrs:
+          class: "columns"
+          key:
+            key: id
+            in: item
+        children:
+          - tag: div
+            attrs:
+              class: "column col-8"
+            children:
+              - tag: h3
+                children:
+                  - text:
+                      key: title
+                      in: item
+              - tag: span
+                children:
+                  - text:
+                      key: highlights
+                      in: item
+          - tag: div
+            attrs:
+              class: "column col-4"
+            children:
+              - map:
+                  id: "map"
+                  style: dark
+                  center:
+                    lat:
+                      key: lat
+                      in: 
+                        key: location
+                        in: item
+                    lon:
+                      key: lon
+                      in: 
+                        key: location
+                        in: item
+                  zoom: 9
+                  markers:
+                    - lat:
+                        key: lat
+                        in: 
+                          key: location
+                          in: item
+                      lon:
+                        key: lon
+                        in: 
+                          key: location
+                          in: item
+    
+    reviews_collection_view:
       view:
         tag: div
         children:
-          - text:
-              literal: "Contents go here"
-    reviews_main_section:
+          loop:
+            key: reviews
+          with: review_item_view
+    reviews_main_view:
       view:
-        view: main
-        params:
-          object:
-            title:
-              text:
-                literal: "Reviews"
-            view:
-              keyword: reviews_table_view
-            data:
-              key: data
+        tag: div
+        attrs:
+          class: "card mt-2"
+        children:
+          - tag: h1
+            children:
+              - text: "Reviews"
+          - view: reviews_collection_view
+            params:
+              object:
+                reviews:
+                  key: reviews
+    reviews_actions_view:
+      view:
+        tag: div
+        attrs:
+          class: "text-right"
+        children:
+          - tag: a
+            attrs:
+              class: "link c-hand"
+            children:
+              - text: 
+                  literal: "Create new"
+    reviews_layout_view:
+      view:
+        tag: div
+        attrs:
+          key: "reviews"
+        children:
+          - view: reviews_actions_view
+          - view: reviews_main_view
+            params:
+              object:
+                reviews:
+                  key: data
     reviews_view: 
       view:
         view: layout
@@ -48,7 +181,7 @@ spec:
             message:
               key: message
             content_view:
-              keyword: reviews_main_section
+              keyword: reviews_layout_view
             contents:
               key: reviews
             sidebar:
@@ -63,7 +196,7 @@ spec:
           - view: sidebar_icon
             params:
               object:
-                name: "apps"
+                name: "reviews"
                 style: "fa fa-4x fa-pencil-square-o"
                 title: "Reviews"
           - view: sidebar_icon

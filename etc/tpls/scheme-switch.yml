@@ -1,9 +1,0 @@
-version: 1.0
-type: template
-name: scheme_switch
-spec:
-  params:
-    object:
-      name: 
-        type: text
-  contents: (case {{ test }} {% for m in match %}{{ m }}{% endfor %})

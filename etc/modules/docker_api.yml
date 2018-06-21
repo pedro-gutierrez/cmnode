@@ -4,6 +4,24 @@ category: server
 name: docker_api 
 spec:
   decoders:
+    webclient_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                any: text
+          repository:
+            object:
+              name:
+                one_of:
+                  - text: "dkv-client"
+                  - text: "c4-client"
+                  - text: "sphera-brazil-cient"
+                  - text: "sphera-rwanda-client"
+                  - text: "sphera-videocal-client"
+              repo_name:
+                any: text
     tag_ready:
       object:
         body:
@@ -18,11 +36,16 @@ spec:
               repo_name:
                 any: text
   update:
-    tag_ready:
+    webclient_ready:
       model:
         docker_image:
           object:
             name:
+              key: name
+              in:
+                key: repository
+                in: body
+            repo:
               key: repo_name
               in: 
                 key: repository
@@ -33,8 +56,34 @@ spec:
                 key: push_data
                 in: body
       cmds:  
-        - effect: slack
-          encoder: docker_image_pushed
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: webclient_dev_deploy_task
+        - effect: notify
+          encoder: ok
+    tag_ready:
+      model:
+        docker_image:
+          object:
+            name:
+              key: name
+              in:
+                key: repository
+                in: body
+            repo:
+              key: repo_name
+              in: 
+                key: repository
+                in: body
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
         - effect: notify
           encoder: ok
   encoders:
@@ -42,12 +91,42 @@ spec:
       object:
         status: 
           keyword: ok
-    docker_image_pushed:
+    docker_ready_task:
       object:
-        settings:
-          keyword: dev
-        announcement:
-          keyword: image_pushed
-        image:
-          key: docker_image
+        task:
+          keyword: docker_announce
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    webclient_dev_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
 
