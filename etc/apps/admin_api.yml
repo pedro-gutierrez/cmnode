@@ -25,6 +25,7 @@ spec:
     - queues_api
     - settings_api
     - docker_api
+    - github_api
   config:
     role:
       keyword: admin

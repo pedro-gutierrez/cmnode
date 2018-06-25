@@ -1045,7 +1045,31 @@ compile_term(#{ <<"slack">> := #{ <<"settings">> := SettingsSpec,
                   severity => compile_term(SeveritySpec),
                   subject => compile_term(SubjectSpec),
                   body => compile_term(BodySpec) }};
-        
+
+compile_term(#{ <<"git">> := #{ 
+                    <<"credentials">> := CredsSpec,
+                    <<"clone">> := #{ <<"repo">> := Repo,
+                                                  <<"dir">> := Dir }}}) -> 
+    #{ type => git,
+       spec => #{ action => clone,
+                  credentials => compile_term(CredsSpec),
+                  repo => compile_term(Repo),
+                  dir => compile_term(Dir) }
+     };
+
+compile_term(#{ <<"docker">> := #{ 
+                    <<"credentials">> := CredsSpec,
+                    <<"build">> := #{ <<"repo">> := Repo,
+                                                     <<"tag">> := Tag,
+                                                     <<"dir">> := Dir }}}) -> 
+    #{ type => docker,
+       spec => #{ action => build,
+                  credentials => compile_term(CredsSpec),
+                  repo => compile_term(Repo),
+                  tag => compile_term(Tag),
+                  dir => compile_term(Dir) }
+     };
+
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
 

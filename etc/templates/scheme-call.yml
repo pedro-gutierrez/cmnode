@@ -1,0 +1,10 @@
+version: 1.0
+type: template
+name: scheme_call
+spec:
+  params:
+    object:
+      name: 
+        type: text
+  
+  contents: ({{ name }}{% for a in args %} {{ a }}{% endfor %})

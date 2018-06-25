@@ -1,0 +1,64 @@
+version: 1.0
+type: module
+category: server
+name: github_api 
+spec:
+  decoders:
+    nimg_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            repository:
+              object:
+                name: 
+                  text: "nimg"
+    code_pushed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            repository:
+              object:
+                name: 
+                  any: text
+  update:
+    nimg_changed:
+      cmds:  
+        - effect: task
+          encoder: nimg_build_task 
+        - effect: notify
+          encoder: ok
+    code_pushed:
+      cmds:  
+        - effect: task
+          encoder: code_pushed_task
+        - effect: notify
+          encoder: ok
+  encoders:
+    ok:
+      object:
+        status: 
+          keyword: ok
+    nimg_build_task:
+      object:
+        task:
+          keyword: nimg_build
+        params:
+          object:
+            settings:
+              keyword: dev
+    code_pushed_task:
+      object:
+        task:
+          keyword: github_announce
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
