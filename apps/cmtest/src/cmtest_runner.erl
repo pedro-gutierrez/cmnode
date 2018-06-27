@@ -230,9 +230,12 @@ report(#{ settings := #{ name := SettingsName }=Settings,
     cmkit:S({cmtest, Q, SettingsName, Failures, Stats, Secs}),
     save_report(Report),
     finish(Data),
-    slack(Settings, #{ test => Q,
-                       severity => S, 
-                       stats => Stats }).
+    
+    Summary = #{ test => Q,
+                 severity => S,
+                 stats => Stats },
+    webhook(Data, Summary),
+    slack(Settings, Summary).
 
 
 finish(#{ report_to := {From, _},
@@ -290,6 +293,20 @@ save_report(#{ query := Query} = Report) ->
 
     cmdb:put(tests, Pairs).
 
+webhook(#{ test := #{ opts := #{ webhook := true } },
+           settings := #{ name := Settings,
+                          value := #{ webhooks := #{ default := Url }}}}=Data, Summary) ->
+    
+    Q = query(Data),
+    cmkit:log({cmtest, Q, webhook, Url}),
+    Headers = #{ 'content-type' => <<"application/json">>,
+                 'x-cm-event' => <<"test-summary">> },
+
+    cmhttp:post(Url, Headers, Summary#{ settings => Settings });
+
+webhook(Data, _) ->
+    Q = query(Data),
+    cmkit:log({cmtest, Q, webhook, skipped}).
 
 slack(#{ name := Name,
          value := #{ 

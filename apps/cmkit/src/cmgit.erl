@@ -1,17 +1,137 @@
 -module(cmgit).
--export([clone/2]).
+-export([clone/2, tag/2]).
 
-clone(Repo, #{ dir := Dir,
-               credentials := Creds }) -> 
-    Url = git_http_url(Repo, Creds),
-    case git:clone(Url, cmkit:to_list(Dir)) of 
+clone(Repo, Params) -> 
+    case clone(Params#{ repo => Repo }) of 
         {ok, _} ->
-            cmkit:log({cmgit, cloned, Repo, Dir}),
+            cmkit:log({cmgit, cloned, Repo}),
             ok;
         Other -> 
             Other
     end.
 
+tag(Repo, #{ dir := Dir,
+             prefix := Prefix,
+             increment := Increment} = Params) -> 
+    case clone(Repo, Params) of 
+        ok -> 
+            Tags = tags_filtered_by(Prefix, git:tags(Dir)),
+            case next_tag(Tags, Increment) of 
+                {ok, NextTag} -> 
+                    TagWithPrefix =  tag_with_prefix(Prefix, NextTag),
+                    cmkit:log({cmgit, Repo, tags, Prefix, Tags, TagWithPrefix}),
+                    case tag(Params#{ repo => Repo, tag => TagWithPrefix }) of 
+                        {ok, NewTag } -> 
+                            cmkit:log({cmgit, Repo, tagged, NewTag}),
+                            {ok, NewTag};
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end.
+
+clone(#{ repo := Repo,
+         credentials := Creds,
+         dir := Dir,
+         branch := Branch }) -> 
+    case is_tmp(Dir) of
+        true ->
+            cmsh:sh(rmdir_cmd(Dir), []),
+            ok = filelib:ensure_dir(Dir),
+            Url = git_http_url(Repo, Creds),
+            cmkit:log({cmgit, cloning, Repo, Branch}),
+            cmsh:sh(clone_cmd(Url, Dir, Branch), []);
+        false ->
+            {error, not_a_tmp_folder}
+    end;
+
+clone(Params) -> 
+    clone(Params#{ branch => master }).
+
+tag(#{ repo := Repo, 
+       credentials := Creds,
+       dir := Dir,
+       tag := Tag }) ->     
+    Url = git_http_url(Repo, Creds),
+    cmkit:log({cmgit, tagging, Repo, Tag}),
+    case cmsh:sh(tag_create_cmd(Tag), [{cd, Dir}]) of 
+        {ok, _} -> 
+            {ok, Out} = cmsh:sh(tag_push_cmd(Url, Tag), [{cd, Dir}]),
+            case re:run(cmkit:to_bin(Out), <<"[new tag]">>) of 
+                {match, _} -> {ok, Tag};
+                nomatch -> {error, Out}
+            end;
+        Other -> 
+            Other
+    end.
+
+is_tmp(Path) ->
+    case re:run(Path, "^/tmp") of
+        {match, _} -> true;
+        nomath -> false
+    end.
+
+rmdir_cmd(Path) ->
+    cmkit:fmt("rm -rf ~s", [Path]).
+
+tag_create_cmd(Tag) ->
+    cmkit:fmt("git tag ~s", [Tag]).
+
+tag_push_cmd(RepoURL, Tag) ->
+    cmkit:fmt("git push \"~s\" ~s", [RepoURL, Tag]).
+
+
+clone_cmd(RepoURL, RepoPath, Branch) ->
+    cmkit:fmt("git clone -b ~s \"~s\" \"~s\"", [Branch, RepoURL, RepoPath]).
+
+next_tag([], minor) -> 
+    {ok, <<"1.1.0">>};
+
+next_tag([Latest|_], Increment) ->
+    case Latest of  
+        {Major, Minor, Patch}-> 
+            next_tag(Major, Minor, Patch, Increment);
+        Other -> 
+            {error, Other}
+    end.
+
+next_tag(Major, Minor, _, minor) ->
+    {ok, {Major, Minor+1, 0}};
+
+next_tag(Major, _, _, major) ->
+    {ok, {Major+1, 0, 0}};
+
+next_tag(Major, Minor, Patch, patch) ->
+    {ok, {Major, Minor, Patch +1}}.
+
+tags_filtered_by(Prefix, Items) -> 
+    lists:sublist(lists:reverse(lists:sort(fun compare_tag/2, lists:foldr(fun(I, Acc) -> 
+                        case cmkit:prefix(I, Prefix) of 
+                            nomatch -> Acc;
+                            Suffix -> 
+                                [Maj, Min, Patch] = cmkit:bin_split(Suffix, <<".">>),
+                                [{ cmkit:to_number(Maj), 
+                                   cmkit:to_number(Min),
+                                   cmkit:to_number(Patch) }|Acc]
+                        end
+                end, [], Items))), 5).
+
+tag_with_prefix(Prefix, {Maj, Min, Patch}) ->
+    MajBin = cmkit:to_bin(Maj),
+    MinBin = cmkit:to_bin(Min),
+    PatchBin = cmkit:to_bin(Patch),
+    <<Prefix/binary, MajBin/binary, ".", MinBin/binary, ".", PatchBin/binary>>. 
+
+compare_tag({Maj1, _, _}, {Maj2, _, _}) when Maj1 < Maj2 -> true;
+compare_tag({Maj1, _, _}, {Maj2, _, _}) when Maj1 > Maj2 -> false;
+compare_tag({_, Min1, _}, {_, Min2, _}) when Min1 < Min2 -> true;
+compare_tag({_, Min1, _}, {_, Min2, _}) when Min1 > Min2 -> false;
+compare_tag({_, _, Patch1}, {_, _, Patch2}) when Patch1 < Patch2 -> true;
+compare_tag({_, _, _}, {_, _, _}) -> false.
 
 git_http_url(Repo, #{ user := User,
                       password := Password }) -> 

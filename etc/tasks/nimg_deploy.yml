@@ -1,6 +1,6 @@
 version: 1.0
 type: task
-name: webclient_deploy
+name: nimg_deploy
 spec:
   - kube:
       deployment:
@@ -45,11 +45,18 @@ spec:
                                 in: params
                               - key: tag
                                 in: params
+                      readinessProbe:
+                        httpGet:
+                          path: /
+                          port: 3000
+                        initialDelaySeconds: 5
+                        timeoutSeconds: 1
+                        periodSeconds: 15
                       volumeMounts:
                         list:
                           - object:
                               name: "config"
-                              mountPath: "/static/js/config/config.js"
+                              mountPath: "/config.js"
                               subPath: "config.js"
                               readOnly:
                                 keyword: true
@@ -61,25 +68,64 @@ spec:
                                 text: "http"
                               protocol:
                                 text: "TCP"
-  - slack:
-      settings:
-        key: slack
-        in: params
-      severity:
-        keyword: "success"
-      subject:
-        text: "Docker image deployed"
+  - wait:
+      condition:
+        eq:
+          - number: 200
+          - key: status
+            in:
+              http:
+                method: get
+                url:
+                  host:
+                    key: host
+                    in: settings
+                  port:
+                    key: port
+                    in:
+                      key: thumbnails
+                      in: settings
+                  path:
+                    key: path
+                    in:
+                      key: thumbnails
+                      in: settings
+                  transport:
+                    key: transport
+                    in:
+                      key: thumbnails
+                      in: settings
+                headers:
+                  authorization:
+                    basic-auth:
+                      key: auth
+                      in:
+                        key: security
+                        in: settings
+
+      sleep: 1000
+      retries: 60
+  - http:
+      method: post 
+      url:
+        object:
+          url:
+            key: default
+            in:
+              key: webhooks
+              in: settings
+      headers:
+        object:
+          x-cm-event:
+            text: "deploy-summary"
       body:
-        format:
-          pattern: "Docker image ~s is now deployed in ~s"
-          params:
-            - text:
-                format:
-                  pattern: "~s:~s"
-                  params:
-                    - key: repo
-                      in: params
-                    - key: tag
-                      in: params
-            - key: settings
-              in: params
+        object:
+          settings:
+            key: settings
+            in: params
+          repo:
+            key: repo
+            in: params
+          tag:
+            key: tag
+            in: params

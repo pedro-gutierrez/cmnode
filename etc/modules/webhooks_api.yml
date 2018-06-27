@@ -1,0 +1,325 @@
+version: 1.0
+type: module
+category: server
+name: webhooks_api 
+spec:
+  decoders:
+    nimg_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "nimg"
+    nimg_tag_created:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: 
+                regexp: "refs/tags/v"
+            repository:
+              object:
+                name: 
+                  text: "nimg"
+    nimg_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "nimg"
+              repo_name:
+                any: text
+    nimg_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "v"
+          repository:
+            object:
+              name:
+                text: "nimg"
+              repo_name:
+                any: text
+    nimg_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/nimg"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    nimg_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "thumbnails"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    docker_preprod_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              any: text
+            settings:
+              text: "preprod"
+            tag:
+              any: text
+    webclient_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                any: text
+          repository:
+            object:
+              name:
+                one_of:
+                  - text: "dkv-client"
+                  - text: "c4-client"
+                  - text: "sphera-brazil-cient"
+                  - text: "sphera-rwanda-client"
+                  - text: "sphera-videocal-client"
+              repo_name:
+                any: text
+  update:
+    nimg_dev_changed:
+      cmds:  
+        - effect: task
+          encoder: nimg_build_task 
+        - effect: notify
+          encoder: ok
+    nimg_docker_dev_ready:
+      model:
+        settings:
+          keyword: dev
+        docker_image:
+          object:
+            name: "nimg"
+            repo: "netcomposer/nimg"
+            tag: "latest"
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: nimg_deploy_task
+        - effect: notify
+          encoder: ok
+    nimg_dev_deployed:
+      model:
+        deployment:
+          key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: task
+          encoder: nimg_test_task
+        - effect: notify
+          encoder: ok
+    nimg_dev_tests_passed:
+      cmds:  
+        - effect: task
+          encoder: nimg_release_task 
+        - effect: notify
+          encoder: ok
+    nimg_tag_created:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    nimg_docker_release_ready:
+      model:
+        settings:
+          keyword: preprod
+        docker_image:
+          object:
+            name: "nimg"
+            repo: "netcomposer/nimg"
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: nimg_deploy_task
+        - effect: notify
+          encoder: ok
+    docker_preprod_deployed:
+      model:
+        deployment:
+          key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: notify
+          encoder: ok
+    webclient_ready:
+      model:
+        docker_image:
+          object:
+            name:
+              key: name
+              in:
+                key: repository
+                in: body
+            repo:
+              key: repo_name
+              in: 
+                key: repository
+                in: body
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: webclient_dev_deploy_task
+        - effect: notify
+          encoder: ok
+  encoders:
+    ok:
+      object:
+        status: 
+          keyword: ok
+    docker_ready_task:
+      object:
+        task:
+          keyword: docker_announce
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    nimg_build_task:
+      object:
+        task:
+          keyword: nimg_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    nimg_deploy_task:
+      object:
+        task:
+          keyword: nimg_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    nimg_test_task:
+      object:
+        task:
+          keyword: nimg_test
+        params:
+          object:
+            settings: dev
+    nimg_release_task:
+      object:
+        task:
+          keyword: nimg_release
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    deploy_announce_task:
+      object:
+        task:
+          keyword: deploy_announce
+        params:
+          object:
+            settings:
+              key: settings
+              in: deployment
+            repo:
+              key: repo
+              in: deployment
+            tag:
+              key: tag
+              in: deployment
+            slack:
+              keyword: tests
+    webclient_dev_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev

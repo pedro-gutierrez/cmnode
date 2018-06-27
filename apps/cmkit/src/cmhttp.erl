@@ -15,7 +15,10 @@ post(Url, #{ 'content-type' := CT }=Headers, Data) ->
     Headers2 = encoded_headers(Headers),
     Mime = cmkit:to_list(CT),
     Encoded = encoded_body(Mime, Data),
-    handle(httpc:request(post,{ Url2, Headers2, Mime, Encoded},[],[])).
+    handle(httpc:request(post,{ Url2, Headers2, Mime, Encoded},[],[]));
+
+post(Url, Headers, Data) ->
+    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
 
 handle({error,socket_closed_remotely}) ->
     {error, closed};

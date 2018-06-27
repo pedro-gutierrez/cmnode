@@ -10,35 +10,11 @@ eval(Spec, In, Config) ->
 eval(#{ type := true }, _, _, _) -> true;
 eval(#{ type := false }, _, _, _) -> false;
 
-eval(#{ type := equal, 
-        spec := Specs }, _, In, Config) when is_list(Specs) -> 
-    all_equal(lists:map(fun(Spec) ->
-                                cmencode:encode(Spec, In, Config)
-                        end, Specs));
-
-eval(#{ type := greater_than } = Spec, _, In, Config) -> 
-    case cmencode:encode(Spec, In, Config) of
-        {ok, V} -> V;
-        Other -> 
-            cmkit:log({cmeval, error, Spec, Other}),
-            false
-    end;
-
 eval(#{ type := 'and', 
         spec := Specs }, _, In, Config) when is_list(Specs) -> 
     all_true(lists:map(fun(Spec) ->
                                 eval(Spec, In, Config)
                         end, Specs));
-
-eval(#{ type := member }=Spec, _, In, Config) ->
-    case cmencode:encode(Spec, In, Config) of 
-        {ok, true} -> true;
-        {ok, false} -> false;
-        Other ->
-            cmkit:log({cmeval, error, Spec, Other}),
-            false
-    end;
-
 
 eval(#{ type := present, spec := Keys}, _, In, _) when is_map(In) ->
     cmkit:has_all_keys(Keys, In);
@@ -64,12 +40,6 @@ eval(Spec, _, In, Config) ->
             cmkit:danger({cmeval, error, Spec, Other}),
             false
     end.
-
-
-all_equal([V|Rem]) -> all_equal(Rem, V).
-all_equal([], _) -> true;
-all_equal([V|Rem], V) -> all_equal(Rem, V);
-all_equal(_, _) -> false.
 
 all_true([]) -> true;
 all_true([true|Rem]) -> all_true(Rem);

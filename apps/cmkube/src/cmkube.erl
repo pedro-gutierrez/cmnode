@@ -1,6 +1,7 @@
 -module(cmkube).
 -export([
-         do/1
+         do/1,
+         await/1
         ]).
 
 do(#{ host := Host,
@@ -68,19 +69,56 @@ do(#{ host := Host,
 do(#{ host := Host,
       token := Token,
       namespace := Ns,
+      verb := <<"list">>,
+      resource := <<"pods">>,
+      labels := Labels
+    }) ->
+
+    Ctx = ctx:background(),
+    Opts = opts(Host, Token),
+    Opts2 =  Opts#{ params => #{ labelSelector => cmkube_util:to_query_params(Labels)}},
+    case kuberl_core_v1_api:list_namespaced_pod(Ctx, Ns, Opts2) of 
+        {ok, #{ items := Items }, _} -> 
+            {ok, Items};
+        Other -> 
+            Other
+    end;
+
+
+do(#{ host := Host,
+      token := Token,
+      namespace := Ns,
+      verb := <<"delete">>,
+      resource := <<"deployment">>,
+      name := Name }=Params) ->
+
+    Ctx = ctx:background(),
+    Opts = opts(Host, Token),
+    case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
+        {error, E} -> {error, E};
+        _ -> 
+            await(Params#{ status => <<"Running">>,
+                               retries => 60,
+                               sleep => 1000,
+                               exact => 0,
+                               resource => <<"pods">> })
+    end;
+
+do(#{ host := Host,
+      token := Token,
+      namespace := Ns,
       verb := <<"create">>,
       resource := <<"deployment">>,
       name := Name,
       labels := Labels,
       replicas := Replicas,
       spec := Spec
-    }) ->
-
-    Ctx = ctx:background(),
-    Opts = opts(Host, Token),
-    case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
-        {error, E} -> {error, E};
-        _ ->
+    }=Params) ->
+    
+    cmkit:log({cmkube, deployment, Name, deleting}),
+    case do(Params#{ verb => <<"delete">> }) of 
+        ok ->
+            cmkit:log({cmkube, deployment, Name, creating}),
             Dep = #{ apiVersion => <<"apps/v1">>,
                      kind => <<"Deployment">>,
                      metadata => #{ name => Name,
@@ -91,17 +129,63 @@ do(#{ host := Host,
                                 template =>
                                 #{ metadata => #{ labels => Labels },
                                    spec => Spec } }},
-            
+
+            Ctx = ctx:background(),
+            Opts = opts(Host, Token),
             case kuberl_apps_v1_api:create_namespaced_deployment(Ctx, Ns, Dep, Opts) of 
                 {error, #{ message := E }, _} -> {error, E};
-                {ok, FullSpec, _} -> {ok, FullSpec}
-            end
-    end;
+                {ok, FullSpec, _} -> 
+                    cmkit:log({cmkube, deployment, Name, waiting_for_pods}),
+                    case await(Params#{ status => <<"Running">>,
+                                        retries => 60,
+                                        sleep => 1000,
+                                        exact => Replicas,
+                                        resource => <<"pods">> }) of 
+                        ok -> 
+                            cmkit:log({cmkube, deployment, Name, finished}),
+                            {ok, FullSpec};
 
+                        Other ->
+                            Other
+                    end
+            end;
+        Other ->
+            Other
+    end;
 
 do(Q) ->
     {error, #{ status => not_supported_yet,
                query => Q#{ token => <<"NOT SHOWN">> }}}.
+
+await(#{ status := Status,
+         retries := Retries,
+         sleep := Millis, 
+         exact := Exact }=Params) ->
+
+    case Retries of 
+        0 -> 
+            {error, timeout};
+        _ -> 
+            timer:sleep(Millis),
+            case do(Params#{ verb => <<"list">> }) of 
+                {ok, Items} ->
+                    case length(filter_by_status(Status, Items)) of 
+                        Exact -> 
+                            ok;
+                        Other -> 
+                            cmkit:log({cmkube, await, Params, Status, Other, Exact, sleeping}),
+                            await(Params#{ retries => Retries -1 })
+                    end;
+                _ -> 
+                    await(Params#{ retries => Retries -1 })
+            end
+    end.
+
+filter_by_status(Status, Items) ->
+    lists:filter(fun(#{ status := #{ phase := Phase }}) ->
+                    Phase =:= Status
+                 end, Items).
+
 
 opts(Host, Token) ->    
     Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),

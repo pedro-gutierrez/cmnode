@@ -1,0 +1,11 @@
+version: 1.0
+type: task
+name: nimg_test
+spec:
+  - test:
+      name: thumbnails
+      settings: dev
+      opts:
+        object:
+          webhook: 
+            keyword: true

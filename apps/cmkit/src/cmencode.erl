@@ -222,6 +222,57 @@ encode(#{ type := http,
         Other -> Other
     end;
 
+encode(#{ type := http,
+          method := Method,
+          url := Url,
+          headers := Headers }, In, Config) ->
+    case encode(Headers, In, Config) of 
+        {ok, H} ->
+            case encode(Url, In, Config) of 
+                {ok, #{ url := U }} ->
+                            {ok, #{ url => U,
+                                    method => Method,
+                                        headers => H }}; 
+                Other -> 
+                    Other
+            end;
+        Other -> Other
+    end;
+
+encode(#{ type := http,
+          method := Method,
+          url := Url }, In, Config) ->
+    case encode(Url, In, Config) of 
+        {ok, #{ url := U }} ->
+            {ok, #{ url => U,
+                    method => Method }}; 
+        Other -> Other
+    end;
+
+encode( #{ type := exec,
+           spec := #{ type := http } = Spec}, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, #{ method := post,
+                url := Url,
+                headers := Headers,
+                body := Body }} ->
+                cmhttp:post(Url, Headers, Body);
+        {ok, #{ method := get, 
+                url := Url,
+                headers := Headers }} ->
+            cmhttp:get(Url, Headers);
+        {ok, #{ method := get, 
+                url := Url }} ->
+            cmhttp:get(Url);
+        {ok, Other} ->
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       data => In,
+                       reason => Other }};
+        Other -> 
+            Other
+    end;
+
 encode(#{ type := multipart,
           files := FilesSpec }, In, Config) ->
     case cmencode:encode(FilesSpec, In, Config) of 
@@ -306,6 +357,13 @@ encode(#{ type := asset,
         Other -> Other
     end;
 
+encode(#{ type := equal, 
+          spec := Specs }, In, Config) when is_list(Specs) -> 
+    
+    {ok, all_equal(lists:map(fun(Spec) ->
+                                encode(Spec, In, Config)
+                        end, Specs))};
+
 encode(#{ type := greater_than,
           spec := [Spec1, Spec2] }, In, Config) ->
     case { encode(Spec1, In, Config), encode(Spec2, In, Config) } of 
@@ -355,6 +413,13 @@ encode(#{ type := format,
         Other -> Other
     end;
 
+encode(#{ type := wait,
+          spec := #{ retries := Retries,
+                     sleep := Sleep,
+                     condition := Condition }}, In, Config) ->
+    
+    encode_retry(Retries, Sleep, Condition, In, Config);
+
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 
 encode_object(Spec, In, Config) ->
@@ -399,3 +464,27 @@ encode_all([Spec|Rem], In, Config, Out) ->
         Other ->
             Other
     end.
+
+
+encode_retry(0, _, Condition, In, _) -> 
+    {error, #{ status => encode_error,
+               spec => Condition,
+               data => In,
+               reason => max_retries_reached 
+             }
+    };
+
+encode_retry(Retries, Millis, Condition, In, Config) -> 
+    cmkit:log({cmencode, sleeping, Millis}),
+    timer:sleep(Millis),
+    cmkit:log({cmencode, trying, Condition, In}),
+    case encode(Condition, In, Config) of 
+        {ok, true} -> {ok, true};
+        _ -> 
+            encode_retry(Retries-1, Millis, Condition, In, Config)
+    end.
+
+all_equal([V|Rem]) -> all_equal(Rem, V).
+all_equal([], _) -> true;
+all_equal([V|Rem], V) -> all_equal(Rem, V);
+all_equal(_, _) -> false.

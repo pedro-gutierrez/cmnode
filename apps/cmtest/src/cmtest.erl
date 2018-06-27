@@ -7,7 +7,8 @@
          stop/1,
          cancel/1,
          clear/0, 
-         schedule/2, 
+         schedule/2,
+         schedule/3, 
          reports/0, 
          reports/1, 
          report/1, 
@@ -22,13 +23,15 @@ cancel(Id) ->
 
 run(#{ id := Id,
        test := Test,
-       settings := Settings }) -> 
+       settings := Settings,
+       opts := Opts }) -> 
 
     case cmconfig:settings(Settings) of 
         {ok, SettingsSpec } -> 
             case cmconfig:test(Test) of
                 {ok, Spec} -> 
-                    cmtest_runner:run(Spec#{ id => Id }, SettingsSpec);
+                    cmtest_runner:run(Spec#{ id => Id,
+                                             opts => Opts }, SettingsSpec);
                 Other -> Other
             end;
         Other -> Other
@@ -64,18 +67,21 @@ stop(Id) ->
 clear() ->
     cmqueue:clear(tests_queue). 
 
-schedule(T, S) ->
+schedule(T, S) -> 
+    schedule(T, S, #{}).
+
+schedule(T, S, Opts) ->
     case cmconfig:settings(S) of 
         {ok, _ } -> 
             case cmconfig:test(T) of
                 {ok, _ } ->
-                    cmqueue:schedule(tests_queue, queue_job(T, S) ); 
+                    cmqueue:schedule(tests_queue, queue_job(T, S, Opts) ); 
                 Other -> Other
             end;
         Other -> Other
     end.
 
-queue_job(T, S) ->
+queue_job(T, S, Opts) ->
     Now = cmkit:now(),
 
     #{ id => Now,
@@ -85,7 +91,8 @@ queue_job(T, S) ->
                   info => <<"Not started yet">> },
        spec => #{ start => {cmtest, run, [#{ id => Now,
                                  test => T,
-                                 settings => S}]},
+                                 settings => S,
+                                 opts => Opts }]},
 
                   stop => {cmtest, stop, [Now]}}
      }.

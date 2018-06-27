@@ -5,7 +5,11 @@
   {mod, { cmtask_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cmconfig,
+    cmkube,
+    cmkit,
+    cmtest
    ]},
   {env,[]},
   {modules, []},

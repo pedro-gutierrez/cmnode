@@ -7,7 +7,8 @@ run(#{ name := Name,
     case cmencode:encode(SettingsSpec) of 
         {ok, Settings} ->
             Input = #{ settings => Settings,
-                       params => Params },
+                       params => Params,
+                       context => #{} },
             run_items(Name, SettingsName, Items, Input);
         Other -> Other
     end.
@@ -17,9 +18,11 @@ run_items(Name, SettingsName, [], _) ->
     ok;
 
 run_items(Name, Settings, [Item|Rem], In) -> 
-    case run_item(Name, Item, In) of 
+    case run_item(Name, Item, #{ context := Ctx } = In) of 
         ok -> 
             run_items(Name, Settings, Rem, In);
+        {ok, Extra } when is_map(Extra) ->
+            run_items(Name, Settings, Rem, In#{ context => maps:merge(Ctx, Extra)}); 
         Other -> 
             cmkit:danger({task, Name, Settings, Item, Other}),
             Other
@@ -122,6 +125,44 @@ run_item(_, #{ type := git, spec := #{ action := clone,
             Other
     end;
 
+run_item(_, #{ type := git, spec := #{ action := tag,
+                                       as := As,
+                                       credentials := CredsSpec,
+                                       repo := RepoSpec, 
+                                       dir := DirSpec,
+                                       prefix := PrefixSpec,
+                                       increment := Increment
+                                     }}, In) ->
+    case cmencode:encode(RepoSpec, In) of 
+        {ok, Repo} -> 
+            case cmencode:encode(DirSpec, In) of 
+                {ok, Dir} ->
+                    case cmencode:encode(CredsSpec, In) of 
+                        {ok, Creds} -> 
+                            case cmencode:encode(PrefixSpec, In) of 
+                                {ok, Prefix} -> 
+                                    case cmgit:tag(Repo, #{ dir => Dir,
+                                                       credentials => Creds,
+                                                       increment => Increment,
+                                                       prefix => Prefix }) of 
+                                        {ok, Tag} -> 
+                                            {ok, #{ As => Tag }};
+                                        Other -> 
+                                            Other
+                                    end;
+                                Other -> 
+                                    Other
+                            end;
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
 run_item(_, #{ type := docker, spec := #{ action := build,
                                           credentials := CredsSpec,
                                           repo := RepoSpec,
@@ -148,6 +189,33 @@ run_item(_, #{ type := docker, spec := #{ action := build,
                 Other -> 
                     Other
             end;
+        Other -> 
+            Other
+    end;
+
+run_item(_, #{ type := wait }=Spec, In) ->
+    case cmencode:encode(Spec, In) of 
+        {ok, true} -> ok;
+        Other -> 
+            Other
+    end;
+
+run_item(Name, #{ type := exec }=Spec, In) ->
+    case cmencode:encode(Spec, In) of 
+        {ok, Res} -> 
+            cmkit:log({cmtask, Name, exec, Res}),
+            ok;
+        Other -> 
+            Other
+    end;
+
+run_item(_, #{ type := test, spec := #{ name := Test,
+                                        settings := Settings,
+                                        opts := OptsSpec }}, In) ->
+    case cmencode:encode(OptsSpec, In) of 
+        {ok, Opts} ->
+            cmtest:schedule(Test, Settings, Opts),
+            ok;
         Other -> 
             Other
     end;

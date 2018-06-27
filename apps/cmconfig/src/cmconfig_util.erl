@@ -994,7 +994,23 @@ compile_term(#{ <<"url">> := Url,
        url => compile_term(Url),
        method => cmkit:to_atom(Method),
        body => compile_term(BodySpec),
-       headers => compile_object(HeadersSpec)
+       headers => compile_term(HeadersSpec)
+     };
+
+compile_term(#{ <<"url">> := Url,
+                <<"method">> := Method,
+                <<"headers">> := HeadersSpec }) ->
+    #{ type => http,
+       url => compile_term(Url),
+       method => cmkit:to_atom(Method),
+       headers => compile_term(HeadersSpec)
+     };
+
+compile_term(#{ <<"url">> := Url,
+                <<"method">> := Method }) ->
+    #{ type => http,
+       url => compile_term(Url),
+       method => cmkit:to_atom(Method)
      };
 
 compile_term(#{ <<"host">> := Host,
@@ -1011,6 +1027,11 @@ compile_term(#{ <<"host">> := Host,
 compile_term(#{ <<"multipart">> := #{ <<"files">> := FilesSpec } }) ->
     #{ type => multipart,
        files => compile_term(FilesSpec) };
+
+
+compile_term(#{ <<"http">> := Spec }) ->
+    #{ type => exec,
+       spec => compile_term(Spec) };
 
 compile_term(#{ <<"procedure">> := Name,
                 <<"params">> := Params }) ->
@@ -1054,8 +1075,23 @@ compile_term(#{ <<"git">> := #{
        spec => #{ action => clone,
                   credentials => compile_term(CredsSpec),
                   repo => compile_term(Repo),
-                  dir => compile_term(Dir) }
-     };
+                  dir => compile_term(Dir) }};
+
+compile_term(#{ <<"git">> := #{ 
+                    <<"as">> := As,
+                    <<"credentials">> := CredsSpec,
+                    <<"tag">> := #{ <<"repo">> := Repo,
+                                    <<"dir">> := Dir,
+                                    <<"prefix">> := Prefix,
+                                    <<"increment">> := Increment }}}) -> 
+    #{ type => git,
+       spec => #{ action => tag,
+                  as => cmkit:to_atom(As),
+                  credentials => compile_term(CredsSpec),
+                  repo => compile_term(Repo),
+                  dir => compile_term(Dir),
+                  prefix => compile_term(Prefix),
+                  increment => cmkit:to_atom(Increment) }};
 
 compile_term(#{ <<"docker">> := #{ 
                     <<"credentials">> := CredsSpec,
@@ -1069,6 +1105,24 @@ compile_term(#{ <<"docker">> := #{
                   tag => compile_term(Tag),
                   dir => compile_term(Dir) }
      };
+
+compile_term(#{ <<"test">> := #{ 
+                    <<"name">> := Test,
+                    <<"settings">> := Settings,
+                    <<"opts">> := Opts }}) -> 
+    #{ type => test,
+       spec => #{ name => cmkit:to_atom(Test),
+                  settings => cmkit:to_atom(Settings),
+                  opts => compile_term(Opts) }};
+
+compile_term(#{ <<"wait">> := #{
+                    <<"sleep">> := Sleep,
+                    <<"retries">> := Retries,
+                    <<"condition">> := Condition }}) ->
+    #{ type => wait,
+       spec => #{ sleep => Sleep,
+                  retries => Retries,
+                  condition => compile_term(Condition) }};
 
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
