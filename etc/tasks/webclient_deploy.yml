@@ -5,6 +5,7 @@ spec:
   - kube:
       deployment:
         object:
+          retries: 120
           namespace: "nc"
           name: 
             key: name

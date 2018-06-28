@@ -1,6 +1,6 @@
 version: 1.0
 type: task
-name: nimg_deploy
+name: transcoder_deploy
 spec:
   - kube:
       deployment:
@@ -29,6 +29,8 @@ spec:
                       name:
                         key: name
                         in: params
+                  - name: tmp
+                    emptyDir: {}
               containers:
                 list:
                   - object:
@@ -57,10 +59,13 @@ spec:
                         list:
                           - object:
                               name: "config"
-                              mountPath: "/config.js"
+                              mountPath: "/usr/src/app/config/default.js"
                               subPath: "config.js"
                               readOnly:
                                 keyword: true
+                          - object:
+                              name: "tmp"
+                              mountPath: "/tmp-transcoder"
                       ports:
                         list:
                           - object:
@@ -84,18 +89,22 @@ spec:
                   port:
                     key: port
                     in:
-                      key: thumbnails
+                      key: transcoder
                       in: settings
                   path:
-                    key: path
+                    key: http
                     in:
-                      key: thumbnails
-                      in: settings
+                      key: paths
+                      in:
+                        key: transcoder
+                        in: settings
                   transport:
-                    key: transport
+                    key: http
                     in:
-                      key: thumbnails
-                      in: settings
+                      key: transports
+                      in:
+                        key: transcoder
+                        in: settings
                 headers:
                   authorization:
                     basic-auth:

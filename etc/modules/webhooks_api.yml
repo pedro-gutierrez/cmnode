@@ -86,6 +86,120 @@ spec:
               text: "dev"
             severity:
               text: "success"
+    nimg_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "nimg"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    transcoder_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "transcoder"
+    transcoder_tag_created:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: 
+                regexp: "refs/tags/v"
+            repository:
+              object:
+                name: 
+                  text: "transcoder"
+    transcoder_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "transcoder"
+              repo_name:
+                any: text
+    transcoder_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "v"
+          repository:
+            object:
+              name:
+                text: "transcoder"
+              repo_name:
+                any: text
+    transcoder_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/transcoder"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    transcoder_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "transcoder"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    transcoder_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "transcoder"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
     docker_preprod_deployed:
       object:
         headers:
@@ -100,13 +214,32 @@ spec:
               text: "preprod"
             tag:
               any: text
-    webclient_ready:
+    webclient_dev_docker_ready:
       object:
         body:
           push_data:
             object:
               tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                one_of:
+                  - text: "dkv-client"
+                  - text: "c4-client"
+                  - text: "sphera-brazil-cient"
+                  - text: "sphera-rwanda-client"
+                  - text: "sphera-videocal-client"
+              repo_name:
                 any: text
+    webclient_release_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                other_than:
+                  text: "latest" 
           repository:
             object:
               name:
@@ -158,6 +291,21 @@ spec:
           encoder: nimg_release_task 
         - effect: notify
           encoder: ok
+    nimg_dev_tests_failed:
+      model:
+        repo:
+          text: "netcomposer/nimg"
+        settings:
+          key: settings
+          in: body
+        test:
+          key: test
+          in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
     nimg_tag_created:
       cmds:  
         - effect: notify
@@ -182,6 +330,84 @@ spec:
           encoder: nimg_deploy_task
         - effect: notify
           encoder: ok
+    transcoder_dev_changed:
+      cmds:  
+        - effect: task
+          encoder: transcoder_build_task 
+        - effect: notify
+          encoder: ok
+    transcoder_docker_dev_ready:
+      model:
+        settings:
+          keyword: dev
+        docker_image:
+          object:
+            name: "transcoder"
+            repo: "netcomposer/transcoder"
+            tag: "latest"
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: transcoder_deploy_task
+        - effect: notify
+          encoder: ok
+    transcoder_dev_deployed:
+      model:
+        deployment:
+          key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: task
+          encoder: transcoder_test_task
+        - effect: notify
+          encoder: ok
+    transcoder_dev_tests_passed:
+      cmds:  
+        - effect: task
+          encoder: transcoder_release_task 
+        - effect: notify
+          encoder: ok
+    transcoder_dev_tests_failed:
+      model:
+        repo:
+          text: "netcomposer/transcoder"
+        settings:
+          key: settings
+          in: body
+        test:
+          key: test
+          in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    transcoder_tag_created:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    transcoder_docker_release_ready:
+      model:
+        settings:
+          keyword: preprod
+        docker_image:
+          object:
+            name: "transcoder"
+            repo: "netcomposer/transcoder"
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: transcoder_deploy_task
+        - effect: notify
+          encoder: ok
     docker_preprod_deployed:
       model:
         deployment:
@@ -191,8 +417,10 @@ spec:
           encoder: deploy_announce_task
         - effect: notify
           encoder: ok
-    webclient_ready:
+    webclient_dev_docker_ready:
       model:
+        settings:
+          keyword: dev
         docker_image:
           object:
             name:
@@ -214,7 +442,35 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: webclient_dev_deploy_task
+          encoder: webclient_deploy_task
+        - effect: notify
+          encoder: ok
+    webclient_release_docker_ready:
+      model:
+        settings:
+          keyword: preprod
+        docker_image:
+          object:
+            name:
+              key: name
+              in:
+                key: repository
+                in: body
+            repo:
+              key: repo_name
+              in: 
+                key: repository
+                in: body
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: webclient_deploy_task
         - effect: notify
           encoder: ok
   encoders:
@@ -287,6 +543,66 @@ spec:
               keyword: tests
             settings:
               keyword: dev
+    transcoder_build_task:
+      object:
+        task:
+          keyword: transcoder_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    transcoder_deploy_task:
+      object:
+        task:
+          keyword: transcoder_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    transcoder_test_task:
+      object:
+        task:
+          keyword: transcoder_test
+        params:
+          object:
+            settings: dev
+    transcoder_release_task:
+      object:
+        task:
+          keyword: transcoder_release
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    release_aborted_announce_task:
+      object:
+        task:
+          keyword: release_aborted_announce
+        params:
+          object:
+            repo:
+              key: repo
+            settings:
+              key: settings 
+            test:
+              key: test 
+            slack:
+              keyword: tests
     deploy_announce_task:
       object:
         task:
@@ -304,7 +620,7 @@ spec:
               in: deployment
             slack:
               keyword: tests
-    webclient_dev_deploy_task:
+    webclient_deploy_task:
       object:
         task:
           keyword: webclient_deploy
@@ -322,4 +638,4 @@ spec:
             slack:
               keyword: tests
             settings:
-              keyword: dev
+              key: settings

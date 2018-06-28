@@ -256,14 +256,29 @@ encode( #{ type := exec,
                 url := Url,
                 headers := Headers,
                 body := Body }} ->
-                cmhttp:post(Url, Headers, Body);
+                
+            cmkit:log({cmencode, http, out, post, Url, Headers, Body}),
+            Res = cmhttp:post(Url, Headers, Body),
+            cmkit:log({cmencode, http, in, Res}),
+            Res;
+        
         {ok, #{ method := get, 
                 url := Url,
                 headers := Headers }} ->
-            cmhttp:get(Url, Headers);
+            
+            cmkit:log({cmencode, http, out, get, Url, Headers}),
+            Res = cmhttp:get(Url, Headers),
+            cmkit:log({cmencode, http, in, Res}),
+            Res;
+        
         {ok, #{ method := get, 
                 url := Url }} ->
-            cmhttp:get(Url);
+            
+            cmkit:log({cmencode, http, out, get, Url}),
+            Res = cmhttp:get(Url),
+            cmkit:log({cmencode, http, in, Res}),
+            Res;
+        
         {ok, Other} ->
             {error, #{ status => encode_error,
                        spec => Spec,
@@ -419,6 +434,22 @@ encode(#{ type := wait,
                      condition := Condition }}, In, Config) ->
     
     encode_retry(Retries, Sleep, Condition, In, Config);
+
+
+encode(#{ type := match,
+          spec := #{ value := ValueSpec,
+                     decoder := DecoderSpec }}, In, Config) ->
+    case cmencode:encode(ValueSpec, In, Config) of
+        {ok, Value} ->
+            case cmdecode:decode(DecoderSpec, Value) of 
+                {ok, _} -> 
+                    {ok, true};
+                _ ->
+                    {ok, false}
+            end;
+        Other ->
+            Other
+    end;
 
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 

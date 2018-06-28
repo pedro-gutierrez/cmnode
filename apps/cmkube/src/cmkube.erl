@@ -90,6 +90,7 @@ do(#{ host := Host,
       namespace := Ns,
       verb := <<"delete">>,
       resource := <<"deployment">>,
+      retries := Retries,
       name := Name }=Params) ->
 
     Ctx = ctx:background(),
@@ -98,7 +99,7 @@ do(#{ host := Host,
         {error, E} -> {error, E};
         _ -> 
             await(Params#{ status => <<"Running">>,
-                               retries => 60,
+                               retries => Retries,
                                sleep => 1000,
                                exact => 0,
                                resource => <<"pods">> })
@@ -109,6 +110,7 @@ do(#{ host := Host,
       namespace := Ns,
       verb := <<"create">>,
       resource := <<"deployment">>,
+      retries := Retries,
       name := Name,
       labels := Labels,
       replicas := Replicas,
@@ -137,7 +139,7 @@ do(#{ host := Host,
                 {ok, FullSpec, _} -> 
                     cmkit:log({cmkube, deployment, Name, waiting_for_pods}),
                     case await(Params#{ status => <<"Running">>,
-                                        retries => 60,
+                                        retries => Retries,
                                         sleep => 1000,
                                         exact => Replicas,
                                         resource => <<"pods">> }) of 

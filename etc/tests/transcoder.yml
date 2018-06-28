@@ -1,0 +1,167 @@
+version: 1.0
+type: test
+name: transcoder
+spec:
+  config:
+    retries: 100
+    wait: 5
+  procedures:
+    - name: info
+      spec:
+        http:
+          method: get
+          url:
+            host:
+              key: host
+              in: settings
+            port: 
+              key: port
+              in:
+                key: transcoder
+                in: settings
+            path:
+              key: http
+              in:
+                key: paths
+                in:
+                  key: transcoder
+                  in: settings
+            transport:
+              key: http
+              in:
+                key: transports
+                in: 
+                  key: transcoder
+                  in: settings
+      as:
+        key: as
+        in: params
+  backgrounds: 
+    - title: "Transcoder websocket api is online"
+      steps:
+        - title: "Connect to the transcoder websocket api"
+          connect:
+            host:
+              key: host
+              in: settings
+            port: 
+              key: port
+              in:
+                key: transcoder
+                in: settings
+            path:
+              key: ws
+              in:
+                key: paths
+                in:
+                  key: transcoder
+                  in: settings
+            transport:
+              key: ws
+              in:
+                key: transports
+                in: 
+                  key: transcoder
+                  in: settings
+          as: transcoder_ws_api
+        - title: "Check the transcoder websocket api is ready"
+          probe:
+            app: transcoder_ws_api
+            status: up
+    - title: "A second connection to the transcoder websocket api"
+      steps:
+        - title: "Connect to the transcoder websocket api"
+          connect:
+            host:
+              key: host
+              in: settings
+            port: 
+              key: port
+              in:
+                key: transcoder
+                in: settings
+            path:
+              key: ws
+              in:
+                key: paths
+                in:
+                  key: transcoder
+                  in: settings
+            transport:
+              key: ws
+              in:
+                key: transports
+                in: 
+                  key: transcoder
+                  in: settings
+          as: second_transcoder_ws_api
+        - title: "Check the second transcoder websocket api is ready"
+          probe:
+            app: second_transcoder_ws_api
+            status: up
+  scenarios:
+    - title: "Should have a readiness probe"
+      tags:
+        - healthcheck
+        - readiness
+      steps:
+        - title: "Get the transcoder status info via http"
+          procedure: info
+          params:
+            object:
+              as:
+                keyword: info
+        - title: "Verify we got the transcoder status info"
+          expect:
+            match:
+              value:
+                key: info
+                in: data
+              with:
+                object:
+                  body:
+                    object:
+                      memory:
+                        object:
+                          rss:
+                            any: number
+                          heapTotal:
+                            any: number
+                          heapUsed:
+                            any: number
+                          external:
+                            any: number
+                 
+    - title: "Should handle client disconnections gracefully"
+      tags: 
+        - invalid 
+      backgrounds:
+        - "Transcoder websocket api is online"
+        - "A second connection to the transcoder websocket api"
+      steps:
+        - title: "Close my second connection to the transcoder"
+          disconnect:
+            app: 
+              keyword: second_transcoder_ws_api
+        - title: "Get the transcoder status info"
+          send:
+            to: transcoder_ws_api
+            spec:
+              object:
+                action:
+                  text: "info"
+        - title: "Verify we got the transcoder info"
+          receive:
+            from: transcoder_ws_api
+            spec:
+              object:
+                memory:
+                  object:
+                    rss:
+                      any: number
+                    heapTotal:
+                      any: number
+                    heapUsed:
+                      any: number
+                    external:
+                      any: number

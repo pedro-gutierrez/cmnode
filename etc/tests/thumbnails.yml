@@ -8,7 +8,7 @@ spec:
   procedures:
     - name: info 
       spec:
-        request:
+        http:
           method: post
           url:
             host:
@@ -44,12 +44,12 @@ spec:
           body:
             key: file
             in: params
-        as:
-          key: as
-          in: params
+      as:
+        key: as
+        in: params
     - name: combine
       spec:
-        request:
+        http:
           method: post
           url:
             host:
@@ -84,12 +84,12 @@ spec:
               files:
                 key: files
                 in: params
-        as:
-          key: as
-          in: params
+      as:
+        key: as
+        in: params
     - name: convert 
       spec:
-        request:
+        http:
           method: post
           url:
             host:
@@ -127,12 +127,12 @@ spec:
           body:
             key: file
             in: params
-        as:
-          key: as
-          in: params
+      as:
+        key: as
+        in: params
     - name: resize
       spec:
-        request:
+        http:
           method: post
           url:
             host:
@@ -176,12 +176,12 @@ spec:
           body:
             key: file
             in: params
-        as:
-          key: as
-          in: params
+      as:
+        key: as
+        in: params
     - name: resize_page
       spec:
-        request:
+        http:
           method: post
           url:
             host:
@@ -228,12 +228,12 @@ spec:
           body:
             key: file
             in: params
-        as:
-          key: as
-          in: params
+      as:
+        key: as
+        in: params
     - name: convert_page
       spec:
-        request:
+        http:
           method: post
           url:
             host:
@@ -274,9 +274,9 @@ spec:
           body:
             key: file
             in: params
-        as:
-          key: as
-          in: params
+      as:
+        key: as
+        in: params
   backgrounds:
     - title: "A sample jpeg file"
       steps:

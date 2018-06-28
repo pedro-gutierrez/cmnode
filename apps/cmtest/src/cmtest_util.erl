@@ -33,8 +33,10 @@ steps(#{ steps := Steps,
 
 index_procedures(#{ procedures := Procs }) ->
     lists:foldl(fun(#{ name := Name,
+                       as := As,
                        spec := Spec }, Index) ->
-                    Index#{ Name => Spec }
+                    Index#{ Name => #{ as => As,
+                                       spec => Spec }}
                 end, #{}, Procs);
 
 index_procedures(_) -> #{}.
@@ -47,8 +49,10 @@ resolve_procedures([#{ type := procedure,
             {error, #{ reason => undefined,
                        type => procedure,
                        name => ProcName }};
-        Spec ->
-            resolve_procedures(Rem, Procs, [S#{ spec => Spec }|Steps])
+        #{ as := As, 
+           spec := Spec } ->
+            resolve_procedures(Rem, Procs, [S#{ as => As,
+                                                spec => Spec }|Steps])
     end;
             
 resolve_procedures([S|Rem], Procs, Steps) ->
@@ -71,7 +75,7 @@ world_with_new_conn(App, Props, #{ conns := Conns }=World) ->
     World#{ conns => Conns2 }.
 
 connect(Name, #{ transport := Transport }=Config, World) ->
-    case Transport of 
+    case cmkit:to_bin(Transport) of 
         <<"ws">> -> 
             connect_ws(Name, Config, World);
         <<"wss">> -> 
@@ -188,6 +192,28 @@ run(#{ type := probe,
                 _ ->
                     retry
             end
+    end;
+
+run(#{ type := disconnect, 
+       spec := Spec }, Settings, #{ conns := Conns }=World) ->
+    
+    case cmencode:encode(Spec, #{ settings => Settings,
+                                  world => World}) of 
+        {ok, #{ app := Conn }} ->
+            case maps:get(Conn, Conns, undef) of
+                undef ->
+                    {error, #{ error => not_such_connection,
+                               info => Conn}};
+
+                #{ class := websocket, pid := Pid } ->
+                    cmkit:log({cmtest, disconnecting, Conn, Pid}),
+                    ok = cmwsc:stop(Pid),
+                    cmkit:log({cmtest, disconnected, Conn, Pid}),
+                    {ok, World}
+            end;
+        Other -> 
+            {error, #{ error => encode_error,
+                       info => Other}}
     end;
 
 run(#{ type := expect, 
@@ -320,31 +346,10 @@ run(#{ type := kube,
                        info => E }}
     end;
 
-run(#{ type := request,
-        as := As,
-        spec := #{ url := Url,
-                   method := Method,
-                   headers := Headers,
-                   body := Body } } = Spec, _, #{ data := Data }=World) -> 
-      
-      case Method of 
-          post -> 
-            cmkit:log({cmtest, As, out, Url, Headers, Body}),
-            {_, Res} = cmhttp:post(Url, Headers, Body),
-            cmkit:log({cmtest, As, in, Res}),
-            {ok, World#{ data => Data#{
-                                    As => Res
-                                   }}};
-          _ -> 
-              {error, #{ error => request_method_not_suppported,
-                         info => Spec }}
-        end;
-    
 run(#{ type := procedure,
+       as := As,
        params := Params,
-       spec := #{ type := ProcType,
-                  as := As,
-                  spec := Spec }}, Settings, World) ->
+       spec := Spec }, Settings, #{ data := Data }=World) ->
     
         case cmencode:encode(Params, World, Settings) of 
             {ok, EncodedParams} ->
@@ -353,22 +358,25 @@ run(#{ type := procedure,
                 case cmencode:encode(As, In) of 
                     {ok, EncodedAs} ->
                         case cmencode:encode(Spec, In) of 
-                            {ok, EncodedProc} ->
-                                run(#{ type => ProcType,
-                                       as => EncodedAs,
-                                       spec => EncodedProc }, Settings, World);
+                            {ok, Res} ->
+                                {ok, World#{ data => Data#{
+                                        EncodedAs => Res }}};
                             {error, E} ->
                                 {error, #{ error => encode_error,
+                                           phase => procedure,
                                    info => E }}
                         end;
                     {error, E} ->
                         {error, #{ error => encode_error,
+                                   phase => as,
                                    info => E }}
                 end;
             {error, E} -> 
                 {error, #{ error => encode_error,
+                           phase => params,
                            info => E }}
         end;
+
 
 run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
     case cmencode:encode(Spec, Data, Settings) of 
@@ -376,6 +384,7 @@ run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
             { ok, World#{ data => Data#{ As => Encoded }}};
         {error, E} ->
             {error, #{ error => encode_error,
+                       spec => Spec,
                        info => E }}
     end;
 

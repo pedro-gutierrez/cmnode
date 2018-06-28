@@ -78,6 +78,15 @@ decode_term(#{ type := text}, Text, _) when is_list(Text) ->
     end;
 
 decode_term(#{ type := text}, _, _) -> no_match;
+
+decode_term(#{ type := other_than, spec := Spec }, Data, Config) -> 
+    case decode_term(Spec, Data, Config) of 
+        no_match -> 
+            {ok, Data};
+        {ok, _} -> 
+            no_match
+    end;
+
 decode_term(#{ type := regexp, value := Spec}, Data, Config) -> 
     case cmencode:encode(Spec, Data, Config) of 
         {ok, EncodedRegex} ->

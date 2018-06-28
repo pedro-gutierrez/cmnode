@@ -136,11 +136,22 @@ ready(cast, {fail, _, Title, Info, Elapsed }, #{
                                      result := Result
                                     }=Data) ->
     
+    Info2 = case Info of 
+                #{ world := #{ conns := Conns } = World} -> 
+                    Conns2 = maps:map(fun(_, #{ pid := _ }=ConnInfo) ->
+                                              maps:without([pid], ConnInfo);
+                                         (_, V) -> V
+                                      end, Conns),
+
+                    Info#{ world => World#{ conns => Conns2 }};
+                _ -> Info
+            end,
+
     Data2 = Data#{ fail => Fail + 1,
                    result => [#{ test => Name, 
                                  scenario => Title,
                                  status => fail,
-                                 failure => Info,
+                                 failure => Info2,
                                  elapsed => Elapsed }|Result] },
     cmtest_scenario:stop(Pid),
     case start_scenario(Test, Rem, Data2) of 

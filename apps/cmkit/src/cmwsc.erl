@@ -6,7 +6,7 @@
 -export([send/2, stop/1]).
 
 stop(Pid) ->
-    gen_statem:call(Pid, close).
+    gen_statem:call(Pid, stop).
 
 send(Pid, Msg) ->
     gen_statem:call(Pid, {out, Msg}).
@@ -127,7 +127,7 @@ terminate(Reason, _, #{ log := Log, name := Name, config := Config, conn := Conn
 
 connect(#{ host := Host,
            port := Port}) ->
-    {ok, Conn} = gun:open(Host, Port),
+    {ok, Conn} = gun:open(cmkit:to_list(Host), Port),
     MRef = monitor(process, Conn),
     {Conn, MRef}.
 

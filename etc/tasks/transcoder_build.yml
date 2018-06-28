@@ -1,0 +1,20 @@
+version: 1.0
+type: task
+name: transcoder_build
+spec:
+  - git:
+      credentials:
+        key: github
+        in: settings
+      clone: 
+        repo: "github.com/netscale-technologies/transcoder.git"
+        dir: "/tmp/transcoder"
+  - docker:
+      credentials:
+        key: docker
+        in: settings
+      build:
+        dir: "/tmp/transcoder"
+        repo: "netcomposer/transcoder"
+        tag: "latest"
+

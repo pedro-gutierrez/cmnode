@@ -259,6 +259,13 @@ compile_procedures(Specs) ->
     lists:map(fun compile_procedure/1, Specs).
 
 compile_procedure(#{ <<"name">> := Name,
+                     <<"spec" >> := Spec,
+                     <<"as">> := As }) ->
+    #{ name => cmkit:to_atom(Name),
+       spec => compile_term(Spec),
+       as => compile_term(As) };
+
+compile_procedure(#{ <<"name">> := Name,
                      <<"spec" >> := Spec}) ->
     #{ name => cmkit:to_atom(Name),
        spec => compile_term(Spec) }.
@@ -842,6 +849,10 @@ compile_term(#{ <<"eq">> := Specs }) when is_list(Specs) ->
        spec => lists:map(fun compile_term/1, Specs)
      };
 
+compile_term(#{ <<"other_than">> := Spec }) ->
+    #{ type => other_than,
+       spec => compile_term(Spec) };
+
 compile_term(#{ <<"gt">> := Specs }) when is_list(Specs) ->
     #{ type => greater_than,
        spec => lists:map(fun compile_term/1, Specs)
@@ -908,6 +919,12 @@ compile_term(#{ <<"connect">> := Spec }) ->
 compile_term(#{ <<"probe">> := Spec }) ->
     
     #{ type => probe,
+       spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"disconnect">> := Spec }) ->
+    
+    #{ type => disconnect,
        spec => compile_term(Spec)
      };
 
@@ -1123,6 +1140,13 @@ compile_term(#{ <<"wait">> := #{
        spec => #{ sleep => Sleep,
                   retries => Retries,
                   condition => compile_term(Condition) }};
+
+compile_term(#{ <<"match">> := #{
+                    <<"value">> := ValueSpec,
+                    <<"with">> := DecoderSpec }}) ->
+    #{ type => match,
+       spec => #{ value => compile_term(ValueSpec),
+                  decoder => compile_term(DecoderSpec) }};
 
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
