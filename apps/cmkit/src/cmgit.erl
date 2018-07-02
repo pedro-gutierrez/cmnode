@@ -1,5 +1,5 @@
 -module(cmgit).
--export([clone/2, tag/2]).
+-export([clone/2, tag/2, tags/1]).
 
 clone(Repo, #{ clone := false }) -> 
     cmkit:log({cmgit, clone, Repo, skipped}),
@@ -19,18 +19,23 @@ tag(Repo, #{ dir := Dir,
              increment := Increment} = Params) -> 
     case clone(Repo, Params) of 
         ok -> 
-            Tags = tags_filtered_by(Prefix, git:tags(Dir)),
-            case next_tag(Tags, Increment) of 
-                {ok, NextTag} ->
-                    TagWithPrefix =  tag_with_prefix(Prefix, NextTag),
-                    case branch(Params#{ repo => Repo, 
-                                         tag => TagWithPrefix }) of 
-                        ok -> 
-                            cmkit:log({cmgit, Repo, tags, Prefix, Tags, TagWithPrefix}),
-                            case tag(Params#{ repo => Repo, tag => TagWithPrefix }) of 
-                                {ok, NewTag } -> 
-                                    cmkit:log({cmgit, Repo, tagged, NewTag}),
-                                    {ok, NewTag};
+            case tags(Dir) of
+                {ok, AllTags} -> 
+                    Tags = tags_filtered_by(Prefix, AllTags),
+                    case next_tag(Tags, Increment) of 
+                        {ok, NextTag} ->
+                            TagWithPrefix =  tag_with_prefix(Prefix, NextTag),
+                            case branch(Params#{ repo => Repo, 
+                                                 tag => TagWithPrefix }) of 
+                                ok -> 
+                                    cmkit:log({cmgit, Repo, tags, Prefix, Tags, TagWithPrefix}),
+                                    case tag(Params#{ repo => Repo, tag => TagWithPrefix }) of 
+                                        {ok, NewTag } -> 
+                                            cmkit:log({cmgit, Repo, tagged, NewTag}),
+                                            {ok, NewTag};
+                                        Other -> 
+                                            Other
+                                    end;
                                 Other -> 
                                     Other
                             end;
@@ -100,6 +105,29 @@ tag(#{ repo := Repo,
             Other
     end.
 
+
+tags(Dir) -> 
+    case cmsh:sh(tags_cmd(), [{cd, Dir}]) of 
+        {ok, Out} -> 
+            Lines = cmkit:bin_split(cmkit:to_bin(Out), <<"\n">>),
+            Tags = lists:foldr( fun(V, Acc) -> 
+                                        case ref(cmkit:bin_split(V, <<"/">>), <<"tags">>) of 
+                                            {ok, T} -> 
+                                                [T|Acc];
+                                            _ -> 
+                                                Acc
+                                        end
+                                 end, [], Lines),
+            {ok, Tags};
+        Other ->
+            cmkit:danger({cmgit, tags, Dir, Other}),
+            {error, #{ reason => cannot_fetch_tags,
+                       dir => Dir }}
+    end.
+
+ref([_, Type, Value], Type) -> {ok, Value};
+ref(_, _) -> nomatch.
+
 is_tmp(Path) ->
     case re:run(Path, "^/tmp") of
         {match, _} -> true;
@@ -108,6 +136,8 @@ is_tmp(Path) ->
 
 rmdir_cmd(Path) ->
     cmkit:fmt("rm -rf ~s", [Path]).
+
+tags_cmd() -> "git ls-remote".
 
 tag_create_cmd(Tag) ->
     cmkit:fmt("git tag ~s", [Tag]).

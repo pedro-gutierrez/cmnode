@@ -10,7 +10,6 @@
     uuid,
     os_mon,
     slacker,
-    erlgit,
     erldocker
    ]},
   {env,[]},

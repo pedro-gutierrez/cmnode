@@ -1,0 +1,73 @@
+version: 1.0
+type: template
+name: netcomp_rebar_config 
+spec:
+  contents: |- 
+    %%-*- mode: erlang -*-
+    {cover_enabled, true}.
+
+    {erl_opts, [
+      debug_info, warnings_as_errors, {parse_transform, lager_transform}
+    ]}.
+
+    {deps, [
+      {cuttlefish, {git, "git://github.com/basho/cuttlefish.git", {tag, "2.0.11"}}},
+      {nkservice, {git, "https://github.com/netcomposer/nkservice", {branch, "v09"}}},
+      {nkdomain, {git, "https://github.com/netcomposer/nkdomain", {branch, "v09"}}},
+      {nkchat, {git, "https://github.com/netcomposer/nkchat", {branch, "v09"}}}, 
+      {nkswarm, {git, "https://github.com/pedro-gutierrez/nkswarm", {tag, "v1.0.2"}}},
+      {nkstats, {git, "https://github.com/pedro-gutierrez/nkstats", {tag, "v1.1.0"}}},
+      {nkkafka, {git, "https://github.com/netcomposer/nkkafka", {branch, "v09"}}},
+      {nkcassandra, {git, "https://github.com/netcomposer/nkcassandra", {branch, "v09"}}},
+    
+    {% for d in private_deps %}  {% verbatim %}{{% endverbatim %}{{ d.name }}, {git, "https://{{ d.auth }}@github.com/{{ d.repo }}", {branch, "{{ d.branch }}"}}},
+    {% endfor %}
+      {nktranscoder, {git, "https://github.com/netcomposer/nktranscoder", {branch, "master"}}},
+      {nkimage, {git, "https://github.com/netcomposer/nkimage", {branch, "master"}}},
+      {media_converter, {git, "https://github.com/pedro-gutierrez/media-converter", {branch, "master"}}}]}.
+
+    {project_plugins, [ 
+      {rebar3_cuttlefish, "0.14.0"}
+    ]}.
+    
+    {cuttlefish, [
+      %{file_name, "netcomp.conf.example"},
+      {schema_discovery, false}
+    ]}.
+
+    {profiles, [
+      {prod, [
+        {relx, [
+          {dev_mode, false},
+          {include_erts, false}
+        ]}
+      ]}
+    ]}.
+  
+    {relx, [
+      {release, {netcomp, "0.0.1"}, [
+        {cuttlefish, load},
+        netcomp
+      ]},
+    
+      {dev_mode, true},
+      {include_erts, false},
+      {generate_start_script, true},
+      {extended_start_script, true},
+      {overlay_vars, "config/vars.config"},
+      {overlay, [
+        {mkdir, "etc"},
+        {mkdir, "share/schema"},
+        {mkdir, "data"},
+        {mkdir, "log"},   
+        {template, "schema/nklib.schema", "share/schema/01-nklib.schema"},
+        {template, "schema/nkbase.schema", "share/schema/01-nkbase.schema"},
+        {template, "schema/nkmail.schema", "share/schema/01-nkmail.schema"},
+        {template, "schema/nkdomain.schema", "share/schema/01-nkdomain.schema"},
+        {template, "schema/nkswarm.schema", "share/schema/01-nkswarm.schema"},
+        {template, "schema/nkstats.schema", "share/schema/01-nkstats.schema"},
+        {template, "schema/sipstorm.schema", "share/schema/01-sipstorm.schema"},
+        {template, "schema/sphera.schema", "share/schema/01-sphera.schema"},
+        {template, "schema/lager.schema", "share/schema/02-lager.schema"},
+        {template, "schema/sasl.schema", "share/schema/02-sasl.schema"},
+        {template, "schema/erlang_vm.schema", "share/schema/03-erlang_vm.schema"} ]}]}.

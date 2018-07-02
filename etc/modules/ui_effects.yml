@@ -1,0 +1,23 @@
+version: 1.0
+type: module
+category: client
+name: ui_effects 
+spec:
+  effects:
+    events:
+      type: elementary-events
+    ui:
+      type: elementary-ui
+      settings:
+        assets:
+          text: "http://localhost:8081/assets"
+    ws:
+      type: elementary-ws
+      settings:
+        secure:
+          keyword: no 
+        path:
+          text:
+            literal: "/ws"
+        persistent: 
+          keyword: true

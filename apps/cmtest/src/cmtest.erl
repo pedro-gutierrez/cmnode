@@ -27,7 +27,7 @@ run(#{ id := Id,
        opts := Opts }) -> 
 
     case cmconfig:settings(Settings) of 
-        {ok, SettingsSpec } -> 
+        {ok, SettingsSpec} -> 
             case cmconfig:test(Test) of
                 {ok, Spec} -> 
                     cmtest_runner:run(Spec#{ id => Id,

@@ -62,11 +62,12 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
     end;
 
 
-encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
+encode(#{ key := Key, in := At }=Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
     case encode(At, In, Config) of 
         {ok, In2} ->
             encode(Key, In2, Config);
         Other -> 
+            cmkit:danger({cmencode, error, Spec, Other}),
             Other
     end;
 
@@ -75,6 +76,7 @@ encode(#{ key := KeySpec, in := _ }=Spec, In, Config) when is_map(KeySpec) ->
         {ok, Key} ->
             encode(Spec#{ key => Key }, In, Config);
         Other -> 
+            cmkit:danger({cmencode, error, Spec, Other}),
             Other
     end;
 

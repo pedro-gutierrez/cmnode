@@ -1,0 +1,1202 @@
+version: 1.0
+type: test 
+name: dkv
+spec:
+  config:
+    retries: 100
+    wait: 5
+  backgrounds:
+    - title: "DKV SHP api is online"
+      steps:
+        - title: "Connect to the shp http api"
+          connect:
+            host: 
+              key: host
+              in: settings 
+            port: 443
+            path:
+              join:
+                terms:
+                  - key: path
+                    in: 
+                      key: shp
+                      in: 
+                        key: dkv
+                        in: settings
+                  - text:
+                      literal: "/_api"
+            transport: https
+          as: shp_api
+        - title: "Check shp returned a status code"
+          probe:
+            app: shp_api
+            status: up 
+    - title: "A DKV client verification query"
+      steps:
+        - title: "Verify client"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "dkv/shp/is_dkv_client"
+                    data:
+                      object:
+                        dni:
+                          text:
+                            literal: "46129393H"
+                        card: 1600000107279000600
+                        birth_day: 6 
+                        birth_month: 3
+                        birth_year: 1970
+        - title: "Check we got at 200 OK"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+    
+    - title: "I am logged in as a patient"
+      steps:
+        - title: "Send login request as a patient"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/patient_login"
+                  data:
+                    user: "pmartinez@salutic.es"
+                    password: "Password01"
+                    ttl: 60
+                    device_id: "dkv_psi-12345"
+                    domain_id: "/dkv/telemed/shp"
+        
+        - title: "Verify I got a token id"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      token_id:
+                        any: text
+                      name:
+                        any: text 
+                      is_dkv_client:
+                        keyword: true
+                      ci:
+                        keyword: true
+            remember:
+              token:
+                key: token_id
+                in: 
+                  key: data
+                  in: body
+
+    - title: "I am logged in as a client"
+      steps:
+        - title: "Send login request as a client"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/dkv_client_login"
+                  data:
+                    card: 1600000107279000600
+                    dni: "46129393H"
+                    birth_day: 6
+                    birth_month: 3
+                    birth_year: 1970
+                    ttl: 60
+                    device_id: "dkv_psi-12345"
+                    domain_id: "/dkv/telemed/shp"
+        
+        - title: "Check we got a token id"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      token_id:
+                        any: text
+                      is_dkv_client:
+                        keyword: true
+            remember:
+              token:
+                key: token_id
+                in:
+                  key: data
+                  in: body
+    
+    - title: "An empty encounter in fojo speciality"
+      steps:
+        - title: "Create a fojo encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/create_encounter"
+                  data:
+                    speciality: "fojo"
+                    form: {}
+
+        
+        - title: "Verify I got an encounter id"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      encounter_id:
+                        any: text
+                      conversation:
+                        any: text 
+            remember:
+              encounter:
+                key: encounter_id
+                in: 
+                  key: data
+                  in: body
+    
+    - title: "An encounter in fojo speciality"
+      steps:
+        - title: "Create a fojo encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/create_encounter"
+                  data:
+                    speciality: "fojo"
+                    form: 
+                      object:
+                        a: 1
+                        text: "My test FOJO"
+        
+        - title: "Verify I got an encounter id"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      encounter_id:
+                        any: text
+                      conversation:
+                        any: text 
+            remember:
+              encounter:
+                key: encounter_id
+                in: 
+                  key: data
+                  in: body
+    
+    - title: "An encounter in derma speciality"
+      steps:
+        - title: "Create derma encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/create_encounter"
+                  data:
+                    speciality: "derma"
+                    form: 
+                      object:
+                        a: 1
+                        text: "My test DERMA"
+        
+        - title: "Verify I got an encounter id"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      encounter_id:
+                        any: text
+                      conversation:
+                        any: text
+    
+    - title: "The encounter is confirmed"
+      steps:
+        - title: "Confirm the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/confirm_encounter"
+                  data:
+                    encounter_id:
+                      key: encounter
+                      in: data
+        
+        - title: "Verify I got a 200 ok"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+      
+  scenarios:
+    - title: "Check valid clients"
+      tags: 
+        - shp 
+        - dkv
+        - dkv_login
+      backgrounds:
+        - "DKV SHP api is online"
+        - "A DKV client verification query"
+      steps:
+        - title: "Check we got a response time from DKV"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        msd_response_time:
+                          any: number 
+    
+    - title: "Detect invalid DNI"
+      tags: 
+        - shp 
+        - dkv 
+        - dkv_login
+        - invalid
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Try to verify invalid DNI"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/is_dkv_client"
+                  data:
+                    dni: "11111118H"
+                    card: 1600000107279000600
+                    birth_day: 6 
+                    birth_month: 3
+                    birth_year: 1970
+        
+        - title: "Check we got an error from DKV"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      code: "msd_error"
+
+
+    - title: "Detect non clients"
+      tags: 
+        - shp 
+        - dkv 
+        - dkv_login
+        - invalid
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Try to verify an invalid card"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/is_dkv_client"
+                  data:
+                    dni: "11111118H"
+                    card: 1234567890123456789
+                    birth_day: 6 
+                    birth_month: 3
+                    birth_year: 1970
+        
+        - title: "Check we got an error from DKV"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      code: "msd_error"
+                      error:
+                        text:
+                          regexp: "MSD Error -31"
+
+
+    - title: "Get medical parameters format"
+      tags: 
+        - shp 
+        - dkv 
+        - medical_parameters
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Get the PHR indicators info"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/get_phr_indicators_info"
+                  data: {}
+        
+        - title: "Check we got the medical parameters format"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      TREATMENTS:
+                        any: list
+                      OPERATIONS:
+                        any: list
+                      Indicadores:
+                        any: list
+                      ILLNESS:
+                        any: list
+                      ALLERGIES:
+                        any: list
+    
+    - title: "Login as patient"
+      tags: 
+        - shp 
+        - dkv 
+        - login
+        - patient
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+    
+    - title: "Patient login with wrong password"
+      tags: 
+        - shp 
+        - dkv 
+        - login
+        - patient
+        - invalid
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Send login request as a patient with wrong password"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/patient_login"
+                  data:
+                    user: "pmartinez@salutic.es"
+                    password: "Invalid"
+                    ttl: 60
+                    device_id: "dkv_psi-12345"
+                    domain_id: "/dkv/telemed/shp"
+        
+        - title: "Check we got error code 26"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      code: "msd_error"
+                      error:
+                        text:
+                          regexp: "MSD Error -26"
+    
+    - title: "Login as client"
+      tags: 
+        - shp 
+        - dkv 
+        - login
+        - client
+      backgrounds:
+        - "DKV SHP api is online"
+    
+    - title: "Login as client with an invalid card"
+      tags: 
+        - shp 
+        - dkv 
+        - login
+        - invalid_client
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Send login request as a client, with an invalid card"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/dkv_client_login"
+                  data:
+                    card: 1234567890123456789
+                    dni: "46129393H"
+                    birth_day: 6
+                    birth_month: 3
+                    birth_year: 1970
+                    ttl: 60
+                    device_id: "dkv_psi-12345"
+                    domain_id: "/dkv/telemed/shp"
+        
+        - title: "Check we got error code 31"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      code: "msd_error"
+                      error:
+                        text:
+                          regexp: "MSD Error -31"
+    
+    - title: "Login as client with an invalid DNI"
+      tags: 
+        - shp 
+        - dkv 
+        - login
+        - invalid_dni
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Send login request as a client, with an invalid DNI"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/dkv_client_login"
+                  data:
+                    card: 1600000107279000600
+                    dni: "12345678Z"
+                    birth_day: 6
+                    birth_month: 3
+                    birth_year: 1970
+                    ttl: 60
+                    device_id: "dkv_psi-12345"
+                    domain_id: "/dkv/telemed/shp"
+        
+        - title: "Check we got error code 31"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      code: "msd_error"
+    
+    - title: "Create an encounter, as a patient"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+    
+    - title: "Create a fojo encounter, as a client"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - client
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a client"
+        - "An encounter in fojo speciality"
+    
+    - title: "Create an empty fojo encounter, as a client"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - empty
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a client"
+        - "An empty encounter in fojo speciality"
+    
+    - title: "Create a derma encounter, as a client"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - client
+        - derma
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a client"
+        - "An encounter in derma speciality"
+
+    - title: "Should not create encounters with a wrong speciality"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - client
+        - invalid_speciality
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a client"
+      steps:
+        - title: "Create an encounter with a wrong speciality"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/create_encounter"
+                  data:
+                    speciality: "unknown"
+                    form: 
+                      object:
+                        a: 1
+                        text: "My test Unknown"
+        
+        - title: "Verify I got an error"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      code: "syntax_error"
+                      error:
+                        text:
+                          regexp: "speciality"
+    
+    - title: "Should not allow anonymous users to create encounters"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - anonymous
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Try to create a fojo encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/create_encounter"
+                  data:
+                    speciality: "fojo"
+                    form: 
+                      object:
+                        a: 1
+                        text: "My test Unknown"
+        
+        - title: "Verify I got a 403 status code"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+
+
+    - title: "Try to add info to an existing encounter, as an anonymous user"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - anonymous
+        - forbidden
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+      steps:
+        - title: "Add some patient info to the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/add_patient_info"
+                  data:
+                    encounter_id:
+                      key: encounter
+                      in: data
+                    form: 
+                      object:
+                        a: 1
+                        text: "Varon edad 47"
+        
+        - title: "Verify I got an 403"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+
+      
+    - title: "As a patient, add history to an existing encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - history
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+      steps:
+        - title: "Add some historical data to the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/send_phr_indicators"
+                  data:
+                    object:
+                      encounter_id:
+                        key: encounter
+                        in: data
+                      data: 
+                        object:
+                          height: 175
+                          weight: 80
+                          cholesterol: 200
+                          diastolic_pressure: 60
+                          systolic_pressure: 100
+                          glucose: 100
+        
+        - title: "Verify I got an ok"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+
+
+    - title: "Should fail gracefully, when adding patient history to an unknown encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - unknown_encounter
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+      steps:
+        - title: "Add some historical data to an invalid encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/send_phr_indicators"
+                  data:
+                    object:
+                      encounter_id: "unknown"
+                      data: 
+                        object:
+                          height: 175
+                          weight: 80
+                          cholesterol: 200
+                          diastolic_pressure: 60
+                          systolic_pressure: 100
+                          glucose: 100
+        
+        - title: "Verify I got a proper error"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "error"
+                    data:
+                      object:
+                        code: "object_not_found"
+
+
+    - title: "As a patient, get my IVS"
+      tags: 
+        - shp 
+        - dkv 
+        - patient
+        - ivs
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+      steps:
+        - title: "Get my IVS"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/get_ivs"
+                  data: {}
+        - title: "Verify I got my IVS data"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        ValorIndicadorIVS:
+                          any: object
+    
+    - title: "Should not allow anonymous users attempt to get their IVS"
+      tags: 
+        - shp 
+        - dkv 
+        - ivs
+        - anobymous 
+      backgrounds:
+        - "DKV SHP api is online"
+      steps:
+        - title: "Get my IVS"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/get_ivs"
+                  data: {}
+        - title: "Verify I got a 403"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+
+    - title: "As a patient, set my IVS"
+      tags: 
+        - shp 
+        - dkv 
+        - patient
+        - ivs
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+      steps:
+        - title: "Set my IVS"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/send_ivs"
+                  data:
+                    object:
+                      data:
+                        object:
+                          height: 175
+                          weight: 80
+                          cholesterol: 210
+                          diastolic_pressure: 60
+                          systolic_pressure: 100
+                          glucose: 100
+        
+        - title: "Verify I got an ok"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+        
+        - title: "Get my IVS again"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/get_ivs"
+                  data: {}
+        
+        - title: "Verify I got my IVS"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        ValorIndicadorIVS:
+                          any: object
+            remember: 
+              ivs:
+                key: ValorIndicadorIVS
+                in: 
+                  key: data
+                  in: body 
+                    
+        - title: "Verify my IVS data was set"
+          expect:
+            eq:
+              - text:
+                  literal: "210 mg/dl"
+              - key: Valor
+                in:
+                  item: 8
+                  in: 
+                    key: IndicadoresIVS9
+                    in: 
+                      key: ivs
+                      in: data
+    
+    - title: "As a patient, link IVS data to an existing encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - ivs
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+      steps:
+        - title: "Link patient IVS to the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/send_ivs"
+                  data:
+                    object:
+                      encounter_id:
+                        key: encounter
+                        in: data
+                      data:
+                        object:
+                          height: 175
+                          weight: 80
+                          cholesterol: 210
+                          diastolic_pressure: 60
+                          systolic_pressure: 100
+                          glucose: 100
+          
+        - title: "Verify I got an ok"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+
+    - title: "As a patient, upload a file to an existing encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - file
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+      steps:
+
+        - title: "Sample base64 encoded file"
+          base64:
+            key: data
+            in:
+              asset: "dummy.xml"
+          as: file
+
+        - title: "Upload a file to the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/upload"
+                  data:
+                    object:
+                      encounter_id:
+                        key: encounter
+                        in: data
+                      name: "Name1"
+                      description: "Description1"
+                      extension: "jpeg"
+                      data_base64:
+                        key: file
+                        in: data
+
+        - title: "Verify I got a file id"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        msd_file_id:
+                          any: text
+                        file_id:
+                          any: text
+
+
+    - title: "As an anonymous user, try to upload a file to an existing encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - file
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+      steps:
+
+        - title: "Sample base64 encoded file"
+          base64:
+            key: data
+            in: 
+              asset: "dummy.xml"
+          as: file
+
+        - title: "Upload a file to the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+              body:
+                object:
+                  cmd: "dkv/shp/upload"
+                  data:
+                    object:
+                      encounter_id:
+                        key: encounter
+                        in: data
+                      name: "Name1"
+                      description: "Description1"
+                      extension: "jpeg"
+                      data_base64:
+                        key: file
+                        in: data
+
+        - title: "Verify I got a 403 status code" 
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+    
+    - title: "Confirm encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - confirm
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+        - "The encounter is confirmed"
+    
+    - title: "Re-confirm encounter"
+      tags: 
+        - shp 
+        - dkv 
+        - encounter
+        - patient
+        - confirm
+      backgrounds:
+        - "DKV SHP api is online"
+        - "I am logged in as a patient"
+        - "An encounter in fojo speciality"
+        - "The encounter is confirmed"
+      steps:
+
+        - title: "Confirm the encounter"
+          send:
+            to: shp_api
+            spec:
+              headers:
+                content-type: "application/json"
+                x-netcomposer-auth:
+                  key: token
+                  in: data
+              body:
+                object:
+                  cmd: "dkv/shp/confirm_encounter"
+                  data:
+                    encounter_id:
+                      key: encounter
+                      in: data
+
+        - title: "Verify I got an error saying the encounter is already confirmed" 
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "error"
+                    data:
+                      object:
+                        code: "encounter_already_confirmed"
+

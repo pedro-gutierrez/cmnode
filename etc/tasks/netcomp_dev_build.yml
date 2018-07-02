@@ -1,0 +1,23 @@
+version: 1.0
+type: task
+name: netcomp_dev_build
+spec:
+  - task: netcomp_assembly
+  - docker:
+      credentials:
+        key: docker
+        in: settings
+      build:
+        dir:
+          format:
+            pattern: "/tmp/~s"
+            params:
+              - key: name
+                in: params
+        repo: "netcomposer/netcomp"
+        tag:
+          format:
+            pattern: "~s-latest"
+            params:
+              - key: name
+                in: params

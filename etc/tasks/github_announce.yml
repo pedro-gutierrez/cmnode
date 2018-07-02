@@ -1,0 +1,18 @@
+version: 1.0
+type: task
+name: github_announce
+spec:
+  - slack:
+      settings:
+        key: slack
+        in: params
+      severity:
+        keyword: "success"
+      subject:
+        text: "Code pushed"
+      body:
+        format:
+          pattern: "Source code in repo ~s has changed"
+          params:
+            - key: repo
+              in: params

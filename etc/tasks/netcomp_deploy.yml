@@ -1,0 +1,158 @@
+version: 1.0
+type: task
+name: netcomp_deploy
+spec:
+  - kube:
+      deployment:
+        object:
+          retries: 120
+          namespace: "nc"
+          name:
+            join:
+              terms:
+                - key: name
+                  in: params
+                - text: "-09"
+          labels:
+            object:
+              app:
+                join:
+                  terms:
+                    - key: name
+                      in: params
+                    - text: "-09"
+          replicas: 1
+          spec:
+            object:
+              imagePullSecrets:
+                list:
+                  - name: 
+                      text: docker
+              volumes:
+                list:
+                  - name: config
+                    configMap:
+                      name:
+                        join:
+                          terms:
+                            - key: name
+                              in: params
+                            - text: "-09"
+              containers:
+                list:
+                  - object:
+                      name:
+                        key: name
+                        in: params
+                      imagePullPolicy: 
+                        text: "Always"
+                      image:
+                        text:
+                          format:
+                            pattern: "~s:~s"
+                            params:
+                              - key: repo
+                                in: params
+                              - key: tag
+                                in: params
+                      stdin: 
+                        keyword: true
+                      tty:
+                        keyword: true
+                      volumeMounts:
+                        list:
+                          - object:
+                              name: "config"
+                              mountPath: "/opt/netcomp/config/shell.config"
+                              subPath: "shell.config"
+                              readOnly:
+                                keyword: true
+                      ports:
+                        iterate:
+                          key: services
+                          in:
+                            key: nc
+                            in:
+                              key:
+                                key: name
+                                in: params
+                              in: settings
+                        with:
+                          object:
+                            containerPort: 
+                              key: port
+                              in: item
+                            name:
+                              key: name
+                              in: item
+                            protocol:
+                              text: "TCP"
+  - wait:
+      condition:
+        eq:
+          - number: 200
+          - key: status
+            in:
+              http:
+                method: get
+                url:
+                  host:
+                    key: host
+                    in: settings
+                  port:
+                    key: port
+                    in:
+                      key: shp
+                      in:
+                        key:
+                          key: name
+                          in: params
+                        in: settings
+                  path:
+                    join:
+                      terms:
+                        - key: path
+                          in:
+                            key: admin 
+                            in:
+                              key:
+                                key: name
+                                in: params
+                              in: settings
+                        - text: "/_admin/"
+                  transport:
+                    key: transport
+                    in:
+                      key: shp
+                      in: 
+                        key:
+                          key: name
+                          in: params
+                        in: settings
+
+      sleep: 1000
+      retries: 60
+  - http:
+      method: post 
+      url:
+        object:
+          url:
+            key: default
+            in:
+              key: webhooks
+              in: settings
+      headers:
+        object:
+          x-cm-event:
+            text: "deploy-summary"
+      body:
+        object:
+          settings:
+            key: settings
+            in: params
+          repo:
+            key: repo
+            in: params
+          tag:
+            key: tag
+            in: params

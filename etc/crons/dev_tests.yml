@@ -3,9 +3,9 @@ type: cron
 name: daily_dev_tests
 spec:
   schedule: 
-    am: 
-      hour: 9
-      min: 0
+    pm: 
+      hour: 1
+      min: 56
   jobs:
     - module: cmtest
       fun: schedule
@@ -20,8 +20,13 @@ spec:
     - module: cmtest
       fun: schedule
       args: 
-        - keyword: sphera_shp
+        - keyword: sphera_rwanda
         - keyword: dev
+        - object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: false
     - module: cmtest
       fun: schedule
       args: 

@@ -1,0 +1,61 @@
+version: 1.0
+type: task
+name: netcomp_assembly
+spec:
+  - git:
+      credentials:
+        key: github
+        in: settings
+      clone: 
+        repo: "github.com/kalta/netcomp.git"
+        branch: v09
+        dir: 
+          text:
+            format:
+              pattern: "/tmp/~s"
+              params:
+                - key: name
+                  in: params
+  - rm: 
+      format:
+        pattern: "/tmp/~s/rebar.lock"
+        params:
+          - key: name
+            in: params
+  - template:
+      name: netcomp_rebar_config
+      params:
+        key: nc
+        in:
+          key:
+            key: name
+            in: params
+          in: settings
+      dest:
+        format:
+          pattern: "/tmp/~s/rebar.config"
+          params:
+            - key: name
+              in: params
+    as: rebar-config
+  - template:
+      name: netcomp_app_src
+      params:
+        key:
+          key: name
+          in: params
+        in: settings
+      dest:
+        format:
+          pattern: "/tmp/~s/apps/netcomp/src/netcomp.app.src"
+          params:
+            - key: name
+              in: params
+  - shell:
+      chwd: 
+        format:
+          pattern: "/tmp/~s"
+          params:
+            - key: name
+              in: params
+      cmd: "rebar3 compile"

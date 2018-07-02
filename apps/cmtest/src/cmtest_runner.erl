@@ -75,8 +75,13 @@ ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
     case cmencode:encode(SettingsSpec) of 
         {ok, EncodedSettings} -> 
             
+            EncodedSettings2 = case maps:get(opts, Test, undef) of 
+                                   undef -> EncodedSettings;
+                                   Opts -> 
+                                       maps:merge(EncodedSettings, Opts)
+                               end,
             Data3 = Data2#{ settings => #{ name => SettingsName,
-                                           value => EncodedSettings }},
+                                           value => EncodedSettings2 }},
             
             case start_scenario(Test, Scenarios, Data3) of 
                 {ok, Data4} ->
@@ -90,7 +95,7 @@ ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
             end;
         
         {error, E} ->
-            notify_error(E, Data),
+            notify_error(E, Data2),
             {stop_and_reply, normal, ok(From)}
     end;
 
@@ -260,8 +265,9 @@ finish(#{ test := #{ name := Test }}) ->
     
     cmkit:log({cmtest, Test, finished}).
 
-notify_error(_, #{ settings := Settings  }=Data) ->
+notify_error(Reason, #{settings := Settings}=Data) ->
 
+    cmkit:danger({cmtest, error, Reason}),
     Q = query(Data),
     finish(Data),
     slack(Settings, #{ test => Q,
@@ -304,20 +310,28 @@ save_report(#{ query := Query} = Report) ->
 
     cmdb:put(tests, Pairs).
 
-webhook(#{ test := #{ opts := #{ webhook := true } },
-           settings := #{ name := Settings,
-                          value := #{ webhooks := #{ default := Url }}}}=Data, Summary) ->
-    
+webhook(#{ settings := #{ name := SettingsName,
+                          value := #{ 
+                            webhooks := #{ default := Url }
+                           } = Settings }}=Data, Summary) ->
+   
     Q = query(Data),
-    cmkit:log({cmtest, Q, webhook, Url}),
-    Headers = #{ 'content-type' => <<"application/json">>,
-                 'x-cm-event' => <<"test-summary">> },
-
-    cmhttp:post(Url, Headers, Summary#{ settings => Settings });
-
-webhook(Data, _) ->
-    Q = query(Data),
-    cmkit:log({cmtest, Q, webhook, skipped}).
+    case maps:get(webhook_opts, Settings, undef) of 
+        undef -> 
+            cmkit:log({cmtest, Q, SettingsName, webhook, skipped, undef});
+        #{ enabled := false } ->
+            cmkit:log({cmtest, Q, SettingsName, webhook, skipped, disabled});
+        #{ enabled := true }  -> 
+            
+            Headers = #{ 'content-type' => <<"application/json">>,
+                         'x-cm-event' => <<"test-summary">> },
+            
+            Summary2 = Summary#{ test => Q,
+                                 settings => SettingsName },
+            
+            cmkit:log({cmtest, Q, webhook, enabled, Url, Headers, Summary2}),
+            cmhttp:post(Url, Headers, Summary2)
+    end.
 
 slack(#{ name := Name,
          value := #{ 

@@ -1,0 +1,1728 @@
+version: 1.0
+type: test 
+name: sphera_rwanda
+spec:
+  config:
+    retries: 100
+    wait: 5
+  backgrounds:
+    - title: "Sphera SHP api is online"
+      steps:
+        - title: "Connect to the Sphera SHP http api"
+          connect:
+            host: 
+              key: host
+              in: settings 
+            port: 443
+            path:
+              join:
+                terms:
+                  - key: path
+                    in: 
+                      key: shp
+                      in: 
+                        key: sphera-rwanda
+                        in: settings
+                  - text:
+                      literal: "/_api"
+            transport: https
+          as: shp_api
+        - title: "Check shp returned 400"
+          probe:
+            app: shp_api
+            status: up
+    - title: "I am logged in as admin" 
+      steps:
+        - title: "Login as admin"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_token"
+                    data:
+                      object:
+                        id: "admin"
+                        password: "netcomposer"
+        - title: "Check we got a token"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        token_id:
+                          any: text
+            remember:
+              token:
+                key: token_id
+                in: 
+                  key: data
+                  in: body
+    - title: "I am logged in as a doctor"
+      steps:
+        - title: "Login as doctor"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_token"
+                    data:
+                      object:
+                        id:
+                          text:
+                            literal: "doctor1@rwanda.sphera"
+                        password:
+                          text:
+                            literal: "1234"
+                        device:
+                          text:
+                            literal: "device1"
+                        domain_id:
+                          text:
+                            literal: "sphera/rwanda"
+        - title: "Check we got a token"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        token_id:
+                          any: text
+            remember:
+              token:
+                key: token_id
+                in: 
+                  key: data
+                  in: body
+    - title: "I am logged in as an operator"
+      steps:
+        - title: "Login as an operator"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_token"
+                    data:
+                      object:
+                        id: "operator1@rwanda.sphera"
+                        password: "1234"
+                        device: "device1"
+                        domain_id: "sphera/rwanda"
+        - title: "Check we got a token"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        token_id:
+                          any: text
+            remember:
+              token:
+                key: token_id
+                in: 
+                  key: data
+                  in: body
+    - title: "There are no objects of type consent"
+      steps:
+        - title: "Unload all objects under /sphera"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/unload_childs"
+                    data:
+                      object:
+                        id: "/sphera"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+        - title: "Delete all consents"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera"
+                        type: "med.consent"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+    - title: "There are no objects of type operator"
+      steps:
+        - title: "Delete all operators"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera"
+                        type: "med.operator"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+    - title: "There is an operator"
+      steps:
+        - title: "Add the operator role to user operator1"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/create_link"
+                    data:
+                      object:
+                        from: "/sphera/rwanda/collab/med.operators/operator1"
+                        to_parent: "/sphera/rwanda/collab/users/operator1"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+    - title: "There are no patients"
+      steps:
+        - title: "Unload all objects under /sphera"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/unload_childs"
+                    data:
+                      object:
+                        id: "/sphera"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+        - title: "Delete all patients"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera"
+                        type: "med.patient"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+    - title: "There are no encounters"
+      steps:
+        - title: "Unload all objects under /sphera"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/unload_childs"
+                    data:
+                      object:
+                        id: "/sphera"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+        - title: "Delete all encounters"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera"
+                        type: "med.encounter"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+    - title: "There is a patient with id 9000 and initials ABC"
+      steps:
+        - title: "Create a patient 9000 with initials ABC"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "objects/domain/create_child"
+                    data:
+                      object:
+                        path: "/sphera/rwanda/collab/med.patients/patient9000"
+                        data:
+                          object:
+                            med.patient:
+                              name: "Patient9000"
+                              surname: "Doe"
+                              birth_day: 2
+                              birth_month: 2
+                              birth_year: 2000
+                              gender: "M"
+                              search_words: "doe"
+                              special_ids:
+                                list:
+                                  - object:
+                                      type: "sphera"
+                                      id: 9000
+                                      meta:
+                                        initials: "ABC"
+        
+        - title: "Verify we got a patient id"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        id:
+                          any: text
+            remember:
+              patient:
+                key: id
+                in: 
+                  key: data
+                  in: body
+    - title: "Get empty data for patient 9000"
+      steps:
+        - title: "Try to find a patient"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/find_patient"
+                    data:
+                      object:
+                        patient_id: "9000"
+                        initials: "ABC"
+
+        - title: "Check we got patient data"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        data:
+                          list: empty
+    - title: "There is a consent"
+      steps:
+        - title: "Create a consent"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "objects/domain/create_child"
+                    data:
+                      object:
+                        path: "/sphera/rwanda/collab/med.consents/consent2000"
+                        data:
+                          object:
+                            med.consent:
+                              consent_text: "My test consent"
+        
+        - title: "Verify we got a consent id"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        id:
+                          any: text
+            remember:
+              consent:
+                key: id
+                in: 
+                  key: data
+                  in: body
+
+    - title: "There is a default consent"
+      steps:
+        - title: "Create a consent"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "objects/domain/create_child"
+                    data:
+                      object:
+                        path: "/sphera/rwanda/collab/med.consents/consent1"
+                        data:
+                          object:
+                            med.consent:
+                              consent_text: "My test consent"
+        
+        - title: "Verify we got a consent id"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        id:
+                          any: text
+            remember:
+              consent:
+                key: id
+                in: 
+                  key: data
+                  in: body
+
+    - title: "Get last consent returns a consent error"
+      steps:
+        - title: "Get the last consent"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_consent"
+        - title: "Check we got a consent error"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        code: "consent_error"
+    - title: "Get last consent returns the consent data"
+      steps:
+        - title: "Get the last consent"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/get_consent"
+        - title: "Check we got the consent data"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        consent_id:
+                          any: text
+                        consent_text:
+                          any: text
+                        is_signed:
+                          any: keyword
+            remember:
+              consent:
+                key: data
+                in: body
+
+    - title: "The consent is signed"
+      steps:
+        - title: "Set the consent as signed"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/set_consent"
+                    data:
+                      object:
+                        consent_id:
+                          key: consent
+                          in: data
+                        is_signed:
+                          keyword: true
+
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+
+    - title: "An encounter in pediatrics is created for the patient" 
+      steps:
+        - title: "Create an encounter for patient 9000 in pediatrics"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/create_encounter"
+                    data:
+                      object:
+                        patient_id: "9000"
+                        speciality:  "/sphera/brazil/collab/med.specialities/pediatrics"
+                        patient_info:
+                          object:
+                            type: "sphera_shp_1"
+                            data:
+                              object:
+                                medical_questionary:
+                                  object:
+                                    data: "a value"
+                            text: "some text"
+
+        - title: "Verify I got an encounter and a conversation"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        encounter_id: 
+                          any: text
+                        conversation:
+                          any: text
+            remember:
+              encounter:
+                key: encounter_id
+                in:
+                  key: data
+                  in: body
+              conversation:
+                key: conversation
+                in:
+                  key: data
+                  in: body
+
+    - title: "New report for that encounter"
+      steps:
+        - title: "Get reports for the encounter"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/find_reports"
+
+        - title: "Verify I got a new report at position 0"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      list:
+                        object:
+                          status: "new"
+    - title: "Medical data uploaded for that encounter"
+      steps:
+        - title: "Upload medical data with a equal to 1"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/upload_medical_data"
+                    data:
+                      object:
+                        encounter_id:
+                          key: encounter
+                          in: data
+                        data:
+                          object:
+                            a: 1
+
+        - title: "Verify I got the encounter id back"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        data:
+                          object:
+                            encounter_id:
+                              any: text
+    - title: "That encounter file upload api for name file.txt"
+      steps:
+        - title: "Setup the encounter file upload api"
+          connect:
+            host: 
+              key: host
+              in: settings 
+            port: 443
+            path:
+              join:
+                terms:
+                  - key: path
+                    in: 
+                      key: shp
+                      in:
+                        key: sphera-rwanda
+                        in: settings
+                  - text: 
+                      literal: "/encounter/"
+                  - key: encounter
+                    in:
+                      key: data
+                      in:
+                        key: world
+                  - text:
+                      literal: "/_file?name=file.txt"
+            transport: https
+          as: encounter_file_api
+        - title: "Check the encounter file api returned 400"
+          probe:
+            app: encounter_file_api
+            status: up
+  scenarios:
+    - title: "Obtain a token as a valid user"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - token
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as a doctor"
+      steps:  []
+    - title: "Obtain a token as an unknown user"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - token
+      backgrounds:
+        - "Sphera SHP api is online"
+      steps: 
+        - title: "Ask for a token"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_token"
+                    data:
+                      object:
+                        id:
+                          text:
+                            literal: "unknown@rwanda.sphera"
+                        password:
+                          text:
+                            literal: "1234"
+                        device:
+                          text:
+                            literal: "device1"
+                        domain_id:
+                          text:
+                            literal: "sphera/rwanda"
+        - title: "Check we got a user_not_found error"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        code:
+                          text:
+                            literal: "user_not_found"
+    - title: "Obtain a token as a valid user, but wrong password"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - token
+      backgrounds:
+        - "Sphera SHP api is online"
+      steps: 
+        - title: "Ask for a token"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_token"
+                    data:
+                      object:
+                        id:
+                          text:
+                            literal: "doctor1@rwanda.sphera"
+                        password:
+                          text:
+                            literal: "wrong"
+                        device:
+                          text:
+                            literal: "device1"
+                        domain_id:
+                          text:
+                            literal: "sphera/rwanda"
+        - title: "Check we got an invalid password error"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        code:
+                          text:
+                            literal: "invalid_password"
+          
+    - title: "Get the last consent as a doctor"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - doctor
+        - consent
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as a doctor"
+      steps:
+        - title: "Get the last consent"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_consent"
+        - title: "Check we got an invalid role error"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        code:
+                          text:
+                            literal: "invalid_role"
+    
+    - title: "Get the last consent as an anonymous user"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - anonymous
+        - consent
+      backgrounds:
+        - "Sphera SHP api is online"
+      steps:
+        - title: "Try to get the last consent, without a token"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd:
+                      text:
+                        literal: "sphera/shp/get_consent"
+        - title: "Check we got a 403"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 403
+
+    - title: "Get the last consent on an empty database"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - consent
+        - empty
+        - error
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no objects of type consent"
+        - "There are no objects of type operator"
+        - "There is an operator"
+        - "I am logged in as an operator"
+        - "Get last consent returns a consent error"
+    
+    - title: "Get the last consent on a database with one non default, non signed consent"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - consent
+        - error
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no objects of type consent"
+        - "There are no objects of type operator"
+        - "There is an operator"
+        - "There is a consent"
+        - "I am logged in as an operator"
+        - "Get last consent returns a consent error"
+    
+    - title: "Get the last consent on a database with a default, non signed consent"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - consent
+        - default
+        - unsigned
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no objects of type consent"
+        - "There are no objects of type operator"
+        - "There is an operator"
+        - "There is a default consent"
+        - "I am logged in as an operator"
+        - "Get last consent returns the consent data"
+      steps:
+        - title: "Verify the consent is not signed"
+          expect:
+            eq:
+              - keyword: false
+              - key: is_signed
+                in: 
+                  key: consent
+                  in: data
+
+    - title: "Get the last consent on a database with a default, signed consent"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - consent
+        - default
+        - signed
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no objects of type consent"
+        - "There are no objects of type operator"
+        - "There is an operator"
+        - "There is a default consent"
+        - "I am logged in as an operator"
+        - "The consent is signed"
+        - "Get last consent returns the consent data"
+      steps:
+        - title: "Verify the consent is not signed"
+          expect:
+            eq:
+              - keyword: true
+              - key: is_signed
+                in: 
+                  key: consent
+                  in: data
+    
+    - title: "Doctor tries to sign a consent"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - consent
+        - doctor
+        - sign
+        - forbidden
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no objects of type consent"
+        - "There are no objects of type operator"
+        - "There is an operator"
+        - "There is a default consent"
+        - "I am logged in as a doctor"
+      steps:
+        - title: "Try to set the consent as signed"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/set_consent"
+                    data:
+                      object:
+                        consent_id:
+                          key: consent
+                          in: data
+                        is_signed:
+                          keyword: true
+
+        - title: "Check we got an invalid role error"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "error"
+                    data:
+                      object:
+                        code: "invalid_role"
+
+    - title: "Anonymous tries to find patient"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - anonymous 
+        - patient
+        - forbidden
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+      steps:
+        - title: "Try to find a patient without a token"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/find_patient"
+                    data:
+                      object:
+                        patient_id: "1006"
+                        initials: "ABC"
+
+        - title: "Check we got a 403"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 403
+    
+    - title: "Operator is able to find patients"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - patient
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "Get empty data for patient 9000"
+
+    - title: "Doctor is able to find patients"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - doctor 
+        - patient
+        - read
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as a doctor"
+        - "Get empty data for patient 9000"
+    
+    - title: "Doctor can modify patient data"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - doctor 
+        - patient
+        - modify
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as a doctor"
+      steps:
+        - title: "Update patient birth date to 01-01-2001"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/set_patient_data"
+                    data:
+                      object:
+                        patient_id: 9000
+                        data:
+                          object:
+                            type: "sphera_shp_1"
+                            data:
+                              object:
+                                birth: "01-01-2001"
+          
+        - title: "Get data for patient 9000"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/find_patient"
+                    data:
+                      object:
+                        patient_id: "9000"
+                        initials: "ABC"
+
+        - title: "Verify the birth date is equal to 01-01-2001"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    data:
+                      object:
+                        data:
+                          list:
+                            - object:
+                                date:
+                                  any: number
+                                data:
+                                  object:
+                                    type: "sphera_shp_1"
+                                    data:
+                                      object:
+                                        birth: "01-01-2001"
+
+    - title: "Anonymous user attempts to modify patient data"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - doctor 
+        - anonymous
+        - modify
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+      steps:
+        - title: "As a anonymous user, try to update patient birth date to 01-01-2001"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/set_patient_data"
+                    data:
+                      object:
+                        patient_id: 9000
+                        data:
+                          object:
+                            type: "sphera_shp_1"
+                            data:
+                              object:
+                                birth: "01-01-2001"
+        
+        - title: "Check we got a 403"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 403
+    
+    - title: "Doctor tries to create an encounter for a patient"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - doctor 
+        - encounter
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as a doctor"
+      steps:
+        - title: "Create an encounter for patient 9000 in pediatrics"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "sphera/shp/create_encounter"
+                    data:
+                      object:
+                        patient_id: "9000"
+                        speciality:  "/sphera/brazil/collab/med.specialities/pediatrics"
+                        patient_info:
+                          object:
+                            type: "sphera_shp_1"
+                            data:
+                              object:
+                                medical_questionary:
+                                  object:
+                                    data: "a value"
+                            text: "some text"
+
+        - title: "Verify I got an invalid role error"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "error"
+                    data:
+                      object:
+                        code: "role_invalid"
+    
+    - title: "Anonymous user tries to create an encounter for a patient"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - anonymous 
+        - encounter
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+      steps:
+        - title: "As an anonymous user, try to create an encounter for patient 9000 in pediatrics"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/create_encounter"
+                    data:
+                      object:
+                        patient_id: "9000"
+                        speciality:  "/sphera/brazil/collab/med.specialities/pediatrics"
+                        patient_info:
+                          object:
+                            type: "sphera_shp_1"
+                            data:
+                              object:
+                                medical_questionary:
+                                  object:
+                                    data: "a value"
+                            text: "some text"
+
+        - title: "Verify I got a 403"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+    
+    - title: "Operator creates an encounter for a patient"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - encounter
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+    
+    - title: "Anonymous user tries to obtain a report"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - anonymous
+        - reports
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+      steps:
+        - title: "As an anonymous user, try to obtain a report"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/find_reports"
+
+        - title: "Verify I got a 403"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+
+    - title: "Operator is able to obtain reports for a new encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - reports 
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+        - "New report for that encounter"
+    
+    - title: "Operator is able to upload medical data for an encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - medical_data 
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+        - "Medical data uploaded for that encounter"
+    
+    - title: "Doctor is able to upload medical data for an encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - medical_data 
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+        - "I am logged in as a doctor"
+        - "Medical data uploaded for that encounter"
+    
+    - title: "Both doctor and operator areable to upload medical data on the same encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator
+        - doctor
+        - medical_data 
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+        - "I am logged in as a doctor"
+        - "Medical data uploaded for that encounter"
+        - "I am logged in as an operator"
+        - "Medical data uploaded for that encounter"
+    
+    - title: "Anonymous user tries to upload medical data to an encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - anonymous
+        - upload
+        - medical_data 
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+      steps:
+        - title: "As an anonymous user, try to upload medical data with a equal to 1"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/upload_medical_data"
+                    data:
+                      object:
+                        encounter_id:
+                          key: encounter
+                          in: data
+                        data:
+                          object:
+                            a: 1
+
+        - title: "Verify I got an 403"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+    
+    - title: "Operator is able to check whether a doctor is online or not, for a given encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - doctor_online
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+      steps:
+        - title: "Check whether doctor is online for the encounter"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/is_doctor_online"
+                    data:
+                      object:
+                        encounter_id:
+                          key: encounter
+                          in: data
+        - title: "Verify the doctor is offline"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 200
+                body:
+                  object:
+                    result: "ok"
+                    data:
+                      object:
+                        status: "new"
+                        doctor_is_online: 
+                          keyword: false
+
+    - title: "Anonymous is not able to check doctor presence status"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - doctor_online
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+      steps:
+        - title: "As an anonymous user, check whether doctor is online for the encounter"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                body:
+                  object:
+                    cmd: "sphera/shp/is_doctor_online"
+                    data:
+                      object:
+                        encounter_id:
+                          key: encounter
+                          in: data
+        - title: "Verify we got a 403"
+          receive:
+            from: shp_api
+            spec:
+              object:
+                status: 403
+    
+    - title: "Attach files to an encounter"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - operator 
+        - attach
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no patients"
+        - "There are no encounters"
+        - "There is a patient with id 9000 and initials ABC"
+        - "I am logged in as an operator"
+        - "An encounter in pediatrics is created for the patient"
+        - "That encounter file upload api for name file.txt"
+      steps:
+        - title: "Upload a file to that encounter"
+          send:
+            to: encounter_file_api
+            spec:
+              object:
+                headers:
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                  content-type: "text/plain"
+                body: "abc"
+
+        - title: "Verify I got a 200 ok"
+          receive:
+            from: encounter_file_api
+            spec:
+              object:
+                status: 200
+
+        - title: "As an anonymous user, try to upload a file to that encounter"
+          send:
+            to: encounter_file_api
+            spec:
+              object:
+                headers:
+                  content-type: "text/plain"
+                body: "abc"
+
+        - title: "Verify I got a 400"
+          receive:
+            from: encounter_file_api
+            spec:
+              object:
+                status: 400
+                body:
+                  object:
+                    data:
+                      object:
+                        code: "token_invalid"
+

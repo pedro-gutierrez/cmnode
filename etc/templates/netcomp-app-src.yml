@@ -1,0 +1,23 @@
+version: 1.0
+type: template
+name: netcomp_app_src 
+spec:
+  contents: |- 
+    %%-*- mode: erlang -*-
+    {application, netcomp, [
+      {description, "NetComposer Platform"},
+      {vsn, "{{ nc.branch }}"},
+      {modules, []},
+      {registered, []},
+      {mod, {netcomp_app, []}},
+      {applications, [
+        nkdomain,
+        nkstats,
+        nkkafka,
+        nkcassandra,
+    {% for d in nc.private_deps %}    {{ d.name }},
+    {% endfor %}
+        nktranscoder,
+        media_converter
+      ]},
+      {env, []}]}.

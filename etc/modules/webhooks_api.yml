@@ -514,7 +514,7 @@ spec:
         body:
           object:
             test:
-              text: "dkv_shp"
+              text: "dkv"
             settings:
               text: "dev"
             severity:
@@ -528,7 +528,7 @@ spec:
         body:
           object:
             test:
-              text: "dkv_shp"
+              text: "dkv"
             settings:
               text: "dev"
             severity:
@@ -1039,7 +1039,7 @@ spec:
         settings:
           keyword: dev
         name: 
-          text: "sipstorm-09"
+          text: "sipstorm"
         docker_image:
           object:
             name: 
@@ -1101,7 +1101,7 @@ spec:
         settings:
           keyword: preprod
         name: 
-          text: "sipstorm-09"
+          text: "sipstorm"
         docker_image:
           object:
             name: 
@@ -1205,7 +1205,7 @@ spec:
         settings:
           keyword: dev
         name: 
-          text: "dkv-09"
+          text: "dkv"
         docker_image:
           object:
             name: 
@@ -1267,7 +1267,7 @@ spec:
         settings:
           keyword: preprod
         name: 
-          text: "dkv-09"
+          text: "dkv"
         docker_image:
           object:
             name: 
@@ -1365,7 +1365,7 @@ spec:
         settings:
           keyword: dev
         name: 
-          text: "sphera-general-09"
+          text: "sphera-general"
         docker_image:
           object:
             name: 
@@ -1427,7 +1427,7 @@ spec:
         settings:
           keyword: preprod
         name: 
-          text: "sphera-general-09"
+          text: "sphera-general"
         docker_image:
           object:
             name: 
@@ -1457,7 +1457,7 @@ spec:
         settings:
           keyword: dev
         name: 
-          text: "sphera-brazil-09"
+          text: "sphera-brazil"
         docker_image:
           object:
             name: 
@@ -1519,7 +1519,7 @@ spec:
         settings:
           keyword: preprod
         name: 
-          text: "sphera-brazil-09"
+          text: "sphera-brazil"
         docker_image:
           object:
             name: 
@@ -1549,7 +1549,7 @@ spec:
         settings:
           keyword: dev
         name: 
-          text: "sphera-rwanda-09"
+          text: "sphera-rwanda"
         docker_image:
           object:
             name: 
@@ -1611,7 +1611,7 @@ spec:
         settings:
           keyword: preprod
         name: 
-          text: "sphera-rwanda-09"
+          text: "sphera-rwanda"
         docker_image:
           object:
             name: 
@@ -1869,13 +1869,15 @@ spec:
     sphera_general_test:
       object:
         schedule:
-          keyword: sphera_shp
+          keyword: sphera_general
         settings:
           keyword: dev
         opts:
           object:
-            webhook:
-              keyword: true
+            webhook_opts:
+              object:
+                enabled: 
+                  keyword: true
     sphera_general_release_task:
       object:
         task:
@@ -1891,13 +1893,15 @@ spec:
     sphera_brazil_test:
       object:
         schedule:
-          keyword: sphera_shp
+          keyword: sphera_brazil
         settings:
           keyword: dev
         opts:
           object:
-            webhook:
-              keyword: true
+            webhook_opts:
+              object:
+                enabled: 
+                  keyword: true
     sphera_brazil_release_task:
       object:
         task:
@@ -1937,13 +1941,15 @@ spec:
     sphera_rwanda_test:
       object:
         schedule:
-          keyword: sphera_shp
+          keyword: sphera_rwanda
         settings:
           keyword: dev
         opts:
           object:
-            webhook:
-              keyword: true
+            webhook_opts:
+              object:
+                enabled: 
+                  keyword: true
     sphera_rwanda_release_task:
       object:
         task:
@@ -1971,13 +1977,15 @@ spec:
     dkv_test:
       object:
         schedule:
-          keyword: dkv_shp
+          keyword: dkv
         settings:
           keyword: dev
         opts:
           object:
-            webhook:
-              keyword: true
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
     dkv_release_task:
       object:
         task:
