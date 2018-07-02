@@ -13,6 +13,7 @@ spec:
     - token_api
     - weekonekt_common_api
     - weekonekt_import_api
+    - weekonekt_reviews_api
   config:
     role:
       keyword: weekonekt_admin

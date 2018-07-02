@@ -9,9 +9,29 @@ run(#{ name := Name,
             Input = #{ settings => Settings,
                        params => Params,
                        context => #{} },
-            run_items(Name, SettingsName, Items, Input);
+            case resolve_items(Items) of 
+                {ok, Items2} -> 
+                    run_items(Name, SettingsName, Items2, Input);
+                Other -> 
+                    Other
+            end;
         Other -> Other
     end.
+
+resolve_items(Items) -> 
+    resolve_items(Items,[]).
+
+resolve_items([], Out) -> {ok, lists:reverse(Out) };
+resolve_items([#{ type := task, name := Name }|Rem], Out) ->
+    case cmconfig:task(Name) of 
+        {ok, #{ items := Items }} ->
+             resolve_items(Rem, lists:reverse(Items) ++ Out); 
+        Other ->
+            Other
+    end;
+
+resolve_items([Item|Rem], Out) ->
+    resolve_items(Rem, [Item|Out]).
 
 run_items(Name, SettingsName, [], _) ->
     cmkit:success({task, Name, SettingsName, finished}),
@@ -28,7 +48,7 @@ run_items(Name, Settings, [Item|Rem], In) ->
             Other
     end.
 
-run_item(_, #{ type := kube,
+run_item(Name, #{ type := kube,
        spec := #{ query := create,
                   resource := deployment,
                   params := ParamsSpec }}, #{ settings := Settings } = In) ->
@@ -36,7 +56,8 @@ run_item(_, #{ type := kube,
     case Settings of 
         #{ kubernetes := #{ api := Host,
                             token := Token }} -> 
-    
+            
+            cmkit:log({cmtask, Name, create, deployment}),
             case cmencode:encode(ParamsSpec, In) of 
                 {ok, Params} ->
                     case cmkube:do(Params#{ verb => <<"create">>, 
@@ -104,8 +125,9 @@ run_item(Name, #{ type := slack,
     end;
 
 run_item(_, #{ type := git, spec := #{ action := clone,
-                                          credentials := CredsSpec,
+                                       credentials := CredsSpec,
                                        repo := RepoSpec, 
+                                       branch := Branch,
                                        dir := DirSpec }}, In) ->
     case cmencode:encode(RepoSpec, In) of 
         {ok, Repo} -> 
@@ -114,6 +136,7 @@ run_item(_, #{ type := git, spec := #{ action := clone,
                     case cmencode:encode(CredsSpec, In) of 
                         {ok, Creds} -> 
                             cmgit:clone(Repo, #{ dir => Dir,
+                                                 branch => Branch,
                                                  credentials => Creds });
                         Other -> 
                             Other
@@ -129,10 +152,11 @@ run_item(_, #{ type := git, spec := #{ action := tag,
                                        as := As,
                                        credentials := CredsSpec,
                                        repo := RepoSpec, 
+                                       clone := Clone,
                                        dir := DirSpec,
                                        prefix := PrefixSpec,
                                        increment := Increment
-                                     }}, In) ->
+                                     } = Spec }, In) ->
     case cmencode:encode(RepoSpec, In) of 
         {ok, Repo} -> 
             case cmencode:encode(DirSpec, In) of 
@@ -141,10 +165,17 @@ run_item(_, #{ type := git, spec := #{ action := tag,
                         {ok, Creds} -> 
                             case cmencode:encode(PrefixSpec, In) of 
                                 {ok, Prefix} -> 
-                                    case cmgit:tag(Repo, #{ dir => Dir,
-                                                       credentials => Creds,
-                                                       increment => Increment,
-                                                       prefix => Prefix }) of 
+                                    GitParams = #{ dir => Dir,
+                                                   clone => Clone,
+                                                   credentials => Creds,
+                                                   increment => Increment,
+                                                   prefix => Prefix },        
+
+                                    GitParams2 = case maps:get(branch, Spec, undef) of 
+                                                     undef -> GitParams;
+                                                     Br -> GitParams#{ branch => Br }
+                                                 end,
+                                    case cmgit:tag(Repo, GitParams2) of 
                                         {ok, Tag} -> 
                                             {ok, #{ As => Tag }};
                                         Other -> 
@@ -216,6 +247,71 @@ run_item(_, #{ type := test, spec := #{ name := Test,
         {ok, Opts} ->
             cmtest:schedule(Test, Settings, Opts),
             ok;
+        Other -> 
+            Other
+    end;
+
+run_item(_, #{ type := rm, spec := Location}, In)  ->
+    case cmencode:encode(Location, In) of 
+        {ok, Path} ->
+            Filename = cmkit:to_list(Path),
+            case file:delete(Filename) of 
+                ok -> ok;
+                {error, enoent} -> ok;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+run_item(_, #{ type := template, 
+               name := Name,
+               params := ParamsSpec,
+               dest := Dest }, In) -> 
+
+    case cmencode:encode(ParamsSpec, In) of 
+        {ok, Params} -> 
+            case cmencode:encode(Dest, In) of 
+                {ok, Path} -> 
+                    Filename = cmkit:to_list(Path),
+                    case cmtemplate:render(Name, Params) of 
+                        {ok, Data} -> 
+                            case file:write_file(Filename, Data) of 
+                                ok -> 
+                                    cmkit:log({cmtask, Name, written, Filename, 
+                                               size(Data), bytes}),
+                                    ok;
+                                Other -> 
+                                    Other
+                            end;
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+run_item(Name, #{ type := shell,
+                  chwd := ChwdSpec,
+                  cmd := CmdSpec }, In) -> 
+    case cmencode:encode(ChwdSpec, In) of 
+        {ok, Chwd} -> 
+            case cmencode:encode(CmdSpec, In) of 
+                {ok, Cmd} ->
+                    case cmsh:sh(Cmd, [{cd, Chwd}]) of 
+                        {ok, Out} -> 
+                            cmkit:log({cmtask, Name, shell, Cmd, Chwd, Out}),
+                            ok;
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
         Other -> 
             Other
     end;

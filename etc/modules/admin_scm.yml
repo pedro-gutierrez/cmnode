@@ -22,6 +22,7 @@ spec:
         app:
           spec: 
             modules:
+              - ui_effects
               - account_ui
               - admin_common_ui
               - apps_ui

@@ -54,7 +54,7 @@
              ('#t (assoc? (cdr in)))
              (else '#f))))))))
 
-
+      
 
 (define (json-stringify source spaces) 
   (let ((r (list->js source (js-obj))))
@@ -73,7 +73,11 @@
     (case entry
       ('#f 'undef)
       (else (car (cdr entry))))))
-    
+
+(define (merge base more)
+  (fold-right (lambda (item acc)
+                (set (car item) (car (cdr item)) acc)) base more)) 
+
 (define (map-get k m)
   (case (hashtable-contains? m k)
       ('#f 'undef)

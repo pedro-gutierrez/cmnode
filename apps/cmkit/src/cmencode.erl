@@ -61,7 +61,8 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
             Other
     end;
 
-encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) and ( is_atom(At) or is_binary(At))-> 
+
+encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
     case encode(At, In, Config) of 
         {ok, In2} ->
             encode(Key, In2, Config);
@@ -69,16 +70,17 @@ encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) and ( is_atom(At
             Other
     end;
 
-encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) and is_map(At) -> 
-    case encode(At, In, Config) of 
-        {ok, In2} ->
-            encode(Key, In2, Config);
+encode(#{ key := KeySpec, in := _ }=Spec, In, Config) when is_map(KeySpec) -> 
+    case encode(KeySpec, In, Config) of 
+        {ok, Key} ->
+            encode(Spec#{ key => Key }, In, Config);
         Other -> 
             Other
     end;
 
-encode(#{ key := Key}, In, Config) when is_atom(Key) -> 
+encode(#{ key := Key}, In, Config) -> 
     encode(Key, In, Config);
+
 
 encode(#{ type := text, value := Value }, _, _) ->
     {ok, cmkit:to_bin(Value) };
@@ -451,6 +453,20 @@ encode(#{ type := match,
             Other
     end;
 
+
+encode(#{ type := iterate, 
+          source := SourceSpec,
+          dest := DestSpec }, In, Config) -> 
+
+    case cmencode:encode(SourceSpec, In, Config) of 
+        {ok, Source} when is_list(Source) -> 
+            map(DestSpec, In, Config, Source);
+        Other -> 
+            Other
+    end;
+
+
+
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 
 encode_object(Spec, In, Config) ->
@@ -475,6 +491,19 @@ encode_list([Spec|Rem], In, Config, Out) ->
         Other -> 
             fail_encoding(Spec, In, Other)
     end.
+
+map(Dest, In, Config, Source) -> 
+    map(Dest, In, Config, Source, []).
+
+map(_, _, _, [], Out) ->  {ok, lists:reverse(Out)};
+map(DestSpec, In, Config, [Item|Rem], Out) -> 
+    case cmencode:encode(DestSpec, In#{ item =>  Item}, Config) of 
+        {ok, Encoded} ->
+            map(DestSpec, In, Config, Rem, [Encoded|Out]);
+        Other -> 
+            Other
+    end.
+
 
 fail_encoding(Spec, In, Out) ->
     {error, #{ status => encode_error,

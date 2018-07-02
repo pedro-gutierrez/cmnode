@@ -1,7 +1,9 @@
 -module(cmsh).
--export([sh/1,   sh/2,   sh/3,
+-export([
+         script/2,
+         sh/1,   sh/2,   sh/3,
          exec/2, exec/3,
-
+            
          run/2,
          stop/1, join/1,
          stop_all/0,
@@ -23,6 +25,18 @@
 %% Env = [{string(), Val}]
 %% Val = string() | false
 %%
+
+script(Cmds, Opts) -> 
+    script(Cmds, Opts, []).
+
+script([], _, Out) -> {ok, lists:reverse(Out)};
+script([Cmd|Cmds], Opts, Out) -> 
+    case sh(Cmd, Opts) of 
+        {ok, Out0} ->
+            script(Cmds, Opts, [Out0|Out]);
+        Other ->
+            Other
+    end.
 
 sh(Cmd) when is_binary(Cmd) ->
     sh(cmkit:to_list(Cmd));

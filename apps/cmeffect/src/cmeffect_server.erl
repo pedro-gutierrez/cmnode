@@ -12,15 +12,15 @@ init([#{ name := Name }=Effect]) ->
     {ok, Effect}.
 
 handle_call(Msg, _, Effect) ->
-    apply_effect(Msg, Effect),
+    handle(Msg, Effect),
     {reply, ok, Effect}.
 
 handle_cast(Msg, Effect) ->
-    apply_effect(Msg, Effect),
+    handle(Msg, Effect),
     {noreply, Effect}.
 
 handle_info(Msg, Effect) ->
-    apply_effect(Msg, Effect),
+    handle(Msg, Effect),
     {noreply, Effect}.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -30,5 +30,9 @@ terminate(Reason, #{ name := Name }) ->
     cmkit:log({effect, Name, terminated, Reason}),
     ok.
 
-apply_effect({apply, Data, Session}, #{ mod := Mod}) ->
-    Mod:effect_apply(Data, Session).
+handle({apply, Data, Session}, #{ mod := Mod}) ->
+    Mod:effect_apply(Data, Session);
+
+handle(Other, #{ mod := Mod }) ->
+    cmkit:log({cmeffect, Mod, ignored, Other}),
+    ok.

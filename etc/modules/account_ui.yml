@@ -790,18 +790,3 @@ spec:
             error:
               text:
                   literal: forbidden
-  effects:
-    events:
-      type: elementary-events
-    ui:
-      type: elementary-ui
-    ws:
-      type: elementary-ws
-      settings:
-        secure:
-          keyword: no 
-        path:
-          text:
-            literal: "/ws"
-        persistent: 
-          keyword: true

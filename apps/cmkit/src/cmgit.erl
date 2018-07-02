@@ -1,7 +1,11 @@
 -module(cmgit).
 -export([clone/2, tag/2]).
 
-clone(Repo, Params) -> 
+clone(Repo, #{ clone := false }) -> 
+    cmkit:log({cmgit, clone, Repo, skipped}),
+    ok;
+
+clone(Repo, Params) ->
     case clone(Params#{ repo => Repo }) of 
         {ok, _} ->
             cmkit:log({cmgit, cloned, Repo}),
@@ -17,19 +21,46 @@ tag(Repo, #{ dir := Dir,
         ok -> 
             Tags = tags_filtered_by(Prefix, git:tags(Dir)),
             case next_tag(Tags, Increment) of 
-                {ok, NextTag} -> 
+                {ok, NextTag} ->
                     TagWithPrefix =  tag_with_prefix(Prefix, NextTag),
-                    cmkit:log({cmgit, Repo, tags, Prefix, Tags, TagWithPrefix}),
-                    case tag(Params#{ repo => Repo, tag => TagWithPrefix }) of 
-                        {ok, NewTag } -> 
-                            cmkit:log({cmgit, Repo, tagged, NewTag}),
-                            {ok, NewTag};
+                    case branch(Params#{ repo => Repo, 
+                                         tag => TagWithPrefix }) of 
+                        ok -> 
+                            cmkit:log({cmgit, Repo, tags, Prefix, Tags, TagWithPrefix}),
+                            case tag(Params#{ repo => Repo, tag => TagWithPrefix }) of 
+                                {ok, NewTag } -> 
+                                    cmkit:log({cmgit, Repo, tagged, NewTag}),
+                                    {ok, NewTag};
+                                Other -> 
+                                    Other
+                            end;
                         Other -> 
                             Other
                     end;
                 Other -> 
                     Other
             end;
+        Other -> 
+            Other
+    end.
+
+branch(#{ repo := Repo,
+          credentials := Creds,
+          dir := Dir,
+          tag := Tag }) ->
+
+    Url = git_http_url(Repo, Creds),
+    Branch = <<Tag/binary, "-release">>,
+    cmkit:log({cmgit, branching, Repo, Branch}),
+    case cmsh:script([ branch_create_cmd(Branch),
+                       touch_branch_cmd(Branch),
+                       add_cmd(),
+                       commit_cmd(Branch),
+                       push_branch_cmd(Url, Branch) 
+                     ], [{cd, Dir}]) of 
+        {ok, Out} ->
+            cmkit:log({cmgit, branched, Repo, Branch, Out}),
+            ok;
         Other -> 
             Other
     end.
@@ -84,12 +115,25 @@ tag_create_cmd(Tag) ->
 tag_push_cmd(RepoURL, Tag) ->
     cmkit:fmt("git push \"~s\" ~s", [RepoURL, Tag]).
 
-
 clone_cmd(RepoURL, RepoPath, Branch) ->
     cmkit:fmt("git clone -b ~s \"~s\" \"~s\"", [Branch, RepoURL, RepoPath]).
 
+branch_create_cmd(Name) ->
+    cmkit:fmt("git checkout -b ~s", [Name]).
+
+touch_branch_cmd(Name) ->
+    cmkit:fmt("echo '{ \"rel\": \"~s\", \"date\": \"~s\"}' > RELEASE.json", [Name, cmkit:fmt_date()]).
+       
+add_cmd() -> "git add .".
+
+commit_cmd(Branch) ->
+    cmkit:fmt("git commit -am '~s'", [Branch]).
+
+push_branch_cmd(_Url, Branch) -> 
+    cmkit:fmt("git push origin ~s", [Branch]).
+
 next_tag([], minor) -> 
-    {ok, <<"1.1.0">>};
+    {ok, {1, 0, 0}};
 
 next_tag([Latest|_], Increment) ->
     case Latest of  

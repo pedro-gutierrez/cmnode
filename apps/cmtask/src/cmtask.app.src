@@ -9,7 +9,8 @@
     cmconfig,
     cmkube,
     cmkit,
-    cmtest
+    cmtest,
+    cmtemplate
    ]},
   {env,[]},
   {modules, []},

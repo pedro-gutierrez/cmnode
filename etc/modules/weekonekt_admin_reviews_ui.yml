@@ -22,23 +22,31 @@ spec:
           one_of:
             - keyword: reviews
             - text: reviews
+    reviews:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            reviews:
+              list:
+                object:
+                  date: 
+                    any: number
+                  id:
+                    any: text
+                  lat:
+                    any: number
+                  lon:
+                    any: number
+                  title:
+                    any: text
+                  images:
+                    any: list
   update:
     ready:
       model:
-        reviews:
-          list:
-            - object:
-                id:
-                  text: "1234"
-                title: 
-                  text: "Expedition Bali 4x4 - Mount Batur - Bali"
-                date: 63671174497000
-                highlights:
-                  text: "Pure Blast! This was probably one of my favouri..."
-                location:
-                  object:
-                    lat: -8.2401299
-                    lon: 115.3774944
+        reviews: []
       cmds:
         - effect: ws
           encoder: reviews_query
@@ -46,23 +54,18 @@ spec:
           encoder: reviews_view
     show_reviews:
       model:
-        reviews:
-          list:
-            - object:
-                id:
-                  text: "1234"
-                title: 
-                  text: "Expedition Bali 4x4 - Mount Batur - Bali"
-                date: 63671174497000
-                highlights:
-                  text: "Pure Blast! This was probably one of my favouri..."
-                location:
-                  object:
-                    lat: -8.2401299
-                    lon: 115.3774944
+        reviews: []
       cmds:
         - effect: ws
           encoder: reviews_query
+        - effect: ui
+          encoder: reviews_view
+    reviews:
+      model:
+        reviews:
+          key: reviews
+          in: data
+      cmds:
         - effect: ui
           encoder: reviews_view
   encoders:
@@ -72,6 +75,34 @@ spec:
           text: "weekonekt"
         action:
           text: "reviews"
+    review_location_map_view:
+      view:
+        map:
+          id:
+            key: id
+          style: dark
+          center:
+            lat:
+              key: lat
+            lon:
+              key: lon
+          zoom: 9
+          markers:
+            - lat:
+                key: lat
+              lon:
+                key: lon
+    review_leading_image_view:
+      view:
+        tag: img
+        attrs:
+          src:
+            text:
+              format:
+                pattern: "~a/?id=~a"
+                params:
+                  - key: assets
+                  - key: id
     review_item_view:
       view:
         tag: div
@@ -90,42 +121,11 @@ spec:
                   - text:
                       key: title
                       in: item
-              - tag: span
-                children:
-                  - text:
-                      key: highlights
-                      in: item
-          - tag: div
-            attrs:
-              class: "column col-4"
-            children:
-              - map:
-                  id: "map"
-                  style: dark
-                  center:
-                    lat:
-                      key: lat
-                      in: 
-                        key: location
-                        in: item
-                    lon:
-                      key: lon
-                      in: 
-                        key: location
-                        in: item
-                  zoom: 9
-                  markers:
-                    - lat:
-                        key: lat
-                        in: 
-                          key: location
-                          in: item
-                      lon:
-                        key: lon
-                        in: 
-                          key: location
-                          in: item
-    
+              - view: review_leading_image_view
+                params:
+                  id: 
+                    key: id
+                    in: item
     reviews_collection_view:
       view:
         tag: div

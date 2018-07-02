@@ -97,6 +97,16 @@ effect_apply(#{ query := schedule,
           end,
     cmcore:update(SessionId, #{ tests => Res});
 
+effect_apply(#{ schedule := Test,
+                settings := Settings,
+                opts := Opts }, _) ->
+
+    Res = case cmtest:schedule(Test, Settings, Opts) of 
+              {ok, Status } -> Status;
+              {error, E} -> E
+          end,
+    cmkit:log({cmeffect, test, Test, Settings, Opts, Res});
+
 effect_apply(#{ query := clear_queue }, SessionId) ->
 
     Res = case cmtest:clear() of 

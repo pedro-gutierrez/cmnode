@@ -271,7 +271,7 @@ term(#{ map := #{ id := Id,
                    cmscheme_ast:call(list, [ cmscheme_ast:sym(map),
                                              cmscheme_ast:call(list, [
                                                                       cmscheme_ast:call(list, [
-                                                                                               cmscheme_ast:sym(id), cmscheme_ast:sym(Id) ]),
+                                                                                               cmscheme_ast:sym(id), term(Id) ]),
                                                                       cmscheme_ast:call(list, [
                                                                                                cmscheme_ast:sym(style), cmscheme_ast:sym(Style) ]),
 

@@ -439,14 +439,31 @@ to_list(B) when is_binary(B) ->
     binary_to_list(B);
 
 to_list(A) when is_atom(A) -> 
-    atom_to_list(A).
+    atom_to_list(A);
 
+to_list(M) when is_map(M) ->
+    maps:fold(fun(K, V, Out) when is_map(V) ->
+                      [{K, to_list(V)}|Out];
+                 (K, V, Out) when is_list(V) ->
+                      case is_string(V) of 
+                          false -> 
+                            [{K, lists:map(fun to_list/1, V)}|Out];
+                          true -> 
+                              [{K, V}|Out]
+                      end;
+                 (K, V, Out) ->
+                      [{K, V}|Out]
+              end, [], M).
 
 to_list(Map, KeyTitle, ValueTitle) when is_map(Map) ->
     maps:fold(fun(K, V, Out) ->
                       [#{ KeyTitle => K, 
                          ValueTitle => V }|Out]
               end, [], Map).
+
+
+
+
 
 localtime() ->
     Now = os:timestamp(),
@@ -472,7 +489,17 @@ value_at(Key, Map) when is_atom(Key) and is_map(Map) ->
     end;
 
 value_at(Key, Map) when is_binary(Key) and is_map(Map) ->
-    maps:get(Key, Map, undef).
+    case maps:get(Key, Map, undef) of 
+        undef -> 
+            case lists:filter(fun(K) ->
+                                      Key =:= cmkit:to_bin(K)
+                              end, maps:keys(Map)) of 
+                [] -> undef;
+                [K|_] ->
+                    maps:get(K, Map)
+            end;
+        V -> V
+    end.
 
 
 is_email(Email) ->

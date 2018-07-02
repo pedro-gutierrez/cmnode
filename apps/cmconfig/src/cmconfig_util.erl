@@ -173,13 +173,11 @@ compile_task(#{ <<"name">> := Name,
 
 compile_template(#{ <<"name">> := Name,
                     <<"spec">> := #{
-                        <<"contents">> := Contents,
-                        <<"params">> := ParamsSpec }}) ->
+                        <<"contents">> := Contents }}) ->
 
     #{   type => template,
          name => cmkit:to_atom(Name),
-         contents => Contents,
-         params => cmconfig_util:compile_term(ParamsSpec) }.
+         contents => Contents }.
 
 
 compile_module(#{ <<"name">> := Name,
@@ -483,18 +481,6 @@ compile_term(#{ <<"either">> := Specs }) when is_list(Specs) ->
        options => lists:map(fun compile_option/1, Specs) };
 
 
-%#compile_term(#{ <<"spec">> := Spec,
-%#                <<"from">> := From,
-%#                <<"as">> := Alias }) when is_binary(From) ->
-%#    #{ from => cmkit:to_atom(From),
-%#       spec => compile_term(Spec),
-%#       as => cmkit:to_atom(Alias)
-%#     };
-%#
-%#compile_term(#{ <<"spec">> := _,
-%#                <<"from">> := _ }=Spec)  ->
-%#    compile_term(Spec#{ <<"as">> => <<"latest">> });
-
 compile_term(#{ <<"spec">> := Spec,
                 <<"to">> := To }) when is_binary(To) ->
     #{ to => cmkit:to_atom(To),
@@ -562,6 +548,14 @@ compile_term(#{ <<"asset">> := Spec}) ->
 compile_term(#{ <<"any">> := <<"file">> }) ->
     #{ type => file };
 
+compile_term(#{ <<"at">> := Spec,
+                <<"contents">> := DataSpec }) ->
+    #{ type => path,
+       location => compile_term(Spec),
+       state => present,
+       contents => compile_term(DataSpec)
+     };
+
 compile_term(#{ <<"at">> := Spec }) ->
     #{ type => path,
        location => compile_term(Spec) 
@@ -576,6 +570,18 @@ compile_term(#{ <<"data">> := Spec,
 compile_term(#{ <<"data">> := Spec }) ->
     maps:merge(#{ type => data},
                compile_term(Spec));
+
+compile_term(#{ <<"rm">> := Spec }) -> 
+    #{ type => rm,
+      spec => compile_term(Spec) };
+
+compile_term(#{ <<"template">> := #{ <<"name">> := Name,
+                                     <<"params">> := ParamsSpec,
+                                     <<"dest">> := Dest }}) ->
+    #{ type => template,
+       name => cmkit:to_atom(Name),
+       params => compile_term(ParamsSpec),
+       dest => compile_term(Dest) };
 
 compile_term(#{<<"empty">> := <<"object">> }) ->
     #{ type => object, size => 0 };
@@ -787,14 +793,27 @@ compile_term(#{ <<"item">> := Num }) when is_number(Num) ->
     #{ item => Num };
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }) when is_binary(In) -> 
+                <<"in">> := In }) when is_binary(Key) and is_binary(In) -> 
     #{ key => compile_keyword(Key),
+       in => compile_keyword(In)
+     };
+
+
+compile_term(#{ <<"key">> := Key, 
+                <<"in">> := In }) when is_binary(Key) -> 
+    #{ key => compile_keyword(Key),
+       in => compile_term(In)
+     };
+
+compile_term(#{ <<"key">> := Key, 
+                <<"in">> := In }) when is_binary(In) -> 
+    #{ key => compile_term(Key),
        in => compile_keyword(In)
      };
 
 compile_term(#{ <<"key">> := Key, 
                 <<"in">> := In }) -> 
-    #{ key => compile_keyword(Key),
+    #{ key => compile_term(Key),
        in => compile_term(In)
      };
 
@@ -1061,6 +1080,17 @@ compile_term(#{ <<"basic-auth">> := Spec }) ->
     #{ type => basic_auth,
        spec => compile_term(Spec) };
 
+compile_term(#{ <<"task">> := Task }) -> 
+    #{ type => task,
+       name => compile_keyword(Task) };
+
+compile_term(#{ <<"shell">> := 
+                    #{ <<"chwd">> := Chwd,
+                       <<"cmd">> := Cmd }}) ->
+    #{ type => shell,
+       chwd => compile_term(Chwd),
+       cmd => compile_term(Cmd) };
+
 compile_term(#{}=Map) when map_size(Map) == 0 ->
     #{ type => object };
 
@@ -1087,10 +1117,23 @@ compile_term(#{ <<"slack">> := #{ <<"settings">> := SettingsSpec,
 compile_term(#{ <<"git">> := #{ 
                     <<"credentials">> := CredsSpec,
                     <<"clone">> := #{ <<"repo">> := Repo,
-                                                  <<"dir">> := Dir }}}) -> 
+                                      <<"branch">> := Branch,
+                                      <<"dir">> := Dir }}}) -> 
     #{ type => git,
        spec => #{ action => clone,
                   credentials => compile_term(CredsSpec),
+                  repo => compile_term(Repo),
+                  branch => cmkit:to_atom(Branch),
+                  dir => compile_term(Dir) }};
+
+compile_term(#{ <<"git">> := #{ 
+                    <<"credentials">> := CredsSpec,
+                    <<"clone">> := #{ <<"repo">> := Repo,
+                                      <<"dir">> := Dir }}}) -> 
+    #{ type => git,
+       spec => #{ action => clone,
+                  credentials => compile_term(CredsSpec),
+                  branch => master,
                   repo => compile_term(Repo),
                   dir => compile_term(Dir) }};
 
@@ -1100,15 +1143,28 @@ compile_term(#{ <<"git">> := #{
                     <<"tag">> := #{ <<"repo">> := Repo,
                                     <<"dir">> := Dir,
                                     <<"prefix">> := Prefix,
-                                    <<"increment">> := Increment }}}) -> 
-    #{ type => git,
-       spec => #{ action => tag,
+                                    <<"increment">> := Increment } = Spec}}) -> 
+    GitSpec = #{ action => tag,
                   as => cmkit:to_atom(As),
                   credentials => compile_term(CredsSpec),
                   repo => compile_term(Repo),
                   dir => compile_term(Dir),
                   prefix => compile_term(Prefix),
-                  increment => cmkit:to_atom(Increment) }};
+                  increment => cmkit:to_atom(Increment) },
+
+    GitSpec2  = case maps:get(<<"branch">>, Spec, undef) of 
+                    undef -> GitSpec;
+                    Br -> GitSpec#{ branch => cmkit:to_atom(Br) }
+                end,
+
+    GitSpec3 = case maps:get(<<"clone">>, Spec, undef) of 
+                   undef -> GitSpec2#{ clone => true };
+                   V -> 
+                       GitSpec2#{ clone => cmkit:to_atom(V) }
+                    end,
+    
+    #{ type => git,
+       spec => GitSpec3 };
 
 compile_term(#{ <<"docker">> := #{ 
                     <<"credentials">> := CredsSpec,
@@ -1147,6 +1203,15 @@ compile_term(#{ <<"match">> := #{
     #{ type => match,
        spec => #{ value => compile_term(ValueSpec),
                   decoder => compile_term(DecoderSpec) }};
+
+
+compile_term(#{ <<"iterate">> := SourceSpec,
+                <<"with">> := DestSpec }) ->
+    
+    #{ type => iterate,
+       source => compile_term(SourceSpec),
+       dest => compile_term(DestSpec) };
+
 
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
@@ -1412,7 +1477,7 @@ compile_view(#{ <<"map">> := #{ <<"id">> := Id,
                                 <<"center">> := Center,
                                 <<"markers">> := Markers }}) ->
 
-    #{ map => #{ id => cmkit:to_atom(Id),
+    #{ map => #{ id => compile_term(Id),
                  style => cmkit:to_atom(Style),
                  zoom => Zoom,
                  center => compile_term(Center),

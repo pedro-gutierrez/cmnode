@@ -108,7 +108,7 @@
            (let ((v (resolve-view spec ctx)))
             (case (car v)
               ('ok 
-               (let* ((view-params (car (cdr v-ctx)))
+               (let* ((view-params (merge effect-settings (car (cdr v-ctx))))
                       (condition-verified (eval-view-condition condition-spec view-params)))
                  (case condition-verified
                    ('#t (compile-view (car (cdr v)) view-params))
@@ -262,27 +262,34 @@
                             (get 'lat spec))))
 
     (define (mapbox-map spec ctx)
-      (let ((center (encode (get 'center spec) ctx)))
-        (case (car center)
+      (let ((id (encode (get 'id spec) ctx)))
+        (case (car id)
           ('ok
-            (js-set! mapbox 
-                "accessToken" 
-                "pk.eyJ1IjoiY29kZW11dGlueSIsImEiOiJjamk4b3RrZHAwbHVhM3BtNWx1eDg3eXFnIn0.jXq3glh_ARDIsVKUUo9jsw") 
-            (let ((m (js-new "mapboxgl.Map" 
-                        (js-obj 
-                            "container" (symbol->string (get 'id spec))
-                            "style" (format "mapbox://styles/mapbox/~a-v9" (symbol->string (get 'style spec)))
-                            "zoom" (get 'zoom spec)
-                            "center" (mapbox-cooordinates (car (cdr center)))))))
-              (mapbox-add-markers m (get 'markers spec) ctx)))
-          (else (console-error "cannot encode map center" center)))))
+            (let ((center (encode (get 'center spec) ctx)))
+              (case (car center)
+                ('ok
+                 (js-set! mapbox 
+                          "accessToken" 
+                          "pk.eyJ1IjoiY29kZW11dGlueSIsImEiOiJjamk4b3RrZHAwbHVhM3BtNWx1eDg3eXFnIn0.jXq3glh_ARDIsVKUUo9jsw") 
+                 (let ((m (js-new "mapboxgl.Map" 
+                                  (js-obj 
+                                    "container" (car (cdr id))
+                                    "style" (format "mapbox://styles/mapbox/~a-v9" (symbol->string (get 'style spec)))
+                                    "zoom" (get 'zoom spec)
+                                    "center" (mapbox-cooordinates (car (cdr center)))))))
+                   (mapbox-add-markers m (get 'markers spec) ctx)))
+                (else (console-error "cannot encode map center" center)))))
+          (else (console-error "cannot encode map id" id)))))
 
     (define (compile-map-view v ctx)
-      (timer (lambda () 
-               (mapbox-map v ctx)) 0)
-      (list "div" 
-            (list (list "style" "width: 100%; min-height: 300px;")
-                  (list "id" (symbol->string (get 'id v)))) '()))
+      (let ((id (encode (get 'id v) ctx)))
+        (case (car id)
+          ('ok
+            (timer (lambda () (mapbox-map v ctx)) 0)
+            (list "div" 
+                  (list (list "style" "width: 100%; min-height: 300px;")
+                        (list "id" (car (cdr id)))) '()))
+          (else (console-error "cannot encode map id" id v)))))
 
     (define (compile-view v ctx)
       (case (length v)
