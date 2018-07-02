@@ -1204,12 +1204,21 @@ compile_term(#{ <<"match">> := #{
        spec => #{ value => compile_term(ValueSpec),
                   decoder => compile_term(DecoderSpec) }};
 
+compile_term(#{ <<"iterate">> := SourceSpec,
+                <<"filter">> := FilterSpec, 
+                <<"with">> := DestSpec }) ->
+    
+    #{ type => iterate,
+       source => compile_term(SourceSpec),
+       filter => compile_term(FilterSpec),
+       dest => compile_term(DestSpec) };
 
 compile_term(#{ <<"iterate">> := SourceSpec,
                 <<"with">> := DestSpec }) ->
     
     #{ type => iterate,
        source => compile_term(SourceSpec),
+       filter => none,
        dest => compile_term(DestSpec) };
 
 

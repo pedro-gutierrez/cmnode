@@ -77,6 +77,12 @@ spec:
                                 key: name
                                 in: params
                               in: settings
+                        filter:
+                          object:
+                            port:
+                              any: number
+                            name:
+                              any: text 
                         with:
                           object:
                             containerPort: 

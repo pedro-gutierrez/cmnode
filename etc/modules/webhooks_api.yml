@@ -852,6 +852,8 @@ spec:
     transcoder_dev_changed:
       cmds:  
         - effect: task
+          encoder: github_changed_task
+        - effect: task
           encoder: transcoder_build_task 
         - effect: notify
           encoder: ok
@@ -1709,8 +1711,10 @@ spec:
           keyword: dev
         opts:
           object:
-            webhook:
-              keyword: true
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
     nimg_release_task:
       object:
         task:
@@ -1758,8 +1762,10 @@ spec:
           keyword: dev
         opts:
           object:
-            webhook: 
-              keyword: true
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
     transcoder_release_task:
       object:
         task:

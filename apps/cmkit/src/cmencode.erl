@@ -458,11 +458,22 @@ encode(#{ type := match,
 
 encode(#{ type := iterate, 
           source := SourceSpec,
+          filter := FilterSpec,
           dest := DestSpec }, In, Config) -> 
 
     case cmencode:encode(SourceSpec, In, Config) of 
         {ok, Source} when is_list(Source) -> 
-            map(DestSpec, In, Config, Source);
+            Source2 = case FilterSpec of 
+                          none -> Source;
+                          _ -> 
+                              lists:filter(fun(Item) -> 
+                                                   case cmdecode:decode(FilterSpec, Item) of
+                                                       {ok, _} -> true;
+                                                       _ -> false
+                                                    end
+                                           end, Source)
+                        end,
+            map(DestSpec, In, Config, Source2);
         Other -> 
             Other
     end;
