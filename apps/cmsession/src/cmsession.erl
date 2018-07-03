@@ -1,5 +1,5 @@
 -module(cmsession).
--export([new/1, attach/3, retrieve/2, conns/1, tell/2, broadcast/1]).
+-export([new/1, attach/3, delete/1, retrieve/2, conns/1, tell/2, broadcast/1]).
 
 new(App) ->
     Conn = self(),
@@ -20,6 +20,10 @@ attach(Id, Type, Val) ->
 
 retrieve(Id, Type) ->
     cmdb:get(sessions, {Type, Id}).
+
+delete(Id) ->
+    cmkit:warning({cmsession, delete, Id, pending}),
+    ok.
 
 conns(Id) ->
     case cmdb:get(sessions, {connections, Id}) of 

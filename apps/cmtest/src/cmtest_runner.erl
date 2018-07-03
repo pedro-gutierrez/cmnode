@@ -311,26 +311,29 @@ save_report(#{ query := Query} = Report) ->
     cmdb:put(tests, Pairs).
 
 webhook(#{ settings := #{ name := SettingsName,
-                          value := #{ 
-                            webhooks := #{ default := Url }
-                           } = Settings }}=Data, Summary) ->
+                          value := Settings }}=Data, Summary) ->
    
     Q = query(Data),
-    case maps:get(webhook_opts, Settings, undef) of 
-        undef -> 
-            cmkit:log({cmtest, Q, SettingsName, webhook, skipped, undef});
-        #{ enabled := false } ->
-            cmkit:log({cmtest, Q, SettingsName, webhook, skipped, disabled});
-        #{ enabled := true }  -> 
-            
-            Headers = #{ 'content-type' => <<"application/json">>,
-                         'x-cm-event' => <<"test-summary">> },
-            
-            Summary2 = Summary#{ test => Q,
-                                 settings => SettingsName },
-            
-            cmkit:log({cmtest, Q, webhook, enabled, Url, Headers, Summary2}),
-            cmhttp:post(Url, Headers, Summary2)
+    case Settings of 
+        #{ webhooks := #{ default := Url } } -> 
+            case maps:get(webhook_opts, Settings, undef) of 
+                undef -> 
+                    cmkit:log({cmtest, Q, SettingsName, webhook, skipped, undef});
+                #{ enabled := false } ->
+                    cmkit:log({cmtest, Q, SettingsName, webhook, skipped, disabled});
+                #{ enabled := true }  -> 
+                    
+                    Headers = #{ 'content-type' => <<"application/json">>,
+                                 'x-cm-event' => <<"test-summary">> },
+                    
+                    Summary2 = Summary#{ test => Q,
+                                         settings => SettingsName },
+                    
+                    cmkit:log({cmtest, Q, webhook, enabled, Url, Headers, Summary2}),
+                    cmhttp:post(Url, Headers, Summary2)
+            end;
+        _ -> 
+            cmkit:log({cmtest, Q, SettingsName, webhook, skipped, no_default_url})
     end.
 
 slack(#{ name := Name,

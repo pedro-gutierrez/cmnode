@@ -221,6 +221,23 @@ encode(#{ type := http,
                                     body => B }}; 
                         Other -> Other
                     end;
+                U when is_binary(U) -> 
+                    case encode(Body, In, Config) of 
+                        {ok, multipart, B, Boundary} ->
+                            {ok, #{ url => U,
+                                    method => Method,
+                                    headers => H#{ 'content-type' => 
+                                        "multipart/form-data; boundary=" 
+                                            ++ binary_to_list(Boundary) },
+                                    body => B }}; 
+                        {ok, B} ->
+                            {ok, #{ url => U,
+                                    method => Method,
+                                    headers => H,
+                                    body => B }}; 
+                        Other -> Other
+                    end;
+
                 Other -> Other
             end;
         Other -> Other
@@ -237,6 +254,9 @@ encode(#{ type := http,
                             {ok, #{ url => U,
                                     method => Method,
                                         headers => H }}; 
+                Url when is_binary(Url) ->
+                    {ok, #{ url => Url,
+                            method => Method }};
                 Other -> 
                     Other
             end;
@@ -250,6 +270,9 @@ encode(#{ type := http,
         {ok, #{ url := U }} ->
             {ok, #{ url => U,
                     method => Method }}; 
+        Url when is_binary(Url) ->
+            {ok, #{ url => Url,
+                    method => Method }};
         Other -> Other
     end;
 
@@ -283,6 +306,22 @@ encode( #{ type := exec,
             cmkit:log({cmencode, http, in, Res}),
             Res;
         
+        {ok, U} when is_binary(U) ->
+            case cmkit:prefix(U, <<"http">>) of 
+                nomatch -> 
+                    {error, #{ status => encode_error,
+                               spec => Spec,
+                               data => In,
+                               reason => U}};
+                _ -> 
+
+
+                    cmkit:log({cmencode, http, out, get, U}),
+                    Res = cmhttp:get(U),
+                    cmkit:log({cmencode, http, in, Res}),
+                    Res
+            end;
+
         {ok, Other} ->
             {error, #{ status => encode_error,
                        spec => Spec,
@@ -455,6 +494,20 @@ encode(#{ type := match,
             Other
     end;
 
+encode(#{ type := find,
+          items := ItemsSpec, 
+          target := TargetSpec}, In, Config) -> 
+
+    case cmencode:encode(ItemsSpec, In, Config) of
+        {ok, Items} ->
+            case cmdecode:decode(#{ type => first,
+                                    spec => TargetSpec }, Items, Config) of 
+                {ok, _} -> {ok, true};
+                _ -> {ok, false}
+            end;
+        Other ->
+            Other
+    end;
 
 encode(#{ type := iterate, 
           source := SourceSpec,

@@ -80,7 +80,15 @@ ready(cast, {update, Data}, #{ app := App,
             server_error(App, Session, update, #{ data => Data, reason => E}),
             {keep_state, Session}
 
-    end.
+    end;
+
+ready(cast, terminate, #{ app := App,
+                          id := Id, 
+                          log := Log }) ->
+    
+    Log({cmcore, terminate, App, Id, self()}),
+    cmsession:delete(Id),
+    {stop, normal}.
 
 server_error(App, #{ id := Id}, Phase, Reason) ->
     Info = #{ status => error,

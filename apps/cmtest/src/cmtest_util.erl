@@ -237,7 +237,7 @@ run(#{ type := send,
                        info => App }};
         
         Conn ->
-            case cmencode:encode(Spec, World, Settings) of 
+            case cmencode:encode(Spec, World#{ settings => Settings}) of 
                 {ok, Encoded } ->
                     case Conn of 
                         #{  class := websocket, pid := Pid } -> 

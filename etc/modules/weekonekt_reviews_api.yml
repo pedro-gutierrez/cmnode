@@ -31,8 +31,12 @@ spec:
                 any: number
               title:
                 any: text
+              cover:
+                one_of:
+                  - any: text
+                  - keyword: none
               images:
-                any: list
+                list: any
   update:
     list_reviews:
       - when:

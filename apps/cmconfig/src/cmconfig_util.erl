@@ -1204,6 +1204,13 @@ compile_term(#{ <<"match">> := #{
        spec => #{ value => compile_term(ValueSpec),
                   decoder => compile_term(DecoderSpec) }};
 
+compile_term(#{ <<"find">> := TargetSpec,
+                <<"in">> := SourceSpec }) -> 
+    
+    #{ type => find,
+       items => compile_term(SourceSpec),
+       target => compile_term(TargetSpec) };
+
 compile_term(#{ <<"iterate">> := SourceSpec,
                 <<"filter">> := FilterSpec, 
                 <<"with">> := DestSpec }) ->

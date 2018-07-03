@@ -1,0 +1,101 @@
+version: 1.0
+type: module
+category: server
+name: assets_api 
+spec:
+  decoders:
+    health:
+      object:
+        headers:
+          object:
+            content-length: 
+              text:
+                literal: "0"
+    asset_query:
+      object:
+        query:
+          id:
+            any: text
+    image_info:
+      object:
+        value:
+          object:
+            url: 
+              any: text
+    image_data:
+      object:
+        context:
+          keyword: image
+        headers:
+          any: object
+        body:
+          any: list
+        status: 200
+  update:
+    health:
+      cmds:
+        - effect: notify
+          encoder: health
+    asset_query:
+      - when: 
+          eq:
+            - text: none
+            - key: id
+              in: 
+                key: query
+                in: data
+        cmds:
+          - effect: terminate
+      - model:
+          id: 
+            key: id
+            in: query
+          type:
+            keyword: image
+        cmds:
+          - effect: db_get
+            encoder: image_info_query
+    image_info:
+      model:
+        asset_url:
+          key: url
+          in: value
+      cmds:
+        - effect: http
+          encoder: image_data_query
+    image_data:
+      model:
+        asset_data:
+          object:
+            status: 200
+            headers:
+              key: headers
+            body:
+              key: body
+      cmds:
+        - effect: notify
+          encoder: image_data
+        - effect: terminate
+  encoders:
+    health:
+      object:
+        status: 
+          keyword: ok
+    image_info_query:
+      object:
+        bucket:
+          config: assets_db
+        type:
+          keyword: image
+        id:
+          key: id
+    image_data_query:
+      object:
+        context:
+          keyword: image
+        method: 
+          keyword: get 
+        url:
+          key: asset_url
+    image_data:
+      key: asset_data

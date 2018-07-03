@@ -119,7 +119,7 @@ cmds([#{ effect := Effect,
          encoder := Spec }|Rem], Model, Config, Session) ->
     case cmencode:encode(Spec, Model, Config) of 
         {error, Error} ->
-            cmkit:log({cmcore, Effect, Spec, Error});
+            cmkit:danger({cmcore, Effect, Spec, Error});
         {ok, Data} ->
             apply_effect(Effect, Data, Session)
     end,

@@ -16,7 +16,8 @@ init(Req, #{app := App}=State) ->
                             ok = cmcore:init(Spec, Session),
                             Data2 = #{ method => cowboy_req:method(Req),
                                        body => Data, 
-                                       headers => cowboy_req:headers(Req) },
+                                       headers => cowboy_req:headers(Req),
+                                       query => maps:from_list(cowboy_req:parse_qs(Req2)) },
                             cmcore:update(Id, Data2),
                             {cowboy_loop, Req2, State#{ log => Log }};
                         {error, E} ->
@@ -29,6 +30,11 @@ init(Req, #{app := App}=State) ->
             reply_and_ok(error, json, #{}, Req, State)
     end.
 
+info(#{ status := Code, headers := Headers, body := Body }, Req, State) ->
+    cmkit:log({http, out, Code, Headers, Body}),
+    Req2 = cowboy_req:reply(Code, Headers, Body, Req),
+    {stop, Req2, State};
+    
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
     reply_and_stop(Status, json, Body, Req, State);
 

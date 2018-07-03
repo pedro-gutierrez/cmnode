@@ -1,0 +1,17 @@
+version: 1.0
+type: app
+category: api
+name: weekonekt_assets_api
+spec:
+  debug: true 
+  modules:
+    - common_api
+    - assets_api 
+    - token_api
+  config:
+    tokens_db:
+      keyword: weekonekt
+    files_db:
+      keyword: weekonekt
+    assets_db:
+      keyword: weekonekt

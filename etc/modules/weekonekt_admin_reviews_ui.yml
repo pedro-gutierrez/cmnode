@@ -41,6 +41,8 @@ spec:
                     any: number
                   title:
                     any: text
+                  cover:
+                    any: text
                   images:
                     any: list
   update:
@@ -92,10 +94,11 @@ spec:
                 key: lat
               lon:
                 key: lon
-    review_leading_image_view:
+    review_cover_view:
       view:
         tag: img
         attrs:
+          style: "width: 100%;"
           src:
             text:
               format:
@@ -107,28 +110,26 @@ spec:
       view:
         tag: div
         attrs:
-          class: "columns"
+          class: "column col-4"
           key:
             key: id
             in: item
         children:
-          - tag: div
-            attrs:
-              class: "column col-8"
+          - tag: h3
             children:
-              - tag: h3
-                children:
-                  - text:
-                      key: title
-                      in: item
-              - view: review_leading_image_view
-                params:
-                  id: 
-                    key: id
-                    in: item
+              - text:
+                  key: title
+                  in: item
+          - view: review_cover_view
+            params:
+              id: 
+                key: cover
+                in: item
     reviews_collection_view:
       view:
         tag: div
+        attrs:
+          class: "columns"
         children:
           loop:
             key: reviews

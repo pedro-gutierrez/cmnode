@@ -15,8 +15,11 @@ print(Pattern, Args, Color) ->
     Str = lists:flatten(to_list(fmt(Pattern, Args))),
     io:format("~s~n", [ color:Color(Str)]). 
 
+print(Term, Sev) when is_binary(Term) ->
+    print("[LOG] ~P~n", [Term, 20], Sev);
+
 print(Term, Sev) ->
-    print("[LOG] ~p", [Term], Sev).
+    print("[LOG] ~p~n", [Term], Sev).
 
 success(Term) ->
     print(Term, greenb).

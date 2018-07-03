@@ -78,11 +78,28 @@ spec:
                 object:
                   cmd: "dkv/shp/patient_login"
                   data:
-                    user: "pmartinez@salutic.es"
-                    password: "Password01"
-                    ttl: 60
-                    device_id: "dkv_psi-12345"
-                    domain_id: "/dkv/telemed/shp"
+                    object:
+                      user:
+                        key: username
+                        in:
+                          key: test
+                          in:
+                            key: users
+                            in:
+                              key: dkv
+                              in: settings
+                      password:
+                        key: password 
+                        in:
+                          key: test
+                          in:
+                            key: users
+                            in:
+                              key: dkv
+                              in: settings
+                      ttl: 60
+                      device_id: "dkv_psi-12345"
+                      domain_id: "/dkv/telemed/shp"
         
         - title: "Verify I got a token id"
           receive:
@@ -462,11 +479,21 @@ spec:
                 object:
                   cmd: "dkv/shp/patient_login"
                   data:
-                    user: "pmartinez@salutic.es"
-                    password: "Invalid"
-                    ttl: 60
-                    device_id: "dkv_psi-12345"
-                    domain_id: "/dkv/telemed/shp"
+                    object:
+                      user:
+                        key: username
+                        in:
+                          key: test
+                          in:
+                            key: users
+                            in:
+                              key: dkv
+                              in: settings 
+                      password:
+                        text: "Invalid"
+                      ttl: 60
+                      device_id: "dkv_psi-12345"
+                      domain_id: "/dkv/telemed/shp"
         
         - title: "Check we got error code 26"
           receive:
@@ -974,17 +1001,15 @@ spec:
                     
         - title: "Verify my IVS data was set"
           expect:
-            eq:
-              - text:
-                  literal: "210 mg/dl"
-              - key: Valor
-                in:
-                  item: 8
-                  in: 
-                    key: IndicadoresIVS9
-                    in: 
-                      key: ivs
-                      in: data
+            find:
+              object:
+                Valor:
+                  text: "210 mg/dl"
+            in:
+              key: IndicadoresIVS9
+              in: 
+                key: ivs
+                in: data
     
     - title: "As a patient, link IVS data to an existing encounter"
       tags: 

@@ -41,7 +41,13 @@ handle(#{ id := Id,
               title := Title, 
               date := Date,
               type := "page" }, #{ reviews := Reviews }=Stats) ->
-    
+        
+    ImageIds = lists:map(fun cmkit:to_bin/1, Images),
+    CoverImage = case ImageIds of 
+                     [] -> none;
+                     [First|_] -> First
+                 end,
+
     BinId = cmkit:to_bin(Id),
     PKey = {review, BinId},
     Item = #{ id => BinId,
@@ -50,6 +56,7 @@ handle(#{ id := Id,
               lon => Lon,
               date => cmkit:to_millis(Date),
               options => Opts,
+              cover => CoverImage,
               images => lists:map(fun cmkit:to_bin/1, Images) },
 
     cmdb:put_new(weekonekt, [{PKey, Item}]),
