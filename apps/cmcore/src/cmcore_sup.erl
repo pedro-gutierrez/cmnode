@@ -1,21 +1,28 @@
 -module(cmcore_sup).
 -behaviour(supervisor).
--export([start_link/0, start_context/2]).
+-export([start_link/0]).
 -export([init/1]).
--define(SERVER, ?MODULE).
 
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
     
-    Spec = cmkit:child_spec(cmcore_context,
-                            cmcore_context,
-                            [],
-                            temporary,
-                            worker),
+    ContextSup = cmkit:child_spec(cmcore_context_sup,
+                                  cmcore_context_sup,
+                                  [],
+                                  permanent,
+                                  supervisor),
     
-    {ok, { {simple_one_for_one, 0, 1}, [Spec]}}.
+    EffectSup = cmkit:child_spec(cmcore_effect_sup,
+                                  cmcore_effect_sup,
+                                  [],
+                                  permanent,
+                                  supervisor),
 
-start_context(Spec, Session) ->
-    supervisor:start_child(?MODULE, [Spec, Session]).
+    
+    {ok, { {one_for_one, 0, 1}, [
+                                 ContextSup,
+                                 EffectSup
+                                ]}}.
+

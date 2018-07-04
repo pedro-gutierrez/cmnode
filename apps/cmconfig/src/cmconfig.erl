@@ -83,8 +83,11 @@ effect_contract() ->
   ].
 
 effects() ->
-    [ #{ name => M:effect_info(),
-         mod => M } || M <-erlang:loaded(), cmkit:implements(M, effect_contract())].    
+    Mods = [ M ||M <-erlang:loaded(), cmkit:implements(M, effect_contract())],
+    lists:foldl(fun(Mod, Index) ->
+                        Name = Mod:effect_info(),
+                    Index#{ Name => Mod }
+                end, #{}, Mods).
 
 tests() -> all(test).
 test(Name) -> find(test, Name).

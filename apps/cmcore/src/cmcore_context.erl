@@ -18,10 +18,16 @@ start_link(Spec, Session) ->
 init([#{ debug := Debug, 
          config := Config,
          spec := Spec }, #{ id := Id, app := App }=Session]) ->
+    Effects = cmconfig:effects(),
+    {ok, Effect} = cmcore_effect_sup:start_effect(Id),
     ok = cmsession:attach(Id, context, self()),
     Log = cmkit:log_fun(Debug),
     Log({ cmcore, App, Id, self() }),
-    {ok, initializing, Session#{ spec => Spec, config => Config, log => Log }}.
+    {ok, initializing, Session#{ effect => Effect, 
+                                 effects => Effects,
+                                 spec => Spec, 
+                                 config => Config, 
+                                 log => Log }}.
 
 initializing(cast, init,  #{app := App,
                                      config := Config,
@@ -71,10 +77,12 @@ ready(cast, {update, Data}, #{ app := App,
 
 ready(cast, terminate, #{ app := App,
                           id := Id, 
-                          log := Log }) ->
+                          log := Log,
+                          effect := Effect }) ->
     
-    Log({cmcore, terminate, App, Id, self()}),
+    Log({cmcore, terminating, App, Id, self()}),
     cmsession:delete(Id),
+    ok = cmcore_effect:stop(Effect),
     {stop, normal}.
 
 server_error(App, #{ id := Id}, Phase, Reason) ->

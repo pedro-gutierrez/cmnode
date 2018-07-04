@@ -129,12 +129,13 @@ cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
     apply_effect(Effect, nothing, Session), 
     cmds(Rem, Model, Config, Session).
 
-apply_effect(Effect, Data, #{ id := Id }) ->
-    case cmeffect:apply(Effect, Data, Id) of 
-        ok -> ok;
-        not_found ->
+apply_effect(Effect, Data, #{ effects := Effects, effect := Pid, id := Id }) ->
+    case maps:get(Effect, Effects, undef) of 
+        undef ->
             cmcore:update(Id, #{ error => no_such_effect,
                                  effect => Effect,
-                                 data => Data }),
-            ok
-    end.
+                                 data => Data });
+        Mod -> 
+            cmcore_effect:apply(Pid, Mod, Data)
+    end,
+    ok.

@@ -7,8 +7,7 @@
    [kernel,
     stdlib,
     cmdb,
-    cmsession,
-    cmeffect
+    cmsession
    ]},
   {env,[]},
   {modules, []},
