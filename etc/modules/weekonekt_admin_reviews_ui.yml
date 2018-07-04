@@ -98,7 +98,7 @@ spec:
       view:
         tag: img
         attrs:
-          style: "width: 100%;"
+          style: "width: 100%; height: 100%;"
           src:
             text:
               format:
@@ -110,21 +110,32 @@ spec:
       view:
         tag: div
         attrs:
-          class: "column col-4"
+          class: "column col-6 p-2"
           key:
             key: id
             in: item
         children:
-          - tag: h3
+          - tag: div
+            attrs:
+              class: "cover-image"
+              style:
+                text:
+                  format: 
+                    pattern: "background-image: url('~a/?id=~a')"
+                    params:
+                      - key: assets
+                      - key: cover
+                        in: item
             children:
-              - text:
-                  key: title
-                  in: item
-          - view: review_cover_view
-            params:
-              id: 
-                key: cover
-                in: item
+              - tag: div
+                attrs:
+                  class: "cover-image-caption"
+                children:
+                  - tag: h5
+                    children:
+                      - text:
+                          key: title
+                          in: item
     reviews_collection_view:
       view:
         tag: div

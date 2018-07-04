@@ -130,7 +130,7 @@
              (case (car items-shared-ctx)
                ('ok
                    (let ((items (encode (get 'items spec) ctx))
-                         (v-ctx (set 'context (car (cdr items-shared-ctx)) '()))
+                         (v-ctx (merge effect-settings (set 'context (car (cdr items-shared-ctx)) '())))
                          (item-view (car (cdr v))))
                      (case (car items)
                        ('ok (map (lambda (item)

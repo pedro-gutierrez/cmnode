@@ -19,6 +19,8 @@ spec:
       keyword: weekonekt_admin
     tokens_db:
       keyword: weekonekt
+    users_db:
+      keyword: users
     token_ttl:
       number: 5000
     key:

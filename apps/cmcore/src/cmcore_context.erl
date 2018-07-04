@@ -26,19 +26,12 @@ init([#{ debug := Debug,
 initializing(cast, init,  #{app := App,
                                      config := Config,
                                      log := Log,
-                                     spec := Spec, 
-                                     id := Id}=Session) ->
+                                     spec := Spec}=Session) ->
     case cmcore_util:init(Spec, Config) of 
         {ok, Model, Cmds} -> 
-            case cmsession:attach(Id, model, Model) of
-                ok ->
-                    Log({cmore, init, Model, Cmds}),
-                    cmcore_util:cmds(Cmds, Model, Config, Session),
-                    {next_state, ready, Session#{ model => Model }};
-                {error, E} ->
-                    Error = server_error(App, Session, init, E),
-                    {stop, Error}
-            end;
+            Log({cmore, init, Model, Cmds}),
+            cmcore_util:cmds(Cmds, Model, Config, Session),
+            {next_state, ready, Session#{ model => Model }};
         {error, E} -> 
             Error = server_error(App, Session, init, E),
             {stop, Error}
@@ -60,14 +53,8 @@ ready(cast, {update, Data}, #{ app := App,
                     Log({cmcore, updating, UpdateSpec, App, Id}),
                     case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
-                            case cmsession:attach(Id, model, Model2) of
-                                ok ->
-                                    cmcore_util:cmds(Cmds, Model2, Config, Session),
-                                    {keep_state, Session#{ model => Model2 }};
-                                {error, E} ->
-                                    server_error(App, Session, update, E),
-                                    {keep_state, Session}
-                            end;
+                            cmcore_util:cmds(Cmds, Model2, Config, Session),
+                            {keep_state, Session#{ model => Model2 }};
                         {error, E} ->
                             server_error(App, Session, update, E),
                             {keep_state, Session}

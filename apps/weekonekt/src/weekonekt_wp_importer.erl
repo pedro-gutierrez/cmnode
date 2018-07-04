@@ -43,6 +43,9 @@ handle(#{ id := Id,
               type := "page" }, #{ reviews := Reviews }=Stats) ->
         
     ImageIds = lists:map(fun cmkit:to_bin/1, Images),
+    
+    
+    
     CoverImage = case ImageIds of 
                      [] -> none;
                      [First|_] -> First
