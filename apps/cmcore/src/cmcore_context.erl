@@ -85,13 +85,13 @@ ready(cast, terminate, #{ app := App,
     ok = cmcore_effect:stop(Effect),
     {stop, normal}.
 
-server_error(App, #{ id := Id}, Phase, Reason) ->
+server_error(App, #{ id := Id} = Session, Phase, Reason) ->
     Info = #{ status => error,
               app => App,
               phase => Phase,
               reason => Reason },
     cmkit:danger({cmcore, server_error, Info}),
-    cmeffect:apply(notify, Info, Id),
+    cmcore_util:apply_effect(notify, Info, Session),
     Info.
 
 terminate(Reason, _, #{ app := App, id := Id}) ->

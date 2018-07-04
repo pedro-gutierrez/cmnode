@@ -5,7 +5,8 @@
          context/1,
          update/5,
          update_spec/5,
-         decode/3
+         decode/3,
+         apply_effect/3
         ]).
 
 context(SessionId) ->
