@@ -1,5 +1,8 @@
 -module(cmconfig_util).
 -export([
+         parse/0,
+         rank/1,
+         ranked/1,
          compile/1,
          deps/1,
          compile_port/1,
@@ -16,9 +19,30 @@
          compile_assets/1,
          compile_effects/1,
          compile_test/1,
-         compile_settings/1,
-         compare/2
+         compile_settings/1
         ]).
+
+parse() ->
+    case lists:foldr(fun({yaml, _, {ok, Spec}}, {Specs, Errors}) ->
+                        {[Spec|Specs], Errors};
+                   ({yaml, Filename, {error, E}}, {Specs, Errors}) ->
+                        {Specs, [{Filename, E}|Errors]}
+                end, {[], []}, cmyamls:all()) of 
+        {Specs, []} -> {ok, Specs};
+        {_, Errors} -> {error, Errors}
+    end.
+   
+rank(port) -> 3;
+rank(app) -> 2;
+rank(module) -> 1;
+rank(_) -> 0.
+
+ranked(#{ <<"type">> := Type,
+          <<"name">> := Name }=Spec) -> 
+    T = cmkit:to_atom(Type),
+    N = cmkit:to_atom(Name),
+    {ok, C}  = cmconfig_cache:children(T, N),
+    Spec#{ <<"rank">> => cmkit:to_float(cmconfig_util:rank(T), length(C))}. 
 
 compile(#{ <<"type">> := <<"port">> }=Spec) -> {ok, compile_port(Spec)};
 compile(#{ <<"type">> := <<"app">> }=Spec) -> {ok, compile_app(Spec)};
@@ -79,6 +103,7 @@ modules_from_object_spec([K|Rem], Spec, Mods) ->
     end.
 
 compile_port(#{ <<"name">> := Name,
+                <<"rank">> := Rank,
                 <<"spec">> := #{
                     <<"port">> := Port,
                     <<"acceptors">> := Acceptors,
@@ -86,6 +111,7 @@ compile_port(#{ <<"name">> := Name,
     
     #{ name => compile_keyword(Name),
        type => port,
+       rank => Rank,
        port  => Port,
        acceptors => Acceptors,
        apps => compile_port_apps(Apps) }.
@@ -106,12 +132,15 @@ compile_port_app_mounts(Mounts) when is_map(Mounts) ->
                end, [], Mounts).
 
 compile_settings(#{ <<"name">> := Name,
+                    <<"rank">> := Rank,
                     <<"spec">> := Spec }) ->
     #{ type => settings,
+       rank => Rank,
        name => cmkit:to_atom(Name),
        spec => compile_term(Spec) }.
 
 compile_queue(#{ <<"name">> := Name,
+                 <<"rank">> := Rank,
                  <<"spec">> := #{
                     <<"concurrency">> := C,
                     <<"max">> := M
@@ -120,16 +149,19 @@ compile_queue(#{ <<"name">> := Name,
     Worker = cmkit:to_atom(cmkit:bin_join([Name, <<"queue">>], <<"_">>)),
 
     #{ type => queue,
+       rank => Rank,
        name => cmkit:to_atom(Name),
        worker => Worker, 
        capacity => #{ max => M, concurrency => C }}.
 
 compile_cron(#{ <<"name">> := Name,
+                <<"rank">> := Rank,
                 <<"spec">> := #{ <<"schedule">> := Schedule,
                                  <<"jobs">> := Jobs }}) ->
 
     CronName = cmkit:to_atom(Name),
     #{ type => cron,
+       rank => Rank,
        name => CronName,
        schedule  => compile_cron_schedule(Schedule),
        jobs => compile_cron_jobs(Jobs) 
@@ -164,33 +196,40 @@ compile_cron_jobs(Specs) ->
                end, Specs).
 
 compile_task(#{ <<"name">> := Name,
+                <<"rank">> := Rank,
                 <<"spec">> := Items }) ->
 
     #{ type => task,
+       rank => Rank,
        name => cmkit:to_atom(Name),
        items => compile_terms(Items)
      }.
 
 compile_template(#{ <<"name">> := Name,
+                    <<"rank">> := Rank,
                     <<"spec">> := #{
                         <<"contents">> := Contents }}) ->
 
     #{   type => template,
+         rank => Rank,
          name => cmkit:to_atom(Name),
          contents => Contents }.
 
 
 compile_module(#{ <<"name">> := Name,
-            <<"spec">> := Spec }) ->
+                  <<"rank">> := Rank,
+                  <<"spec">> := Spec }) ->
 
     
     #{ spec := CompiledSpec } = compile_spec(Spec),
     maps:merge(CompiledSpec,  #{
                  name => cmkit:to_atom(Name),
-                 type => module
+                 type => module,
+                 rank => Rank
     }).
 
-compile_app(#{ <<"name">> := Name, 
+compile_app(#{ <<"name">> := Name,
+               <<"rank">> := Rank,
                <<"category">> := Cat,
                <<"spec">> := #{
                    <<"modules">> := Modules 
@@ -202,6 +241,7 @@ compile_app(#{ <<"name">> := Name,
         
     #{ name => cmkit:to_atom(Name),
        type => app,
+       rank => Rank,
        modules => lists:map(fun(#{ status := unknown }=M) ->
                                     M;
                                (#{ name := ModName }) ->
@@ -217,25 +257,30 @@ compile_app(#{ <<"name">> := Name,
 
 
 compile_bucket(#{ <<"name">> := Name,
+                  <<"rank">> := Rank,
                   <<"spec">> := #{ <<"hosts">> := Hosts,
                                    <<"storage">> := Storage
                                  }}) ->
 
     #{ type => bucket,
+       rank => Rank,
        name => cmkit:to_atom(Name),
        storage =>  cmkit:to_atom(Storage),
        hosts => Hosts };
 
 compile_bucket(#{ <<"name">> := Name,
+                  <<"rank">> := Rank,
                   <<"spec">> := #{ <<"storage">> := Storage
                                  }}) ->
 
     #{ type => bucket,
+       rank => Rank,
        name => cmkit:to_atom(Name),
        storage =>  cmkit:to_atom(Storage)
      }.
 
 compile_test(#{ <<"name">> := Name,
+                <<"rank">> := Rank,
                 <<"spec">> := Spec
               }) ->
     
@@ -246,6 +291,7 @@ compile_test(#{ <<"name">> := Name,
     Procedures = maps:get(<<"procedures">>, Spec, []),
 
     #{ type => test,
+       rank => Rank,
        name => cmkit:to_atom(Name),
        config => compile_config(Config),
        scenarios => Scenarios,
@@ -1579,27 +1625,3 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}) ->
      };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}).
-
-
-compare(#{ <<"type">> := <<"test">> }, _) -> true;
-compare(_, #{ <<"type">> := <<"test">> }) -> false;
-compare(#{ <<"type">> := <<"bucket">> }, _) -> true;
-compare(#{ <<"type">> := <<"template">> }, _) -> true;
-compare(#{ <<"type">> := <<"port">> }, _) -> false;
-compare(#{ <<"type">> := <<"app">> }, #{ <<"type">> := <<"port">> }) -> true;
-compare(#{ <<"type">> := <<"app">> }, _) -> false;
-compare(#{ <<"type">> := <<"module">> }, #{ <<"type">> := <<"port">> }) -> true;
-compare(#{ <<"type">> := <<"module">> }, #{ <<"type">> := <<"app">> }) -> true;
-compare(#{ <<"type">> := <<"module">>,
-            <<"name">> := Name1 }, #{ <<"type">> := <<"module">>, 
-                                        <<"name">> := Name2 }) ->
-    {ok, Children1} = cmconfig_cache:children(module, cmkit:to_atom(Name1)),
-    {ok, Children2} = cmconfig_cache:children(module, cmkit:to_atom(Name2)),
-    length(Children1) =< length(Children2);
-
-compare(#{ <<"type">> := <<"module">> }, _) -> false;
-compare(_, _) -> false.
-
-
-
-

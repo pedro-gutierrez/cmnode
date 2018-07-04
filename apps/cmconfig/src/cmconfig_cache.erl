@@ -11,7 +11,8 @@
          all/1,
          find/2,
          children/2,
-         ancestors/2
+         ancestors/2,
+         dump/0
         ]).
 -record(data, {specs, graph }).
 
@@ -25,6 +26,10 @@ init([]) ->
     {ok, ready, #data{ specs = #{},
                        graph = #{} }}.
 
+
+ready({call, From}, dump, #data{ graph = Graph, specs = Specs }=Data) ->
+    {next_state, ready, Data, [{reply, From, {ok, #{ graph => Graph, 
+                                                     specs => Specs }}}]};
 
 ready({call, From}, {graph, Type, Id, Deps}, #data{ graph = Graph }=Data) ->
 
@@ -111,3 +116,7 @@ ancestors(Type, Id) ->
 build_graph(Spec) ->
     {ok, Type, Name, Deps} = cmconfig_util:deps(Spec),
     call({graph, Type, Name, Deps}).
+
+dump() -> 
+    call(dump).
+

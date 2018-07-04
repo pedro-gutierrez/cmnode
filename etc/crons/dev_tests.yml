@@ -4,8 +4,8 @@ name: daily_dev_tests
 spec:
   schedule: 
     pm: 
-      hour: 1
-      min: 56
+      hour: 2
+      min: 57
   jobs:
     - module: cmtest
       fun: schedule

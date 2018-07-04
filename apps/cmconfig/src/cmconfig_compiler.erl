@@ -42,6 +42,7 @@ compile(Spec, Opts) ->
 compile_internal(#{
                <<"name">> := N,
                <<"type">> := T,
+               <<"rank">> := Rank,
                <<"version">> := Version }=Spec, Opts) ->
     Type = cmkit:to_atom(T),
     Name = cmkit:to_atom(N),
@@ -59,7 +60,7 @@ compile_internal(#{
         Other -> Other
     end,
 
-    cmkit:log({cmconfig, compile, Res, Type, Name, Version, Opts}).
+    cmkit:log({cmconfig, compile, Res, Type, Name, Rank, Opts}).
 
 
 compile_related(Type, Name, Opts, Flag, GeneratorFun) ->
@@ -68,19 +69,17 @@ compile_related(Type, Name, Opts, Flag, GeneratorFun) ->
         true -> 
             case GeneratorFun(Type, Name) of 
                 {ok, Related} ->
-                    cmkit:log({cmconfig, compiling_related, Type, Name, Flag, Opts}),
                     lists:map( fun({T, N}) ->
                                        ok = resolve_and_compile(T, N, Opts)
                                end, Related),
                     ok;
                 _ ->
-                    cmkit:log({cmconfig, no_relations, Type, Name, Flag, Opts}),
                     ok
             end
     end.
 
 resolve_and_compile(T, N, Opts) ->
     case cmyamls:of_type_name(T, N) of 
-        [{ok, Spec}] -> compile_internal(Spec, Opts);
+        [{ok, Spec}] -> compile_internal(cmconfig_util:ranked(Spec), Opts);
         Other -> {error, {yaml_error, T, N, Other}}
     end.

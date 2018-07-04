@@ -21,12 +21,12 @@ init([]) ->
     {ok, ready, #data{}}.
 
 ready({call, From}, load, Data) ->
-    case specs() of 
-        {Specs, []} ->
+    case cmconfig_util:parse() of 
+        {ok, Specs} ->
             compile_graph(Specs),
-            compile_specs(sorted(Specs), []),
+            compile_specs(sort(Specs), []),
             {keep_state, Data, [{reply, From, ok}]};
-        {_, Errors} ->
+        {error, Errors} ->
             cmkit:danger({cmconfig, loader, errors, Errors}),
             {stop, compile_errors}
     end;
@@ -43,23 +43,22 @@ call(Msg) ->
     gen_statem:call({?MODULE, node()}, Msg).
 
 modified(Spec) ->
-    call({modified, Spec}).
+    call({modified, cmconfig_util:ranked(Spec)}).
 
 load() ->
     call(load). 
 
-specs() ->
-    lists:foldl(fun({yaml, _, {ok, Spec}}, {Specs, Errors}) ->
-                        {[Spec|Specs], Errors};
-                   ({yaml, Filename, {error, E}}, {Specs, Errors}) ->
-                        {Specs, [{Filename, E}|Errors]}
-                end, {[], []}, cmyamls:all()).
-
-sorted(Specs) ->
-    lists:sort(fun cmconfig_util:compare/2, Specs).
 
 compile_graph(Specs) ->
     lists:map(fun cmconfig_cache:build_graph/1, Specs).
+
+
+sort(Specs) -> 
+    Ranked = lists:map(fun cmconfig_util:ranked/1, Specs),
+    lists:sort(fun(#{ <<"rank">> := R1}, #{ <<"rank">> := R2 }) ->
+                R1 =< R2
+               end, Ranked).
+
 
 compile_specs(Specs, Opts) ->
     lists:map(fun(Spec) ->
