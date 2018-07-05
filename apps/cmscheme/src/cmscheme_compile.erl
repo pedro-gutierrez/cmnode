@@ -1,17 +1,17 @@
 -module(cmscheme_compile).
--export([app/1]).
+-export([app/2]).
 
 app(#{ init := Init,
        update := Update,
        decoders := Decoders,
        encoders := Encoders,
-       effects := Effects }) ->
+       effects := Effects }, Settings) ->
 
-    {ok, lists:flatten([ init(Init),
-           encoders(Encoders),
-           decoders(Decoders),
-           update(Update),
-           effects(Effects),
+    {ok, lists:flatten([ init(Init, Settings),
+           encoders(Encoders, Settings),
+           decoders(Decoders, Settings),
+           update(Update, Settings),
+           effects(Effects, Settings),
            cmscheme_ast:call(<<"app">>, lists:map(fun cmscheme_ast:literal/1, [<<"init">>,
                                                                                <<"update">>,
                                                                                <<"decoders">>,
@@ -20,109 +20,113 @@ app(#{ init := Init,
          ])}.
 
 
-init(Spec) ->
-    cmscheme_ast:def(<<"init">>, term(Spec)).
+init(Spec, Settings) ->
+    cmscheme_ast:def(<<"init">>, term(Spec, Settings)).
 
-model(#{ type := object, spec := Spec}) ->
-    Args = model(maps:keys(Spec), Spec, []), 
+model(#{ type := object, spec := Spec}, Settings) ->
+    Args = model(maps:keys(Spec), Spec, Settings, []), 
     cmscheme_ast:call(list, Args);
 
 
-model(#{}) -> 
+model(#{}, _) -> 
     cmscheme_ast:call(list, []).
 
-model([], _, Out) -> Out;
-model([K|Rem], Spec, Out) ->
-    model(Rem, Spec, [term(K, maps:get(K, Spec))|Out]).
+model([], _, _, Out) -> Out;
+model([K|Rem], Spec, Settings, Out) ->
+    model(Rem, Spec, Settings, [term(K, maps:get(K, Spec), Settings)|Out]).
 
-cmds(Cmds) ->
-    cmscheme_ast:call(list, lists:map(fun cmd/1, Cmds)).
+cmds(Cmds, Settings) ->
+    cmscheme_ast:call(list, lists:map(fun(C) ->
+                                         cmd(C, Settings)     
+                                      end, Cmds)).
 
-cmd(#{ effect := Effect, encoder := Encoder }) ->
+cmd(#{ effect := Effect, encoder := Encoder }, _) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(Effect),
                               cmscheme_ast:sym(Encoder)
                             ]);
 
-cmd(#{ effect := Effect }) ->
+cmd(#{ effect := Effect }, _) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(Effect) ]).
 
 
-condition(#{ type := present, spec := Keys }) ->
+condition(#{ type := present, spec := Keys }, _) ->
     cmscheme_ast:call(list, [ 
                              cmscheme_ast:sym(present),
                              cmscheme_ast:call(list, 
                                                lists:map(fun cmscheme_ast:sym/1, Keys))
                             ]);
 
-condition(#{ type := equal, spec := Spec }) ->
+condition(#{ type := equal, spec := Spec }, Settings) ->
     cmscheme_ast:call(list, [ 
                              cmscheme_ast:sym(equal),
-                             cmscheme_ast:call(list, terms(Spec))
+                             cmscheme_ast:call(list, terms(Spec, Settings))
                             ]);
 
-condition(#{ type := true }) ->
+condition(#{ type := true }, _) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(true) ]);
 
-condition(#{ type := false }) ->
+condition(#{ type := false }, _) ->
     cmscheme_ast:call(list, [ cmscheme_ast:sym(false)]).
 
-update(Update) ->
-    UpdateAst = update(maps:keys(Update), Update, []),
+update(Update, Settings) ->
+    UpdateAst = update(maps:keys(Update), Update, Settings, []),
     cmscheme_ast:def(<<"update">>, cmscheme_ast:call(list, UpdateAst)).
 
-update([], _, Out) -> Out;
-update([K|Rem], Spec, Out) ->
-    update(Rem, Spec, [term(K, maps:get(K, Spec))|Out]).
+update([], _, _, Out) -> Out;
+update([K|Rem], Spec, Settings, Out) ->
+    update(Rem, Spec, Settings, [term(K, maps:get(K, Spec), Settings)|Out]).
                       
 
-encoders(Encoders) ->
-    EncodersAst = cmscheme_ast:call(list, terms(maps:keys(Encoders), Encoders, [])),
+encoders(Encoders, Settings) ->
+    EncodersAst = cmscheme_ast:call(list, terms(maps:keys(Encoders), Encoders, Settings, [])),
     cmscheme_ast:def(<<"encoders">>, EncodersAst).
 
 
-decoders(Decoders) ->
-    DecodersAst = cmscheme_ast:call(list, lists:map(fun decoder/1, Decoders)),
+decoders(Decoders, Settings) ->
+    DecodersAst = cmscheme_ast:call(list, lists:map(fun(D) ->
+                                                        decoder(D, Settings)    
+                                                    end, Decoders)),
     cmscheme_ast:def(<<"decoders">>, DecodersAst).
 
 decoder(#{ msg := Msg, 
-           spec := Spec }) ->
-    term(Msg, Spec).
+           spec := Spec }, Settings) ->
+    term(Msg, Spec, Settings).
 
 
 
-term(K, #{ type := object, spec := Spec}) when is_map(Spec) ->
+term(K, #{ type := object, spec := Spec}, Settings) when is_map(Spec) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), 
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(object),
-                                                      cmscheme_ast:call(list, terms(Spec))
+                                                      cmscheme_ast:call(list, terms(Spec, Settings))
                                                      ])
                             ]);
 
 
-term(K, #{ type := keyword, value := V}) when is_atom(V) -> 
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(V)]);
+term(K, #{ type := keyword, value := V}, Settings) when is_atom(V) -> 
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(V, Settings)]);
 
-term(K, #{ type := text, value := V  }) when is_binary(V) ->
+term(K, #{ type := text, value := V  }, _) when is_binary(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
 
-term(K, #{ type := text, key := Key, in := In }) ->
+term(K, #{ type := text, key := Key, in := In }, Settings) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(text),
                                                       term(#{ key=> Key,
-                                                              in => In })
+                                                              in => In }, Settings)
                                                      ])
                             ]);
 
-term(K, #{ type := text, key := Key }) ->
+term(K, #{ type := text, key := Key }, Settings) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(text),
-                                                      term(#{ key => Key })
+                                                      term(#{ key => Key }, Settings)
                                                      ])
                             ]);
 
-term(K, #{ type := text }) ->
+term(K, #{ type := text }, _) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(text),
@@ -131,98 +135,114 @@ term(K, #{ type := text }) ->
                             ]);
 
 
-term(K, #{ type := list, value := List }) when is_list(List) ->
+term(K, #{ type := list, value := List }, Settings) when is_list(List) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, 
                                                [ cmscheme_ast:sym(list),
-                                                 cmscheme_ast:call(list, lists:map(fun term/1, List))
+                                                 cmscheme_ast:call(list, lists:map(fun(T) ->
+                                                                                      term(T, Settings)     
+                                                                                   end, List))
                                                ])
                             ]);
 
 
-term(K, #{ type := list, spec := Spec }) when is_map(Spec) ->
+term(K, #{ type := list, spec := Spec }, Settings) when is_map(Spec) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K),
                              cmscheme_ast:call(list, 
                                                [ cmscheme_ast:sym(list),
-                                                    term(Spec)
+                                                    term(Spec, Settings)
                                                ])
                             ]);
 
-term(K, #{ type := view, spec := Spec}) ->
-    cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(Spec)]);
+term(K, #{ type := view, spec := Spec}, Settings) ->
+    cmscheme_ast:call(list, [cmscheme_ast:sym(K), term(Spec, Settings)]);
 
-term(K, #{ type := effect, class := Class,  name := K,  settings := Settings}) -> 
+term(K, #{ type := effect, class := Class,  name := K,  settings := EffectSettings}, Settings) -> 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(K),
                              cmscheme_ast:sym(Class),
-                             cmscheme_ast:call(list, terms(Settings))
+                             cmscheme_ast:call(list, terms(EffectSettings, Settings))
                             ]);
 
-term(K, #{ value := V }) when is_binary(V) ->
+term(K, #{ value := V }, _) when is_binary(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
 
 
-term(K, V) when is_atom(K) and is_binary(V) ->
+term(K, V, _) when is_atom(K) and is_binary(V) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(K), cmscheme_ast:str(V)]);
 
-term(K, V) when is_list(V) ->
+term(K, V, Settings) when is_list(V) ->
     cmscheme_ast:call(list, [
                                cmscheme_ast:sym(K),
-                               cmscheme_ast:call(list, terms(V))
+                               cmscheme_ast:call(list, terms(V, Settings))
                             ]);
 
-term(K, V) ->
+term(K, V, Settings) ->
     cmscheme_ast:call(list, [
                                cmscheme_ast:sym(K),
-                                term(V)
+                                term(V, Settings)
                             ]).
 
 
-terms(Map) when is_map(Map) ->
-    terms(maps:keys(Map), Map, []);
+terms(Map, Settings) when is_map(Map) ->
+    terms(maps:keys(Map), Map, Settings, []);
 
-terms(List) when is_list(List) ->
-    lists:map(fun term/1, List).
+terms(List, Settings) when is_list(List) ->
+    lists:map(fun(Term) -> 
+                      term(Term, Settings)
+              end, List).
 
-terms([], _, Out) -> lists:reverse(Out);
-terms([K|Rem], Terms, Out) ->
-    terms(Rem, Terms, [term(K, maps:get(K, Terms))|Out]).
+terms([], _, _, Out) -> lists:reverse(Out);
+terms([K|Rem], Terms, Settings, Out) ->
+    terms(Rem, Terms, Settings, [term(K, maps:get(K, Terms),Settings)|Out]).
 
-term(#{}=Map) when map_size(Map) == 0-> cmscheme_ast:call(list, []);
+term(#{}=Map, _) when map_size(Map) == 0-> cmscheme_ast:call(list, []);
 
-term(A) when is_atom(A) -> cmscheme_ast:sym(A);
+term(A, _) when is_atom(A) -> cmscheme_ast:sym(A);
 
-term(#{ model := Model, condition := Cond, cmds := Cmds }) ->
+term(#{ type := config, spec := Spec}, Settings) -> 
+    case cmencode:encode(Spec, Settings) of 
+        {ok, V} when is_number(V) ->
+            cmscheme_ast:number(V);
+        {ok, V} when is_atom(V) ->
+            cmscheme_ast:sym(V);
+        {ok, V} -> 
+            cmscheme_ast:str(cmkit:to_bin(V));
+        Other -> 
+            cmkit:danger({cmscheme, compile, config, Spec, Settings, Other}),
+            cmscheme_ast:sym(invalid_setting)
+    end;
+
+term(#{ model := Model, condition := Cond, cmds := Cmds }, Settings) ->
     cmscheme_ast:call(list, [
-                             condition(Cond),
-                             model(Model),
-                             cmds(Cmds)
+                             condition(Cond, Settings),
+                             model(Model, Settings),
+                             cmds(Cmds, Settings)
                             ]);
 
-term(#{ model := Model, cmds := Cmds }) ->
+term(#{ model := Model, cmds := Cmds }, Settings) ->
     cmscheme_ast:call(list, [
-                             condition(#{ type => true }),
-                             model(Model),
-                             cmds(Cmds)
+                             condition(#{ type => true }, Settings),
+                             model(Model, Settings),
+                             cmds(Cmds, Settings)
                             ]);
 
-
-term(#{ tag := Tag, attrs := Attrs, children := Children }) ->
+term(#{ tag := Tag, attrs := Attrs, children := Children }, Settings) ->
     cmscheme_ast:call(list, [cmscheme_ast:str(Tag),
-                             cmscheme_ast:call(list, view_attrs(Attrs)),
-                             view_children(Children)
+                             cmscheme_ast:call(list, view_attrs(Attrs, Settings)),
+                             view_children(Children, Settings)
                             ]);
 
 
-term(#{ view := View }=Spec) ->
+term(#{ view := View }=Spec, Settings) ->
 
-    NameAst = cmscheme_ast:call(list, [cmscheme_ast:sym(name), term(View)]),
+    NameAst = cmscheme_ast:call(list, [cmscheme_ast:sym(name), term(View, Settings)]),
     ParamsAst = case maps:get(params, Spec, undef) of 
                     undef -> [];
                     ParamsSpec -> 
                         [cmscheme_ast:call(list, [
                                          cmscheme_ast:sym(params),
-                                         term(ParamsSpec)
+                                         term(ParamsSpec, Settings)
                                         ])]
                 end,
 
@@ -231,7 +251,7 @@ term(#{ view := View }=Spec) ->
                        ConditionSpec -> 
                             [cmscheme_ast:call(list, [
                                                     cmscheme_ast:sym(condition), 
-                                                    term(ConditionSpec)
+                                                    term(ConditionSpec, Settings)
                                                    ])]
                     end,
 
@@ -239,39 +259,34 @@ term(#{ view := View }=Spec) ->
                              cmscheme_ast:call(list, [ NameAst ] ++ ParamsAst ++ ConditionAst)
                             ]);
 
-term(#{ encoder := Name }) when is_atom(Name) ->
+term(#{ encoder := Name }, _) when is_atom(Name) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(encoder),
                              cmscheme_ast:sym(Name)
                             ]);
 
-
-
-
-
-
 term(#{ json := Source,
-        indent := Indent }) ->
+        indent := Indent }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(json),
                              cmscheme_ast:call(list, [ 
                                 cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(source),
-                                                       term(Source)]),
+                                                       term(Source, Settings)]),
                                 cmscheme_ast:call(list, [ cmscheme_ast:sym(indent),
-                                                       term(Indent)])
+                                                       term(Indent, Settings)])
                                                      ])]);
 
 term(#{ map := #{ id := Id,
                   style := Style,
                   zoom := Zoom,
                   center := Center,
-                  markers := Markers }}) ->
+                  markers := Markers }}, Settings) ->
 
                    cmscheme_ast:call(list, [ cmscheme_ast:sym(map),
                                              cmscheme_ast:call(list, [
                                                                       cmscheme_ast:call(list, [
-                                                                                               cmscheme_ast:sym(id), term(Id) ]),
+                                                                                               cmscheme_ast:sym(id), term(Id, Settings) ]),
                                                                       cmscheme_ast:call(list, [
                                                                                                cmscheme_ast:sym(style), cmscheme_ast:sym(Style) ]),
 
@@ -279,39 +294,39 @@ term(#{ map := #{ id := Id,
                                                                                                cmscheme_ast:sym(zoom), cmscheme_ast:number(Zoom) ]),
 
                                                                       cmscheme_ast:call(list, [
-                                                                                               cmscheme_ast:sym(center), term(Center) ]),
+                                                                                               cmscheme_ast:sym(center), term(Center, Settings) ]),
                                                                       cmscheme_ast:call(list, [
-                                                                                                 cmscheme_ast:sym(markers), cmscheme_ast:call(list, terms(Markers)) ]) 
+                                                                                                 cmscheme_ast:sym(markers), cmscheme_ast:call(list, terms(Markers, Settings)) ]) 
                                                                      ])]);
 
 
 
 term(#{ timestamp := #{ format := Format,
-                        value := Value}}) -> 
+                        value := Value}}, Settings) -> 
 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(timestamp),
                              cmscheme_ast:call(list, [ 
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(format),
-                                                                               term(Format)]),
+                                                                               term(Format, Settings)]),
                                                       cmscheme_ast:call(list, [ cmscheme_ast:sym(value),
-                                                                                term(Value)])
+                                                                                term(Value, Settings)])
                                                      ])]);
 term(#{ date := #{ format := Format,
-                   value := Value}}) -> 
+                   value := Value}}, Settings) -> 
 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(date),
                              cmscheme_ast:call(list, [ 
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(format),
-                                                                               term(Format)]),
+                                                                               term(Format, Settings)]),
                                                       cmscheme_ast:call(list, [ cmscheme_ast:sym(value),
-                                                                                term(Value)])
+                                                                                term(Value, Settings)])
                                                      ])]);
 
-term(#{ iterate := From, using := ItemView }) ->
+term(#{ iterate := From, using := ItemView }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(iterate),
                              cmscheme_ast:call(list, [
@@ -322,42 +337,44 @@ term(#{ iterate := From, using := ItemView }) ->
 
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(items), 
-                                                                               term(From)
+                                                                               term(From, Settings)
                                                                               ])
                                         
                                                      ])
                             ]);
 
 
-term(#{ maybe := Spec }) ->
+term(#{ maybe := Spec }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(maybe),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 
 term(#{  type := either, 
-         options := Options }) ->
+         options := Options }, Settings) ->
 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(either),
-                             cmscheme_ast:call(list, lists:map(fun term/1, Options))
+                             cmscheme_ast:call(list, lists:map(fun(T) -> 
+                                                                       term(T, Settings)
+                                                                       end, Options))
                             ]);
 
 
 term(#{ type := condition,
         condition := Cond,
-        spec := Spec }) ->
+        spec := Spec }, Settings) ->
 
     cmscheme_ast:call(list, [
                              
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(condition),
-                                                      condition(Cond)
+                                                      condition(Cond, Settings)
                                                      ]),
 
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(spec),
-                                                      term(Spec)
+                                                      term(Spec, Settings)
                                                      ])
 
                             ]);
@@ -366,47 +383,47 @@ term(#{ type := condition,
 
 
 
-term(#{ type := merge, spec := Specs }) -> 
+term(#{ type := merge, spec := Specs }, Settings) -> 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(merge),
-                             cmscheme_ast:call(list, terms(Specs))
+                             cmscheme_ast:call(list, terms(Specs, Settings))
                             ]);
 
 
 
-term(#{ type := object, spec := Spec}) ->
+term(#{ type := object, spec := Spec}, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(object),
-                             cmscheme_ast:call(list, terms(Spec))
+                             cmscheme_ast:call(list, terms(Spec, Settings))
                             ]);
 
-term(#{ type := object }) ->
+term(#{ type := object }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(object),
                              cmscheme_ast:sym(any)
                             ]);
 
 
-term(#{ type := file, spec := Spec }) ->
+term(#{ type := file, spec := Spec }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(file),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 
 
-term(#{ type := entries, spec := Spec }) ->
+term(#{ type := entries, spec := Spec }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(entries),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 term(#{ type := files, 
-        spec := Spec }) ->
+        spec := Spec }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(files),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 
-term(#{ type := file }) ->
+term(#{ type := file }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(file),
                              cmscheme_ast:sym(any)
@@ -415,19 +432,19 @@ term(#{ type := file }) ->
 
 term(#{ type := format, 
         pattern := Pattern,
-        params := Params }) ->
+        params := Params }, Settings) ->
 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(format),
                              cmscheme_ast:call(list, [
                                                cmscheme_ast:call(list, [ 
                                                                         cmscheme_ast:sym(pattern),
-                                                                        term(Pattern) 
+                                                                        term(Pattern, Settings) 
                                                                        ]),
 
                                                cmscheme_ast:call(list, [ 
                                                                         cmscheme_ast:sym(params),
-                                                                        cmscheme_ast:call(list, terms(Params))
+                                                                        cmscheme_ast:call(list, terms(Params, Settings))
                                                                        ])
 
                                                     ])
@@ -436,7 +453,7 @@ term(#{ type := format,
 
 
 term(#{ type := map, spec := #{ options := Options,
-                                value := Value}}) ->
+                                value := Value}}, Settings) ->
 
 
     OptionsAst = cmscheme_ast:call(list, [
@@ -445,11 +462,11 @@ term(#{ type := map, spec := #{ options := Options,
                                 cmscheme_ast:call(list, [
                                                          cmscheme_ast:call(list, [
                                                                                   cmscheme_ast:sym(source),
-                                                                                  term(Source)
+                                                                                  term(Source, Settings)
                                                                                  ]),
                                                          cmscheme_ast:call(list, [
                                                                                   cmscheme_ast:sym(target),
-                                                                                  term(Target)
+                                                                                  term(Target, Settings)
                                                                                  ])
 
                                                         ])
@@ -458,7 +475,7 @@ term(#{ type := map, spec := #{ options := Options,
     
     ValueAst = cmscheme_ast:call(list, [
         cmscheme_ast:sym(value),
-        term(Value)
+        term(Value, Settings)
                                        ]),
 
     cmscheme_ast:call(list, [
@@ -467,204 +484,210 @@ term(#{ type := map, spec := #{ options := Options,
                             ]);
 
 
-term(#{ one_of := Specs }) when is_list(Specs) ->
+term(#{ one_of := Specs }, Settings) when is_list(Specs) ->
     cmscheme_ast:call(list, [cmscheme_ast:sym(one_of),
-                             cmscheme_ast:call(list, lists:map(fun term/1, Specs))
+                             cmscheme_ast:call(list, lists:map(fun(S) ->
+                                                                   term(S, Settings)    
+                                                                end, Specs))
                             ]);
 
                              
-term(#{ key := Key, in := At })  -> 
+term(#{ key := Key, in := At }, Settings)  -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(from),
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:sym(Key),
-                                                      term(At)
+                                                      term(At, Settings)
                                                      ])
                             ]);
 
-term(#{ key := Key })  -> 
+term(#{ key := Key }, _)  -> 
     cmscheme_ast:call(list, [cmscheme_ast:sym(from),
                              cmscheme_ast:sym(Key)
                             ]);
 
    
-term(#{ type := boolean }) ->
+term(#{ type := boolean }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(boolean),    
                              cmscheme_ast:sym(any)
                             ]);
 
 
-term(#{ type := keyword, value := V}) when is_atom(V) ->
+term(#{ type := keyword, value := V}, _) when is_atom(V) ->
     cmscheme_ast:sym(V);
 
-term(#{ text := #{ literal := Text}}) ->
+term(#{ text := #{ literal := Text}}, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),    
                              cmscheme_ast:str(Text)
                             ]);
 
-term(#{ type := text, value := Text}) ->
+term(#{ type := text, value := Text}, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),    
                              cmscheme_ast:str(Text)
                             ]);
 
-term(#{ type := text, key := Key, in := In }) ->
+term(#{ type := text, key := Key, in := In }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
                              term(#{ key => Key,
-                                     in => In })
+                                     in => In }, Settings)
                             ]);
 
-term(#{ type := text, key := Key }) ->
+term(#{ type := text, key := Key }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
-                             term(#{ key =>  Key })
+                             term(#{ key =>  Key }, Settings)
                             ]);
 
 
-term(#{ type := text, spec := Spec }) ->
+term(#{ type := text, spec := Spec }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 
-term(#{ type := text }) ->
+term(#{ type := text }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
                              cmscheme_ast:sym(any)
                             ]);
 
-term(#{ type := number, value := V }) ->
+term(#{ type := number, value := V }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(number),
                              cmscheme_ast:number(V)
                             ]);
 
 
-term(#{ type := number }) ->
+term(#{ type := number }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(number),
                              cmscheme_ast:sym(any)
                             ]);
 
-term(#{ type := data }) ->
+term(#{ type := data }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(data),
                              cmscheme_ast:sym(any)
                             ]);
 
-term(#{ text := Spec })  -> 
+term(#{ text := Spec }, Settings)  -> 
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(text),
-                            term(Spec)
+                            term(Spec, Settings)
                             ]);
 
-term(#{ value := Text}) when is_binary(Text) ->
-    term(Text);
+term(#{ value := Text}, Settings) when is_binary(Text) ->
+    term(Text, Settings);
 
 
-term(#{ type := is_set, spec := Spec }) ->
+term(#{ type := is_set, spec := Spec }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(is_set),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 
-term(#{ type := 'not', spec := Spec}) ->
+term(#{ type := 'not', spec := Spec}, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym('not'),
-                             term(Spec)
+                             term(Spec, Settings)
                             ]);
 
-term(#{ type := equal, spec := Specs}) when is_list(Specs) ->
+term(#{ type := equal, spec := Specs}, Settings) when is_list(Specs) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(equal),
-                             cmscheme_ast:call(list, lists:map(fun term/1, Specs))
+                             cmscheme_ast:call(list, lists:map(fun(S) ->
+                                                                       term(S, Settings)
+                                                               end, Specs))
                             ]);
 
 
-term(#{ type := sum, spec := Operands }) when is_list(Operands) ->
+term(#{ type := sum, spec := Operands }, Settings) when is_list(Operands) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(sum),
-                             cmscheme_ast:call(list, lists:map(fun term/1, Operands))
+                             cmscheme_ast:call(list, lists:map(fun(S) ->
+                                                                       term(S, Settings)
+                                                               end, Operands))
                             ]);
 
 term(#{ type := ratio, 
         num := Num,
-        den := Den })  ->
+        den := Den }, Settings)  ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(ratio),
                              cmscheme_ast:call(list, [
-                                cmscheme_ast:call(list, [ cmscheme_ast:sym(num), term(Num) ]),
-                                cmscheme_ast:call(list, [ cmscheme_ast:sym(den), term(Den)])
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(num), term(Num, Settings) ]),
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(den), term(Den, Settings)])
 
                                                      ])
                             ]);
 
 term(#{ type := percentage, 
         num := Num,
-        den := Den })  ->
+        den := Den }, Settings)  ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(percentage),
                              cmscheme_ast:call(list, [
-                                cmscheme_ast:call(list, [ cmscheme_ast:sym(num), term(Num) ]),
-                                cmscheme_ast:call(list, [ cmscheme_ast:sym(den), term(Den)])
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(num), term(Num, Settings) ]),
+                                cmscheme_ast:call(list, [ cmscheme_ast:sym(den), term(Den, Settings)])
 
                                                      ])
                             ]);
 
-term(#{ type := list, size := Size }) ->
+term(#{ type := list, size := Size }, _) ->
     cmscheme_ast:call(list, 
                       [ cmscheme_ast:sym(list),
                         cmscheme_ast:number(Size)
                       ]);
 
-term(#{ type := list, value := Specs }) ->
+term(#{ type := list, value := Specs }, Settings) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(list),
-                             cmscheme_ast:call(list, terms(Specs))
+                             cmscheme_ast:call(list, terms(Specs, Settings))
                             ]);
 
-term(#{ type := list, spec := Spec }) when is_map(Spec) ->
+term(#{ type := list, spec := Spec }, Settings) when is_map(Spec) ->
     cmscheme_ast:call(list,[ cmscheme_ast:sym(list),
-                             term(Spec)
+                             term(Spec, Settings)
                            ]);
 
 
-term(#{ type := list }) ->
+term(#{ type := list }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(list),
                              cmscheme_ast:sym(any)
                             ]);
 
-term(#{ size := Size }) ->
+term(#{ size := Size }, _) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(size),
                              cmscheme_ast:number(Size)
                             ]);
 
-term(Text) when is_binary(Text) ->
+term(Text, _) when is_binary(Text) ->
     cmscheme_ast:call(list, [ 
                              cmscheme_ast:sym(text),    
                              cmscheme_ast:str(Text)
                             ]).
 
-view_attrs(Attrs) when is_map(Attrs) ->
+view_attrs(Attrs, Settings) when is_map(Attrs) ->
     maps:fold(fun(K, V, Out) ->
-                [term(K, V)|Out]
+                [term(K, V, Settings)|Out]
               end, [], Attrs).
 
-view_children(Spec) when is_list(Spec) ->
+view_children(Spec, Settings) when is_list(Spec) ->
     cmscheme_ast:call(list, [
                              cmscheme_ast:sym(list),
-                             cmscheme_ast:call(list, view_children(Spec, []))
+                             cmscheme_ast:call(list, view_children(Spec, Settings, []))
                             ]);
 
-view_children(#{ loop := From, context := Context, with := View }) ->
+view_children(#{ loop := From, context := Context, with := View }, Settings) ->
 
     ViewAst = case is_binary(View) of
                   true -> cmscheme_ast:sym(View);
-                  false -> term(View)
+                  false -> term(View, Settings)
               end,
 
     cmscheme_ast:call(list, [
@@ -672,7 +695,7 @@ view_children(#{ loop := From, context := Context, with := View }) ->
                              cmscheme_ast:call(list, [
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(items),
-                                                                               term(From)
+                                                                               term(From, Settings)
                                                                               ]),
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(name),
@@ -681,7 +704,7 @@ view_children(#{ loop := From, context := Context, with := View }) ->
 
                                                       cmscheme_ast:call(list, [
                                                                                cmscheme_ast:sym(context),
-                                                                               term(Context)
+                                                                               term(Context, Settings)
                                                                               ])
 
                                                      ])
@@ -689,14 +712,14 @@ view_children(#{ loop := From, context := Context, with := View }) ->
                             ]);
 
 
-view_children(#{ loop := _,  with := _}=Spec) ->
-    view_children(Spec#{ context => #{} }).
+view_children(#{ loop := _,  with := _}=Spec, Settings) ->
+    view_children(Spec#{ context => #{} }, Settings).
 
 
-view_children([], Out) -> lists:reverse(Out);
-view_children([Spec|Rem], Out) ->
-    view_children(Rem, [term(Spec)|Out]).
+view_children([], _, Out) -> lists:reverse(Out);
+view_children([Spec|Rem], Settings, Out) ->
+    view_children(Rem, Settings, [term(Spec, Settings)|Out]).
 
-effects(Effects) ->
-    EffectsAst = cmscheme_ast:call(list, terms(maps:keys(Effects), Effects, [])),
+effects(Effects, Settings) ->
+    EffectsAst = cmscheme_ast:call(list, terms(maps:keys(Effects), Effects, Settings, [])),
     cmscheme_ast:def(<<"effects">>, EffectsAst).

@@ -5,3 +5,6 @@ name: admin_ui
 spec: 
   modules:
     - admin_scm
+  config:
+    settings:
+      keyword: admin_ui

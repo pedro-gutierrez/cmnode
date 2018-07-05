@@ -10,7 +10,8 @@ spec:
       type: elementary-ui
       settings:
         assets:
-          text: "http://localhost:8081/assets"
+          config: assets
+          #text: "http://localhost:8081/assets"
     ws:
       type: elementary-ws
       settings:

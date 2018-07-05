@@ -19,6 +19,8 @@ spec:
   encoders:
     app:
       object:
+        settings:
+          config: settings
         app:
           spec: 
             modules:

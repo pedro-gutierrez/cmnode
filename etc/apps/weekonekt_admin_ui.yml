@@ -6,6 +6,5 @@ spec:
   modules:
     - weekonekt_admin_scm
   config:
-    ws:
-      text:
-        literal: "ws://localhost:8081/ws"
+    settings:
+      keyword: weekonekt_admin_ui

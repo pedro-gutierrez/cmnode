@@ -41,8 +41,11 @@ ranked(#{ <<"type">> := Type,
           <<"name">> := Name }=Spec) -> 
     T = cmkit:to_atom(Type),
     N = cmkit:to_atom(Name),
-    {ok, C}  = cmconfig_cache:children(T, N),
-    Spec#{ <<"rank">> => cmkit:to_float(cmconfig_util:rank(T), length(C))}. 
+    Children = case cmconfig_cache:children(T, N) of 
+                   {ok, C} -> C;
+                   _ -> 0
+               end,
+    Spec#{ <<"rank">> => cmkit:to_float(cmconfig_util:rank(T), length(Children))}. 
 
 compile(#{ <<"type">> := <<"port">> }=Spec) -> {ok, compile_port(Spec)};
 compile(#{ <<"type">> := <<"app">> }=Spec) -> {ok, compile_app(Spec)};
