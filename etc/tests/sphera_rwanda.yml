@@ -326,6 +326,55 @@ spec:
             spec:
               object:
                 status: 200
+    - title: "There are no conversations"
+      steps:
+        - title: "Unload all objects under /sphera"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/unload_childs"
+                    data:
+                      object:
+                        id: "/sphera"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+        - title: "Delete all conversations"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera"
+                        type: "conversation"
     - title: "There are no encounters"
       steps:
         - title: "Unload all objects under /sphera"
@@ -381,6 +430,65 @@ spec:
             spec:
               object:
                 status: 200
+    - title: "Default channels are present"
+      steps:
+        - title: "Create default channels for Rwanda"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  content-type: "application/json"
+                  x-netcomposer-auth:
+                    key: token
+                    in: data
+                body:
+                  object:
+                    cmd: "objects/node/load_objs"
+                    data:
+                      object:
+                        objs:
+                          list:
+                            - object:
+                                path: "/sphera/rwanda/collab/conversations/inbox"
+                                name: "inbox"
+                                conversation:
+                                  object:
+                                    type: med.capture
+                            - object:
+                                path: "/sphera/rwanda/collab/conversations/general"
+                                name: "general"
+                                conversation:
+                                  object:
+                                    type: channel
+                            - object:
+                                path: "/sphera/rwanda/collab/conversations/kfh"
+                                name: "KFH"
+                                conversation:
+                                  object:
+                                    type: channel
+                            - object:
+                                path: "/sphera/rwanda/collab/conversations/pediatria"
+                                name: "paediatrics"
+                                conversation:
+                                  object:
+                                    type: channel
+                            - object:
+                                path: "/sphera/rwanda/collab/med.specialities/pediatrics"
+                                name: "Pediatrics"
+                                med.speciality: 
+                                  object:
+                                    capture_conversation_ids: 
+                                      list:
+                                        - "/sphera/rwanda/collab/conversations/inbox"
+                            
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+
     - title: "There is a patient with id 9000 and initials ABC"
       steps:
         - title: "Create a patient 9000 with initials ABC"
@@ -1004,6 +1112,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There are no objects of type consent"
         - "There are no objects of type operator"
         - "There is an operator"
@@ -1020,6 +1132,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There are no objects of type consent"
         - "There are no objects of type operator"
         - "There is an operator"
@@ -1038,6 +1154,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There are no objects of type consent"
         - "There are no objects of type operator"
         - "There is an operator"
@@ -1065,6 +1185,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There are no objects of type consent"
         - "There are no objects of type operator"
         - "There is an operator"
@@ -1094,6 +1218,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There are no objects of type consent"
         - "There are no objects of type operator"
         - "There is an operator"
@@ -1145,7 +1273,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
       steps:
         - title: "Try to find a patient without a token"
@@ -1180,7 +1311,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "Get empty data for patient 9000"
@@ -1196,7 +1330,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as a doctor"
         - "Get empty data for patient 9000"
@@ -1212,7 +1349,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as a doctor"
       steps:
@@ -1290,7 +1430,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
       steps:
         - title: "As a anonymous user, try to update patient birth date to 01-01-2001"
@@ -1330,7 +1473,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as a doctor"
       steps:
@@ -1384,7 +1530,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
       steps:
         - title: "As an anonymous user, try to create an encounter for patient 9000 in pediatrics"
@@ -1428,7 +1577,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1443,7 +1595,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
         - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1476,8 +1631,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1493,8 +1650,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1510,8 +1669,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1529,8 +1690,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1550,8 +1713,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1592,8 +1757,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1641,8 +1808,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
@@ -1679,8 +1848,10 @@ spec:
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as admin"
-        - "There are no patients"
+        - "There are no conversations"
         - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
         - "There is a patient with id 9000 and initials ABC"
         - "I am logged in as an operator"
         - "An encounter in pediatrics is created for the patient"
