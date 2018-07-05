@@ -378,7 +378,18 @@ node_for_host(H, Nodes) ->
     case Match of 
         [Node] -> {ok, Node};
         [] -> {error, not_found};
-        _ -> {error, too_many_nodes}
+        Nodes -> 
+            case first_node_with_name(<<"cmnode">>, Nodes) of 
+                not_found -> {error, not_found};
+                Node -> {ok, Node}
+            end
+    end.
+
+first_node_with_name(_, []) -> not_found;
+first_node_with_name(Name, [N|Rem]) -> 
+    case node_host_short(N) of 
+        Name -> N;
+        _ -> first_node_with_name(Name, Rem)
     end.
 
 hosts_to_nodes([], _, Found, NotFound) ->
