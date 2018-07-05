@@ -48,8 +48,7 @@ restore(Db, Name) ->
 reset(Db) ->
     in( node_for(Db), Db, reset).
 
-node_for(Db) -> 
-    gen_statem:call({cmdb_cloud, node()}, {node, Db}).
+node_for(Db) -> cmdb_cloud:node_for(Db).
 
 in({ok, N}, Db, Op) ->
     gen_statem:call({Db, N}, Op);

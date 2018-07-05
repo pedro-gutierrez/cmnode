@@ -1,6 +1,8 @@
 -module(cmdb_cloud).
 -behaviour(gen_statem).
 -export([
+         status/0,
+         node_for/1,
          start_link/1,
          init/1, 
          callback_mode/0, 
@@ -8,6 +10,12 @@
          ready/3
         ]).
 -record(data, {dbs, index}).
+
+status() -> 
+    gen_statem:call({cmdb_cloud, node()}, ping).
+
+node_for(Db) -> 
+    gen_statem:call({cmdb_cloud, node()}, {node, Db}).
 
 callback_mode() ->
     state_functions.
@@ -39,6 +47,8 @@ ready(info, Msg, Data) ->
 ready({call, From}, ping, #data{index=I}=Data) ->
     Res = {ok, I}, 
     {keep_state, Data, {reply, From, Res}};
+
+
 
 ready({call, From}, {node, Name}, #data{index=I}=Data) ->
     Res = case I of 
