@@ -67,7 +67,9 @@ terminate(Reason, _, _) ->
 
 index(Dbs) -> 
     refresh(lists:foldl( fun(#{ name := Name, hosts := Hosts}, Index) ->
-        maps:put( Name, {Hosts, none, []}, Index)
+                                 {Nodes, _} = cmkit:hosts_to_nodes(Hosts),
+                                 Fav = fav(Nodes),
+                                 maps:put( Name, {Hosts, Fav, Nodes}, Index)
                end, #{}, Dbs)).
 
 refresh(Index) ->
