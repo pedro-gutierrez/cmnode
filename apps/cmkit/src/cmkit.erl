@@ -372,14 +372,17 @@ node_for_host(H) ->
     node_for_host(H, [node()|nodes()]).
 
 node_for_host(H, Nodes) ->
+    node_for_host( <<"cmnode">>, H, Nodes).
+
+node_for_host(Name, H, Nodes) ->
     Match = lists:filter(fun(N) -> 
                             node_host_short(N) =:= to_bin(H)
                          end, Nodes),
     case Match of 
         [Node] -> {ok, Node};
         [] -> {error, not_found};
-        Nodes -> 
-            case first_node_with_name(<<"cmnode">>, Nodes) of 
+        LocalNodes -> 
+            case first_node_with_name(Name, LocalNodes) of 
                 not_found -> {error, not_found};
                 Node -> {ok, Node}
             end
