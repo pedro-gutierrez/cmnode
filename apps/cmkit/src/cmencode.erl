@@ -386,6 +386,115 @@ encode(#{ type := basic_auth,
             }
     end;
 
+
+encode(#{ height := Height,
+          width := Width }, In, Config) -> 
+    case cmencode:encode(Height, In, Config) of 
+        {ok, H} -> 
+            case cmencode:encode(Width, In, Config) of 
+                {ok, W} -> 
+                    {ok, #{ width => W,
+                            height => H }};
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+encode(#{ type := thumbnail,
+          data := DataSpec,
+          scale := Scale, 
+          min := MinSpec,
+          max := MaxSpec }, In, Config) ->
+    case cmencode:encode(DataSpec, In, Config) of 
+        {ok, Data} ->
+            case cmencode:encode(MinSpec, In, Config) of 
+                {ok, Min} -> 
+                    case cmencode:encode(MaxSpec, In, Config) of 
+                        {ok, Max} -> 
+
+                            cmimg:convert(#{ data => cmkit:to_bin(Data),
+                                             scale => Scale,
+                                             min => Min,
+                                             max => Max });
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+encode(#{ type := s3,
+          spec := #{ access := Access,
+                     secret := Secret,
+                     bucket := Bucket,
+                     key := Key,
+                     data := Data }}, In, Config) -> 
+    case cmencode:encode(Access, In, Config) of 
+        {ok, A} ->
+            case cmencode:encode(Secret, In, Config) of 
+                {ok, S} ->
+                    case cmencode:encode(Bucket, In, Config) of 
+                        {ok, B} ->
+                            case cmencode:encode(Key, In, Config) of 
+                                {ok, K} ->
+                                    case cmencode:encode(Data, In, Config) of 
+                                        {ok, D} ->
+                                            case cms3:put(#{ access_key => A,
+                                                             secret_key => S,
+                                                             bucket => B,
+                                                             key => K,
+                                                             data => D }) of 
+                                                ok -> {ok, ok};
+                                                Other -> 
+                                                    Other
+                                            end;
+                                        Other -> 
+                                            Other
+                                    end;
+                                Other -> 
+                                    Other
+                            end;
+                        Other -> 
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+encode(#{ type := attempt, 
+          spec := Spec, 
+          onerror := OnError }, In, Config) -> 
+    case cmencode:encode(Spec, In, Config) of 
+        {ok, Data} -> 
+            {ok, Data};
+        Other  ->
+            cmkit:warning({cmencode, attempt, Spec, Other}),
+            cmencode:encode(OnError, In, Config)
+    end;
+
+encode(#{ type := erlang,
+          mod := M,
+          function := F,
+          args := Args }, In, Config) -> 
+    case cmencode:encode(Args, In, Config) of 
+        {ok, A} -> 
+            case apply(M, F, A) of 
+                {ok, Data} -> {ok, Data};
+                {error, E} -> {error, E};
+                Other -> {ok, Other}
+            end;
+        Other -> 
+            Other
+    end;
+
 encode(#{ type := path,
           location := Path }, _, _) -> {ok, cmkit:to_list(Path)};
 

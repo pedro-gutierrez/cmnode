@@ -26,7 +26,8 @@ handle(#{ id := Id,
               url => BinUrl,
               title => cmkit:uniconvert(Title),
               date => cmkit:to_millis(Date) },
-
+    
+    weekonekt:import_image(BinId, Url),
     cmdb:put_new(weekonekt, [{PKey, Item}]),
     Stats#{ images => Images + 1 };
 

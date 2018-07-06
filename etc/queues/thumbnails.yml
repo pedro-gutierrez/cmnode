@@ -1,0 +1,6 @@
+version: 1.0
+type: queue
+name: thumbnails
+spec:
+  concurrency: 1
+  max: 1000

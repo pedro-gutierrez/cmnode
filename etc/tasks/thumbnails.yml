@@ -1,0 +1,112 @@
+version: 1.0
+type: task
+name: thumbnails 
+spec:
+  - http:
+      method: get
+      url:
+        object:
+          url:
+            key: url
+            in: params
+  - attempt:
+      onerror:
+        keyword: ok
+      spec:
+        s3:
+          access:
+            key: access
+            in: 
+              key: amazon
+              in: settings
+          secret:
+            key: secret
+            in: 
+              key: amazon
+              in: settings
+          bucket:
+            key: bucket
+            in: params
+          key:
+            join:
+              - key: id
+                in: params
+              - text: "/original.jpeg"
+          data:
+            key: body
+            in: context
+  - attempt:
+      onerror:
+        keyword: ok
+      spec:
+        s3:
+          access:
+            key: access
+            in: 
+              key: amazon
+              in: settings
+          secret:
+            key: secret
+            in: 
+              key: amazon
+              in: settings
+          bucket:
+            key: bucket
+            in: params
+          key:
+            join:
+              - key: id
+                in: params
+              - text: "/50.jpeg"
+          data:
+            thumbnail:
+              data:
+                key: body
+                in: context
+              scale: 2
+              min:
+                width: 800
+                height: 800
+              max:
+                width: 640
+                height: 640
+  - attempt:
+      onerror:
+        keyword: ok
+      spec:
+        s3:
+          access:
+            key: access
+            in: 
+              key: amazon
+              in: settings
+          secret:
+            key: secret
+            in: 
+              key: amazon
+              in: settings
+          bucket:
+            key: bucket
+            in: params
+          key:
+            join:
+              - key: id
+                in: params
+              - text: "/25.jpeg"
+          data:
+            thumbnail:
+              data:
+                key: body
+                in: context
+              scale: 4
+              min: 
+                width: 400
+                height: 400
+              max:
+                width: 640
+                height: 640
+  - queue:
+      name: thumbnails_queue
+      finish: 
+        key: id
+        in: params

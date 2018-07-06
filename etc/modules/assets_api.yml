@@ -24,13 +24,16 @@ spec:
               any: text
     image_data:
       object:
-        context:
-          keyword: image
         headers:
           any: object
         body:
           any: list
         status: 200
+    thumb_not_found:
+      object:
+        context:
+          keyword: thumb
+        status: 404
   update:
     health:
       cmds:
@@ -53,16 +56,12 @@ spec:
           type:
             keyword: image
         cmds:
-          - effect: db_get
-            encoder: image_info_query
-    image_info:
-      model:
-        asset_url:
-          key: url
-          in: value
-      cmds:
-        - effect: http
-          encoder: image_data_query
+          - effect: http
+            encoder: thumbnail_query
+    thumb_not_found:
+        cmds:
+          - effect: http
+            encoder: original_query
     image_data:
       model:
         asset_data:
@@ -81,21 +80,31 @@ spec:
       object:
         status: 
           keyword: ok
-    image_info_query:
-      object:
-        bucket:
-          config: assets_db
-        type:
-          keyword: image
-        id:
-          key: id
-    image_data_query:
+    thumbnail_query:
       object:
         context:
-          keyword: image
+          keyword: thumb
         method: 
           keyword: get 
         url:
-          key: asset_url
+          join:
+            - text: "https://s3.eu-west-3.amazonaws.com/"
+            - config: s3_bucket
+            - text: "/"
+            - key: id
+            - text: "/25.jpeg"
+    original_query:
+      object:
+        context:
+          keyword: original
+        method: 
+          keyword: get 
+        url:
+          join:
+            - text: "https://s3.eu-west-3.amazonaws.com/"
+            - config: s3_bucket
+            - text: "/"
+            - key: id
+            - text: "/original.jpeg"
     image_data:
       key: asset_data

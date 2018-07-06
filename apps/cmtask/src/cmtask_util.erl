@@ -33,9 +33,9 @@ resolve_items([#{ type := task, name := Name }|Rem], Out) ->
 resolve_items([Item|Rem], Out) ->
     resolve_items(Rem, [Item|Out]).
 
-run_items(Name, SettingsName, [], _) ->
+run_items(Name, SettingsName, [], In) ->
     cmkit:success({task, Name, SettingsName, finished}),
-    ok;
+    {ok, In};
 
 run_items(Name, Settings, [Item|Rem], In) -> 
     case run_item(Name, Item, #{ context := Ctx } = In) of 
@@ -43,6 +43,8 @@ run_items(Name, Settings, [Item|Rem], In) ->
             run_items(Name, Settings, Rem, In);
         {ok, Extra } when is_map(Extra) ->
             run_items(Name, Settings, Rem, In#{ context => maps:merge(Ctx, Extra)}); 
+        {ok, Extra } -> 
+            run_items(Name, Settings, Rem, In#{ context => Ctx#{ last => Extra }}); 
         Other -> 
             cmkit:danger({task, Name, Settings, Item, Other}),
             Other
@@ -231,14 +233,8 @@ run_item(_, #{ type := wait }=Spec, In) ->
             Other
     end;
 
-run_item(Name, #{ type := exec }=Spec, In) ->
-    case cmencode:encode(Spec, In) of 
-        {ok, Res} -> 
-            cmkit:log({cmtask, Name, exec, Res}),
-            ok;
-        Other -> 
-            Other
-    end;
+run_item(_, #{ type := exec }=Spec, In) ->
+    cmencode:encode(Spec, In);
 
 run_item(_, #{ type := test, spec := #{ name := Test,
                                         settings := Settings,
@@ -249,6 +245,14 @@ run_item(_, #{ type := test, spec := #{ name := Test,
             ok;
         Other -> 
             Other
+    end;
+
+run_item(_, #{ type := thumbnail, as := As }=Spec, In) -> 
+    case cmencode:encode(Spec, In) of 
+        {ok, Data} -> 
+            {ok, #{ As => Data }};
+        Other -> 
+            Other 
     end;
 
 run_item(_, #{ type := rm, spec := Location}, In)  ->
@@ -316,5 +320,19 @@ run_item(Name, #{ type := shell,
             Other
     end;
 
-run_item(_, _, _) ->
-    {error, task_item_not_supported}.
+
+run_item(_, #{ type := queue,
+               spec := #{ action := finish,
+                          id := IdSpec,
+                          name := Name }}, In) ->
+    
+    case cmencode:encode(IdSpec, In) of 
+        {ok, Id} ->
+            cmqueue:finish(Name, Id);
+        Other -> 
+            Other
+    end;
+
+
+run_item(_, Spec, In) -> 
+    cmencode:encode(Spec, In).

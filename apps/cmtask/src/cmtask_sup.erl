@@ -1,35 +1,20 @@
-%%%-------------------------------------------------------------------
-%% @doc cmtask top level supervisor.
-%% @end
-%%%-------------------------------------------------------------------
-
 -module(cmtask_sup).
-
 -behaviour(supervisor).
-
-%% API
 -export([start_link/0]).
-
-%% Supervisor callbacks
--export([init/1]).
-
--define(SERVER, ?MODULE).
-
-%%====================================================================
-%% API functions
-%%====================================================================
+-export([init/1, new_task/2]).
 
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%%====================================================================
-%% Supervisor callbacks
-%%====================================================================
-
-%% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+    Spec = cmkit:child_spec(cmtask_worker,
+                            cmtask_worker,
+                            [],
+                            temporary,
+                            worker),
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+    {ok, { {simple_one_for_one, 0, 1}, [Spec]}}.
+
+new_task(Name, Params) ->
+    supervisor:start_child(?MODULE, [Name, Params]).
+

@@ -9,6 +9,8 @@ spec:
     - assets_api 
     - token_api
   config:
+    s3_bucket:
+      keyword: weekonekt
     tokens_db:
       keyword: weekonekt
     files_db:

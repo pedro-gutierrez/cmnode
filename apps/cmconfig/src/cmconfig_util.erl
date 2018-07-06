@@ -1277,6 +1277,60 @@ compile_term(#{ <<"iterate">> := SourceSpec,
        filter => none,
        dest => compile_term(DestSpec) };
 
+compile_term(#{ <<"attempt">> := #{ <<"spec">> := Spec,
+                                    <<"onerror">> := OnError } }) -> 
+    
+    #{ type => attempt,
+       spec  => compile_term(Spec),
+       onerror => compile_term(OnError)
+     };
+
+compile_term(#{ <<"erlang">> := #{ <<"mod">> := Mod,
+                                   <<"fun">> := Fun } = Spec}) -> 
+    
+    Args = maps:get(<<"args">>, Spec, []),
+
+    #{ type => erlang,
+       mod => compile_keyword(Mod),
+       function => compile_keyword(Fun),
+       args => compile_term(Args) };
+
+compile_term(#{ <<"thumbnail">> := #{ <<"data">> := DataSpec,
+                                      <<"scale">> := Scale,
+                                      <<"max">> := #{ <<"width">> := MaxWidth,
+                                                      <<"height">> := MaxHeight }, 
+                                      <<"min">> := #{ <<"width">> := MinWidth,
+                                                      <<"height">> := MinHeight }}}) -> 
+    
+    #{ type => thumbnail,
+       data => compile_term(DataSpec),
+       scale => Scale,
+       min => #{ width => compile_term(MinWidth),
+                 height =>  compile_term(MinHeight) },
+       max => #{ width => compile_term(MaxWidth),
+                 height =>  compile_term(MaxHeight) }
+     };
+
+compile_term(#{ <<"s3">> := #{ <<"access">> := Access,
+                               <<"secret">> := Secret,
+                               <<"bucket">> := Bucket,
+                               <<"key">> := Key,
+                               <<"data">> := Data }}) -> 
+    
+    #{ type => s3,
+       spec => #{ access => compile_term(Access),
+                  secret => compile_term(Secret),
+                  bucket => compile_term(Bucket),
+                  key => compile_term(Key),
+                  data => compile_term(Data) }};
+
+compile_term(#{ <<"queue">> := #{ <<"name">> := Name,
+                                  <<"finish">> := Id}}) ->
+    
+    #{ type => queue,
+       spec => #{ action => finish,
+                  name => compile_keyword(Name),
+                  id => compile_term(Id) }};
 
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
