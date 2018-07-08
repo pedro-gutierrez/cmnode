@@ -575,6 +575,12 @@ compile_term(#{ <<"as">> := As,
        spec => compile_term(Spec) 
      };
 
+compile_term(#{ <<"file">> := #{ <<"path">> := P,
+                                 <<"data">> := D }}) -> 
+    #{ type => file,
+       spec => #{ path => compile_term(P),
+                  data => compile_term(D)}};
+
 compile_term(#{ <<"file">> := Spec }) when is_map(Spec) ->
     #{ type => file,
        spec => compile_term(Spec) 
@@ -1295,21 +1301,16 @@ compile_term(#{ <<"erlang">> := #{ <<"mod">> := Mod,
        function => compile_keyword(Fun),
        args => compile_term(Args) };
 
-compile_term(#{ <<"thumbnail">> := #{ <<"data">> := DataSpec,
-                                      <<"scale">> := Scale,
-                                      <<"max">> := #{ <<"width">> := MaxWidth,
-                                                      <<"height">> := MaxHeight }, 
-                                      <<"min">> := #{ <<"width">> := MinWidth,
-                                                      <<"height">> := MinHeight }}}) -> 
+compile_term(#{ <<"thumbnail">> := #{ <<"url">> := U,
+                                      <<"basename">> := B,
+                                      <<"dir">> := D,
+                                      <<"sizes">> := S }}) -> 
     
     #{ type => thumbnail,
-       data => compile_term(DataSpec),
-       scale => Scale,
-       min => #{ width => compile_term(MinWidth),
-                 height =>  compile_term(MinHeight) },
-       max => #{ width => compile_term(MaxWidth),
-                 height =>  compile_term(MaxHeight) }
-     };
+       url => compile_term(U),
+       basename => compile_term(B),
+       dir => compile_term(D),
+       sizes => compile_terms(S) };
 
 compile_term(#{ <<"s3">> := #{ <<"access">> := Access,
                                <<"secret">> := Secret,
@@ -1323,6 +1324,17 @@ compile_term(#{ <<"s3">> := #{ <<"access">> := Access,
                   bucket => compile_term(Bucket),
                   key => compile_term(Key),
                   data => compile_term(Data) }};
+
+compile_term(#{ <<"db">> := #{ <<"bucket">> := B,
+                               <<"type">> := T,
+                               <<"id">> := Id,
+                               <<"value">> := Value }}) -> 
+    #{ type => db,
+       spec => #{ bucket => compile_term(B),
+                  type => compile_term(T),
+                  id => compile_term(Id),
+                  value => compile_term(Value) }};
+
 
 compile_term(#{ <<"queue">> := #{ <<"name">> := Name,
                                   <<"finish">> := Id}}) ->

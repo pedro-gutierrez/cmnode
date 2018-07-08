@@ -1,15 +1,28 @@
 -module(cmimg).
 -export([convert/1]).
 
-convert(#{ data := Data, 
-           scale := Scale }=Spec) ->
-    case eimp:identify(Data) of 
-        {ok, [{type, Type},
-              {width, Width},
-              {height, Height}]} -> 
-            eimp:convert(Data, Type, [{scale, {Width div Scale, Height div Scale}}]);
-        Other -> Other
-    end.
+convert(#{ url := Url,
+           dir := Dir,
+           basename := Basename,
+           sizes := Sizes }) ->
+    
+    U = cmkit:to_bin(Url),
+    D = cmkit:to_bin(Dir),
+    B = cmkit:to_bin(Basename),
+    S = cmkit:bin_join(lists:map(fun cmkit:to_bin/1, Sizes), <<",">>),
 
+    Cmd = <<"/Users/pedrogutierrez/.go/bin/goimg url ",
+          U/binary,
+          " ",
+          D/binary,
+          " ",
+          B/binary,
+          " ",
+          "jpg",
+          " ",
+          S/binary
+          >>,
+
+    cmsh:sh(Cmd, []).
 
 

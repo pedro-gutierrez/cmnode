@@ -4,6 +4,78 @@ category: server
 name: webhooks_api 
 spec:
   decoders:
+    netc_certs_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "certs"
+            commits:
+              first:
+                object:
+                  modified:
+                    one_of:
+                      - list:
+                          with:
+                            text: "domains/netc.io.crt"
+                      - list:
+                          with:
+                            text: "domains/netc.io.key"
+    netk_certs_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "certs"
+            commits:
+              first:
+                object:
+                  modified:
+                    one_of:
+                      - list:
+                          with:
+                            text: "domains/netk.io.crt"
+                      - list:
+                          with:
+                            text: "domains/netk.io.key"
+    test_certs_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "certs"
+            commits:
+              first:
+                object:
+                  modified:
+                    one_of:
+                      - list:
+                          with:
+                            text: "domains/test.io.crt"
+                      - list:
+                          with:
+                            text: "domains/test.io.key"
     nimg_dev_changed:
       object:
         headers:

@@ -1,5 +1,5 @@
 -module(cmperf).
--export([stats/0, procs/0]).
+-export([stats/0, procs/1, procs/0]).
 
 stats() ->
   CpuInfo = case cpu_sup:util([per_cpu]) of
@@ -13,7 +13,7 @@ stats() ->
     cpu => CpuInfo
    }.
 
-procs() -> procs(20).
+procs() -> procs(5).
 
 procs(Limit) ->
     lists:sublist(

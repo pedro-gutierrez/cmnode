@@ -1,6 +1,6 @@
 version: 1.0
 type: task
-name: thumbnails 
+name: thumbnails_s3
 spec:
   - http:
       method: get
@@ -63,13 +63,7 @@ spec:
               data:
                 key: body
                 in: context
-              scale: 2
-              min:
-                width: 800
-                height: 800
-              max:
-                width: 640
-                height: 640
+              width: 800
   - attempt:
       onerror:
         keyword: ok
@@ -98,13 +92,7 @@ spec:
               data:
                 key: body
                 in: context
-              scale: 4
-              min: 
-                width: 400
-                height: 400
-              max:
-                width: 640
-                height: 640
+              width: 400
   - queue:
       name: thumbnails_queue
       finish: 

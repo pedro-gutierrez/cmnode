@@ -1,0 +1,25 @@
+version: 1.0
+type: task
+name: thumbnails_fs
+spec:
+  - thumbnail:
+      url:
+        key: url
+        in: params
+      basename:
+        key: id
+        in: params
+      dir:
+        key: assets
+        in:
+          key: dirs
+          in: settings
+      sizes:
+        - big
+        - regular
+        - small
+  - queue:
+      name: thumbnails_queue
+      finish: 
+        key: id
+        in: params

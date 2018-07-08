@@ -7,11 +7,10 @@ import_image(Id, Url) ->
              info => #{}, 
              spec => #{ 
                start => { cmtask, schedule, [
-                                             thumbnails, 
-                                             #{ settings => s3, 
+                                             thumbnails_fs,
+                                             #{ settings => weekonekt, 
                                                 url => Url,
-                                                id => Id, 
-                                                bucket => weekonekt }]}, 
+                                                id => Id }]}, 
                stop => { cmtask, stop, Id }}},
 
     cmqueue:schedule(thumbnails_queue, Job).

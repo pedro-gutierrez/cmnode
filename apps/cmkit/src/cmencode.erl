@@ -403,21 +403,26 @@ encode(#{ height := Height,
     end;
 
 encode(#{ type := thumbnail,
-          data := DataSpec,
-          scale := Scale, 
-          min := MinSpec,
-          max := MaxSpec }, In, Config) ->
-    case cmencode:encode(DataSpec, In, Config) of 
-        {ok, Data} ->
-            case cmencode:encode(MinSpec, In, Config) of 
-                {ok, Min} -> 
-                    case cmencode:encode(MaxSpec, In, Config) of 
-                        {ok, Max} -> 
+          url := Url,
+          basename := Basename,
+          dir := Dir,
+          sizes := Sizes }, In, Config) ->
+    case cmencode:encode(Url, In, Config) of 
+        {ok, U} ->
+            case cmencode:encode(Basename, In, Config) of 
+                {ok, B} ->
+                    case cmencode:encode(Dir, In, Config) of 
+                        {ok, D} ->
+                            case encode_all(Sizes, In, Config) of 
+                                {ok, S} ->
 
-                            cmimg:convert(#{ data => cmkit:to_bin(Data),
-                                             scale => Scale,
-                                             min => Min,
-                                             max => Max });
+                                    cmimg:convert(#{ url =>  U, 
+                                                     basename => B,
+                                                     dir => D,
+                                                     sizes => S });
+                                Other -> 
+                                    Other
+                            end;
                         Other -> 
                             Other
                     end;
@@ -469,16 +474,6 @@ encode(#{ type := s3,
             Other
     end;
 
-encode(#{ type := attempt, 
-          spec := Spec, 
-          onerror := OnError }, In, Config) -> 
-    case cmencode:encode(Spec, In, Config) of 
-        {ok, Data} -> 
-            {ok, Data};
-        Other  ->
-            cmkit:warning({cmencode, attempt, Spec, Other}),
-            cmencode:encode(OnError, In, Config)
-    end;
 
 encode(#{ type := erlang,
           mod := M,
@@ -497,6 +492,27 @@ encode(#{ type := erlang,
 
 encode(#{ type := path,
           location := Path }, _, _) -> {ok, cmkit:to_list(Path)};
+
+
+encode(#{ type := file,
+          spec := #{ path := Path, 
+                     data := Data }}, In, Config) ->
+    case encode(Path, In, Config) of 
+        {ok, P} ->
+            case encode(Data, In, Config) of 
+                {ok, D} ->
+                    case file:write_file(cmkit:to_list(P), D) of
+                        ok -> {ok, ok};
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
 
 encode(#{ type := file,
           spec := Spec }, In, Config) ->

@@ -320,6 +320,46 @@ run_item(Name, #{ type := shell,
             Other
     end;
 
+run_item(Name, #{ type := attempt, 
+            spec := Spec, 
+            onerror := OnError }, In) -> 
+    case run_item(Name, Spec, In) of 
+        ok -> 
+            ok;
+        {ok, Data} -> 
+            {ok, Data};
+        Other  ->
+            cmkit:warning({cmtask, attempt, Spec, Other}),
+            cmencode:encode(OnError, In)
+    end;
+
+run_item(_, #{ type := db,
+                  spec := #{ bucket := Bucket,
+                             type := Type,
+                             id := Id,
+                             value := Value }}, In) -> 
+    case cmencode:encode(Bucket, In) of 
+        {ok, B} -> 
+            case cmencode:encode(Type, In) of 
+                {ok, T} ->
+                    case cmencode:encode(Id, In) of 
+                        {ok, I} ->
+                            case cmencode:encode(Value, In) of 
+                                {ok, V} ->
+                                    cmdb:put(B, {T, I}, V);
+                                Other -> 
+                                    Other
+                            end;
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
 
 run_item(_, #{ type := queue,
                spec := #{ action := finish,
