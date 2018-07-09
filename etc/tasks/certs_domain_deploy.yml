@@ -1,0 +1,56 @@
+version: 1.0
+type: task
+name: certs_domain_deploy
+spec:
+  - git:
+      credentials:
+        key: github
+        in: settings
+      clone: 
+        repo: "github.com/netscale-technologies/certs.git"
+        dir: "/tmp/certs"
+  - kube:
+      secret:
+        object:
+          retries: 120
+          namespace: "nc"
+          name: "nc-cert"
+          key:
+            file:
+              at:
+                format:
+                  pattern: "/tmp/certs/domains/~s.key"
+                  params:
+                    - key: domain
+                      in: params
+          cert: 
+            file:
+              at:
+                format:
+                  pattern: "/tmp/certs/domains/~s.crt"
+                  params:
+                    - key: domain
+                      in: params
+  - kube:
+      delete:
+        object:
+          namespace: "nc"
+          labels:
+            object:
+              app: coturn
+          resource: pod
+  
+  - slack:
+      settings:
+        key: slack
+        in: params
+      severity:
+        keyword: "success"
+      subject:
+        text: "SSL certificates deployed"
+      body:
+        format:
+          pattern: "New SSL certificates have been deployed to ~s"
+          params:
+            - key: settings
+              in: params

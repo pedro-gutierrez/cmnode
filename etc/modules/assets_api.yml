@@ -16,24 +16,40 @@ spec:
         query:
           id:
             any: text
-    image_info:
+    s3_start:
       object:
-        value:
+        stream:
+          keyword: s3
+        event:
+          keyword: start
+        data:
           object:
-            url: 
-              any: text
-    image_data:
+            headers:
+              any: object
+    s3_data:
       object:
-        headers:
+        stream:
+          keyword: s3
+        event:
+          keyword: data
+        data:
+          any: data
+    s3_end:
+      object:
+        stream:
+          keyword: s3
+        event:
+          keyword: end
+        data: 
           any: object
-        body:
-          any: list
-        status: 200
-    thumb_not_found:
+    s3_error:
       object:
-        context:
-          keyword: thumb
-        status: 404
+        stream:
+          keyword: s3
+        event:
+          keyword: error
+        data: 
+          any: object
   update:
     health:
       cmds:
@@ -56,24 +72,46 @@ spec:
           type:
             keyword: image
         cmds:
-          - effect: http
+          - effect: file
             encoder: thumbnail_query
-    thumb_not_found:
-        cmds:
-          - effect: http
-            encoder: original_query
-    image_data:
+    s3_start:
       model:
-        asset_data:
+        stream:
           object:
-            status: 200
-            headers:
+            event:
+              keyword: start
+            data:
               key: headers
-            body:
-              key: body
+              in:
+                key: data
       cmds:
-        - effect: notify
-          encoder: image_data
+        - effect: stream
+          encoder: stream 
+    s3_data:
+      model:
+        stream:
+          object:
+            event:
+              keyword: data
+            data:
+              key: data
+      cmds:
+        - effect: stream
+          encoder: stream 
+    s3_end:
+      model:
+        stream:
+          object:
+            event:
+              keyword: end
+            data:
+              key: data
+      cmds:
+        - effect: stream
+          encoder: stream 
+        - effect: terminate
+    s3_error:
+      cmds:
         - effect: terminate
   encoders:
     health:
@@ -82,29 +120,14 @@ spec:
           keyword: ok
     thumbnail_query:
       object:
-        context:
-          keyword: thumb
         method: 
-          keyword: get 
-        url:
+          keyword: get
+        stream:
+          keyword: s3
+        path:
           join:
-            - text: "https://s3.eu-west-3.amazonaws.com/"
-            - config: s3_bucket
-            - text: "/"
+            - text: "/Users/pedrogutierrez/Projects/cmnode/data/weekonekt_assets/"
             - key: id
-            - text: "/25.jpeg"
-    original_query:
-      object:
-        context:
-          keyword: original
-        method: 
-          keyword: get 
-        url:
-          join:
-            - text: "https://s3.eu-west-3.amazonaws.com/"
-            - config: s3_bucket
-            - text: "/"
-            - key: id
-            - text: "/original.jpeg"
-    image_data:
-      key: asset_data
+            - text: "-regular.jpg"
+    stream:
+      key: stream

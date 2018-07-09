@@ -51,14 +51,14 @@ run_items(Name, Settings, [Item|Rem], In) ->
     end.
 
 run_item(Name, #{ type := kube,
-       spec := #{ query := create,
-                  resource := deployment,
-                  params := ParamsSpec }}, #{ settings := Settings } = In) ->
-    
+                  spec := #{ query := create,
+                             resource := deployment,
+                             params := ParamsSpec }}, #{ settings := Settings } = In) ->
+
     case Settings of 
         #{ kubernetes := #{ api := Host,
                             token := Token }} -> 
-            
+
             cmkit:log({cmtask, Name, create, deployment}),
             case cmencode:encode(ParamsSpec, In) of 
                 {ok, Params} ->
@@ -68,6 +68,58 @@ run_item(Name, #{ type := kube,
                                             token => Token}) of 
                         {error, E} -> {error, E};
                         {ok, _} -> ok
+                    end;
+                Other ->
+                    Other
+            end;
+        _ -> 
+            {error, missing_kube_settings}
+    end;
+
+run_item(Name, #{ type := kube,
+                  spec := #{ query := create,
+                             resource := secret,
+                             params := ParamsSpec }}, #{ settings := Settings } = In) ->
+
+    case Settings of 
+        #{ kubernetes := #{ api := Host,
+                            token := Token }} -> 
+
+            cmkit:log({cmtask, Name, create, secret}),
+            case cmencode:encode(ParamsSpec, In) of 
+                {ok, Params} ->
+                    case cmkube:do(Params#{ verb => <<"create">>, 
+                                            resource => <<"secret">>,
+                                            host => Host,
+                                            token => Token}) of 
+                        {error, E} -> {error, E};
+                        {ok, _} -> ok;
+                        ok -> ok
+                    end;
+                Other ->
+                    Other
+            end;
+        _ -> 
+            {error, missing_kube_settings}
+    end;
+
+run_item(Name, #{ type := kube,
+                  spec := #{ query := delete,
+                             params := ParamsSpec }}, #{ settings := Settings } = In) ->
+
+    case Settings of 
+        #{ kubernetes := #{ api := Host,
+                            token := Token }} -> 
+
+            cmkit:log({cmtask, Name, kube, delete}),
+            case cmencode:encode(ParamsSpec, In) of 
+                {ok, Params} ->
+                    case cmkube:do(Params#{ verb => <<"delete">>, 
+                                            host => Host,
+                                            token => Token}) of 
+                        {error, E} -> {error, E};
+                        {ok, _} -> ok;
+                        ok -> ok
                     end;
                 Other ->
                     Other

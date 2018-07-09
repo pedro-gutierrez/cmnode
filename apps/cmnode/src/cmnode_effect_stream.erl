@@ -1,0 +1,9 @@
+-module(cmnode_effect_stream).
+-export([ effect_info/0,
+          effect_apply/2
+        ]).
+
+effect_info() -> stream.
+effect_apply(#{ event := Ev, 
+                data := Data }, Id) ->
+    cmsession:stream(Id, {Ev, Data}).

@@ -63,7 +63,7 @@ ready(cast, {update, Data}, #{ app := App,
                             {keep_state, Session#{ model => Model2 }};
                         {error, E} ->
                             server_error(App, Session, update, E),
-                            {keep_state, Session}
+                            {stop, Session}
                     end;
                 {error, E} ->
                     server_error(App, Session, update, E),
@@ -85,13 +85,14 @@ ready(cast, terminate, #{ app := App,
     ok = cmcore_effect:stop(Effect),
     {stop, normal}.
 
-server_error(App, #{ id := Id} = Session, Phase, Reason) ->
+server_error(App, Session, Phase, Reason) ->
     Info = #{ status => error,
               app => App,
               phase => Phase,
               reason => Reason },
     cmkit:danger({cmcore, server_error, Info}),
     cmcore_util:apply_effect(notify, Info, Session),
+    gen_statem:cast(self(), terminate),
     Info.
 
 terminate(Reason, _, #{ app := App, id := Id}) ->

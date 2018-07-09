@@ -1396,6 +1396,17 @@ compile_kube_spec(#{ <<"deployment">> := Spec}) ->
        params => compile_term(Spec)
      };
 
+compile_kube_spec(#{ <<"secret">> := Spec}) ->
+    #{ query => create,
+       resource => secret,
+       params => compile_term(Spec)
+     };
+
+compile_kube_spec(#{ <<"delete">> := Spec}) ->
+    #{ query => delete,
+       params => compile_term(Spec)
+     };
+
 compile_kube_spec(#{ <<"query">> := Verb,
                      <<"resource">> := Resource}) ->
     #{ query => cmkit:to_atom(Verb),

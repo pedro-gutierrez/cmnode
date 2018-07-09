@@ -1,5 +1,53 @@
 -module(cmhttp).
--export([ get/1, get/2, post/3 ]).
+-export([stream/1, get/1, get/2, post/3 ]).
+
+stream(#{ method := Method,
+          url := Url,
+          headers := Headers,
+          context := #{ data := Ctx,
+                        callback := {M, F}}}) ->
+    
+    cmkit:log({cmhttp, stream, Url, Headers, M, F, Ctx}),
+    Url2 = encoded_url(Url),
+    Headers2 = encoded_headers(Headers),
+
+    Map = fun ({_, stream_start, H}) ->
+                  maps:merge(Ctx, #{ event => start,
+                                     data => #{ status => 200,
+                                                headers => decoded_headers(H, #{})}});
+               ({_, stream, BinBodyPart}) -> 
+                  maps:merge(Ctx, #{ event => data,
+                                     data => BinBodyPart });
+              ({_, stream_end, H}) -> 
+                  maps:merge(Ctx, #{ event => 'end',
+                                     data => decoded_headers(H, #{})});
+              ({_, {{_, Status, _}, H, Body}}) -> 
+                  maps:merge(Ctx, #{ event => 'error',
+                                     data => #{ status => Status,
+                                                headers => decoded_headers(H, #{}),
+                                                body => Body }});
+              (_) ->
+                  ignore
+          end,
+
+    Recv = fun(Ev) ->
+                  case Map(Ev) of 
+                      ignore -> 
+                          cmkit:log({cmhttp, stream, ignored, Ev});
+                      Data ->
+                            spawn(M, F, [Data])
+                  end
+          end,
+    
+    httpc:request(Method, {Url2, Headers2}, [], [{sync, false},
+                                                 {stream, self}, 
+                                                 {receiver, Recv}]);
+
+stream(#{ method := _,
+          url := _,
+          context := _} = Q) -> 
+    
+    stream(Q#{ headers => #{} }).
 
 get(Url) ->
     get(Url, #{}).
@@ -72,4 +120,3 @@ decoded_headers([{K, V}|Rem], Out) ->
     BinKey = cmkit:to_bin(K),
     BinValue = cmkit:to_bin(V),
     decoded_headers(Rem, Out#{ BinKey => BinValue }).
-

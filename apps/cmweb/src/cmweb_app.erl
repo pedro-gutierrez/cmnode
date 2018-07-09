@@ -18,8 +18,7 @@ open(#{ name := Name,
     {ok, _} = cowboy:start_clear(Name, 
                                  [{port, Port}, {num_acceptors, Acceptors}],
                                  #{env => #{dispatch => Dispatch},
-                                  stream_handlers => [cowboy_compress_h,
-                                                     cowboy_stream_h]}),
+                                  stream_handlers => [cowboy_stream_h]}),
     cmkit:log({cmweb, Name, Port, ok});
 
 open(_) -> ok.

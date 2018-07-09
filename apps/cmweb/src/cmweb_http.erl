@@ -30,6 +30,21 @@ init(Req, #{app := App}=State) ->
             reply_and_ok(error, json, #{}, Req, State)
     end.
 
+info({stream, start, Headers}, Req, State) ->
+    cmkit:log({cmweb, stream, start, Headers}),
+    Req2 = cowboy_req:stream_reply(200, Headers, Req),
+    {ok, Req2, State};
+
+info({stream, data, Data}, Req, State) -> 
+    cowboy_req:stream_body(Data, nofin, Req),
+    {ok, Req, State};
+
+info({stream, 'end', Data}, Req, State) -> 
+    ok = cowboy_req:stream_trailers(Data, Req),
+    {stop, Req, State};
+
+
+
 info(#{ status := Code, headers := Headers, body := Body }, Req, State) ->
     cmkit:log({http, out, Code, Headers, Body}),
     Req2 = cowboy_req:reply(Code, Headers, Body, Req),

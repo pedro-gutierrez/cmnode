@@ -70,7 +70,7 @@ do(#{ host := Host,
       token := Token,
       namespace := Ns,
       verb := <<"list">>,
-      resource := <<"pods">>,
+      resource := <<"pod">>,
       labels := Labels
     }) ->
 
@@ -84,6 +84,23 @@ do(#{ host := Host,
             Other
     end;
 
+do(#{ host := Host,
+      token := Token,
+      namespace := Ns,
+      verb := <<"delete">>,
+      resource := <<"pod">>
+    }=Params) ->
+
+    case do(Params#{ verb => <<"list">> }) of
+        {ok, Items} ->
+            Names = [ Name || #{ metadata := #{ name := Name }} <- Items ],
+            cmkit:log({cmkube, deleting, pods, Names}),
+            Ctx = ctx:background(),
+            Opts = opts(Host, Token),
+            cmkube_util:delete_pods(Names, Ns, Ctx, Opts);
+        Other -> 
+            Other
+    end;
 
 do(#{ host := Host,
       token := Token,
@@ -154,6 +171,58 @@ do(#{ host := Host,
         Other ->
             Other
     end;
+
+do(#{ host := Host,
+      token := Token,
+      namespace := Ns,
+      verb := <<"delete">>,
+      resource := <<"secret">>,
+      name := Name }) ->
+        
+    cmkit:log({cmkube, secret, Name, deleting}),
+    Ctx = ctx:background(),
+    Opts = opts(Host, Token),
+    case kuberl_core_v1_api:delete_namespaced_secret(Ctx, Name, Ns, #{}, Opts) of 
+        {error, E} -> {error, E};
+        _ -> ok
+    end;
+
+do(#{ host := Host,
+      token := Token,
+      namespace := Ns,
+      verb := <<"create">>,
+      resource := <<"secret">>,
+      name := Name,
+      key := Key,
+      cert := Cert
+    }=Params) ->
+
+    case do(Params#{ verb => <<"delete">> }) of 
+        ok ->
+            cmkit:log({cmkube, secret, Name, creating}),
+            Ctx = ctx:background(),
+            Opts = opts(Host, Token),
+            Spec = #{ apiVersion => <<"v1">>,
+                     kind => <<"Secret">>,
+                     metadata => #{ name => Name,
+                                    namespace => Ns },
+                     type => <<"kubernetes.io/tls">>,
+                     stringData => #{ <<"tls.crt">> => Cert,
+                                      <<"tls.key">> => Key }},
+            case kuberl_core_v1_api:create_namespaced_secret(Ctx, Ns, Spec, Opts) of 
+                {error, E} -> {error, E};
+                {error, #{ code := Code,
+                           message := Message }, _} -> {error, #{ code => Code, 
+                                                                  reason => Message}};
+                Resp -> 
+                    cmkit:log({cmkube, secret, Name, create, Resp}),
+                    ok
+            end;
+        Other ->
+            Other
+    end;
+
+
 
 do(Q) ->
     {error, #{ status => not_supported_yet,

@@ -36,6 +36,7 @@ terminate(Reason, SessionId) ->
     ok.
 
 handle({apply, Mod, Data}, SessionId) ->
+    cmkit:log({cmcore, effect, SessionId, Mod, Data}),
     Mod:effect_apply(Data, SessionId);
 
 handle(Other, SessionId) ->

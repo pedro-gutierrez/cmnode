@@ -491,8 +491,15 @@ encode(#{ type := erlang,
     end;
 
 encode(#{ type := path,
-          location := Path }, _, _) -> {ok, cmkit:to_list(Path)};
-
+          location := Path }, In, Config) -> 
+    case cmencode:encode(Path, In, Config) of 
+        {ok, P} ->
+            {ok, cmkit:to_list(P)};
+        Other -> 
+            {error, #{ status => encode_error,
+                       spec => Path,
+                       reason => Other }}
+    end;
 
 encode(#{ type := file,
           spec := #{ path := Path, 
@@ -520,7 +527,9 @@ encode(#{ type := file,
         {ok, Path} ->
             file:read_file(Path);
         Other -> 
-            Other
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       reason => Other }}
     end;
 
 encode(#{ type := base64,
@@ -529,7 +538,9 @@ encode(#{ type := base64,
         {ok, Data} ->
             {ok, base64:encode(Data)};
         Other -> 
-            Other
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       reason => Other }}
     end;
 
 encode(#{ type := asset,

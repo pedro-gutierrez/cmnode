@@ -1,5 +1,5 @@
 -module(cmsession).
--export([new/1, attach/3, delete/1, retrieve/2, conns/1, tell/2, broadcast/1]).
+-export([new/1, attach/3, delete/1, retrieve/2, conns/1, tell/2, stream/2, broadcast/1]).
 
 new(App) ->
     Conn = self(),
@@ -37,6 +37,10 @@ conns(Id) ->
 tell(Id, Data) ->
     {ok, Conns} = conns(Id),
     [ C ! Data || C <- Conns ].
+
+stream(Id, {Ev, Data}) ->
+    {ok, Conns} = conns(Id),
+    [ C ! {stream, Ev, Data} || C <- Conns ].
 
 broadcast(Data) ->
     {ok, Conns } = cmdb:find(sessions, connection), 

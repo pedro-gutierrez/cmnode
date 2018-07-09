@@ -4,30 +4,24 @@
         ]).
 
 effect_info() -> slack.
-effect_apply(#{ announcement := image_pushed,
-                settings := Settings,
-                image := #{ 
-                  name := Name,
-                  tag := Tag
-                 }}, _Id) ->
+effect_apply(#{ settings := Settings,
+                subject := Subject,
+                text := Text }, _) -> 
     
     case cmconfig:settings(Settings, true) of 
         {ok, #{ slack := 
                 #{ tests := #{
                      enabled := Enabled } = Slack }}} -> 
 
-            Subject = <<"New docker image ready">>,
-            Body = <<"Image ", Name/binary, ":", Tag/binary, " is now ready">>,
-
             case Enabled of 
                 true -> 
                     cmslack:success(Slack#{ subject => Subject,
-                                            text => Body
+                                            text => Text
                                           });
                 false -> 
-                    cmkit:log({slack, Settings, disabled, Subject, Body})
+                    cmkit:log({slack, Settings, disabled, Subject, Text})
             end;
-        
+
         Other -> 
             cmkit:warning({effect, slack, invalid_settings, Settings, Other})
     end.
