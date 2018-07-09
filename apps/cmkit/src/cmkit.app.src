@@ -9,8 +9,7 @@
     cowboy,
     uuid,
     os_mon,
-    slacker,
-    erldocker
+    slacker
    ]},
   {env,[]},
   {modules, []},

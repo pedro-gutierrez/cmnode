@@ -820,6 +820,8 @@ spec:
           encoder: certs_changed_announcement
         - effect: task
           encoder: certs_domain_deploy_dev
+        - effect: task
+          encoder: certs_domain_deploy_preprod
         - effect: notify
           encoder: ok
     nimg_dev_changed:
@@ -1729,6 +1731,18 @@ spec:
           object:
             settings:
               keyword: dev
+            domain:
+              key: domain
+            slack:
+              keyword: tests
+    certs_domain_deploy_preprod:
+      object:
+        task:
+          keyword: certs_domain_deploy
+        params:
+          object:
+            settings:
+              keyword: preprod
             domain:
               key: domain
             slack:
