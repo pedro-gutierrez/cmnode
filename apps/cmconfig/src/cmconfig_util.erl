@@ -1303,13 +1303,11 @@ compile_term(#{ <<"erlang">> := #{ <<"mod">> := Mod,
 
 compile_term(#{ <<"thumbnail">> := #{ <<"url">> := U,
                                       <<"basename">> := B,
-                                      <<"dir">> := D,
                                       <<"sizes">> := S }}) -> 
     
     #{ type => thumbnail,
        url => compile_term(U),
        basename => compile_term(B),
-       dir => compile_term(D),
        sizes => compile_terms(S) };
 
 compile_term(#{ <<"s3">> := #{ <<"access">> := Access,
