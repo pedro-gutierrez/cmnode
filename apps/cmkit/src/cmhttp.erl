@@ -1,5 +1,5 @@
 -module(cmhttp).
--export([stream/1, get/1, get/2, post/3 ]).
+-export([stream/1, get/1, get/2, post/3]).
 
 stream(#{ method := Method,
           url := Url,
@@ -120,3 +120,4 @@ decoded_headers([{K, V}|Rem], Out) ->
     BinKey = cmkit:to_bin(K),
     BinValue = cmkit:to_bin(V),
     decoded_headers(Rem, Out#{ BinKey => BinValue }).
+

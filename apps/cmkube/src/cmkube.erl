@@ -112,14 +112,16 @@ do(#{ host := Host,
 
     Ctx = ctx:background(),
     Opts = opts(Host, Token),
+    cmkit:log({cmkube, deployment, Name, deleting}),
     case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
         {error, E} -> {error, E};
         _ -> 
+            cmkit:log({cmkube, deployment, Name, deleted}),
             await(Params#{ status => <<"Running">>,
                                retries => Retries,
                                sleep => 1000,
                                exact => 0,
-                               resource => <<"pods">> })
+                               resource => <<"pod">> })
     end;
 
 do(#{ host := Host,
@@ -134,7 +136,6 @@ do(#{ host := Host,
       spec := Spec
     }=Params) ->
     
-    cmkit:log({cmkube, deployment, Name, deleting}),
     case do(Params#{ verb => <<"delete">> }) of 
         ok ->
             cmkit:log({cmkube, deployment, Name, creating}),
@@ -159,7 +160,7 @@ do(#{ host := Host,
                                         retries => Retries,
                                         sleep => 1000,
                                         exact => Replicas,
-                                        resource => <<"pods">> }) of 
+                                        resource => <<"pod">> }) of 
                         ok -> 
                             cmkit:log({cmkube, deployment, Name, finished}),
                             {ok, FullSpec};

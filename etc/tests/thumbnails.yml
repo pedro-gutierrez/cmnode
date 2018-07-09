@@ -1319,3 +1319,37 @@ spec:
                   in:
                     key: combined_data
                     in: data
+    - title: "Should return a proper error when trying to combine invalid pdf files"
+      tags:
+        - pdf
+        - combine
+        - invalid
+      steps:
+        - title: "Try to convert dummy PDF files"
+          procedure: combine
+          params:
+            object:
+              files:
+                list:
+                  - object:
+                      mime: "application/pdf"
+                      name: "file"
+                      filename: "file1.pdf"
+                      data:
+                        text: "this is file1"
+                  - object:
+                      mime: "application/pdf"
+                      name: "file"
+                      filename: "file2.pdf"
+                      data: 
+                        text: "this is file2"  
+              as: 
+                keyword: combined
+        - title: "Verify we got a 400"
+          expect:
+            eq: 
+              - number: 400
+              - key: status
+                in:
+                  key: combined
+                  in: data 

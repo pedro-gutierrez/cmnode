@@ -31,23 +31,23 @@ init(Req, #{app := App}=State) ->
     end.
 
 info({stream, start, Headers}, Req, State) ->
-    cmkit:log({cmweb, stream, start, Headers}),
-    Req2 = cowboy_req:stream_reply(200, Headers, Req),
+    Headers2 = binary_headers(Headers),
+    Req2 = cowboy_req:stream_reply(200, Headers2, Req),
     {ok, Req2, State};
 
 info({stream, data, Data}, Req, State) -> 
     cowboy_req:stream_body(Data, nofin, Req),
     {ok, Req, State};
 
-info({stream, 'end', Data}, Req, State) -> 
-    ok = cowboy_req:stream_trailers(Data, Req),
+info({stream, 'end', Headers}, Req, State) -> 
+    Headers2 = binary_headers(Headers),
+    cowboy_req:stream_trailers(Headers2, Req),
     {stop, Req, State};
 
-
-
 info(#{ status := Code, headers := Headers, body := Body }, Req, State) ->
+    Headers2 = binary_headers(Headers),
     cmkit:log({http, out, Code, Headers, Body}),
-    Req2 = cowboy_req:reply(Code, Headers, Body, Req),
+    Req2 = cowboy_req:reply(Code, Headers2, Body, Req),
     {stop, Req2, State};
     
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
@@ -75,9 +75,12 @@ reply(Status, Type, Body) ->
     {status(Status), headers(Type), response_body(Type, Body)}.
 
 status(ok) -> 200;
+status(200) -> 200;
 status(invalid) -> 400;
 status(not_found) -> 404;
+status(404) -> 404;
 status(forbidden) -> 401;
+status(401) -> 401;
 status(_) -> 500.
 
 headers(json) -> 
@@ -114,3 +117,10 @@ request_body(<<"application/json">>, Raw) ->
     cmkit:jsond(Raw);
 
 request_body(_, Raw) -> {ok, Raw}.
+
+binary_headers(Map) when is_map(Map) -> 
+    maps:fold(fun(K, V, Out) ->
+                      K2 = cmkit:to_bin(K),
+                      V2 = cmkit:to_bin(V),
+                      Out#{ K2 => V2 }
+              end, #{}, Map).

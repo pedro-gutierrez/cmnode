@@ -348,6 +348,7 @@ encode(#{ type := multipart,
                                                                  StartBoundary, LineSeparator,
                                                                  <<"Content-Disposition: form-data; name=\"">>, Name, <<"\"; filename=\"">>, Filename, <<"\"">>, LineSeparator, 
                                                                  <<"Content-Type: ">>, Mime, LineSeparator, LineSeparator,
+
                                                                  Data,
                                                                  LineSeparator 
                                                                ])
@@ -405,24 +406,18 @@ encode(#{ height := Height,
 encode(#{ type := thumbnail,
           url := Url,
           basename := Basename,
-          dir := Dir,
           sizes := Sizes }, In, Config) ->
     case cmencode:encode(Url, In, Config) of 
         {ok, U} ->
             case cmencode:encode(Basename, In, Config) of 
                 {ok, B} ->
-                    case cmencode:encode(Dir, In, Config) of 
-                        {ok, D} ->
-                            case encode_all(Sizes, In, Config) of 
-                                {ok, S} ->
+                    case encode_all(Sizes, In, Config) of 
+                        {ok, S} ->
 
-                                    cmimg:convert(#{ url =>  U, 
-                                                     basename => B,
-                                                     dir => D,
-                                                     sizes => S });
-                                Other -> 
-                                    Other
-                            end;
+                            cmimg:convert(#{ url =>  U, 
+                                             basename => B,
+                                             dir => cmkit:assets(),
+                                             sizes => S });
                         Other -> 
                             Other
                     end;

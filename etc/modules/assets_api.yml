@@ -16,6 +16,15 @@ spec:
         query:
           id:
             any: text
+    s3_not_found:
+      object:
+        stream:
+          keyword: s3
+        event:
+          keyword: error 
+        data:
+          object:
+            status: 404
     s3_start:
       object:
         stream:
@@ -23,9 +32,7 @@ spec:
         event:
           keyword: start
         data:
-          object:
-            headers:
-              any: object
+          any: object
     s3_data:
       object:
         stream:
@@ -74,6 +81,11 @@ spec:
         cmds:
           - effect: file
             encoder: thumbnail_query
+    s3_not_found:
+      cmds:
+        - effect: notify
+          encoder: not_found
+        - effect: terminate
     s3_start:
       model:
         stream:
@@ -81,9 +93,15 @@ spec:
             event:
               keyword: start
             data:
-              key: headers
-              in:
-                key: data
+              object:
+                content-type:
+                  text: "image/jpeg"
+                content-length:
+                  key: content-length
+                  in:
+                    key: headers
+                    in:
+                      key: data
       cmds:
         - effect: stream
           encoder: stream 
@@ -118,16 +136,16 @@ spec:
       object:
         status: 
           keyword: ok
+    not_found:
+      object:
+        status: 404
     thumbnail_query:
       object:
-        method: 
-          keyword: get
         stream:
           keyword: s3
-        path:
+        asset:
           join:
-            - text: "/Users/pedrogutierrez/Projects/cmnode/data/weekonekt_assets/"
             - key: id
-            - text: "-regular.jpg"
+            - text: "-big.jpg"
     stream:
       key: stream

@@ -9,11 +9,6 @@ spec:
       basename:
         key: id
         in: params
-      dir:
-        key: assets
-        in:
-          key: dirs
-          in: settings
       sizes:
         - big
         - regular
