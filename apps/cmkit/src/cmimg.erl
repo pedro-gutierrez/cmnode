@@ -23,6 +23,7 @@ convert(#{ url := Url,
           S/binary
           >>,
 
+    cmkit:log({cmimg, Cmd}),
     cmsh:sh(Cmd, []).
 
 
