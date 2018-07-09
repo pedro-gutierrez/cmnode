@@ -3,7 +3,7 @@ type: port
 name: weekonekt_admin
 spec:
   port: 8081
-  acceptors: 100
+  acceptors: 1
   apps:
     weekonekt_admin_api:
       ws: "/ws"
