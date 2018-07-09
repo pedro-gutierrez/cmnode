@@ -11,7 +11,7 @@ convert(#{ url := Url,
     B = cmkit:to_bin(Basename),
     S = cmkit:bin_join(lists:map(fun cmkit:to_bin/1, Sizes), <<",">>),
 
-    Cmd = <<"/Users/pedrogutierrez/.go/bin/goimg url ",
+    Cmd = <<"/usr/bin/goimg url ",
           U/binary,
           " ",
           D/binary,
