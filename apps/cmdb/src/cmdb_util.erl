@@ -186,7 +186,7 @@ aggregate(Context, Results) ->
 
 aggregate(#{ empty := not_found }, [], []) -> not_found;
 aggregate(#{ empty := V}, [], []) -> {ok, V};
-aggregate(_, [], Out) -> {ok, lists:flatten(Out)};
+aggregate(_, [], Out) -> {ok, lists:usort(lists:flatten(Out))};
 aggregate(Ctx, [not_found|Rem], Out) ->
     aggregate(Ctx, Rem, Out);
 aggregate(Ctx, [[]|Rem], Out) -> 
