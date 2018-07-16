@@ -57,7 +57,6 @@ handle_cast({register, #{ name := Bucket,
     State2 = State#{ current => Current2, 
                      partitions => [Tid|Partitions]},
     ok = cmdb_util:cache_partitions(State2),
-    cmkit:log({cmdb, Bucket, partition, Tid, up}),
     {noreply, State2};
 
 handle_cast(_, Data) ->

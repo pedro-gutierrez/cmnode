@@ -40,7 +40,7 @@ find_partitions(#{ storage := memory }) ->
 
 find_partitions(#{ name := Bucket,
                    storage := disc }) ->
-    Data =  cmkit:data("data2"),
+    Data =  cmkit:data(),
     Dir =  filename:join([Data, Bucket]),
     cmkit:mkdirp(Dir),
     case cmkit:files(Dir, "db") of 
@@ -109,8 +109,7 @@ reload_config() ->
 cache_partitions(B) ->
     {ok, Bin} = cmtemplate:render(cmdb_partitions, B),
     case cmcode:load_from_binary(<<Bin/binary, "\n">>) of 
-        {module, M} -> 
-            cmkit:log({cmdb, loaded, M}),
+        {module, _M} -> 
             ok;
         Other -> 
             Other
