@@ -1,5 +1,13 @@
 -module(cmperf).
--export([stats/0, procs/1, procs/0]).
+-export([bench/2, stats/0, procs/1, procs/0]).
+
+bench(Fun, Limit) ->
+    {Time, _ } = timer:tc(fun() -> 
+                                  [ Fun(I) || I <- lists:seq(1, Limit)]
+                          end),
+    #{ total_us => Time,
+       us_per_op => trunc(Limit/Time),
+       ops_per_sec => trunc(Limit*1000000/Time) }.
 
 stats() ->
   CpuInfo = case cpu_sup:util([per_cpu]) of

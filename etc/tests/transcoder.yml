@@ -3,8 +3,8 @@ type: test
 name: transcoder
 spec:
   config:
-    retries: 100
-    wait: 5
+    retries: 4
+    wait: 250
   procedures:
     - name: info
       spec:
@@ -111,6 +111,15 @@ spec:
             object:
               as:
                 keyword: info
+        - title: "Check we got a 200 OK"
+          expect:
+            eq:
+              - key: status
+                in: 
+                  key: info
+                  in: data
+              - number: 200
+
         - title: "Verify we got the transcoder status info"
           expect:
             match:

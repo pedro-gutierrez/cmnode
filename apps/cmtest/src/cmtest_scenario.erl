@@ -85,42 +85,47 @@ run_steps(#{ test := #{ name := Name },
              scenario := #{ title := Title },
              settings := Settings,
              steps := Steps,
-             world := #{ retries := #{ 
-                                       wait := Wait 
-                                     }
+             world := #{ retries := #{ wait := Wait,
+                                       max := MaxRetries
+                                     } = Retries
                        } = World,
              runner := Runner,
              started := Started
            }=Data) ->
 
     case Steps of 
-        [Step|Rem] ->
+        [#{ title := StepTitle}=Step|Rem] ->
             Res = cmtest_util:run(Step, Settings, World),
             case Res of 
                 retry ->
                     World2 = retried(World),
+                    cmkit:warning({cmtest, Name, Title, StepTitle, Retries}),
                     {keep_state, Data#{ world => World2  }, 
                         [{state_timeout, Wait, retry}]};
                 
                 {ok, World2} ->
+                    cmkit:success({cmtest, Name, Title, StepTitle}),
                     Elapsed = cmkit:now() - Started,
                     cmtest_runner:progress(Name, Title, length(Rem), Elapsed, Runner),
-                    {keep_state, Data#{ world => World2, 
-                                        steps => Rem 
+                    {keep_state, Data#{ world => World2#{ retries => Retries#{ left => MaxRetries }}, 
+                                        steps => Rem
                                       }};
                     
                 {error, E} ->
+                    cmkit:danger({cmtest, Name, Title, StepTitle}),
                     Elapsed = cmkit:now() - Started,
+                    close_conns(World),
                     cmtest_runner:fail(Name, Title, #{ test => Name,
                                                        scenario => Title,
                                                        step => Step,
-                                                       world => World,
+                                                       world => cmtest_util:printable(World),
                                                        reason => E
                                                      }, Elapsed, Runner),
                     {keep_state, Data#{ steps => Rem }}
             end;
         [] ->
             Elapsed = cmkit:now() - Started,
+            close_conns(World),
             cmtest_runner:success(Name, Title, 0, Elapsed, Runner),
             {keep_state, Data}
     end.
@@ -140,4 +145,20 @@ world_with_conn_msg(App, Msg, #{ conns := Conns}=World) ->
     Conn2 = Conn#{ inbox => [Msg|Inbox] },
     Conns2 = Conns#{ App => Conn2 },
     World#{ conns => Conns2 }.
-    
+
+close_conns(#{ conns := Conns }) ->
+    ConnsToClose = [ {Name, Pid} || #{ name := Name,
+                                  pid := Pid,
+                                  class := websocket } <- maps:values(Conns) ],
+    cmkit:log({cmtest, connections_to_close, ConnsToClose}),
+    [ close_conn(C) || C <- ConnsToClose ],
+    ok;
+
+close_conns(_) ->
+    cmkit:log({cmtest, no_connections_to_close}),
+    ok.
+   
+close_conn({Name, Pid}) ->
+    Res = cmtest_ws_sup:stop(Pid),
+    cmkit:log({cmtest, conn, Name, Pid, close, Res}).
+

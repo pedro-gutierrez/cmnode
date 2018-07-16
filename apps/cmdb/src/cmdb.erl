@@ -1,6 +1,5 @@
 -module(cmdb).
--export([
-         ping/1,
+-export([info/1,
          find/2,
          put/2,
          put_new/2,
@@ -12,46 +11,29 @@
          reset/1
         ]).
 
-ping(Host) ->
-    case cmkit:node_for_host(Host) of 
-        {ok, N} -> 
-            timer:tc(gen_statem, call, [{cmdb_cloud, N}, ping]) ;
-        Other  ->
-            Other
-    end.
+info(Bucket) -> 
+    cmdb_util:bucket_info(Bucket).
 
+put(Bucket, Pairs) -> 
+    cmdb_bucket:put(Bucket, Pairs).
 
-find(Db, Type) ->
-    in( node_for(Db), Db, {find, Type}).
+put_new(Bucket, Pairs) -> 
+    cmdb_bucket:put_new(Bucket, Pairs).
 
-put(Db, Pairs) -> 
-    in( node_for(Db), Db, {put, Pairs}).
+put(Bucket, K, V) ->
+    cmdb_bucket:put(Bucket, [{K, V}]).
 
-put_new(Db, Pairs) -> 
-    in( node_for(Db), Db, {put_new, Pairs}).
+put_new(Bucket, K, V) ->
+    cmdb_bucket:put_new(Bucket, [{K, V}]).
 
-put(Db, K, V) ->
-    cmdb:put(Db, [{K, V}]).
+get(Bucket, K) -> 
+    cmdb_util:get(Bucket, K, [node()|nodes()]).
 
-put_new(Db, K, V) ->
-    cmdb:put_new(Db, [{K, V}]).
+find(Bucket, Type) ->
+    cmdb_util:find(Bucket, Type, [node()|nodes()]).
 
-get(Db, K) ->
-    in( node_for(Db), Db, {get, K}).
+reset(Bucket) ->
+    cmdb_util:reset(Bucket, [node()|nodes()]).
 
-backup(Db) -> 
-    in( node_for(Db), Db, backup).
-
-restore(Db, Name) -> 
-    in( node_for(Db), Db, {restore, Name}).
-
-reset(Db) ->
-    in( node_for(Db), Db, reset).
-
-node_for(Db) -> cmdb_cloud:node_for(Db).
-
-in({ok, N}, Db, Op) ->
-    gen_statem:call({Db, N}, Op);
-
-in({error, E}, _, _) ->
-    {error, E}.
+backup(_Db) ->  ok.
+restore(_Db, _Name) ->  ok.

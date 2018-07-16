@@ -153,7 +153,7 @@ encode(#{ type := url,
           host := Host,
           port := Port,
           transport := Transport,
-          path := Path }, In, Config) ->
+          path := Path }=Spec, In, Config) ->
     case encode(Host, In, Config) of 
         {ok, EncodedHost} ->
             case encode(Port, In, Config) of 
@@ -166,15 +166,32 @@ encode(#{ type := url,
                                     BinPort = cmkit:to_bin(EncodedPort),
                                     BinTransport = cmkit:to_bin(EncodedTransport),
                                     BinPath = cmkit:to_bin(EncodedPath),
+                                    BinQuery = case maps:get(query, Spec, undef) of 
+                                                   undef -> {ok, <<>>};
+                                                   QuerySpec ->
+                                                       case encode(QuerySpec, In, Config) of 
+                                                           {ok, Map} ->
+                                                               {ok, cmhttp:encodedQs(Map)};
+                                                            Other ->
+                                                               Other
+                                                       end
+                                               end,
+                                    case BinQuery of 
+                                        {ok, QueryString} -> 
 
-                                    {ok, #{ url => <<BinTransport/binary, "://", 
-                                                     BinHost/binary, ":",
-                                                     BinPort/binary,
-                                                     BinPath/binary >>, 
-                                            transport => EncodedTransport, 
-                                            host => EncodedHost, 
-                                            port => EncodedPort, 
-                                            path => EncodedPath }};
+                                            {ok, #{ url => <<BinTransport/binary, "://", 
+                                                             BinHost/binary, ":",
+                                                             BinPort/binary,
+                                                             BinPath/binary,
+                                                             QueryString/binary>>, 
+                                                    transport => EncodedTransport, 
+                                                    host => EncodedHost, 
+                                                    port => EncodedPort, 
+                                                    path => EncodedPath,
+                                                    query => QueryString }};
+                                        Error ->
+                                           Error 
+                                    end;
                                 Other -> Other
                             end;
                         Other -> Other

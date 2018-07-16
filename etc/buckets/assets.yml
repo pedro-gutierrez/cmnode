@@ -1,0 +1,7 @@
+version: 1.0
+type: bucket
+name: assets
+spec:
+  storage: folder
+  hosts: 
+    - Pedros-MacBook-Pro

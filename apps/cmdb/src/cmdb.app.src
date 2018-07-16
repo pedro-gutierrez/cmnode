@@ -6,7 +6,8 @@
   {applications,
    [kernel,
     stdlib,
-    cmconfig
+    cmconfig,
+    cmtemplate
    ]},
   {env,[]},
   {modules, []},

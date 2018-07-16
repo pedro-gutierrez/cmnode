@@ -1,0 +1,43 @@
+version: 1.0
+type: template
+name: cmdb_config 
+spec:
+  contents: |-
+    -module(cmdb_config).
+    -export([backend/1, bucket/1, partitions_resolver/1, replicator/1, sup/1, partitions_sup/1]).
+
+    {% for b in buckets %}
+    backend({{ b.name }}) -> ets_type({{ b.storage }});
+    {% endfor %}
+    backend(_) -> unknown.
+    
+    {% for b in buckets %}
+    bucket({{ b.name }}) -> cmdb_{{ b.name }}_bucket;
+    {% endfor %}
+    bucket(_) -> unknown.
+    
+    {% for b in buckets %}
+    partitions_resolver({{ b.name }}) -> cmdb_{{ b.name }}_partitions;
+    {% endfor %}
+    partitions_resolver(_) -> unknown.
+    
+    {% for b in buckets %}
+    partitions_sup({{ b.name }}) -> cmdb_{{ b.name }}_psup;
+    {% endfor %}
+    partitions_sup(_) -> unknown.
+    
+    {% for b in buckets %}
+    replicator({{ b.name }}) -> cmdb_{{ b.name }}_rep;
+    {% endfor %}
+    replicator(_) -> unknown.
+    
+    {% for b in buckets %}
+    sup({{ b.name }}) -> cmdb_{{ b.name }}_bsup;
+    {% endfor %}
+    sup(_) -> unknown.
+
+    
+    %% convenience functions
+    ets_type(disc) -> dets; 
+    ets_type(memory) -> ets; 
+    ets_type(_) -> unknown.

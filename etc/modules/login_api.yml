@@ -127,6 +127,8 @@ spec:
           keyword: roles 
         id: 
           key: uuid
+        all:
+          keyword: true
     user_password_lookup:
       object:
         context: 

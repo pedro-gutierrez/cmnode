@@ -4,7 +4,8 @@
          steps/2,
          run/3,
          close/2, 
-         report_sort_fun/2]).
+         report_sort_fun/2,
+         printable/1]).
 
 start(Test, #{ title := Title}=Scenario, Settings, Runner) ->
     case cmtest_scenario:start(Test, Scenario, Settings, Runner) of 
@@ -21,15 +22,26 @@ scenarios_by_tag(Tag, Scenarios) ->
 
 steps(#{ steps := Steps,
          backgrounds := Backgrounds }, Test) ->
-    case resolve_backgrounds(Backgrounds, Test) of 
+    IndexedProcs = index_procedures(Test),
+    IndexedReusableSteps = index_reusable_steps(Test),
+    case resolve_backgrounds(Backgrounds, Test, IndexedReusableSteps) of 
         {ok, Resolved } ->
             Steps3 = lists:flatten(lists:map(fun(B) -> 
                                         maps:get(steps, B)
                                     end, Resolved)) ++ Steps,
-            IndexedProcs = index_procedures(Test),
-            resolve_procedures(Steps3, IndexedProcs, []); 
+            case resolve_procedures(Steps3, IndexedProcs, []) of 
+                {ok, Steps4} -> 
+                    resolve_steps(Steps4, IndexedReusableSteps);
+                Other -> 
+                    Other
+            end;
         Other -> Other
     end.
+
+index_reusable_steps(#{ steps := Steps }) ->
+    lists:foldl(fun(#{ title := Title }=Spec, Acc) ->
+                    Acc#{ Title => Spec }
+                end, #{}, Steps).
 
 index_procedures(#{ procedures := Procs }) ->
     lists:foldl(fun(#{ name := Name,
@@ -58,15 +70,50 @@ resolve_procedures([#{ type := procedure,
 resolve_procedures([S|Rem], Procs, Steps) ->
     resolve_procedures(Rem, Procs, [S|Steps]).
 
-resolve_backgrounds(Backgrounds, Test) ->
-    resolve_backgrounds(Backgrounds, Test, []).
+resolve_backgrounds(Backgrounds, Test, ReusableSteps) ->
+    resolve_backgrounds(Backgrounds, Test, ReusableSteps, []).
 
-resolve_backgrounds([], _, Out) -> {ok, lists:reverse(Out)};
-resolve_backgrounds([#{ id := BId }=BRef|Rem], #{ backgrounds := Backgrounds }=Test, Out) ->
-    case maps:get(BId, Backgrounds, undef) of 
-        undef -> {error, {undefined, background, BRef}};
-        Resolved -> resolve_backgrounds(Rem, Test, [Resolved|Out])
+resolve_backgrounds([], _, _, Out) -> {ok, lists:reverse(Out)};
+resolve_backgrounds([#{ id := BId, title := Title }=BRef|Rem], #{ backgrounds := Backgrounds }=Test, ReusableSteps, Out) ->
+    R = case maps:get(BId, Backgrounds, undef) of 
+            undef -> 
+                case maps:get(Title, ReusableSteps, undef) of 
+                    undef -> undef;
+                    Step -> #{ title => Title,
+                               steps => [Step] }
+                end;
+
+            Other -> 
+                Other
+        end,
+
+    case R of 
+        undef -> 
+            {error, {undefined, background_or_step, BRef}};
+        #{ steps := Steps } = Resolved ->
+
+            case resolve_steps(Steps, ReusableSteps) of 
+                {ok, Steps2} -> 
+                    resolve_backgrounds(Rem, Test, ReusableSteps, [Resolved#{ steps => Steps2 }|Out]);
+                Other2 -> 
+                    Other2
+            end
     end.
+
+resolve_steps(Steps, ReusableSteps) -> 
+    resolve_steps(Steps, ReusableSteps, []).
+
+resolve_steps([], _, Out) -> {ok, lists:reverse(Out)};
+resolve_steps([#{ ref := Title}|Rem], ReusableSteps, Out)  ->
+    case maps:get(Title, ReusableSteps, undef) of 
+        undef -> 
+            {error, {undefined, step, Title}};
+        Resolved ->
+            resolve_steps(Rem, ReusableSteps, [Resolved|Out])
+    end;
+
+resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Out) ->
+    resolve_steps(Rem, ReusableSteps, [Spec|Out]).
 
 world_with_new_conn(App, Props, #{ conns := Conns }=World) ->
     Conns2 = Conns#{ App => maps:merge(Props, #{ inbox => [],
@@ -133,8 +180,9 @@ run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
 
 run(#{ type := connect,
        as := Name,
-       spec := Spec }, Settings, World) ->
-    
+       spec := Spec }=Spec0, Settings, World) ->
+
+
     case cmencode:encode(Spec, #{ world => World, 
                                   settings => Settings }) of
         {ok, #{ app := App,
@@ -149,8 +197,14 @@ run(#{ type := connect,
                                      host => "localhost",
                                      persistent => false
                                    },
+                    
+                    Config2 = case maps:get(protocol, Spec0, undef) of 
+                                  undef -> Config;
+                                  Protocol ->
+                                      Config#{ protocol => Protocol }
+                              end,
 
-                    connect(Name, Config, World)
+                    connect(Name, Config2, World)
             end;
 
         {ok, #{ kubernetes := #{ host := _,
@@ -163,9 +217,18 @@ run(#{ type := connect,
                 port := _,
                 transport := _,
                 path := _} = Mount} ->
+            
 
-            connect(Name, Mount#{ debug => false,
-                                  persistent => false }, World);
+            Config = Mount#{ debug => true,
+                             persistent => false },
+            
+            Config2 = case maps:get(protocol, Spec0, undef) of 
+                          undef -> Config;
+                          Protocol ->
+                              Config#{ protocol => Protocol }
+                      end,
+
+            connect(Name, Config2, World);
 
         {error, E} ->
             {error, #{ error => encode_error,
@@ -218,7 +281,9 @@ run(#{ type := disconnect,
 
 run(#{ type := expect, 
        spec := Spec }, Settings, World) ->
-    case cmeval:eval(Spec, World, Settings) of 
+    EvalRes = cmeval:eval(Spec, World, Settings),
+    cmkit:log({cmtest, expect, Spec, World, EvalRes}),
+    case EvalRes of
         true ->
             {ok, World};
         false ->
@@ -289,15 +354,17 @@ run(#{ type := send,
 run(#{ type := recv, 
        from := Conn,
        spec := Spec } = RecvSpec, Settings, #{ data := Data,
-                                    conns := Conns } = World ) ->
+                                               conns := Conns } = World ) ->
 
     case maps:get(Conn, Conns, undef) of 
         undef -> 
             {error, #{ error => no_such_connection,
                        info => Conn}};
         #{ inbox := Inbox } ->
-            case cmdecode:decode(#{ type => first,
-                                    spec => Spec }, Inbox, Settings) of 
+            Spec0 = #{ type => first,
+                       spec => Spec },
+            cmkit:log({cmtest, recv, decode, Spec0, cmkit:printable(Inbox)}),
+            case cmdecode:decode(Spec0, Inbox, Settings) of 
                 {ok, Decoded} ->
                     case maps:get(as, RecvSpec, undef) of 
                         undef -> 
@@ -410,3 +477,13 @@ kube_settings(_) ->
 
 report_sort_fun(#{ timestamp := T1}, #{ timestamp := T2}) ->
     T1 > T2.
+
+
+printable(#{ conns := Conns,
+                   data := Data,
+                   retries := Retries }) ->
+    #{ conns => Conns,
+       data => cmkit:printable(128, Data),
+       retries => Retries }.
+
+

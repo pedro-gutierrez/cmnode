@@ -106,8 +106,9 @@ decode_term(#{ type := number, value := Num}, Num, _) when is_number(Num) -> {ok
 decode_term(#{ type := number, value := Num}, _, _) when is_number(Num) -> no_match;
 decode_term(#{ type := number, value := Num}, Bin, _) when is_binary(Bin) ->
     case cmkit:to_number(Bin, none) of 
-        none -> no_match;
-        Num -> {ok, Num}
+        Num -> {ok, Num};
+        _ -> 
+            no_match
     end;
 
 decode_term(#{ type := number, spec := Spec}, Num, Config) ->
@@ -117,8 +118,9 @@ decode_term(#{ type := number}, Num, _) when is_number(Num) -> {ok, Num};
 
 decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
     case cmkit:to_number(Bin, none) of 
-        none -> no_match;
-        Num -> {ok, Num}
+        Num when is_number(Num) -> {ok, Num};
+        _ -> 
+            no_match
     end;
 
 decode_term(#{ type := number}, _, _) -> no_match;

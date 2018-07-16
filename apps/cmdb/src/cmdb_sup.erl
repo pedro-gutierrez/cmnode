@@ -8,18 +8,16 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 init([]) ->
-    Dbs = cmconfig:buckets(),
-    Routers = [ db_spec(Db) || Db <- Dbs ],
-    Cloud =  cloud_spec(Dbs),
-    {ok, {{one_for_one, 0, 1}, [Cloud | Routers] }}.
+    Directory = cmkit:child_spec(cmdb_directory, 
+                                 cmdb_directory, 
+                                 [],
+                                 permanent,
+                                 worker),
+    
+    BucketsSup = cmkit:child_spec(cmdb_buckets_sup,
+                                  cmdb_buckets_sup,
+                                  [],
+                                  permanent,
+                                  supervisor),
 
-cloud_spec(Dbs) ->
-    cmkit:child_spec(cmdb_cloud, cmdb_cloud, [Dbs], worker).
-
-db_spec(#{name := Name}=Db) ->
-    Mod = db_impl(Db),
-    cmkit:child_spec(Name, Mod, [Db], worker).
-
-db_impl(#{ storage := disc}) -> cmdb_dets;
-db_impl(#{ storage := memory}) -> cmdb_ets;
-db_impl(#{ storage := dynamo }) -> cmdb_dynamo.
+    {ok, {{one_for_one, 0, 1}, [Directory, BucketsSup]}}.

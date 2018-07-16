@@ -3,8 +3,8 @@ type: test
 name: thumbnails
 spec:
   config:
-    retries: 100
-    wait: 5
+    retries: 4
+    wait: 250
   procedures:
     - name: info 
       spec:
@@ -111,156 +111,10 @@ spec:
                   in:
                     key: thumbnails
                     in: settings
-                - text: "/convert?type="
-                - key: type
-                  in: params
-          headers:
-            content-type:
-              key: mime
+                - text: "/convert"
+            query:
+              key: query
               in: params
-            authorization:
-              basic-auth:
-                key: auth
-                in:
-                  key: security
-                  in: settings
-          body:
-            key: file
-            in: params
-      as:
-        key: as
-        in: params
-    - name: resize
-      spec:
-        http:
-          method: post
-          url:
-            host:
-              key: host
-              in: settings
-            port:
-              key: port
-              in:
-                key: thumbnails
-                in: settings
-            transport: 
-              key: transport
-              in:
-                key: thumbnails
-                in: settings
-            path:
-              join:
-                - key: path
-                  in:
-                    key: thumbnails
-                    in: settings
-                - text: "/convert?type="
-                - key: type
-                  in: params
-                - text: "&width="
-                - key: width
-                  in: params
-                - text: "&height="
-                - key: height
-                  in: params
-          headers:
-            content-type:
-              key: mime
-              in: params
-            authorization:
-              basic-auth:
-                key: auth
-                in:
-                  key: security
-                  in: settings
-          body:
-            key: file
-            in: params
-      as:
-        key: as
-        in: params
-    - name: resize_page
-      spec:
-        http:
-          method: post
-          url:
-            host:
-              key: host
-              in: settings
-            port:
-              key: port
-              in:
-                key: thumbnails
-                in: settings
-            transport: 
-              key: transport
-              in:
-                key: thumbnails
-                in: settings
-            path:
-              join:
-                - key: path
-                  in:
-                    key: thumbnails
-                    in: settings
-                - text: "/convert?type="
-                - key: type
-                  in: params
-                - text: "&width="
-                - key: width
-                  in: params
-                - text: "&height="
-                - key: height
-                  in: params
-                - text: "&frame="
-                - key: frame 
-                  in: params
-          headers:
-            content-type:
-              key: mime
-              in: params
-            authorization:
-              basic-auth:
-                key: auth
-                in:
-                  key: security
-                  in: settings
-          body:
-            key: file
-            in: params
-      as:
-        key: as
-        in: params
-    - name: convert_page
-      spec:
-        http:
-          method: post
-          url:
-            host:
-              key: host
-              in: settings
-            port:
-              key: port
-              in:
-                key: thumbnails
-                in: settings
-            transport: 
-              key: transport
-              in:
-                key: thumbnails
-                in: settings
-            path:
-              join:
-                - key: path
-                  in:
-                    key: thumbnails
-                    in: settings
-                - text: "/convert?type="
-                - key: type
-                  in: params
-                - text: "&frame="
-                - key: frame 
-                  in: params
           headers:
             content-type:
               key: mime
@@ -332,7 +186,9 @@ spec:
                   key: file
                   in: data
               mime: "image/jpeg"
-              type: "png"
+              query:
+                object:
+                  type: "png"
               as: 
                 keyword: thumbnail
         - title: "Expect a 200 OK"
@@ -384,7 +240,7 @@ spec:
         - "A sample jpeg file"
       steps:
         - title: "Convert the file to a 200x100 jpeg file"
-          procedure: resize 
+          procedure: convert
           params:
             object:
               file:
@@ -393,11 +249,21 @@ spec:
                   key: file
                   in: data
               mime: "image/jpeg"
-              type: "jpeg"
-              width: 200
-              height: 100
+              query:
+                object:
+                  type: "jpeg"
+                  width: 200
+                  height: 100
               as: 
                 keyword: thumbnail
+        - title: "Expect a 200 OK"
+          expect:
+            eq:
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data
         - title: "Get the info of the converted file"
           procedure: info
           params:
@@ -456,7 +322,7 @@ spec:
         - "A sample png file"
       steps:
         - title: "Convert the file to a 200x200 png file"
-          procedure: resize
+          procedure: convert 
           params:
             object:
               file:
@@ -465,11 +331,21 @@ spec:
                   key: file
                   in: data
               mime: "image/png"
-              type: "png"
-              width: 200
-              height: 200
+              query:
+                object:
+                  type: "png"
+                  width: 200
+                  height: 200
               as: 
                 keyword: thumbnail
+        - title: "Expect a 200 OK"
+          expect:
+            eq:
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data
         - title: "Get the info of the converted file"
           procedure: info
           params:
@@ -546,7 +422,9 @@ spec:
                   key: file
                   in: data
               mime: "image/tiff"
-              type: "pdf"
+              query:
+                object:
+                  type: "pdf"
               as: 
                 keyword: thumbnail
         - title: "Verify we got a 200 OK"
@@ -601,7 +479,7 @@ spec:
         - "A sample tiff file"
       steps:
         - title: "Convert the file to a 300x200 pdf file"
-          procedure: resize 
+          procedure: convert 
           params:
             object:
               file:
@@ -610,12 +488,21 @@ spec:
                   key: file
                   in: data
               mime: "image/tiff"
-              type: "pdf"
-              width: 300
-              height: 200
+              query:
+                object:
+                  type: "pdf"
+                  width: 300
+                  height: 200
               as: 
                 keyword: thumbnail
-
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq:
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data
         - title: "Get the info of the converted file"
           procedure: info
           params:
@@ -676,7 +563,7 @@ spec:
         - "A sample tiff file"
       steps:
         - title: "Convert the second page of that file to a jpeg file"
-          procedure: convert_page
+          procedure: convert
           params:
             object:
               file:
@@ -685,8 +572,10 @@ spec:
                   key: file
                   in: data
               mime: "image/tiff"
-              type: "jpeg"
-              frame: 2
+              query:
+                object:
+                  type: "jpeg"
+                  frame: 2
               as: 
                 keyword: thumbnail
         - title: "Verify we got a 200 OK"
@@ -738,7 +627,7 @@ spec:
         - "A sample tiff file"
       steps:
         - title: "Convert the second page of that file to a TIFF file"
-          procedure: convert_page
+          procedure: convert
           params:
             object:
               file:
@@ -747,8 +636,10 @@ spec:
                   key: file
                   in: data
               mime: "image/tiff"
-              type: "tiff"
-              frame: 2
+              query:
+                object:
+                  type: "tiff"
+                  frame: 2
               as: 
                 keyword: thumbnail
         - title: "Verify we got a 200 OK"
@@ -801,7 +692,7 @@ spec:
         - "A sample tiff file"
       steps:
         - title: "Convert the second page of that file to a 300x200 jpeg file"
-          procedure: resize_page
+          procedure: convert
           params:
             object:
               file:
@@ -810,13 +701,23 @@ spec:
                   key: file
                   in: data
               mime: "image/tiff"
-              type: "jpeg"
-              frame: 2
-              width: 300
-              height: 200
+              query:
+                object:
+                  type: "jpeg"
+                  frame: 2
+                  width: 300
+                  height: 200
               as: 
                 keyword: thumbnail
 
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
         - title: "Get the info of the converted file"
           procedure: info
           params:
@@ -878,7 +779,7 @@ spec:
         - "A sample pdf file"
       steps:
         - title: "Convert the second page of that file to a 300x200 jpeg file"
-          procedure: resize_page 
+          procedure: convert 
           params:
             object:
               file:
@@ -887,13 +788,23 @@ spec:
                   key: file
                   in: data
               mime: "application/pdf"
-              type: "jpeg"
-              frame: 2
-              width: 300
-              height: 200
+              query:
+                object:
+                  type: "jpeg"
+                  frame: 2
+                  width: 300
+                  height: 200
               as: 
                 keyword: thumbnail
 
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
         - title: "Get the info of the converted file"
           procedure: info
           params:
@@ -948,14 +859,14 @@ spec:
     - title: "Should convert from PDF to TIFF"
       tags:
         - thumbnails
-        - jpeg
         - tiff
         - pdf
+        - pdf2tiff
       backgrounds:
         - "A sample pdf file"
       steps:
         - title: "Convert the file to a 300x200 tiff file"
-          procedure: resize
+          procedure: convert 
           params:
             object:
               file:
@@ -964,11 +875,21 @@ spec:
                   key: file
                   in: data
               mime: "application/pdf"
-              type: "tiff"
-              width: 300
-              height: 200
+              query:
+                object:
+                  type: "tiff"
+                  width: 300
+                  height: 200
               as: 
                 keyword: thumbnail
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
 
         - title: "Get the info of the converted file"
           procedure: info
@@ -983,10 +904,10 @@ spec:
               as:
                 keyword: thumbnail_data
 
-        - title: "Expect a thumbnail with width equal to 259"
+        - title: "Expect a thumbnail with width equal to 300"
           expect:
             eq:
-              - number: 259
+              - number: 300
               - key: width
                 in:
                   key: body
@@ -1003,6 +924,112 @@ spec:
                   in:
                     key: thumbnail_data
                     in: data
+    - title: "Should convert from PDF to TIFF with customized options"
+      tags:
+        - thumbnails
+        - tiff
+        - pdf
+        - pdf2tiff
+        - customized
+      backgrounds:
+        - "A sample pdf file"
+      steps:
+        - title: "Convert the file to a 300x200 tiff using tiffg4 device and 204x392 resolution"
+          procedure: convert
+          params:
+            object:
+              file:
+                key: data
+                in: 
+                  key: file
+                  in: data
+              mime: "application/pdf"
+              query:
+                object:
+                  type: "tiff"
+                  width: 300
+                  height: 200
+                  tiff-device: "tiffg4"
+                  tiff-res: "204x392"
+              as: 
+                keyword: thumbnail
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
+
+        - title: "Get the info of the converted file"
+          procedure: info
+          params:
+            object:
+              file:
+                key: body
+                in: 
+                  key: thumbnail
+                  in: data
+              mime: "image/tiff"
+              as:
+                keyword: thumbnail_data
+
+        - title: "Expect a thumbnail with width equal to 300"
+          expect:
+            eq:
+              - number: 300
+              - key: width
+                in:
+                  key: body
+                  in:
+                    key: thumbnail_data
+                    in: data
+        - title: "Expect a thumbnail with height equal to 200"
+          expect:
+            eq:
+              - number: 200
+              - key: height
+                in:
+                  key: body
+                  in:
+                    key: thumbnail_data
+                    in: data
+    - title: "PDF to TIFF conversion should fail gracefully on invalid PDF input"
+      tags:
+        - thumbnails
+        - tiff
+        - pdf
+        - pdf2tiff
+        - invalid_pdf
+      backgrounds:
+        - "A sample jpeg file"
+      steps:
+        - title: "Convert the file to a 300x200 tiff"
+          procedure: convert
+          params:
+            object:
+              file:
+                key: data
+                in: 
+                  key: file
+                  in: data
+              mime: "application/pdf"
+              query:
+                object:
+                  type: "tiff"
+                  width: 300
+                  height: 200
+              as: 
+                keyword: thumbnail
+        - title: "Verify we got a 400"
+          expect:
+            eq:
+              - number: 400
+              - key: status
+                in: 
+                  key: thumbnail
+                  in: data
     - title: "Should convert GIF to GIF"
       tags:
         - gif
@@ -1020,7 +1047,9 @@ spec:
                   key: file
                   in: data
               mime: "image/gif"
-              type: "gif"
+              query:
+                object:
+                  type: "gif"
               as: 
                 keyword: thumbnail
         - title: "Verify we got a 200 OK"
@@ -1074,7 +1103,7 @@ spec:
         - "A sample gif file"
       steps:
         - title: "Convert the file to a 600x600 gif file"
-          procedure: resize 
+          procedure: convert 
           params:
             object:
               file:
@@ -1083,11 +1112,21 @@ spec:
                   key: file
                   in: data
               mime: "image/gif"
-              type: "gif"
-              width: 600
-              height: 600
+              query:
+                object:
+                  type: "gif"
+                  width: 600
+                  height: 600
               as: 
                 keyword: thumbnail
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
 
         - title: "Get the info of the converted file"
           procedure: info
@@ -1133,7 +1172,7 @@ spec:
         - "A transparent, sample gif file"
       steps:
         - title: "Convert the file to a 100x100 gif file"
-          procedure: resize 
+          procedure: convert
           params:
             object:
               file:
@@ -1142,11 +1181,21 @@ spec:
                   key: file
                   in: data
               mime: "image/gif"
-              type: "gif"
-              width: 100
-              height: 100
+              query:
+                object:
+                  type: "gif"
+                  width: 100
+                  height: 100
               as: 
                 keyword: thumbnail
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
 
         - title: "Get the info of the converted file"
           procedure: info
@@ -1201,18 +1250,28 @@ spec:
         - pdf
       steps:
         - title: "Convert an html document to a 300x300 pdf file"
-          procedure: resize 
+          procedure: convert 
           params:
             object:
               file:
                 text:
                   literal: "<html><head><title>A sample HTML page</title></head><body><h1>Hello</h1><p>World</p></body></html>"
               mime: "text/html"
-              type: "pdf"
-              width: 300
-              height: 300
+              query:
+                object:
+                  type: "pdf"
+                  width: 300
+                  height: 300
               as: 
                 keyword: thumbnail
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: thumbnail
+                  in: data 
 
         - title: "Get the info of the converted file"
           procedure: info
@@ -1284,6 +1343,14 @@ spec:
                           in: data
               as: 
                 keyword: combined
+        - title: "Verify we got a 200 OK"
+          expect:
+            eq: 
+              - number: 200
+              - key: status
+                in:
+                  key: combined 
+                  in: data 
 
         - title: "Get the info of the combined file"
           procedure: info

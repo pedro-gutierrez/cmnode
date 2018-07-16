@@ -8,7 +8,7 @@ effect_info() -> file.
 
 effect_apply(#{ stream := Stream,
                 asset := Asset } = Q, SessionId) ->
-    cmkit:stream_file(Q#{ bytes => 16384, 
+    cmfs:stream(Q#{ bytes => 16384, 
                           path => cmkit:asset(Asset),
                           context => #{ data => #{ id => SessionId,
                                                    stream => Stream },

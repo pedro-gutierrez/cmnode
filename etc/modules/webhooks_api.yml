@@ -824,6 +824,17 @@ spec:
           encoder: certs_domain_deploy_preprod
         - effect: notify
           encoder: ok
+    netk_certs_changed:
+      model:
+        domain:
+          text: "netk.io"
+      cmds:
+        - effect: slack
+          encoder: certs_changed_announcement
+        - effect: task
+          encoder: certs_domain_deploy_aks
+        - effect: notify
+          encoder: ok
     nimg_dev_changed:
       model:
         repo:
@@ -1140,8 +1151,8 @@ spec:
           encoder: ok
     sipstorm_dev_tests_passed:
       cmds:  
-        - effect: task
-          encoder: sipstorm_release_task 
+      #   - effect: task
+      #    encoder: sipstorm_release_task 
         - effect: notify
           encoder: ok
     sipstorm_dev_tests_failed:
@@ -1306,8 +1317,8 @@ spec:
           encoder: ok
     dkv_dev_tests_passed:
       cmds:  
-        - effect: task
-          encoder: dkv_release_task 
+      #  - effect: task
+      #    encoder: dkv_release_task 
         - effect: notify
           encoder: ok
     dkv_dev_tests_failed:
@@ -1466,8 +1477,8 @@ spec:
           encoder: ok
     sphera_general_tests_passed:
       cmds:  
-        - effect: task
-          encoder: sphera_general_release_task 
+      #   - effect: task
+      #    encoder: sphera_general_release_task 
         - effect: notify
           encoder: ok
     sphera_general_tests_failed:
@@ -1558,8 +1569,8 @@ spec:
           encoder: ok
     sphera_brazil_tests_passed:
       cmds:  
-        - effect: task
-          encoder: sphera_brazil_release_task 
+      #  - effect: task
+      #    encoder: sphera_brazil_release_task 
         - effect: notify
           encoder: ok
     sphera_brazil_tests_failed:
@@ -1650,8 +1661,8 @@ spec:
           encoder: ok
     sphera_rwanda_tests_passed:
       cmds:  
-        - effect: task
-          encoder: sphera_rwanda_release_task 
+      #  - effect: task
+      #    encoder: sphera_rwanda_release_task 
         - effect: notify
           encoder: ok
     sphera_rwanda_tests_failed:
@@ -1743,6 +1754,18 @@ spec:
           object:
             settings:
               keyword: preprod
+            domain:
+              key: domain
+            slack:
+              keyword: tests
+    certs_domain_deploy_aks:
+      object:
+        task:
+          keyword: certs_domain_deploy
+        params:
+          object:
+            settings:
+              keyword: aks
             domain:
               key: domain
             slack:

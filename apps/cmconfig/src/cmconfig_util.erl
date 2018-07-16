@@ -292,12 +292,14 @@ compile_test(#{ <<"name">> := Name,
     Scenarios = compile_scenarios(maps:get(<<"scenarios">>, Spec, [])),
     Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
     Procedures = maps:get(<<"procedures">>, Spec, []),
+    Steps = maps:get(<<"steps">>, Spec, []),
 
     #{ type => test,
        rank => Rank,
        name => cmkit:to_atom(Name),
        config => compile_config(Config),
        scenarios => Scenarios,
+       steps => compile_steps(Steps),
        procedures => compile_procedures(Procedures),
        backgrounds => compile_backgrounds(Backgrounds, Scenarios)
      }.
@@ -387,7 +389,13 @@ compile_steps([Step|Rem], Out) ->
 compile_step(#{ <<"title">> := Title }=Spec) ->
     maps:merge(
       compile_term(Spec),
-      #{ title => Title } ).
+      #{ title => Title } );
+
+compile_step(#{ <<"ref">> := Title })  ->
+      compile_step(Title);
+
+compile_step(Title) when is_binary(Title) ->
+      #{ ref => Title }.
 
 compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
     Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
@@ -979,12 +987,21 @@ compile_term(#{ <<"all">> := Conds }) ->
        spec => lists:map(fun compile_term/1, Conds) 
      };
 
-
 compile_term(#{ <<"connect">> := Spec,
-               <<"as">> := As }) ->
-    #{ type => connect,
-       as => cmkit:to_atom(As),
-       spec => compile_term(Spec) };
+               <<"as">> := As } = Spec0) ->
+    Expr = #{ type => connect,
+              as => cmkit:to_atom(As),
+              spec => compile_term(Spec) },
+
+    Expr2 = case maps:get(<<"protocol">>, Spec0, undef) of 
+                undef -> 
+                    Expr;
+                ProtocolSpec -> 
+                    Expr#{ protocol => compile_term(ProtocolSpec) }
+            end,
+
+    Expr2;
+    
 
 compile_term(#{ <<"connect">> := Spec }) ->
     #{ type => connect,
@@ -1078,42 +1095,45 @@ compile_term(#{ <<"join">> := Terms}) when is_list(Terms) ->
        terms => compile_terms(Terms) };
 
 compile_term(#{ <<"url">> := Url,
-                <<"method">> := Method ,
-                <<"body">> := BodySpec,
-                <<"headers">> := HeadersSpec }) ->
-    #{ type => http,
-       url => compile_term(Url),
-       method => cmkit:to_atom(Method),
-       body => compile_term(BodySpec),
-       headers => compile_term(HeadersSpec)
-     };
+                <<"method">> := Method } = Spec) ->
+    
+    Expr = #{ type => http,
+              url => compile_term(Url),
+              method => cmkit:to_atom(Method)
+            },
 
-compile_term(#{ <<"url">> := Url,
-                <<"method">> := Method,
-                <<"headers">> := HeadersSpec }) ->
-    #{ type => http,
-       url => compile_term(Url),
-       method => cmkit:to_atom(Method),
-       headers => compile_term(HeadersSpec)
-     };
+    Expr2 = case maps:get(<<"headers">>, Spec, undef) of 
+                undef -> Expr;
+                HeadersSpec -> 
+                    Expr#{ headers => compile_term(HeadersSpec) }
+            end,
 
-compile_term(#{ <<"url">> := Url,
-                <<"method">> := Method }) ->
-    #{ type => http,
-       url => compile_term(Url),
-       method => cmkit:to_atom(Method)
-     };
+    Expr3 = case maps:get(<<"body">>, Spec, undef) of 
+                undef -> Expr2;
+                BodySpec -> 
+                    Expr2#{ body => compile_term(BodySpec) }
+            end,
+    Expr3;
 
 compile_term(#{ <<"host">> := Host,
                 <<"port">> := Port,
                 <<"transport">> := Transport,
-                <<"path">> := Path }) ->
+                <<"path">> := Path } = Spec) ->
     
-    #{ type => url,
-       host => compile_term(Host),
-       port => compile_term(Port),
-       transport => compile_term(Transport),
-       path => compile_term(Path) };
+    Expr = #{ type => url,
+              host => compile_term(Host),
+              port => compile_term(Port),
+              transport => compile_term(Transport),
+              path => compile_term(Path) },
+
+    Expr2 = case maps:get(<<"query">>, Spec, undef) of 
+                undef ->
+                    Expr;
+                QuerySpec -> 
+                    Expr#{ query => compile_term(QuerySpec) }
+            end,
+    Expr2;
+
 
 compile_term(#{ <<"multipart">> := #{ <<"files">> := FilesSpec } }) ->
     #{ type => multipart,

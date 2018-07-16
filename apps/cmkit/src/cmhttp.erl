@@ -1,5 +1,5 @@
 -module(cmhttp).
--export([stream/1, get/1, get/2, post/3]).
+-export([stream/1, get/1, get/2, post/3, encodedQs/1]).
 
 stream(#{ method := Method,
           url := Url,
@@ -120,4 +120,12 @@ decoded_headers([{K, V}|Rem], Out) ->
     BinKey = cmkit:to_bin(K),
     BinValue = cmkit:to_bin(V),
     decoded_headers(Rem, Out#{ BinKey => BinValue }).
+
+encodedQs(Map) ->
+    Params = cmkit:bin_join(maps:fold(fun(K, V, Acc) ->
+                                        KBin = cmkit:to_bin(K),
+                                        VBin = cmkit:to_bin(V),
+                                        [<<KBin/binary, "=", VBin/binary>>|Acc]
+                                       end, [], Map), <<"&">>),
+    <<"?", Params/binary>>.
 
