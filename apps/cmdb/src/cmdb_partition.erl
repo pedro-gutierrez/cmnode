@@ -29,14 +29,30 @@ handle_call(reset, _, #{ name := Name,
     Res = cmdb_util:reset_partition(Name, Tid),
     {reply, Res, Bucket};
 
-handle_call({put, Pairs}, _, #{ name := Name,
-                                tid := Tid }=Bucket) ->
+handle_call({put, Pairs, []}, _, #{ name := Name,
+                                                tid := Tid }=Bucket) ->
+
     Res = cmdb_util:put(Name, Tid, Pairs),
     {reply, Res, Bucket};
 
-handle_call({put_new, Pairs}, _, #{ name := Name,
-                                    tid := Tid}=Bucket) ->
+handle_call({put, Pairs, [{replicas, N}]}, _, #{ name := Name,
+                                                tid := Tid }=Bucket) ->
+
+    Res = cmdb_util:put(Name, Tid, Pairs),
+    Nodes = lists:sublist(nodes(), N),
+    cmkit:cast(Nodes, cmdb, put, [Name, Pairs, []]),
+    {reply, Res, Bucket};
+
+handle_call({put_new, Pairs, []}, _, #{ name := Name,
+                                                     tid := Tid}=Bucket) ->
     Res = cmdb_util:put_new(Name, Tid, Pairs),
+    {reply, Res, Bucket};
+
+handle_call({put_new, Pairs, [{replicas, N}]}, _, #{ name := Name,
+                                                     tid := Tid}=Bucket) ->
+    Res = cmdb_util:put_new(Name, Tid, Pairs),
+    Nodes = lists:sublist(nodes(), N),
+    cmkit:cast(Nodes, cmdb, put_new, [Name, Pairs, []]),
     {reply, Res, Bucket}.
 
 handle_cast(_, Data) ->

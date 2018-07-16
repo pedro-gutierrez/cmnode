@@ -14,17 +14,19 @@
 info(Bucket) -> 
     cmdb_util:bucket_info(Bucket).
 
-put(Bucket, Pairs) -> 
-    cmdb_bucket:put(Bucket, Pairs).
+put(Bucket, Pairs) ->
+    N = cmdb_util:replica_count(Bucket),
+    put(Bucket, Pairs, [{replicas, N}]).
 
-put_new(Bucket, Pairs) -> 
-    cmdb_bucket:put_new(Bucket, Pairs).
+put(Bucket, Pairs, Opts) -> 
+    cmdb_bucket:put(Bucket, Pairs, Opts).
 
-put(Bucket, K, V) ->
-    cmdb_bucket:put(Bucket, [{K, V}]).
+put_new(Bucket, Pairs) ->
+    N = cmdb_util:replica_count(Bucket),
+    put_new(Bucket, Pairs, [{replicas, N}]).
 
-put_new(Bucket, K, V) ->
-    cmdb_bucket:put_new(Bucket, [{K, V}]).
+put_new(Bucket, Pairs, Opts) -> 
+    cmdb_bucket:put_new(Bucket, Pairs, Opts).
 
 get(Bucket, K) -> 
     cmdb_util:get(Bucket, K, [node()|nodes()]).

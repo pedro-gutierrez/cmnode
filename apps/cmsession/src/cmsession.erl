@@ -16,7 +16,7 @@ new(App) ->
     end.
 
 attach(Id, Type, Val) ->
-    cmdb:put(sessions, {Type, Id}, Val).
+    cmdb:put(sessions, [{{Type, Id}, Val}]).
 
 retrieve(Id, Type) ->
     cmdb:get(sessions, {Type, Id}).
