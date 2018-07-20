@@ -4,8 +4,16 @@
          all_ok/1,
          is_local/1,
          current_nodes/0,
-         expected_nodes/0
+         expected_nodes/0,
+         is_clustered/0
         ]).
+
+is_clustered() ->
+    Localhost = localhost(),
+    case lists:map(fun cmkit:to_bin/1, net_adm:host_file()) of 
+        [Localhost] -> false;
+        _ -> true
+    end.
 
 expected_nodes() -> 
     Sname = erlang:binary_to_list(cmkit:sname()),
@@ -19,8 +27,10 @@ current_nodes() ->
       ExpectedNodes = expected_nodes(),
       cmkit:intersection(ExpectedNodes, [node()|nodes()]).
 
+localhost() -> cmkit:node_host_short(node()).
+
 is_local(Hosts) ->
-    Localhost = cmkit:node_host_short(node()),
+    Localhost = localhost(), 
     lists:member(Localhost, Hosts).
 
 state() ->

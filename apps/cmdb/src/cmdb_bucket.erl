@@ -1,19 +1,19 @@
 -module(cmdb_bucket).
 -behaviour(gen_server).
 -export([start_link/1]).
--export([put/2, 
-         put_new/2,
+-export([put/3, 
+         put_new/3,
          register_partition/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
-put(Bucket, Pairs) ->
+put(Bucket, Pairs, Opts) ->
     Partition = cmdb_util:current_partition(Bucket),
-    gen_server:call(Partition, {put, Pairs}).
+    gen_server:call(Partition, {put, Pairs, Opts}).
 
-put_new(Bucket, Pairs) ->
+put_new(Bucket, Pairs, Opts) ->
     Partition = cmdb_util:current_partition(Bucket),
-    gen_server:call(Partition, {put_new, Pairs}).
+    gen_server:call(Partition, {put_new, Pairs, Opts}).
 
 register_partition(P) ->
     call(P).

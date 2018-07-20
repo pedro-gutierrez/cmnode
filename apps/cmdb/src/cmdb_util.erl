@@ -17,7 +17,8 @@
          get/2,
          get/3,
          put/3,
-         put_new/3
+         put_new/3,
+         replica_count/1
         ]).
 
 start_buckets() -> 
@@ -185,7 +186,7 @@ aggregate(Context, Results) ->
 
 aggregate(#{ empty := not_found }, [], []) -> not_found;
 aggregate(#{ empty := V}, [], []) -> {ok, V};
-aggregate(_, [], Out) -> {ok, lists:flatten(Out)};
+aggregate(_, [], Out) -> {ok, lists:usort(lists:flatten(Out))};
 aggregate(Ctx, [not_found|Rem], Out) ->
     aggregate(Ctx, Rem, Out);
 aggregate(Ctx, [[]|Rem], Out) -> 
@@ -220,3 +221,10 @@ put_new(Bucket, Tid, Pairs) when is_list(Pairs) ->
         Other -> 
             Other
     end.
+
+replica_count(Bucket) ->
+    replica_count(Bucket, cmcloud:is_clustered()).
+
+replica_count(_, true) -> 3;
+replica_count(_, false) -> 0.
+
