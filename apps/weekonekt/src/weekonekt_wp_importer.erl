@@ -2,11 +2,20 @@
 -export([import/1, handle/2]).
 
 import(Data) ->
+    DefaultAuthorEmail = <<"marcos@mail.com">>,
+    DefaultAuthorId = case cmdb:get(users, {email, DefaultAuthorEmail}) of
+                        {ok, [Id]} -> Id;
+                        _ -> undef
+                    end,
+        
+
     Res = cmxml:parse(Data, fun weekonekt_wp_parser:event/3, #{ state => none,
-                                                          callback => {?MODULE, handle},
-                                                          stats => #{ images => 0,
-                                                                      reviews => 0 }
-                                                        }),
+                                                                callback => {?MODULE, handle},
+                                                                stats => #{ 
+                                                                  default_author => DefaultAuthorId,
+                                                                  images => 0,
+                                                                  reviews => 0 }
+                                                              }),
     
     case Res of 
         {ok, {ok, Stats}, _} -> {ok, Stats};
@@ -27,7 +36,7 @@ handle(#{ id := Id,
               title => cmkit:uniconvert(Title),
               date => cmkit:to_millis(Date) },
     
-    weekonekt:import_image(BinId, Url),
+    %weekonekt:import_image(BinId, Url),
     cmdb:put_new(weekonekt, [{PKey, Item}]),
     Stats#{ images => Images + 1 };
 
@@ -36,12 +45,13 @@ handle(#{ title := "Contact" }, Stats) -> Stats;
 
 
 handle(#{ id := Id, 
-              content := #{ options := Opts,
-                            images := Images },
-              geo := #{ lat := Lat, lon := Lon },
-              title := Title, 
-              date := Date,
-              type := "page" }, #{ reviews := Reviews }=Stats) ->
+          content := #{ options := Opts,
+                        images := Images },
+          geo := #{ lat := Lat, lon := Lon },
+          title := Title, 
+          date := Date,
+          type := "page" }, #{ default_author := UserId,
+                               reviews := Reviews }=Stats) ->
         
     ImageIds = lists:map(fun cmkit:to_bin/1, Images),
     
@@ -61,9 +71,11 @@ handle(#{ id := Id,
               date => cmkit:to_millis(Date),
               options => Opts,
               cover => CoverImage,
+              author => UserId,
               images => lists:map(fun cmkit:to_bin/1, Images) },
 
-    cmdb:put_new(weekonekt, [{PKey, Item}]),
+    cmdb:put(weekonekt, [{{reviews, UserId}, BinId},
+                             {PKey, Item}]),
     Stats#{ reviews => Reviews + 1 };
     
 handle(#{ type := "nav_menu_item" }, Stats) -> Stats;

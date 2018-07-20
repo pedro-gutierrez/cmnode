@@ -31,6 +31,8 @@ spec:
                 any: number
               title:
                 any: text
+              author:
+                any: text
               cover:
                 one_of:
                   - any: text

@@ -680,6 +680,113 @@ encode(#{ type := iterate,
     end;
 
 
+encode(#{ type := merge,
+          spec := Specs } = Spec, In, Config) -> 
+    case encode_all(Specs, In, Config) of 
+        {ok, EncodedTerms} ->
+            {ok, lists:foldl(fun(M, Acc) -> 
+                                     maps:merge(Acc, M)
+                             end, #{}, EncodedTerms) };
+        Other -> 
+            fail_encoding(Spec, In, Other)
+    end;
+
+encode(#{ type := connect,
+          as := As,
+          spec := Spec }=Spec0, In, Config) -> 
+    case encode(As, In, Config) of 
+        {ok, Name} ->
+            case encode(Spec, In, Config) of 
+                {ok, #{ host := _,
+                        port := _,
+                        transport := Transport,
+                        path := _ } = Config0 } ->
+                    
+                    Config1 = Config0#{ debug => true,
+                                        persistent => false },
+                    
+                    Config2 = case maps:get(protocol, Spec0, undef) of
+                                  undef -> Config1;
+                                  Protocol ->
+                                      Config1#{ protocol => Protocol }
+                              end,
+
+                    case cmkit:to_bin(Transport) of 
+                        T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
+                            Url = cmkit:url(Config2),
+                            {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
+                            {ok, #{ connection => Config2#{ name => Name,
+                                                            transport => Transport,
+                                                            class => websocket,
+                                                            pid => Pid,
+                                                            status => undef,
+                                                            inbox => [],
+                                                            url => Url }}};
+
+                        T when T =:= <<"http">> orelse T =:= <<"https">> ->
+                            Url = cmkit:url(Config2),
+                            Res = cmhttp:get(Url),
+                            Status = case Res of
+                                         {ok, _} -> up;
+                                         {error, S} -> S
+                                     end,
+                            {ok, #{ connection => Config2#{ name => Name,
+                                                            transport => Transport,
+                                                            class => http,
+                                                            status => Status,
+                                                            inbox => [],
+                                                            url => Url }}}
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := send,
+          spec := #{ to := ConnSpec, 
+                     spec := Spec }}, #{ conns := Conns }=In, _) -> 
+    case cmencode:encode(ConnSpec, In) of 
+        {ok, Name} ->
+            case maps:get(Name, Conns, undef) of
+                undef ->
+                    {error, #{ error => no_such_connection,
+                               info => Name}};
+
+                Conn ->
+                    case cmencode:encode(Spec, In) of
+                        {ok, Encoded } ->
+                            case Conn of
+                                #{  class := websocket, pid := Pid } ->
+                                    cmwsc:send(Pid, Encoded),
+                                    {ok, #{ connection => Conn#{ inbox => []}}};
+
+                                #{ class := http, transport := Transport, url := Url } ->
+                                    case Encoded of
+                                        #{ body := Body,
+                                           headers := Headers } ->
+
+                                            cmkit:log({cmencode, Transport, out, Url, Headers, Body}),
+                                            {_, Res} = cmhttp:post(Url, Headers, Body),
+                                            cmkit:log({cmencode, Transport, in, Res}),
+                                            {ok, #{ connection => Conn#{ inbox => [Res]}}};
+
+                                        Other -> 
+                                            {error, #{ error => wrong_http_request,
+                                                       info => Other } }
+                                    end;
+                                Other ->
+                                    { error, #{ error => connection_class_not_supported,
+                                                info => Other }}
+                            end;
+                        Other -> 
+                            Other
+                    end
+            end;
+        Other -> 
+            Other
+    end;
 
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 

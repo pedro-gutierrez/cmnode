@@ -544,15 +544,9 @@ compile_term(#{ <<"spec">> := Spec,
        spec => compile_term(Spec) 
      };
 
-compile_term(#{ <<"app">> := App,
+compile_term(#{ <<"connection">> := ConnSpec,
                 <<"status">> := Status }) ->
-    #{ app => cmkit:to_atom(App),
-       status => cmkit:to_atom(Status)
-     };
-
-compile_term(#{ <<"connection">> := Name,
-                <<"status">> := Status }) ->
-    #{ connection => cmkit:to_atom(Name),
+    #{ connection => compile_term(ConnSpec),
        status => cmkit:to_atom(Status)
      };
 
@@ -990,7 +984,7 @@ compile_term(#{ <<"all">> := Conds }) ->
 compile_term(#{ <<"connect">> := Spec,
                <<"as">> := As } = Spec0) ->
     Expr = #{ type => connect,
-              as => cmkit:to_atom(As),
+              as => compile_term(As),
               spec => compile_term(Spec) },
 
     Expr2 = case maps:get(<<"protocol">>, Spec0, undef) of 
@@ -1019,6 +1013,13 @@ compile_term(#{ <<"disconnect">> := Spec }) ->
        spec => compile_term(Spec)
      };
 
+compile_term(#{ <<"send">> := 
+                #{ <<"to">> := ConnSpec,
+                   <<"spec">> := Spec }}) ->
+    #{ type => send,
+       spec => #{ to => compile_term(ConnSpec),
+                  spec => compile_term(Spec) }};
+
 compile_term(#{ <<"send">> := Spec }) ->
     
     #{ type => send,
@@ -1031,7 +1032,7 @@ compile_term(#{ <<"receive">> :=
                    <<"spec">> := Spec,
                    <<"as">> := As }}) ->
     #{ type => recv,
-       from => compile_keyword(From),
+       from => compile_term(From),
        spec => compile_term(Spec),
        as => compile_keyword(As)
      };
@@ -1041,7 +1042,7 @@ compile_term(#{ <<"receive">> :=
                    <<"spec">> := Spec,
                    <<"remember">> := Remember }}) ->
     #{ type => recv,
-       from => compile_keyword(From),
+       from => compile_term(From),
        spec => compile_term(Spec),
        as => compile_object(Remember)
      };
@@ -1051,7 +1052,7 @@ compile_term(#{ <<"receive">> :=
                    <<"spec">> := Spec }}) ->
 
     #{ type => recv,
-       from => compile_keyword(From),
+       from => compile_term(From),
        spec => compile_term(Spec),
        as => latest 
      };

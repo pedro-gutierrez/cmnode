@@ -3,8 +3,8 @@ type: test
 name: dkv
 spec:
   config:
-    retries: 100
-    wait: 5
+    retries: 4
+    wait: 200
   backgrounds:
     - title: "DKV SHP api is online"
       steps:
@@ -29,7 +29,7 @@ spec:
           as: shp_api
         - title: "Check shp returned a status code"
           probe:
-            app: shp_api
+            connection: shp_api
             status: up 
     - title: "A DKV client verification query"
       steps:
@@ -339,6 +339,7 @@ spec:
         - dkv 
         - dkv_login
         - invalid
+        - test
       backgrounds:
         - "DKV SHP api is online"
       steps:
@@ -376,6 +377,7 @@ spec:
         - dkv 
         - dkv_login
         - invalid
+        - non_client
       backgrounds:
         - "DKV SHP api is online"
       steps:
@@ -463,9 +465,7 @@ spec:
       tags: 
         - shp 
         - dkv 
-        - login
-        - patient
-        - invalid
+        - patient_login
       backgrounds:
         - "DKV SHP api is online"
       steps:
@@ -616,6 +616,7 @@ spec:
         - dkv 
         - encounter
         - client
+        - client_login
       backgrounds:
         - "DKV SHP api is online"
         - "I am logged in as a client"

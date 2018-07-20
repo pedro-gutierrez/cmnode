@@ -99,12 +99,17 @@ run_steps(#{ test := #{ name := Name },
             case Res of 
                 retry ->
                     World2 = retried(World),
-                    cmkit:warning({cmtest, Name, Title, StepTitle, Retries}),
+                    cmkit:warning({cmtest, #{ test => Name,
+                                              scenario => Title,
+                                              step => StepTitle,
+                                              retries => Retries}}),
                     {keep_state, Data#{ world => World2  }, 
                         [{state_timeout, Wait, retry}]};
                 
                 {ok, World2} ->
-                    cmkit:success({cmtest, Name, Title, StepTitle}),
+                    cmkit:success({cmtest, #{ test => Name,
+                                              scenario => Title,
+                                              step => StepTitle}}),
                     Elapsed = cmkit:now() - Started,
                     cmtest_runner:progress(Name, Title, length(Rem), Elapsed, Runner),
                     {keep_state, Data#{ world => World2#{ retries => Retries#{ left => MaxRetries }}, 
@@ -112,7 +117,9 @@ run_steps(#{ test := #{ name := Name },
                                       }};
                     
                 {error, E} ->
-                    cmkit:danger({cmtest, Name, Title, StepTitle}),
+                    cmkit:danger({cmtest, #{ test => Name,
+                                              scenario => Title,
+                                              step => StepTitle }}),
                     Elapsed = cmkit:now() - Started,
                     close_conns(World),
                     cmtest_runner:fail(Name, Title, #{ test => Name,

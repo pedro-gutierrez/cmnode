@@ -3,8 +3,8 @@ type: test
 name: sphera_rwanda
 spec:
   config:
-    retries: 100
-    wait: 5
+    retries: 4
+    wait: 250
   backgrounds:
     - title: "Sphera SHP api is online"
       steps:
@@ -29,7 +29,7 @@ spec:
           as: shp_api
         - title: "Check shp returned 400"
           probe:
-            app: shp_api
+            connection: shp_api
             status: up
     - title: "I am logged in as admin" 
       steps:
@@ -900,17 +900,14 @@ spec:
                   - text: 
                       literal: "/encounter/"
                   - key: encounter
-                    in:
-                      key: data
-                      in:
-                        key: world
+                    in: data
                   - text:
                       literal: "/_file?name=file.txt"
             transport: https
           as: encounter_file_api
         - title: "Check the encounter file api returned 400"
           probe:
-            app: encounter_file_api
+            connection: encounter_file_api
             status: up
   scenarios:
     - title: "Obtain a token as a valid user"
@@ -1032,7 +1029,7 @@ spec:
         - sphera 
         - rwanda
         - doctor
-        - consent
+        - last_consent
       backgrounds:
         - "Sphera SHP api is online"
         - "I am logged in as a doctor"

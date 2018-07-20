@@ -349,7 +349,7 @@ div.mapboxgl-ctrl {
 }
 
 .cover-image {
-    height: 450px; 
+    height: 270px; 
     background-size: cover; 
     background-repeat: no-repeat;
     position: relative;
@@ -367,4 +367,8 @@ div.mapboxgl-ctrl {
 
 .dark .cover-image-caption {
     background-color: rgba(0, 0, 0, 0.44);
+}
+
+.dark .avatar {
+    background-color: rgb(26, 26, 26);
 }

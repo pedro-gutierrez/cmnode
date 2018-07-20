@@ -43,6 +43,8 @@ spec:
                     any: text
                   cover:
                     any: text
+                  author:
+                    any: text
                   images:
                     any: list
   update:
@@ -94,6 +96,17 @@ spec:
                 key: lat
               lon:
                 key: lon
+    avatar_view:
+      view:
+        tag: figure
+        attrs:
+          class:
+            format:
+              pattern: "avatar avatar-~a"
+              params:
+                - key: size
+          data-initial:
+            key: initials
     review_cover_view:
       view:
         tag: img
@@ -110,7 +123,7 @@ spec:
       view:
         tag: div
         attrs:
-          class: "column col-6 p-2"
+          class: "column col-4 p-2"
           key:
             key: id
             in: item
@@ -126,16 +139,49 @@ spec:
                       - key: assets
                       - key: cover
                         in: item
+          - tag: div
+            attrs:
+              class: "columns mt-4"
             children:
               - tag: div
                 attrs:
-                  class: "cover-image-caption"
+                  class: "column col-2 text-center"
                 children:
-                  - tag: h5
+                  - view: avatar_view
+                    params:
+                      object:
+                        initials: "MM"
+                        size: "lg"
+                        photo:
+                          format:
+                            pattern: "~a/?id=~a"
+                            params:
+                              - key: assets
+                              - key: author 
+                                in: item
+
+              - tag: div
+                attrs:
+                  class: "column col-10"
+                children:
+                  - tag: div 
                     children:
                       - text:
                           key: title
                           in: item
+                  - tag: div
+                    attrs:
+                      class: "text-secondary"
+                      style: "font-weight: 300;"
+                    children:
+                      - tag: small
+                        children:
+                          - text: "Posted on June 12th 2018, at 5:29pm"
+                  - tag: span 
+                    attrs:
+                      class: "label label-rounded"
+                    children:
+                      - text: "Accomodation"
     reviews_collection_view:
       view:
         tag: div

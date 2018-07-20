@@ -83,9 +83,8 @@ connected(Event, Msg, #{ log := Log, name := Name, config := Config}=Data) ->
 
 upgrading(info, {gun_upgrade, _, _, _, _}, #{ log := Log,
                                                owner := Owner,
-                                               name := Name, 
-                                               config := Config}=Data) ->
-    Log({cmwsc, Name, upgraded, Config}),
+                                               name := Name }=Data) ->
+    Log({cmwsc, Name, upgraded}),
     Owner ! {ws, Name, up},
     {next_state, ready, Data};
 
@@ -157,15 +156,14 @@ ready(Event, Msg, #{ log := Log,
     {next_state, ready, Data}.
 
 handle_stop({call, From}, #{ log := Log, 
-                                   name := Name, 
-                                   config := Config
-                                 }) ->
-    Log({cmwsc, Name, ready, Config, stopping}),
+                             name := Name
+                           }) ->
+    Log({cmwsc, Name, stopping}),
     {stop_and_reply, normal, ok(From)}.
 
-terminate(Reason, _, #{ log := Log, name := Name, config := Config, conn := Conn}) ->
+terminate(Reason, _, #{ log := Log, name := Name, conn := Conn}) ->
     ok = gun:close(Conn),
-    Log({cmwsc, Name, terminated, Config, Reason}),
+    Log({cmwsc, Name, terminated, Reason}),
     ok.
 
 connect(#{ host := Host,
