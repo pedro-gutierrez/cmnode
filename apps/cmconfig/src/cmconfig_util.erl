@@ -1409,17 +1409,34 @@ compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
     #{ type => unknown, spec => Spec }.
 
-compile_kube_spec(#{ <<"deployment">> := Spec}) ->
-    #{ query => create,
-       resource => deployment,
-       params => compile_term(Spec)
-     };
 
 compile_kube_spec(#{ <<"secret">> := Spec}) ->
     #{ query => create,
        resource => secret,
        params => compile_term(Spec)
      };
+
+compile_kube_spec(#{ <<"kind">> := Kind,
+                     <<"name">> := NameSpec, 
+                     <<"namespace">> := NsSpec,
+                     <<"state">> := StateSpec,
+                     <<"server">> := ApiServerSpec }=Spec) ->
+    
+    Expr = #{ state => compile_term(StateSpec),
+              namespace => compile_term(NsSpec),
+              resource => cmkit:to_atom(Kind),
+              name => compile_term(NameSpec),
+              server => compile_term(ApiServerSpec)
+            },
+    
+    Expr2 = case maps:get(<<"props">>, Spec, undef) of 
+                undef ->
+                    Expr;
+                PropsSpec ->
+                    Expr#{ props => compile_term(PropsSpec) }
+            end,
+
+    Expr2;
 
 compile_kube_spec(#{ <<"delete">> := Spec}) ->
     #{ query => delete,

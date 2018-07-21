@@ -788,6 +788,50 @@ encode(#{ type := send,
             Other
     end;
 
+encode(#{ type := kube,
+          spec := #{ name := NameSpec,
+                     namespace := NsSpec,
+                     resource := Resource,
+                     server := ServerSpec,
+                     state := StateSpec } = Spec }, In, Config) ->
+
+    case encode(NameSpec, In, Config) of 
+        {ok, Name} ->
+            case encode(NsSpec, In, Config) of 
+                {ok, Ns} ->
+                    case encode(ServerSpec, In, Config) of 
+                        {ok, Server} ->
+                            case encode(StateSpec, In, Config) of 
+                                {ok, State} ->
+                                    Params = #{ name => Name,
+                                                namespace => Ns,
+                                                resource => Resource,
+                                                state => State,
+                                                server => Server },
+                                    case maps:get(props, Spec, undef) of 
+                                        undef ->
+                                            cmkube:do(Params);
+                                        PropsSpec ->
+                                            case encode(PropsSpec, In, Config) of 
+                                                {ok, Props} ->
+                                                    cmkube:do(Params#{ props => Props });
+                                                Other ->
+                                                    Other
+                                            end
+                                    end;
+                                Other -> 
+                                    Other
+                            end;
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+                     
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 
 encode_object(Spec, In, Config) ->

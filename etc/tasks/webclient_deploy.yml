@@ -3,13 +3,19 @@ type: task
 name: webclient_deploy
 spec:
   - kube:
-      deployment:
+      kind: deployment
+      name:
+        key: name
+        in: params
+      state: 
+        keyword: present
+      namespace: nc
+      server:
+        key: kubernetes
+        in: settings
+      props:
         object:
           retries: 120
-          namespace: "nc"
-          name: 
-            key: name
-            in: params
           labels:
             object:
               app:

@@ -3,13 +3,19 @@ type: task
 name: nimg_deploy
 spec:
   - kube:
-      deployment:
+      kind: deployment
+      name:
+        key: name
+        in: params
+      state: 
+        keyword: present
+      server:
+        key: kubernetes
+        in: settings
+      namespace: nc
+      props:
         object:
           retries: 120
-          namespace: "nc"
-          name: 
-            key: name
-            in: params
           labels:
             object:
               app:

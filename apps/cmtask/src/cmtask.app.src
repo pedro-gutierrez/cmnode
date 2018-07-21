@@ -7,7 +7,6 @@
    [kernel,
     stdlib,
     cmconfig,
-    cmkube,
     cmkit,
     cmtest,
     cmtemplate

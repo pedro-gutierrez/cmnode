@@ -231,28 +231,15 @@ run(#{ type := recv,
             Other
     end;
 
-run(#{ type := kube,
-       spec := #{
-            resource := Resource,
-            query := Verb
-        }} = Spec, Settings, #{ data := Data }=World ) ->
+run(#{ type := kube } = Spec,  Settings, #{ data := Data }=World ) ->
 
-    case kube_settings(Settings) of 
-        {ok, Host, Token} -> 
-            case cmkube:query(#{ host => Host,
-                                token => Token,
-                                verb => Verb,
-                                resource => Resource }) of 
-                {ok, Result, _} ->
-                    Key = maps:get(as, Spec, latest),
-                    { ok, World#{ data => Data#{ Key => Result }}};
-                {error, E} ->
-                    {error, #{ error => kubernetes_error,
-                               info => E }}
-            end;
-        {error, E } -> 
-            {error, #{ error => settings_error,
-                       info => E }}
+    In = World#{ settings => Settings },
+    case cmencode:encode(Spec, In) of 
+        {ok, Res} ->
+            Key = maps:get(as, Spec, latest),
+            {ok, World#{ data => Data#{ Key => Res }}};
+        Other ->
+            Other
     end;
 
 run(#{ type := procedure,
@@ -346,16 +333,8 @@ close(#{ conns := _Conns }, _Pid) ->
     ok.
 
 
-kube_settings(#{ kubernetes := #{ api := Host, 
-                            token := Token }}) ->
-    {ok, Host, Token};
-
-kube_settings(_) ->
-    {error, wrong_kube_settings}.
-
 report_sort_fun(#{ timestamp := T1}, #{ timestamp := T2}) ->
     T1 > T2.
-
 
 printable(#{ conns := Conns,
                    data := Data,

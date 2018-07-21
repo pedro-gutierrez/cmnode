@@ -1,30 +1,106 @@
 -module(cmkube).
--export([
-         do/1,
-         await/1
-        ]).
+-export([ do/1, await/1 ]).
 
-do(#{ host := Host,
-        token := Token,
-        verb := get,
-        resource := api_versions }) ->
-    do(kuberl_core_api, get_api_versions, Host, Token);
-
-
-do(#{ host := Host,
-        token := Token,
-        verb := list,
-        resource := namespaces}) ->
-    do(kuberl_core_v1_api, list_namespace, Host, Token);
-
-do(#{ host := Host,
-      token := Token,
+do(#{ name := Name,
       namespace := Ns,
-      service := App,
-      verb := <<"list">>,
-      resource := <<"endpoints">> }) ->
-    do(kuberl_core_v1_api, list_namespaced_endpoints, Ns, 
-       #{ labelSelector => <<"app=", App/binary>> }, Host, Token);
+      resource := service,
+      server := #{ api := Url,
+                   token := Token },
+      state := absent }) -> 
+    
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    case kuberl_core_v1_api:delete_namespaced_service(Ctx, Name, Ns, Opts) of 
+        {ok, Data, _} ->
+            {ok, Data};
+        {error, Reason, #{ status := 404 }} ->
+            {ok, Reason};
+        {error, E, _} ->
+            {error, E}
+    end;
+
+do(#{ name := Name,
+      namespace := Ns,
+      resource := deployment,
+      server := #{ api := Url,
+                   token := Token },
+      state := absent,
+      props := Props }) -> 
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    cmkit:log({cmkube, deployment, Name, deleting}),
+    case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
+        {error, Reason, #{ status := 404 }} ->
+            {ok, Reason};
+        {error, E, _} -> {error, E};
+        {ok, Data, _ } -> 
+            cmkit:log({cmkube, deployment, Name, deleted}),
+            case await(#{ namespace => Ns,
+                          resource => pod,
+                          server => #{ api => Url,
+                                       token => Token },
+                          state => <<"Running">>,
+                          props => Props,
+                          retries => 60,
+                          sleep => 1000,
+                          exact => 0 }) of 
+                ok ->
+                    {ok, Data};
+                {error, E} ->
+                    {error, E}
+            end
+    end;
+
+do(#{ namespace := Ns,
+      resource := pod,
+      server := #{ api := Url,
+                   token := Token },
+      props := #{ labels := Labels }}) ->
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    Opts2 =  Opts#{ params => #{ labelSelector => to_query_params(Labels)}},
+    case kuberl_core_v1_api:list_namespaced_pod(Ctx, Ns, Opts2) of 
+        {ok, #{ items := Items }, _} -> 
+            {ok, Items};
+        Other -> 
+            Other
+    end;
+
+do(#{ name := Name,
+      namespace := Ns,
+      resource := service,
+      server := #{ api := Url,
+                   token := Token },
+      state := present,
+      props := #{ labels := Labels,
+                  spec := #{ type := Type,
+                             ports := Ports }}} = Spec) ->
+
+    case do(Spec#{ state => absent }) of 
+        {ok, _} -> 
+            Service = #{ apiVersion => <<"v1">>,
+                         kind => <<"Service">>,
+                         metadata => #{ name => Name,
+                                        namespace => Ns,
+                                        labels => Labels },
+                         spec => #{ type => Type,
+                                    selector => Labels,
+                                    ports => Ports } },
+
+            Ctx = ctx:background(),
+            Opts = opts(Url, Token),
+            case kuberl_core_v1_api:create_namespaced_service(Ctx, Ns, Service, Opts) of 
+                {ok, Data, _} ->
+                    {ok, Data};
+                {error, E, _} ->
+                    {error, E}
+            end;
+        Other ->
+            Other
+    end;
+
 
 do(#{ host := Host,
       token := Token,
@@ -45,44 +121,6 @@ do(#{ host := Host,
                                                                 data => Data }, #{ cfg => Cfg });
 
 
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"create">>,
-      resource := <<"service">>,
-      name := Name,
-      labels := Labels,
-      ports := Ports
-    }) ->
-    
-    Ctx = ctx:background(),
-    Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),
-    kuberl_core_v1_api:delete_namespaced_service(Ctx, Name, Ns, #{ cfg => Cfg }),
-    kuberl_core_v1_api:create_namespaced_service(Ctx, Ns, #{ apiVersion => <<"v1">>,
-                                                             kind => <<"Service">>,
-                                                             metadata => #{ name => Name,
-                                                                            namespace => Ns,
-                                                                            labels => Labels },
-                                                             spec => #{ selector => Labels, 
-                                                                        ports => Ports } }, #{ cfg => Cfg });
-
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"list">>,
-      resource := <<"pod">>,
-      labels := Labels
-    }) ->
-
-    Ctx = ctx:background(),
-    Opts = opts(Host, Token),
-    Opts2 =  Opts#{ params => #{ labelSelector => cmkube_util:to_query_params(Labels)}},
-    case kuberl_core_v1_api:list_namespaced_pod(Ctx, Ns, Opts2) of 
-        {ok, #{ items := Items }, _} -> 
-            {ok, Items};
-        Other -> 
-            Other
-    end;
 
 do(#{ host := Host,
       token := Token,
@@ -97,32 +135,11 @@ do(#{ host := Host,
             cmkit:log({cmkube, deleting, pods, Names}),
             Ctx = ctx:background(),
             Opts = opts(Host, Token),
-            cmkube_util:delete_pods(Names, Ns, Ctx, Opts);
+            delete_pods(Names, Ns, Ctx, Opts);
         Other -> 
             Other
     end;
 
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"delete">>,
-      resource := <<"deployment">>,
-      retries := Retries,
-      name := Name }=Params) ->
-
-    Ctx = ctx:background(),
-    Opts = opts(Host, Token),
-    cmkit:log({cmkube, deployment, Name, deleting}),
-    case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
-        {error, E} -> {error, E};
-        _ -> 
-            cmkit:log({cmkube, deployment, Name, deleted}),
-            await(Params#{ status => <<"Running">>,
-                               retries => Retries,
-                               sleep => 1000,
-                               exact => 0,
-                               resource => <<"pod">> })
-    end;
 
 do(#{ host := Host,
       token := Token,
@@ -229,7 +246,7 @@ do(Q) ->
     {error, #{ status => not_supported_yet,
                query => Q#{ token => <<"NOT SHOWN">> }}}.
 
-await(#{ status := Status,
+await(#{ state := State,
          retries := Retries,
          sleep := Millis, 
          exact := Exact }=Params) ->
@@ -239,13 +256,13 @@ await(#{ status := Status,
             {error, timeout};
         _ -> 
             timer:sleep(Millis),
-            case do(Params#{ verb => <<"list">> }) of 
+            case do(Params) of 
                 {ok, Items} ->
-                    case length(filter_by_status(Status, Items)) of 
+                    case length(filter_by_status(State, Items)) of 
                         Exact -> 
                             ok;
                         Other -> 
-                            cmkit:log({cmkube, await, Params, Status, Other, Exact, sleeping}),
+                            cmkit:log({cmkube, await, Params, State, Other, Exact, sleeping}),
                             await(Params#{ retries => Retries -1 })
                     end;
                 _ -> 
@@ -264,11 +281,17 @@ opts(Host, Token) ->
     #{ cfg => Cfg }.
 
 
-do(Api, Op, Host, Token) ->
-    Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),
-    Api:Op(ctx:background(), #{cfg => Cfg}).
+to_query_params(Map) -> 
+    cmkit:map_join(Map, <<"=">>, <<",">>).
 
-do(Api, Op, Ns, Opts, Host, Token) ->
-    Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),
-    Api:Op(ctx:background(), Ns, #{ params => Opts,
-                                    cfg => Cfg }).
+delete_pods([], _, _ , _) -> ok;
+delete_pods([N|Rem], Ns, Ctx, Opts) -> 
+    case kuberl_core_v1_api:delete_namespaced_pod(Ctx, N, Ns, #{}, Opts) of
+        {error, E} -> {error, E};
+        {error, #{ code := Code,
+                   message := Message }, _} -> {error, #{ code => Code,
+                                                          reason => Message}};
+        _ ->
+            cmkit:log({cmkube, pod, N, Ns, deleted}),
+            delete_pods(Rem, Ns, Ctx, Opts)
+    end.

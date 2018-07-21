@@ -3,16 +3,23 @@ type: task
 name: netcomp_deploy
 spec:
   - kube:
-      deployment:
+      kind: deployment
+      name:
+        join:
+          terms:
+            - key: name
+              in: params
+            - text: "-09"
+      state: 
+        keyword: present
+      server:
+        key: kubernetes
+        in: settings
+      namespace: "nc"
+      props:
         object:
           retries: 120
           namespace: "nc"
-          name:
-            join:
-              terms:
-                - key: name
-                  in: params
-                - text: "-09"
           labels:
             object:
               app:
