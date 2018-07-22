@@ -559,6 +559,7 @@ compile_term(#{ <<"any">> := <<"data">> }) ->
 compile_term(#{ <<"file">> := <<"any">> }) ->
     #{ type => file };
 
+
 compile_term(#{ <<"base64">> := Spec,
                 <<"as">> := As }) ->
 
@@ -1167,14 +1168,6 @@ compile_term(#{ <<"shell">> :=
        chwd => compile_term(Chwd),
        cmd => compile_term(Cmd) };
 
-compile_term(#{}=Map) when map_size(Map) == 0 ->
-    #{ type => object };
-
-compile_term(null) -> 
-    #{ type => object };
-
-compile_term([]) -> 
-    #{ type => list, value => [] };
 
 compile_term(#{ <<"kube">> := Spec}) ->
     #{ type => kube,
@@ -1272,6 +1265,12 @@ compile_term(#{ <<"wait">> := #{
        spec => #{ sleep => Sleep,
                   retries => Retries,
                   condition => compile_term(Condition) }};
+
+compile_term(#{ <<"wait">> := #{ 
+                    <<"seconds">> := Secs }}) -> 
+    #{ type => wait,
+       spec => #{
+         sleep => Secs * 1000 }};
 
 compile_term(#{ <<"match">> := #{
                     <<"value">> := ValueSpec,
@@ -1378,13 +1377,6 @@ compile_term(Term) when is_map(Term) ->
                             Out#{ K2 => V2 }
                          end, #{}, Term) };
 
-compile_term(Terms) when is_list(Terms) ->
-    #{ type => list,
-       spec => lists:foldr(fun(T, Out) ->
-                                   [compile_term(T)|Out]
-                         end, [], Terms) };
-
-
 compile_term(true) -> 
     #{ type => keyword,
        value => true };
@@ -1404,6 +1396,20 @@ compile_term(<<"no">>) ->
 compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }) ->
     #{ lat => Lat, 
        lon => Lon };
+
+compile_term(#{}=Map) when map_size(Map) == 0 ->
+    #{ type => object };
+
+compile_term(null) -> 
+    #{ type => object };
+
+compile_term(Items) when is_list(Items) ->
+    #{ type => list,
+       value => lists:map( fun compile_term/1, Items) 
+     };
+
+compile_term([]) -> 
+    #{ type => list, value => [] };
 
 compile_term(Spec) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),

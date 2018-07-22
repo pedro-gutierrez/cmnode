@@ -182,8 +182,7 @@ run(#{ type := disconnect,
 
 run(#{ type := expect, 
        spec := Spec }, Settings, World) ->
-    EvalRes = cmeval:eval(Spec, World, Settings),
-    cmkit:log({cmtest, expect, Spec, World, EvalRes}),
+    EvalRes = cmeval:eval(Spec, World#{ settings => Settings }),
     case EvalRes of
         true ->
             {ok, World};
@@ -245,11 +244,11 @@ run(#{ type := kube } = Spec,  Settings, #{ data := Data }=World ) ->
 run(#{ type := procedure,
        params := Params,
        spec := Spec }=Spec0, Settings, #{ data := Data }=World) ->
-    
-        case cmencode:encode(Params, World, Settings) of 
+        
+        In0 = World#{ settings => Settings },
+        case cmencode:encode(Params, In0) of 
             {ok, EncodedParams} ->
-                In = World#{ params => EncodedParams,
-                             settings => Settings },
+                In = In0#{ params => EncodedParams },    
                 case cmencode:encode(Spec, In) of 
                     {ok, #{ connection := #{ name := Name }=Conn }} ->
                         {ok, world_with_conn(Name, Conn, World)};
@@ -320,9 +319,17 @@ run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
                        info => E }}
     end;
 
-run(Step, _, _) ->
-    {error, #{ error => unsupported,
-               info => Step }}.
+run(Spec, Settings, World) ->
+   case cmencode:encode(Spec, World#{ settings => Settings}) of 
+       {ok, _} -> 
+           {ok, World};
+       Other -> 
+           Other
+   end.
+
+%run(Step, _, _) ->
+%    {error, #{ error => unsupported,
+%               info => Step }}.
 
 close(#{ conns := _Conns }, _Pid) ->
     %lists:foreach(fun(#{ name := Name,

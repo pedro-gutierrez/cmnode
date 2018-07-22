@@ -21,6 +21,40 @@ do(#{ name := Name,
 
 do(#{ name := Name,
       namespace := Ns,
+      resource := service,
+      server := #{ api := Url,
+                   token := Token },
+      state := present,
+      props := #{ labels := Labels,
+                  spec := #{ type := Type,
+                             ports := Ports }}} = Spec) ->
+
+    case do(Spec#{ state => absent }) of 
+        {ok, _} -> 
+            Service = #{ apiVersion => <<"v1">>,
+                         kind => <<"Service">>,
+                         metadata => #{ name => Name,
+                                        namespace => Ns,
+                                        labels => Labels },
+                         spec => #{ type => Type,
+                                    selector => Labels,
+                                    ports => Ports } },
+
+            
+            Ctx = ctx:background(),
+            Opts = opts(Url, Token),
+            case kuberl_core_v1_api:create_namespaced_service(Ctx, Ns, Service, Opts) of 
+                {ok, Data, _} ->
+                    {ok, Data};
+                {error, E, _} ->
+                    {error, E}
+            end;
+        Other ->
+            Other
+    end;
+
+do(#{ name := Name,
+      namespace := Ns,
       resource := deployment,
       server := #{ api := Url,
                    token := Token },
@@ -52,6 +86,53 @@ do(#{ name := Name,
             end
     end;
 
+do(#{ name := Name,
+      namespace := Ns,
+      resource := deployment,
+      server := #{ api := Url,
+                   token := Token },
+      state := present,
+      props := #{ labels := Labels,
+                  replicas := Replicas,
+                  spec := Spec } = Props} = Params) ->
+
+    case do(Params#{ state => absent }) of 
+        {ok, _ } ->
+            Dep = #{ apiVersion => <<"apps/v1">>,
+                     kind => <<"Deployment">>,
+                     metadata => #{ name => Name,
+                                    namespace => Ns,
+                                    labels => Labels },
+                     spec => #{ replicas => Replicas,
+                                selector => #{ matchLabels => Labels },
+                                template =>
+                                #{ metadata => #{ labels => Labels },
+                                   spec => Spec } }},
+
+            Ctx = ctx:background(),
+            Opts = opts(Url, Token),
+            case kuberl_apps_v1_api:create_namespaced_deployment(Ctx, Ns, Dep, Opts) of 
+                {error, E, _} -> {error, E};
+                {ok, Data, _} -> 
+                    case await(#{ namespace => Ns,
+                                  resource => pod,
+                                  server => #{ api => Url,
+                                               token => Token },
+                                  state => <<"Running">>,
+                                  props => Props,
+                                  retries => 60,
+                                  sleep => 1000,
+                                  exact => Replicas }) of 
+                        ok -> 
+                            {ok, Data};
+                        Other ->
+                            Other
+                    end
+            end;
+        Other ->
+            Other
+    end;
+
 do(#{ namespace := Ns,
       resource := pod,
       server := #{ api := Url,
@@ -68,38 +149,6 @@ do(#{ namespace := Ns,
             Other
     end;
 
-do(#{ name := Name,
-      namespace := Ns,
-      resource := service,
-      server := #{ api := Url,
-                   token := Token },
-      state := present,
-      props := #{ labels := Labels,
-                  spec := #{ type := Type,
-                             ports := Ports }}} = Spec) ->
-
-    case do(Spec#{ state => absent }) of 
-        {ok, _} -> 
-            Service = #{ apiVersion => <<"v1">>,
-                         kind => <<"Service">>,
-                         metadata => #{ name => Name,
-                                        namespace => Ns,
-                                        labels => Labels },
-                         spec => #{ type => Type,
-                                    selector => Labels,
-                                    ports => Ports } },
-
-            Ctx = ctx:background(),
-            Opts = opts(Url, Token),
-            case kuberl_core_v1_api:create_namespaced_service(Ctx, Ns, Service, Opts) of 
-                {ok, Data, _} ->
-                    {ok, Data};
-                {error, E, _} ->
-                    {error, E}
-            end;
-        Other ->
-            Other
-    end;
 
 
 do(#{ host := Host,

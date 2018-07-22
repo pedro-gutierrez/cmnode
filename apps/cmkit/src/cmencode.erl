@@ -626,6 +626,13 @@ encode(#{ type := wait,
     
     encode_retry(Retries, Sleep, Condition, In, Config);
 
+encode(#{ type := wait,
+          spec := #{ sleep := Sleep }}, _, _) ->
+
+    cmkit:log({cmencode, wait, Sleep }),
+    timer:sleep(Sleep),
+    cmkit:log({cmencode, sleep, resuming}),
+    {ok, Sleep};
 
 encode(#{ type := match,
           spec := #{ value := ValueSpec,
