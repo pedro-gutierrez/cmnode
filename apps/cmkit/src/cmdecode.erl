@@ -202,6 +202,9 @@ decode_term(#{ type := list, without := Member}, Data, _) when is_list(Data) ->
 decode_term(#{ type := first, spec := Spec }, Data, Config) when is_list(Data) ->
     decode_first_item(Spec, Data, Config);
 
+decode_term(#{ type := first, spec := _}, _, _) ->
+   no_match;
+
 decode_term(#{ type := list, value := Specs }, Data, Config) ->
     decode_all_items(Specs, Data, Config, []);
 

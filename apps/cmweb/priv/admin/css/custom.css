@@ -372,3 +372,8 @@ div.mapboxgl-ctrl {
 .dark .avatar {
     background-color: rgb(26, 26, 26);
 }
+
+.review-item-view:hover {
+    cursor: pointer;
+    background-color: rgb(26, 26, 26);
+}

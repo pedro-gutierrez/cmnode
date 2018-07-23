@@ -149,7 +149,26 @@ do(#{ namespace := Ns,
             Other
     end;
 
+do(#{ namespace := Ns,
+      resource := pod,
+      server := #{ api := Url,
+                   token := Token },
+      state := absent } = Params) ->
 
+    case do(maps:without([state], Params)) of
+        {ok, Items} ->
+            Names = [ Name || #{ metadata := #{ name := Name }} <- Items ],
+            cmkit:log({cmkube, deleting, pods, Names}),
+            Ctx = ctx:background(),
+            Opts = opts(Url, Token),
+            case delete_pods(Names, Ns, Ctx, Opts) of 
+                ok -> {ok, length(Names)};
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
 
 do(#{ host := Host,
       token := Token,
@@ -171,125 +190,55 @@ do(#{ host := Host,
 
 
 
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"delete">>,
-      resource := <<"pod">>
-    }=Params) ->
 
-    case do(Params#{ verb => <<"list">> }) of
-        {ok, Items} ->
-            Names = [ Name || #{ metadata := #{ name := Name }} <- Items ],
-            cmkit:log({cmkube, deleting, pods, Names}),
-            Ctx = ctx:background(),
-            Opts = opts(Host, Token),
-            delete_pods(Names, Ns, Ctx, Opts);
-        Other -> 
-            Other
-    end;
-
-
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"create">>,
-      resource := <<"deployment">>,
-      retries := Retries,
+do(#{ namespace := Ns,
       name := Name,
-      labels := Labels,
-      replicas := Replicas,
-      spec := Spec
-    }=Params) ->
-    
-    case do(Params#{ verb => <<"delete">> }) of 
-        ok ->
-            cmkit:log({cmkube, deployment, Name, creating}),
-            Dep = #{ apiVersion => <<"apps/v1">>,
-                     kind => <<"Deployment">>,
-                     metadata => #{ name => Name,
-                                    namespace => Ns,
-                                    labels => Labels },
-                     spec => #{ replicas => Replicas,
-                                selector => #{ matchLabels => Labels },
-                                template =>
-                                #{ metadata => #{ labels => Labels },
-                                   spec => Spec } }},
+      resource := secret,
+      server := #{ api := Url,
+                   token := Token },
+      state := absent }) ->
 
-            Ctx = ctx:background(),
-            Opts = opts(Host, Token),
-            case kuberl_apps_v1_api:create_namespaced_deployment(Ctx, Ns, Dep, Opts) of 
-                {error, #{ message := E }, _} -> {error, E};
-                {ok, FullSpec, _} -> 
-                    cmkit:log({cmkube, deployment, Name, waiting_for_pods}),
-                    case await(Params#{ status => <<"Running">>,
-                                        retries => Retries,
-                                        sleep => 1000,
-                                        exact => Replicas,
-                                        resource => <<"pod">> }) of 
-                        ok -> 
-                            cmkit:log({cmkube, deployment, Name, finished}),
-                            {ok, FullSpec};
-
-                        Other ->
-                            Other
-                    end
-            end;
-        Other ->
-            Other
-    end;
-
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"delete">>,
-      resource := <<"secret">>,
-      name := Name }) ->
-        
-    cmkit:log({cmkube, secret, Name, deleting}),
     Ctx = ctx:background(),
-    Opts = opts(Host, Token),
+    Opts = opts(Url, Token),
     case kuberl_core_v1_api:delete_namespaced_secret(Ctx, Name, Ns, #{}, Opts) of 
-        {error, E} -> {error, E};
-        _ -> ok
+        {error, Reason, #{ status := 404 }} ->
+            {ok, Reason};
+        {error, E, _} -> {error, E};
+        {ok, Status, _} -> 
+            {ok, Status}
     end;
 
-do(#{ host := Host,
-      token := Token,
-      namespace := Ns,
-      verb := <<"create">>,
-      resource := <<"secret">>,
+do(#{ namespace := Ns,
       name := Name,
-      key := Key,
-      cert := Cert
-    }=Params) ->
+      resource := secret,
+      server := #{ api := Url,
+                   token := Token },
+      state := present,
+      props := #{ key := Key,
+                  cert := Cert }}=Params) ->
 
-    case do(Params#{ verb => <<"delete">> }) of 
-        ok ->
-            cmkit:log({cmkube, secret, Name, creating}),
+    case do(Params#{ state => absent }) of 
+        {ok, _} ->
             Ctx = ctx:background(),
-            Opts = opts(Host, Token),
-            Spec = #{ apiVersion => <<"v1">>,
-                     kind => <<"Secret">>,
-                     metadata => #{ name => Name,
-                                    namespace => Ns },
-                     type => <<"kubernetes.io/tls">>,
-                     stringData => #{ <<"tls.crt">> => Cert,
-                                      <<"tls.key">> => Key }},
-            case kuberl_core_v1_api:create_namespaced_secret(Ctx, Ns, Spec, Opts) of 
-                {error, E} -> {error, E};
+            Opts = opts(Url, Token),
+            Secret = #{ apiVersion => <<"v1">>,
+                        kind => <<"Secret">>,
+                        metadata => #{ name => Name,
+                                       namespace => Ns },
+                        type => <<"kubernetes.io/tls">>,
+                        stringData => #{ <<"tls.crt">> => Cert,
+                                         <<"tls.key">> => Key }},
+            case kuberl_core_v1_api:create_namespaced_secret(Ctx, Ns, Secret, Opts) of 
                 {error, #{ code := Code,
                            message := Message }, _} -> {error, #{ code => Code, 
                                                                   reason => Message}};
-                Resp -> 
-                    cmkit:log({cmkube, secret, Name, create, Resp}),
-                    ok
+                {error, E, _} -> {error, E};
+                {ok, Status, _} -> 
+                    {ok, Status}
             end;
         Other ->
             Other
     end;
-
-
 
 do(Q) ->
     {error, #{ status => not_supported_yet,

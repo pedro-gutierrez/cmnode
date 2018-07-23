@@ -39,8 +39,8 @@ initializing(cast, init,  #{app := App,
             cmcore_util:cmds(Cmds, Model, Config, Session),
             {next_state, ready, Session#{ model => Model }};
         {error, E} -> 
-            Error = server_error(App, Session, init, E),
-            {stop, Error}
+            server_error(App, Session, init, E),
+            {stop, normal}
     end.
 
 ready(cast, {update, Data}, #{ app := App, 
@@ -56,14 +56,13 @@ ready(cast, {update, Data}, #{ app := App,
             Log({cmcore, decoded, Msg, App, Id}),
             case cmcore_util:update_spec(Spec, Msg, Decoded, Model, Config) of 
                 {ok, UpdateSpec} ->
-                    Log({cmcore, updating, UpdateSpec, App, Id}),
                     case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
                             cmcore_util:cmds(Cmds, Model2, Config, Session),
                             {keep_state, Session#{ model => Model2 }};
                         {error, E} ->
                             server_error(App, Session, update, E),
-                            {stop, Session}
+                            {stop, normal}
                     end;
                 {error, E} ->
                     server_error(App, Session, update, E),

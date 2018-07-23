@@ -1,0 +1,59 @@
+version: 1.0
+type: module
+category: ui
+name: weekonekt_admin_review_ui
+spec:
+  init:
+    model:
+      theme: "dark"
+  decoders:
+    show_review:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name: 
+              keyword: show_review
+            id:
+              any: text
+  update:
+    show_review:
+      model:
+        id:
+          key: id
+      cmds:
+        - effect: ws
+          encoder: review_query
+        - effect: ui
+          encoder: review_view
+  encoders:
+    review_query:
+      object:
+        app:
+          text: "weekonekt"
+        action:
+          text: "review"
+        id:
+          key: id
+    review_view: 
+      view:
+        view: layout
+        params:
+          object:
+            theme:
+              key: theme
+            message:
+              key: message
+            content_view:
+              keyword: review_layout_view
+            contents:
+              key: review
+            sidebar:
+              keyword: weekonekt_admin_sidebar
+
+
+
+
+
+                

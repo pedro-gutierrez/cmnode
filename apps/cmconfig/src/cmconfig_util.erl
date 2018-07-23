@@ -387,9 +387,14 @@ compile_steps([Step|Rem], Out) ->
     compile_steps(Rem, [compile_step(Step)|Out]).
 
 compile_step(#{ <<"title">> := Title }=Spec) ->
-    maps:merge(
-      compile_term(Spec),
-      #{ title => Title } );
+    Expr = compile_term(Spec),
+    Expr2 = Expr#{ title => Title },
+    Expr3 = case maps:get(<<"as">>, Spec, undef) of
+                 undef -> Expr2;
+                 AsSpec -> 
+                    Expr2#{ as => compile_term(AsSpec) }
+            end,
+    Expr3;
 
 compile_step(#{ <<"ref">> := Title })  ->
       compile_step(Title);
@@ -1416,14 +1421,7 @@ compile_term(Spec) ->
     #{ type => unknown, spec => Spec }.
 
 
-compile_kube_spec(#{ <<"secret">> := Spec}) ->
-    #{ query => create,
-       resource => secret,
-       params => compile_term(Spec)
-     };
-
 compile_kube_spec(#{ <<"kind">> := Kind,
-                     <<"name">> := NameSpec, 
                      <<"namespace">> := NsSpec,
                      <<"state">> := StateSpec,
                      <<"server">> := ApiServerSpec }=Spec) ->
@@ -1431,32 +1429,24 @@ compile_kube_spec(#{ <<"kind">> := Kind,
     Expr = #{ state => compile_term(StateSpec),
               namespace => compile_term(NsSpec),
               resource => cmkit:to_atom(Kind),
-              name => compile_term(NameSpec),
               server => compile_term(ApiServerSpec)
             },
-    
-    Expr2 = case maps:get(<<"props">>, Spec, undef) of 
-                undef ->
+
+    Expr2 = case maps:get(<<"name">>, Spec, undef) of 
+                undef -> 
                     Expr;
+                NameSpec ->
+                    Expr#{ name => compile_term(NameSpec) }
+            end,
+    
+    Expr3 = case maps:get(<<"props">>, Spec, undef) of 
+                undef ->
+                    Expr2;
                 PropsSpec ->
-                    Expr#{ props => compile_term(PropsSpec) }
+                    Expr2#{ props => compile_term(PropsSpec) }
             end,
 
-    Expr2;
-
-compile_kube_spec(#{ <<"delete">> := Spec}) ->
-    #{ query => delete,
-       params => compile_term(Spec)
-     };
-
-compile_kube_spec(#{ <<"query">> := Verb,
-                     <<"resource">> := Resource}) ->
-    #{ query => cmkit:to_atom(Verb),
-       resource => cmkit:to_atom(Resource) }.
-
-%compile_from(From) when is_binary(From)-> compile_keyword(From);
-%compile_from(From) when is_map(From) ->
-%    compile_term(From).
+    Expr3.
 
 compile_object(<<"any">>) -> 
     #{ type => object };

@@ -583,6 +583,63 @@ spec:
               one_of:
                 - text: "danger"
                 - text: "warning"
+    dkv_pet_proxy_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "dkv-pet-proxy"
+              repo_name:
+                any: text
+    dkv_pet_proxy_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-pet-proxy"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    dkv_pet_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-pet"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    dkv_pet_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-pet"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
     dkv_docker_release_ready:
       object:
         body:
@@ -820,8 +877,8 @@ spec:
           encoder: certs_changed_announcement
         - effect: task
           encoder: certs_domain_deploy_dev
-        - effect: task
-          encoder: certs_domain_deploy_preprod
+          #     - effect: task
+          #encoder: certs_domain_deploy_preprod
         - effect: notify
           encoder: ok
     netk_certs_changed:
@@ -1312,7 +1369,9 @@ spec:
         - effect: task
           encoder: deploy_announce_task
         - effect: test 
-          encoder: dkv_test
+          encoder: dkv_shp_test
+        - effect: test 
+          encoder: dkv_pet_test
         - effect: notify
           encoder: ok
     dkv_dev_tests_passed:
@@ -1324,7 +1383,7 @@ spec:
     dkv_dev_tests_failed:
       model:
         repo:
-          text: "netcomposer/netcomp:dkv-latest"
+          text: "netcomposer/netcomp:dkv"
         settings:
           key: settings
           in: body
@@ -1364,6 +1423,66 @@ spec:
           encoder: docker_ready_task
         - effect: task
           encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_docker_dev_ready:
+      model:
+        settings:
+          keyword: dev
+        name: 
+          text: "dkv-pet-proxy"
+        docker_image:
+          object:
+            name: 
+              key: name
+              in: 
+                key: repository
+                in: body
+            repo: 
+              key: repo_name
+              in: 
+                key: repository
+                in: body
+            tag:
+              key: tag
+              in: 
+                key: push_data
+                in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_pet_proxy_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_dev_deployed:
+      model:
+        deployment:
+          key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: dkv_pet_test
+        - effect: notify
+          encoder: ok
+    dkv_pet_dev_tests_passed:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    dkv_pet_dev_tests_failed:
+      model:
+        repo:
+          text: "netcomposer/dkv-pet-proxy"
+        settings:
+          key: settings
+          in: body
+        test:
+          key: test
+          in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
         - effect: notify
           encoder: ok
     sphera_telemed_dev_changed:
@@ -2107,10 +2226,10 @@ spec:
               keyword: tests
             settings:
               keyword: dev
-    dkv_test:
+    dkv_shp_test:
       object:
         schedule:
-          keyword: dkv
+          keyword: dkv_shp
         settings:
           keyword: dev
         opts:
@@ -2131,6 +2250,37 @@ spec:
               keyword: tests
             settings:
               keyword: dev
+    dkv_pet_proxy_deploy_task:
+      object:
+        task:
+          keyword: pet_proxy_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    dkv_pet_test:
+      object:
+        schedule:
+          keyword: dkv_pet
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
     netcomp_deploy_task:
       object:
         task:

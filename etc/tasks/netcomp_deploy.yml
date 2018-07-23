@@ -115,7 +115,7 @@ spec:
                   port:
                     key: port
                     in:
-                      key: shp
+                      key: admin 
                       in:
                         key:
                           key: name
@@ -136,7 +136,7 @@ spec:
                   transport:
                     key: transport
                     in:
-                      key: shp
+                      key: admin 
                       in: 
                         key:
                           key: name

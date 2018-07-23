@@ -15,11 +15,16 @@ spec:
               - key: settings
                 in: params
   - kube:
-      secret:
+      kind: secret
+      name: "nc-cert"
+      namespace: "nc"
+      state: 
+        keyword: present
+      server:
+        key: kubernetes
+        in: settings
+      props:
         object:
-          retries: 120
-          namespace: "nc"
-          name: "nc-cert"
           key:
             file:
               at:
@@ -41,14 +46,18 @@ spec:
                     - key: domain
                       in: params
   - kube:
-      delete:
+      kind: pod
+      namespace: "nc"
+      state:
+        keyword: absent
+      server:
+        key: kubernetes
+        in: settings
+      props:
         object:
-          namespace: "nc"
           labels:
             object:
               app: coturn
-          resource: pod
-  
   - slack:
       settings:
         key: slack

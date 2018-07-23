@@ -182,7 +182,8 @@ run(#{ type := disconnect,
 
 run(#{ type := expect, 
        spec := Spec }, Settings, World) ->
-    EvalRes = cmeval:eval(Spec, World#{ settings => Settings }),
+    In = World#{ settings => Settings },
+    EvalRes = cmeval:eval(Spec, In),
     case EvalRes of
         true ->
             {ok, World};
@@ -310,13 +311,17 @@ run(#{ type := merge,
    end;
 
 run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
-    case cmencode:encode(Spec, Data, Settings) of 
-        {ok, Encoded} ->
-            { ok, World#{ data => Data#{ As => Encoded }}};
-        {error, E} ->
-            {error, #{ error => encode_error,
-                       spec => Spec,
-                       info => E }}
+    In = World#{ settings => Settings },
+    case cmencode:encode(As, In) of 
+        {ok, EncodedAlias} -> 
+            case cmencode:encode(Spec, In) of 
+                {ok, Encoded} ->
+                    { ok, World#{ data => Data#{ EncodedAlias=> Encoded }}};
+                Other -> 
+                    Other
+            end;
+        Other ->
+            Other
     end;
 
 run(Spec, Settings, World) ->
