@@ -1,0 +1,110 @@
+version: 1.0
+type: module
+category: server
+name: mock_oauth_api 
+spec:
+  decoders:
+    valid_authorization:
+      object:
+        headers:
+          object:
+            authorization: "Bearer: oauth-valid-token"
+            client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+    invalid_authorization:
+      object:
+        headers:
+          object:
+            authorization:
+              text:
+                other_than: "Bearer: oauth-valid-token"
+            client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+    missing_authorization:
+      object:
+        headers:
+          object_without:
+            - authorization
+    invalid_client_id:
+      object:
+        headers:
+          one_of:
+            - object_without:
+                - client_id
+            - object:
+                client_id: 
+                  text:  
+                    other_than: "3434323666396432626437353336363735616464386335343930636332313237"
+  update:
+    valid_authorization:
+      cmds:
+        - effect: notify
+          encoder: authorized
+        - effect: terminate
+    invalid_authorization:
+      cmds:
+        - effect: notify
+          encoder: invalid_access_token 
+        - effect: terminate
+    missing_authorization:
+      cmds:
+        - effect: notify
+          encoder: missing_access_token 
+        - effect: terminate
+    invalid_client_id:
+      cmds:
+        - effect: notify
+          encoder: invalid_client_id
+        - effect: terminate
+  encoders:
+    authorized:
+      object:
+        status: 200
+        headers:
+          content-type: "application/json; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          object:
+            Resultado:
+              object:
+                Value: "OK"
+                RES:
+                  object:
+                    DATA:
+                      BDU_ID: 56789
+    invalid_access_token:
+      object:
+        status: 401
+        headers:
+          content-type: "text/plain; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          text: "User Unauthorized. Procotol Fault exception. Invalid access token."
+    missing_access_token:
+      object:
+        status: 401
+        headers:
+          content-type: "text/plain; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          text: "User not authorized: Authorization Bearer Header missing."
+    invalid_client_id:
+      object:
+        status: 400
+        headers:
+          content-type: "application/json; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          object:
+            Resultado:
+              object:
+                Value: "ERROR"
+                RES:
+                  object:
+                    MESSAGE: "El parámetro client_id recibido no es válido"

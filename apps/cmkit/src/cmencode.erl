@@ -1,7 +1,11 @@
 -module(cmencode).
 -export([encode/1, 
          encode/2,
-         encode/3]).
+         encode/3,
+         encode_all/1,
+         encode_all/2,
+         encode_all/3
+        ]).
 
 encode(Spec) -> encode(Spec, #{}).
 encode(Spec, In) -> encode(Spec, In, #{}).
@@ -884,6 +888,9 @@ fail_encoding(Spec, In, Out) ->
                reason => Out 
              }
     }.
+
+encode_all(Specs) -> encode_all(Specs, #{}, #{}).
+encode_all(Specs, In) -> encode_all(Specs, In, #{}).
 
 encode_all(Specs, In, Config) ->
     encode_all(Specs, In, Config, []).

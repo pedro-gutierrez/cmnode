@@ -26,7 +26,7 @@ init(Req, #{app := App}=State) ->
                     end
             end;
         {error, E} -> 
-            cmkit:log({http, new, invalid_app, App, E}),
+            cmkit:danger({http, new, no_such_app, App, E}),
             reply_and_ok(error, json, #{}, Req, State)
     end.
 
@@ -44,10 +44,12 @@ info({stream, 'end', Headers}, Req, State) ->
     cowboy_req:stream_trailers(Headers2, Req),
     {stop, Req, State};
 
+
 info(#{ status := Code, headers := Headers, body := Body }, Req, State) ->
     Headers2 = binary_headers(Headers),
-    cmkit:log({http, out, Code, Headers, Body}),
-    Req2 = cowboy_req:reply(Code, Headers2, Body, Req),
+    Body2 = encoded_body(Headers2, Body),
+    cmkit:log({http, out, Code, Headers, Body2}),
+    Req2 = cowboy_req:reply(Code, Headers2, Body2, Req),
     {stop, Req2, State};
     
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
@@ -96,9 +98,14 @@ headers() ->
        <<"connection">> => <<"close">>,
        <<"hostname">> => cmkit:host() }.
 
+encoded_body(Headers, Body) -> 
+    response_body(mime(Headers), Body).
 
 response_body(json, Body) -> cmkit:jsone(Body);
 response_body(_, Body) -> Body.
+
+mime(#{ <<"content-type">> := <<"application/json", _/binary>> }) -> json;
+mime(_) -> other.
 
 request_body(Req) ->
     case cowboy_req:has_body(Req) of 

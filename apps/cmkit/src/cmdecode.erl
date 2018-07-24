@@ -57,6 +57,23 @@ decode_object([Key|Rem], Spec, Data, Config, Out) when is_map(Data) ->
 
     end.
 
+decode_object_without([], In) -> {ok, In};
+decode_object_without([K|Rem], In) ->
+    case cmkit:value_at(K, In) of 
+        undef -> decode_object_without(Rem, In);
+        _ -> no_match
+    end.
+
+decode_term(#{ type := object_without, spec := KeySpecs}, In, _) when is_map(In) -> 
+    case cmencode:encode_all(KeySpecs, In) of 
+        {ok, Keys} -> 
+            decode_object_without(Keys, In);
+        Other -> 
+            Other
+    end;
+
+decode_term(#{ type := object_without, spec := _}, _, _) ->  no_match;
+
 decode_term(#{ type := data }, Data, _) when is_binary(Data) -> {ok, Data};
 decode_term(#{ type := data }, _, _) -> no_match;
 decode_term(#{ type := keyword, value := Data}, Data, _) when is_atom(Data) -> {ok, Data};
@@ -69,10 +86,20 @@ decode_term(#{ type := keyword }, _, _) -> no_match;
 decode_term(#{ type := text, value := Text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_match;
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text}, Text, _) when is_list(Text) -> 
+decode_term(#{ type := text} = Spec, Text, _) when is_list(Text) -> 
     case cmkit:is_string(Text) of 
         true -> 
-            {ok, cmkit:to_bin(Text)};
+            case maps:get(value, Spec, undef) of 
+                undef -> 
+                    {ok, cmkit:to_bin(Text)};
+                Expected -> 
+                    case cmkit:to_bin(Text) of 
+                        Expected -> 
+                            {ok, Expected};
+                        _ -> 
+                            no_match
+                    end
+            end;
         false -> 
             no_match
     end;

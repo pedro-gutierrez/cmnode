@@ -666,6 +666,10 @@ compile_term(#{ <<"maybe">> := Spec }) ->
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
 
+compile_term(#{ <<"object_without">> := Keys }) ->
+    #{ type => object_without,
+       spec => compile_terms(Keys) };
+
 compile_term(#{ <<"entries">> := Spec }) ->
     #{ type => entries,
        spec => compile_term(Spec)

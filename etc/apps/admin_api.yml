@@ -24,7 +24,7 @@ spec:
     - tests_api
     - queues_api
     - settings_api
-    - webhooks_api 
+    - webhooks_api
   config:
     role:
       keyword: admin

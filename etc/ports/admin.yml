@@ -8,5 +8,7 @@ spec:
     admin_api:
       ws: "/ws"
       http: "/api"
+    mock_oauth_api:
+      http: "/oauth"
     admin_ui:
       http: "/scm/app.scm"
