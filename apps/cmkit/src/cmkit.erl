@@ -117,7 +117,8 @@ jsond(Str) when is_list(Str) ->
     jsond(uniconvert(Str)).
 
 jsone(Term) ->
-    jsone:encode(Term, [{float_format, [{decimals, 32}, compact]}]).
+    jsone:encode(Term, [native_utf8,
+                        {float_format, [{decimals, 32}, compact]}]).
 
 jsone(Term, Opts) -> 
     jsone:encode(Term, Opts).
@@ -426,13 +427,15 @@ closest_node(Nodes) ->
     end.
 
 uniconvert(String) ->
-  try xmerl_ucs:from_utf8(String) of
-    _ ->
-      list_to_binary(String)
-  catch
-    exit:{ucs,{bad_utf8_character_code}} ->
-      list_to_binary(xmerl_ucs:to_utf8(String))
-  end.
+    unicode:characters_to_binary(String, utf8).
+
+%  try xmerl_ucs:from_utf8(String) of
+%    _ ->
+%      list_to_binary(String)
+%  catch
+%    exit:{ucs,{bad_utf8_character_code}} ->
+%      list_to_binary(xmerl_ucs:to_utf8(String))
+%  end.
 
 map_join(Map, Sep1, Sep2) ->
     cmkit:bin_join(maps:fold(fun(K, V, Acc) ->

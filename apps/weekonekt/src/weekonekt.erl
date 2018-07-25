@@ -1,5 +1,11 @@
 -module(weekonekt).
--export([import_image/2]).
+-export([import_image/2, import/0]).
+
+import(Name) ->
+    {ok, Data} = file:read_file(cmkit:asset(Name)),
+    weekonekt_wp_importer:import(Data).
+
+import() -> import("wordpress.xml").
 
 import_image(Id, Url) ->
     Job = #{ id => Id, 

@@ -8,6 +8,7 @@
          partitions/1,
          current_partition/1,
          partition_name/1,
+         partition_info/2,
          reload_config/0,
          reset/2,
          reset/1,
@@ -202,8 +203,8 @@ aggregate(Ctx, [Items|Rem], Out) when is_list(Items) ->
     aggregate(Ctx, Rem, [lists:map(fun({_, V}) -> V;
                                       (V) -> V 
                                    end, Items)|Out]);
-aggregate(Ctx, [{error, E}|Rem], Out) -> 
-    cmkit:warning({cmdb, aggregate, Ctx, error, E}),
+aggregate(Ctx, [Other|Rem], Out) -> 
+    cmkit:danger({cmdb, aggregate, Ctx, unexpected, Other}),
     aggregate(Ctx, Rem, Out).
 
 put(Bucket, Tid, Pairs) when is_list(Pairs) ->

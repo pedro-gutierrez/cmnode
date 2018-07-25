@@ -17,7 +17,9 @@ spec:
         bucket: 
           keyword: weekonekt
         value:
-          any: object
+          object:
+            title:
+              any: text
   update:
     query_review:
       model:

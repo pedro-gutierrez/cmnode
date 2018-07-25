@@ -38,7 +38,7 @@ event({startElement, _, "title", _, _}, _, #{ state := image }=S) ->
     S#{ state => image_title };
 
 event({characters, Title}, _, #{ state := image_title, image := Image }=S) ->
-    S#{ state => image_title, image => Image#{ title => Title } };
+    S#{ state => image_title, image => Image#{ title => cmkit:uniconvert(Title) } };
 
 event({endElement, _, "title", _}, _, #{ state := image_title }=S) ->
     S#{ state =>  image };
@@ -53,7 +53,7 @@ event({startElement, _, "title", _, _}, _, #{ state := item }=S) ->
     S#{ state => item_title };
 
 event({characters, Title}, _, #{ state := item_title, item := Item }=S) ->
-    S#{ item => Item#{ title => Title } };
+    S#{ item => Item#{ title => cmkit:uniconvert(Title) } };
 
 event({endElement, _, "title", _}, _, #{ state := item_title}=S) ->
     S#{ state => item };
@@ -97,7 +97,8 @@ event({startElement, _, _, {"content", "encoded" }, _}, _, #{ state := item }=S)
     S#{ state => item_content };
 
 event({characters, Content }, _, #{ state := item_content, item := Item }=S) ->
-    S#{ item => Item#{ content => Content} };
+        cmkit:warning(Content),
+    S#{ item => Item#{ content => cmkit:uniconvert(Content)} };
 
 event({endElement, _, _, {"content", "encoded"}}, _, #{ state := item_content }=S) ->
     S#{ state => item };

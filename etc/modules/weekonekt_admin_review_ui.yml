@@ -27,7 +27,9 @@ spec:
         data:
           object:
             review:
-              any: object
+              object:
+                title:
+                  any: text
   update:
     show_review:
       model:
@@ -66,7 +68,11 @@ spec:
         children:
           - tag: h1
             children:
-              - text: "Review view plop"
+              - text:
+                  key: title
+                  in: 
+                    key: review
+                    in: data
     review_loading_view:
       view:
         tag: div

@@ -33,7 +33,7 @@ handle(#{ id := Id,
     PKey = {image, BinId},
     Item = #{ id => BinId,
               url => BinUrl,
-              title => cmkit:uniconvert(Title),
+              title => Title,
               date => cmkit:to_millis(Date) },
     
     %weekonekt:import_image(BinId, Url),
@@ -46,17 +46,13 @@ handle(#{ title := "Contact" }, Stats) -> Stats;
 
 handle(#{ id := Id, 
           content := #{ options := Opts,
-                        images := Images },
+                        images := ImageIds },
           geo := #{ lat := Lat, lon := Lon },
           title := Title, 
           date := Date,
           type := "page" }, #{ default_author := UserId,
                                reviews := Reviews }=Stats) ->
         
-    ImageIds = lists:map(fun cmkit:to_bin/1, Images),
-    
-    
-    
     CoverImage = case ImageIds of 
                      [] -> none;
                      [First|_] -> First
@@ -65,14 +61,14 @@ handle(#{ id := Id,
     BinId = cmkit:to_bin(Id),
     PKey = {review, BinId},
     Item = #{ id => BinId,
-              title => cmkit:uniconvert(Title),
+              title => Title,
               lat => Lat,
               lon => Lon,
               date => cmkit:to_millis(Date),
               options => Opts,
               cover => CoverImage,
               author => UserId,
-              images => lists:map(fun cmkit:to_bin/1, Images) },
+              images => ImageIds },
 
     cmdb:put(weekonekt, [{{reviews, UserId}, BinId},
                              {PKey, Item}]),
