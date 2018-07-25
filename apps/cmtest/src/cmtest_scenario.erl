@@ -157,12 +157,10 @@ close_conns(#{ conns := Conns }) ->
     ConnsToClose = [ {Name, Pid} || #{ name := Name,
                                   pid := Pid,
                                   class := websocket } <- maps:values(Conns) ],
-    cmkit:log({cmtest, connections_to_close, ConnsToClose}),
     [ close_conn(C) || C <- ConnsToClose ],
     ok;
 
 close_conns(_) ->
-    cmkit:log({cmtest, no_connections_to_close}),
     ok.
    
 close_conn({Name, Pid}) ->

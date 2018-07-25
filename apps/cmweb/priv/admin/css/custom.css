@@ -93,6 +93,10 @@ div.landing, div.admin-content {
     text-decoration: underline !important;
 }
 
+.tab a:hover {
+    text-decoration: none !important;
+}
+
 div.card {
     border: 1px solid #ededed;
  /*   padding-bottom: 15px;
@@ -206,7 +210,7 @@ div.landing.dark {
 
 
 
-.dark a.link {
+.dark a.link, .dark .tab i {
     color: #3e3f3f;
     text-transform: none;
 }
@@ -239,7 +243,7 @@ a:focus {
 }
 
 
-a:hover, .dark a.link:hover {
+a:hover, .dark a.link:hover, .dark i.active {
     color: rgb(102, 187, 255) !important;
 }
 
@@ -279,7 +283,7 @@ body {
   /*   background-color: rgba(16, 16, 16, 0.19); */
   /*  background-color: rgba(31, 31, 31, 0.76);*/
   /* border-radius: 8px; */
-    background-color: rgba(20, 20, 20, 1);
+    background-color: rgba(16, 16, 16);
     border-color: rgba(73, 73, 73, 0.37);
 }
 
@@ -332,7 +336,7 @@ div.mapboxgl-ctrl {
 }
 
 .dark .tab-item {
-    top: 5px;
+    top: 4px;
     margin-bottom: 0px;
     position: relative;
     padding-left: 14px;
@@ -340,12 +344,13 @@ div.mapboxgl-ctrl {
 }
 
 .dark .tab-item.active {
-    background-color: rgba(20, 20, 20, 1);
+    /* background-color: rgba(20, 20, 20, 1); */
+    background-color: rgb(16, 16, 16);
     border-top: 1px solid rgba(73, 73, 73, 0.37);!important;
     border-left: 1px solid rgba(73, 73, 73, 0.37);!important;
     border-right: 1px solid rgba(73, 73, 73, 0.37);!important;
     z-index: 10;
-    border-radius: 5px;
+    border-radius: 3px 3px 0px 0px;
 }
 
 .cover-image {
@@ -373,7 +378,40 @@ div.mapboxgl-ctrl {
     background-color: rgb(26, 26, 26);
 }
 
+.dark #menu .avatar {
+    background-color: rgb(16, 16, 16);
+}
+
+.avatar {
+    text-align: center;
+    padding-top: 9px;
+    padding-left: 2px;
+    font-size: .7rem;
+}
+
+.avatar[data-initial]::before {
+    position: relative;
+    transform: none;
+    left: 0;
+    top: 0;
+}
+
+.dark .avatar-presence {
+    border: 1px solid white;
+    box-shadow: none;
+}
+
 .review-item-view:hover {
     cursor: pointer;
     background-color: rgb(26, 26, 26);
+}
+
+.dark i.primary {
+    color: white;
+}
+
+.dark .tooltip::after {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: "SF Display";
 }

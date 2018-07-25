@@ -8,7 +8,7 @@ spec:
       object:
         headers:
           object:
-            authorization: "Bearer: oauth-valid-token"
+            authorization: "Bearer oauth-valid-token"
             client_id: "3434323666396432626437353336363735616464386335343930636332313237"
     invalid_authorization:
       object:
@@ -16,7 +16,7 @@ spec:
           object:
             authorization:
               text:
-                other_than: "Bearer: oauth-valid-token"
+                other_than: "Bearer oauth-valid-token"
             client_id: "3434323666396432626437353336363735616464386335343930636332313237"
     missing_authorization:
       object:
@@ -52,7 +52,7 @@ spec:
     invalid_client_id:
       cmds:
         - effect: notify
-          encoder: invalid_client_id
+          encoder: invalid_access_token 
         - effect: terminate
   encoders:
     authorized:
@@ -92,19 +92,3 @@ spec:
           pragma: "no-cache"
         body:
           text: "User not authorized: Authorization Bearer Header missing."
-    invalid_client_id:
-      object:
-        status: 400
-        headers:
-          content-type: "application/json; charset=utf-8"
-          expires: "-1"
-          cache-control: "no-cache"
-          pragma: "no-cache"
-        body:
-          object:
-            Resultado:
-              object:
-                Value: "ERROR"
-                RES:
-                  object:
-                    MESSAGE: "El parámetro client_id recibido no es válido"

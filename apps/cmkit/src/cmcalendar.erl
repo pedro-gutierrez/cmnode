@@ -1,5 +1,16 @@
 -module(cmcalendar).
--export([last/1, to_bin/2]).
+-export([
+         last/1, 
+         to_bin/2, 
+         add_seconds_to_utc/1,
+         add_seconds_to_utc/2]).
+
+add_seconds_to_utc(Secs) -> 
+    add_seconds_to_utc(Secs, calendar:universal_time()).
+
+add_seconds_to_utc(Secs, DateTime) -> 
+    DateTime2 = iso8601:add_time(DateTime, 0, 0, Secs),
+    cmkit:date_as_map(DateTime2).
 
 last({Num, days}) ->
     Secs = calendar:datetime_to_gregorian_seconds(calendar:local_time()),

@@ -273,21 +273,17 @@ notify_error(Reason, #{settings := Settings}=Data) ->
     slack(Settings, #{ test => Q,
                        severity => danger}).
 
-notify_progress(Scenario, StepsRem, Elapsed, #{ report_to := {From, _},
+notify_progress(Scenario, _, _, #{ report_to := {From, _},
                                 settings := #{ name := Settings},
                                 test := #{ id := Id,
                                            name := Name }}) ->
 
-    cmkit:log({cmtest, progress, Name, Settings, Scenario, StepsRem, Elapsed}),
     gen_statem:cast(From, {info, Id, #{ test => Name,
                                         settings => Settings,
                                         info => Scenario }});
 
-notify_progress(Scenario, StepsRem, Elapsed, #{ settings := #{ name := Settings},
-                                test := #{ 
-                                  name := Name }}) ->
-    cmkit:log({cmtest, progress, Name, Settings, Scenario, StepsRem, Elapsed }).
-
+notify_progress(_, _, _, _) -> 
+    ok.
 
 severity(_, _, 0) -> success;
 severity(0, _, _) -> success;
@@ -371,7 +367,7 @@ slack(#{ name := Name,
 
                             _ -> 
                                 
-                                { <<"Test ", Test/binary, " failed to run on", Env/binary>>,
+                                { <<"Test ", Test/binary, " failed to run on ", Env/binary>>,
                                   <<"Check the server logs for more detail">> }
                                 
                         end, 

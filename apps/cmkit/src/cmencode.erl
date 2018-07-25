@@ -623,6 +623,40 @@ encode(#{ type := format,
         Other -> Other
     end;
 
+encode(#{ type := format, 
+          pattern := _,
+          date := DateSpec }, In, Config) -> 
+
+    case encode(DateSpec, In, Config) of 
+        {ok, Date} ->
+            case cmkit:format_date(Date) of 
+                invalid -> {error, #{ date => Date,
+                                    spec => DateSpec,
+                                    error => cannot_format_date }};
+                Bin -> 
+                    {ok, Bin}
+            end;
+        Other -> Other
+    end;
+
+encode(#{ type := utc,
+          amount := AmountSpec,
+          factor := Factor,
+          tense := Tense }, In, Config) -> 
+
+    case encode(AmountSpec, In, Config) of 
+        {ok, Amount} ->
+            Now = calendar:universal_time(),
+            Secs = case Tense of 
+                       past -> Amount * Factor * -1;
+                       future -> Amount * Factor
+                   end,
+            
+            {ok, cmcalendar:add_seconds_to_utc(Secs, Now)};
+        Other -> 
+            Other
+    end;
+
 encode(#{ type := wait,
           spec := #{ retries := Retries,
                      sleep := Sleep,
@@ -640,12 +674,17 @@ encode(#{ type := wait,
 
 encode(#{ type := match,
           spec := #{ value := ValueSpec,
-                     decoder := DecoderSpec }}, In, Config) ->
+                     decoder := DecoderSpec } = MatchSpec }, In, Config) ->
     case cmencode:encode(ValueSpec, In, Config) of
         {ok, Value} ->
             case cmdecode:decode(DecoderSpec, Value) of 
-                {ok, _} -> 
-                    {ok, true};
+                {ok, Decoded} -> 
+                    case maps:get(map, MatchSpec, undef) of 
+                        undef -> 
+                            {ok, true};
+                        MapSpec -> 
+                            cmencode:encode(MapSpec, Decoded)
+                    end;
                 _ ->
                     {ok, false}
             end;

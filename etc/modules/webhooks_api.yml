@@ -395,7 +395,7 @@ spec:
               one_of:
                 - text: "danger"
                 - text: "warning"
-    sipstorm_release_ready:
+    sipstorm_docker_release_ready:
       object:
         body:
           push_data:

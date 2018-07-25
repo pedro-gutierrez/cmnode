@@ -381,6 +381,9 @@ spec:
             attrs:
               key: title
             children:
+              - tag: i
+                attrs:
+                  class: "fas fa-lock primary mx-2"
               - text: 
                   literal: "Login"
           - view: user_message

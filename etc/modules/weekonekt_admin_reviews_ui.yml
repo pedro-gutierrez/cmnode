@@ -7,6 +7,7 @@ spec:
     model:
       reviews: []
       theme: "dark"
+      selected: "reviews"
   decoders:
     ready:
       object:
@@ -96,17 +97,6 @@ spec:
                 key: lat
               lon:
                 key: lon
-    avatar_view:
-      view:
-        tag: figure
-        attrs:
-          class:
-            format:
-              pattern: "avatar avatar-~a"
-              params:
-                - key: size
-          data-initial:
-            key: initials
     review_cover_view:
       view:
         tag: img
@@ -201,12 +191,7 @@ spec:
     reviews_main_view:
       view:
         tag: div
-        attrs:
-          class: "card mt-2"
         children:
-          - tag: h1
-            children:
-              - text: "Reviews"
           - view: reviews_collection_view
             params:
               object:
@@ -238,76 +223,19 @@ spec:
                   key: data
     reviews_view: 
       view:
-        view: layout
+        view: weekonekt_admin_layout
         params:
           object:
             theme:
               key: theme
+            selected:
+              key: selected
             message:
               key: message
             content_view:
               keyword: reviews_layout_view
             contents:
               key: reviews
-            sidebar:
-              keyword: weekonekt_admin_sidebar
-    weekonekt_admin_sidebar:
-      view:
-        tag: div
-        attrs:
-          class: "text-center"
-          key: "sidebar"
-        children:
-          - view: sidebar_icon
-            params:
-              object:
-                name: "reviews"
-                style: "fa fa-4x fa-pencil-square-o"
-                title: "Reviews"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-picture-o"
-                title: "Photos"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "places"
-                style: "fa fa-4x fa-map-marker"
-                title: "Places"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-sitemap"
-                title: "Categories"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-users"
-                title: "Users"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "import"
-                style: "fa fa-4x fa-cloud-upload"
-                title: "Import"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-bug"
-                title: "Bugs"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-power-off"
-                title: "Logout"
-
-
 
 
 

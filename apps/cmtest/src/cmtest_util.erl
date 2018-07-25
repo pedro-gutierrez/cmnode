@@ -181,14 +181,15 @@ run(#{ type := disconnect,
     end;
 
 run(#{ type := expect, 
-       spec := Spec }, Settings, World) ->
+       spec := Spec }, Settings, #{ data := Data }=World) ->
     In = World#{ settings => Settings },
-    EvalRes = cmeval:eval(Spec, In),
-    case EvalRes of
-        true ->
-            {ok, World};
-        false ->
-            retry
+    case cmencode:encode(Spec, In) of 
+        {ok, false} -> retry;
+        {ok, true} -> {ok, World};
+        {ok, Encoded} ->
+            {ok, World#{ data => maps:merge( Data, Encoded)}};
+        Other -> 
+            Other
     end;
 
 run(#{ type := recv, 
@@ -196,7 +197,8 @@ run(#{ type := recv,
        spec := Spec } = RecvSpec, Settings, #{ data := Data,
                                                conns := Conns } = World ) ->
 
-    case cmencode:encode(ConnSpec, World#{ settings => Settings }) of
+    In = World#{ settings => Settings },
+    case cmencode:encode(ConnSpec, In) of
         {ok, Name} ->
             case maps:get(Name, Conns, undef) of 
                 undef -> 
@@ -205,7 +207,7 @@ run(#{ type := recv,
                 #{ inbox := Inbox } ->
                     Spec0 = #{ type => first,
                                spec => Spec },
-                    case cmdecode:decode(Spec0, Inbox, Settings) of 
+                    case cmdecode:decode(Spec0, Inbox, In) of 
                         {ok, Decoded} ->
                             case maps:get(as, RecvSpec, undef) of 
                                 undef -> 

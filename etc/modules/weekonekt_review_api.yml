@@ -1,0 +1,50 @@
+version: 1.0
+category: api
+type: module
+name: weekonekt_review_api
+spec:
+  decoders:
+    query_review:
+      object:
+        app: "weekonekt"
+        action: "review"
+        id: 
+          any: text
+    review:
+      object:
+        context:
+          keyword: review
+        bucket: 
+          keyword: weekonekt
+        value:
+          any: object
+  update:
+    query_review:
+      model:
+        id:
+          key: id
+      cmds:
+        - effect: db_get
+          encoder: review_query
+    review:
+      model:
+        review:
+          key: value
+      cmds:
+        - effect: notify 
+          encoder: review
+  encoders:
+    review_query:
+      object:
+        context:
+          keyword: review
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: review
+        id: 
+          key: id
+    review:
+      object:
+        review:
+          key: review

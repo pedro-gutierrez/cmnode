@@ -36,7 +36,7 @@ decode_object(_, _, _, _)  ->
     no_match.
 
 decode_object([], _, _, _, Out) -> {ok, Out};
-decode_object([Key|Rem], Spec, Data, Config, Out) when is_map(Data) ->
+decode_object([Key|Rem], Spec, Data, Context, Out) when is_map(Data) ->
     KeySpec = maps:get(Key, Spec),
     Value = cmkit:value_at(Key, Data),
     case Value of 
@@ -49,9 +49,9 @@ decode_object([Key|Rem], Spec, Data, Config, Out) when is_map(Data) ->
                              OtherKey ->
                                  KeySpec#{ value => cmkit:value_at(OtherKey, Data) }
                          end,
-            case decode_term(DecodeSpec, Value, Config ) of 
+            case decode_term(DecodeSpec, Value, Context) of 
                 {ok, Decoded} ->
-                    decode_object(Rem, Spec, Data, Config, Out#{ Key => Decoded});
+                    decode_object(Rem, Spec, Data, Context, Out#{ Key => Decoded});
                 no_match -> no_match
             end
 
@@ -151,6 +151,18 @@ decode_term(#{ type := number}, Bin, _) when is_binary(Bin) ->
     end;
 
 decode_term(#{ type := number}, _, _) -> no_match;
+
+
+decode_term(#{ type := date, 
+               format := iso8601 }, In, _) when is_binary(In) orelse is_list(In) ->
+
+    case cmkit:parse_date(In) of 
+        invalid -> no_match;
+        Date -> {ok, Date}
+    end;
+
+decode_term(#{ type := date, 
+               format := iso8601 }, _, _)  -> no_match;
 
 decode_term(#{ type := greater_than, spec := Min }, Num, _) when is_number(Min) and is_number(Num) ->
     case Num >= Min of 
@@ -271,9 +283,20 @@ decode_term(#{ type := config, spec := Key}, _, Config)  ->
 decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
     decode_first_spec(Specs, In, Config);
 
-decode_term(Spec, Data, _) -> 
-    cmkit:danger({cmdecode, not_implemented, Spec, Data}),
+decode_term(Spec, Data, Context) when is_map(Spec) -> 
+    case cmencode:encode(Spec, Context) of 
+        {ok, Expected} -> 
+           decode_term(Expected, Data, Context); 
+        Other -> 
+            cmkit:danger({cmdecode, spec_encoding, Spec, Other}),
+            no_match
+    end;
+
+decode_term(V, V, _) -> {ok, V};
+decode_term(Spec, V, _) ->
+    cmkit:warning({cmdecode, no_match, Spec, V}),
     no_match.
+
 
 decode_first_spec([], _, _) -> no_match;
 decode_first_spec([Spec|Rem], In, Config) ->

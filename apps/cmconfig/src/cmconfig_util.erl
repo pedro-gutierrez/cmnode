@@ -564,6 +564,32 @@ compile_term(#{ <<"any">> := <<"data">> }) ->
 compile_term(#{ <<"file">> := <<"any">> }) ->
     #{ type => file };
 
+compile_term(#{ <<"any">> := <<"date">>,
+                <<"format">> := Format }) ->
+    #{ type => date,
+       format => cmkit:to_atom(Format) };
+
+compile_term(#{ <<"date">> := <<"any">>,
+                <<"format">> := Format }) ->
+    #{ type => date,
+       format => cmkit:to_atom(Format) };
+
+
+compile_term(#{ <<"calendar">> := #{ 
+                    <<"days">> := #{ <<"ago">> := Days }}}) -> 
+
+    #{ type => utc,
+       amount => compile_term(Days),
+       factor => 3600*24,
+       tense => past };
+
+compile_term(#{ <<"calendar">> := #{ 
+                    <<"days">> := #{ <<"in">> := Days }}}) -> 
+
+    #{ type => utc,
+       amount => compile_term(Days),
+       factor => 3600*24,
+       tense  => future };
 
 compile_term(#{ <<"base64">> := Spec,
                 <<"as">> := As }) ->
@@ -830,6 +856,12 @@ compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
        pattern => compile_term(Pattern),
        params => compile_term(Params) };
 
+compile_term(#{ <<"format">> := #{ <<"pattern">> := FormatSpec,
+                                        <<"date">> := DateSpec }}) -> 
+
+    #{ type => format,
+       pattern => compile_term(FormatSpec),
+       date => compile_term(DateSpec) };
 
 compile_term(#{ <<"files">> := Spec }) -> 
     #{ type => files,
@@ -1089,11 +1121,6 @@ compile_term(#{ <<"response">> := Spec }) ->
          spec => compile_term(Spec) 
     };
 
-compile_term(#{ <<"status">> := Status }) ->
-    #{  type => http, 
-        status => Status
-     };
-
 compile_term(#{ <<"join">> := #{ 
                     <<"terms">> := Terms 
                    }
@@ -1283,10 +1310,18 @@ compile_term(#{ <<"wait">> := #{
 
 compile_term(#{ <<"match">> := #{
                     <<"value">> := ValueSpec,
-                    <<"with">> := DecoderSpec }}) ->
-    #{ type => match,
-       spec => #{ value => compile_term(ValueSpec),
-                  decoder => compile_term(DecoderSpec) }};
+                    <<"with">> := DecoderSpec } = MatchSpec}) ->
+   
+    Expr = #{ value => compile_term(ValueSpec),
+              decoder => compile_term(DecoderSpec)},
+    
+    Expr2 = case maps:get(<<"remember">>, MatchSpec, undef) of
+                undef -> Expr;
+                RememberSpec -> 
+                    Expr#{ map => compile_term(RememberSpec) }
+            end,
+    
+    #{ type => match, spec => Expr2 };
 
 compile_term(#{ <<"find">> := TargetSpec,
                 <<"in">> := SourceSpec }) -> 

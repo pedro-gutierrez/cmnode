@@ -15,6 +15,7 @@ spec:
       cmds:
         - effect: notify
           encoder: scheme
+        - effect: terminate
   encoders:
     app:
       object:
@@ -26,12 +27,22 @@ spec:
               - ui_effects
               - account_ui
               - admin_common_ui
+              - weekonekt_admin_common_ui
               - weekonekt_admin_reviews_ui
               - weekonekt_admin_import_ui
               - weekonekt_admin_places_ui
+              - weekonekt_admin_review_ui
     scheme:
-      data:
-        key: scheme
+      object:
+        status: 200
+        headers:
+          object:
+            content-type: "text/plain"
+            cache-control: "no-cache, no-store, must-revalidate"
+            pragma: "no-cache"
+            expires: "0"
+        body:
+          key: scheme
   decoders:
     compile:
       object:

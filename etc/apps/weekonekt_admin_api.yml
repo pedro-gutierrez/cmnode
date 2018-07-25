@@ -14,6 +14,7 @@ spec:
     - weekonekt_common_api
     - weekonekt_import_api
     - weekonekt_reviews_api
+    - weekonekt_review_api
   config:
     role:
       keyword: weekonekt_admin

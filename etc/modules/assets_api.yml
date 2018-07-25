@@ -11,11 +11,16 @@ spec:
             content-length: 
               text:
                 literal: "0"
+    none_query:
+      object:
+        query:
+          id: "none"
     asset_query:
       object:
         query:
           id:
-            any: text
+            text:
+              other_than: "none"
     s3_not_found:
       object:
         stream:
@@ -62,25 +67,21 @@ spec:
       cmds:
         - effect: notify
           encoder: health
+    none_query:
+      cmds:
+        - effect: notify
+          encoder: not_found
+        - effect: terminate
     asset_query:
-      - when: 
-          eq:
-            - text: none
-            - key: id
-              in: 
-                key: query
-                in: data
-        cmds:
-          - effect: terminate
-      - model:
-          id: 
-            key: id
-            in: query
-          type:
-            keyword: image
-        cmds:
-          - effect: file
-            encoder: thumbnail_query
+      model:
+        id: 
+          key: id
+          in: query
+        type:
+          keyword: image
+      cmds:
+        - effect: file
+          encoder: thumbnail_query
     s3_not_found:
       cmds:
         - effect: notify
@@ -130,6 +131,8 @@ spec:
         - effect: terminate
     s3_error:
       cmds:
+        - effect: notify
+          encoder: not_found
         - effect: terminate
   encoders:
     health:

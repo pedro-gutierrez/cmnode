@@ -1,0 +1,140 @@
+version: 1.0
+type: module
+category: ui
+name: weekonekt_admin_common_ui
+spec:
+  encoders:
+    avatar_view:
+      view:
+        tag: figure
+        attrs:
+          class:
+            format:
+              pattern: "avatar avatar-~a c-hand"
+              params:
+                - key: size
+          data-initial:
+            key: initials
+          onclick:
+            object:
+              name: "show-user"
+              id: "ebca3cd4-8a5c-42bd-8676-6a1cc7e085c9"
+        children:
+          - tag: i
+            attrs:
+              class: "avatar-presence online"
+    weekonekt_admin_layout:
+      view:
+        tag: div
+        attrs:
+          id: "layout"
+          class:
+            format:
+              pattern: "~a container plop"
+              params:
+                - key: theme
+          key: "weekonekt-admin-layout"
+        children:
+          - tag: div
+            attrs:
+              class: "mt-2"
+              id: "menu"
+              key: "menu"
+            children:
+              - view: weekonekt_admin_toolbar
+                params:
+                  selected:
+                    key: selected
+          - tag: div
+            attrs:
+              id: "main"
+              key: "main"
+            children:
+              - view: user_message
+                params:
+                  object:
+                    message:
+                      maybe:
+                        key: message
+              
+              - tag: div
+                attrs:
+                  class: "card"
+                children:
+                  - view:
+                      key: content_view
+                    params:
+                      object:
+                        data:
+                          maybe:
+                            key: contents
+    selectable_icon:
+      view:
+        tag: li
+        attrs:
+          class: 
+            either:
+              - when:
+                  eq:
+                    - key: selected 
+                    - key: name
+                text: "tab-item active"
+              - text: "tab-item"
+          key:
+            key: name
+        children:
+          - tag: a
+            attrs:
+              class: "link c-hand"
+              href: "#"
+              onclick:
+                key: name
+            children:
+              - tag: i
+                attrs:
+                  class:
+                    key: style
+              - tag: span
+                attrs:
+                  class: "mx-2"
+                children:
+                  - text: 
+                      key: title
+    weekonekt_admin_toolbar:
+      view:
+        tag: ul 
+        attrs:
+          class: "tab toolbar"
+          key: "toolbar"
+        children:
+          - view: selectable_icon
+            params:
+              object:
+                name: "reviews"
+                style: "far fa-edit"
+                title: "Reviews"
+                selected:
+                  key: selected
+          - view: selectable_icon
+            params:
+              object:
+                name: "categories"
+                style: "fas fa-sitemap"
+                title: "Categories"
+                selected:
+                  key: selected
+          - tag: li
+            attrs:
+              class: "tab-item tab-action"
+            children:
+              - view: avatar_view
+                params:
+                  object:
+                    size: "rg"
+                    initials: "MM"
+              - tag: button
+                attrs:
+                  style: "position: relative; top: -3px;"
+                  class: "btn btn-sm btn-primary mx-2"
+                children:
+                  - text: "Logout"
