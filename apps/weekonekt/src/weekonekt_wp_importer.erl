@@ -8,15 +8,14 @@ import(Data) ->
                         _ -> undef
                     end,
         
-
+    Stats = #{ default_author => DefaultAuthorId,
+                images => 0,
+                reviews => 0 },
+                                                              
     Res = cmxml:parse(Data, fun weekonekt_wp_parser:event/3, #{ state => none,
                                                                 callback => {?MODULE, handle},
-                                                                stats => #{ 
-                                                                  default_author => DefaultAuthorId,
-                                                                  images => 0,
-                                                                  reviews => 0 }
-                                                              }),
-    
+                                                                stats => Stats}),
+
     case Res of 
         {ok, {ok, Stats}, _} -> {ok, Stats};
         Other -> Other
@@ -40,10 +39,6 @@ handle(#{ id := Id,
     cmdb:put_new(weekonekt, [{PKey, Item}]),
     Stats#{ images => Images + 1 };
 
-handle(#{ title := "About me" }, Stats) -> Stats;
-handle(#{ title := "Contact" }, Stats) -> Stats;
-
-
 handle(#{ id := Id, 
           content := #{ options := Opts,
                         images := ImageIds },
@@ -51,35 +46,43 @@ handle(#{ id := Id,
           title := Title, 
           date := Date,
           type := "page" }, #{ default_author := UserId,
-                               reviews := Reviews }=Stats) ->
+                               reviews := Reviews }=Stats)  ->
         
-    CoverImage = case ImageIds of 
-                     [] -> none;
-                     [First|_] -> First
-                 end,
+    case ignored_entry(Id) of 
+        false -> 
 
-    BinId = cmkit:to_bin(Id),
-    PKey = {review, BinId},
-    Item = #{ id => BinId,
-              title => Title,
-              lat => Lat,
-              lon => Lon,
-              date => cmkit:to_millis(Date),
-              options => Opts,
-              cover => CoverImage,
-              author => UserId,
-              images => ImageIds },
+            CoverImage = case ImageIds of 
+                             [] -> none;
+                             [First|_] -> First
+                         end,
 
-    cmdb:put(weekonekt, [{{reviews, UserId}, BinId},
-                             {PKey, Item}]),
-    Stats#{ reviews => Reviews + 1 };
+            BinId = cmkit:to_bin(Id),
+            PKey = {review, BinId},
+            Item = #{ id => BinId,
+                      title => Title,
+                      lat => Lat,
+                      lon => Lon,
+                      date => cmkit:to_millis(Date),
+                      options => Opts,
+                      cover => CoverImage,
+                      author => UserId,
+                      images => ImageIds },
+
+            cmdb:put(weekonekt, [{{reviews, UserId}, BinId},
+                                     {PKey, Item}]),
+            Stats#{ reviews => Reviews + 1 };
+        true -> 
+            cmkit:warning({weekonekt, skipped, Id, Title}),
+            Stats
+    end;
     
 handle(#{ type := "nav_menu_item" }, Stats) -> Stats;
 handle(#{ type := "feedback" }, Stats) -> Stats;
 
-
 handle(Item, Stats) -> 
-    cmkit:warning({weekonekt_wp_importer, ignore, Item}),
+    cmkit:warning({weekonekt, unsupported, Item}),
     Stats.
 
+ignored_entries() -> ["3", "2", "125", "519", "938", "947", "975" ].
+ignored_entry(Id) -> lists:member(Id, ignored_entries()).
 

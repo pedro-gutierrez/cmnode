@@ -97,8 +97,7 @@ event({startElement, _, _, {"content", "encoded" }, _}, _, #{ state := item }=S)
     S#{ state => item_content };
 
 event({characters, Content }, _, #{ state := item_content, item := Item }=S) ->
-        cmkit:warning(Content),
-    S#{ item => Item#{ content => cmkit:uniconvert(Content)} };
+    S#{ item => Item#{ content => Content} };
 
 event({endElement, _, _, {"content", "encoded"}}, _, #{ state := item_content }=S) ->
     S#{ state => item };
@@ -139,8 +138,8 @@ event({endElement, _, "item", _}, _, #{ callback := {Mod, Fun},
                                         item := Item  }=S) ->
     
     Item2 = parseHtml(Item),
-    Item3 = Item2#{ geo => #{ lat => maps:get(lat, S, undef),
-                              lon => maps:get(lon, S, undef) }},
+    Item3 = Item2#{ geo => #{ lat => maps:get(lat, S, 0),
+                              lon => maps:get(lon, S, 0) }},
     S#{ state =>  none, 
         item => #{},
         stats => Mod:Fun(Item3, Stats)  };
@@ -164,7 +163,7 @@ parseHtml(#{ type := _ }=Item) ->
     Item.
 
 findImages(Contents) when is_list(Contents) ->
-    Bin = list_to_binary(Contents),
+    Bin = cmkit:uniconvert(Contents),
     Bin2 = binary:replace(Bin, <<"[gallery ids=\"">>, <<"<pre>">>, [global]),
     Bin3 = binary:replace(Bin2, <<"\" type=\"rectangular\"]">>, <<"</pre>">>, [global]),
     binary_to_list(Bin3).
@@ -179,14 +178,14 @@ htmlToken({end_tag, "h3"}, Acc)  ->
     Acc#{ state => option_content };
 
 htmlToken({text, Bin}, #{ state := option_content, option := Opt, options := Opts }=Acc) ->
-    Opt2 = Opt#{ contents => Bin },
+    Opt2 = Opt#{ contents => Bin},
     Acc#{ state => none, option => none, options  => [ Opt2 | Opts ] };
 
 htmlToken({tag, "pre", _}, #{ state := none }=Acc)  ->
     Acc#{ state => images };
 
 htmlToken({text, Bin}, #{ state := images }=Acc) ->
-    Acc#{ images => lists:map(fun(Id) -> binary_to_list(Id) end, binary:split(Bin, <<",">>, [global])) };
+    Acc#{ images => binary:split(Bin, <<",">>, [global]) };
 
 htmlToken({end_tag, "pre"}, Acc)  ->
     Acc#{ state => none };

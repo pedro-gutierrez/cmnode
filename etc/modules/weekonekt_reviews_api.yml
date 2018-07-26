@@ -37,8 +37,6 @@ spec:
                 one_of:
                   - any: text
                   - keyword: none
-              images:
-                list: any
   update:
     list_reviews:
       - when:

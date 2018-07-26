@@ -46,8 +46,6 @@ spec:
                     any: text
                   author:
                     any: text
-                  images:
-                    any: list
   update:
     ready:
       model:
