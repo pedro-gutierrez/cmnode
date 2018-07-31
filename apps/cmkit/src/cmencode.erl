@@ -881,7 +881,17 @@ encode(#{ type := kube,
         Other ->
             Other
     end;
-                     
+
+encode(#{ type := hash,
+          spec := Hash }, In, Config) -> 
+    case encode(Hash, In, Config) of 
+        {ok, Encoded} -> 
+            {ok, cmkit:hash(Encoded)};
+        Other -> 
+            Other
+    end;
+
+
 encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
 
 encode_object(Spec, In, Config) ->

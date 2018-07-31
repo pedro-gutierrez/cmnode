@@ -100,7 +100,7 @@ queue_job(T, S, Opts) ->
 report(Id) ->
     case cmdb:get(tests, {report, Id}) of 
         {ok, [R] } ->
-            {ok, R};
+            {ok, sanitized_report(R)};
         {ok, []} ->
             {error, not_found};
         {ok, [_|_]} -> 
@@ -134,6 +134,30 @@ reports(Days) ->
     {ok, Reports3}.
 
 
+sanitized_report(#{ result := Result }=R) ->
+    R#{ result => sanitized_report_result(Result) }.
+
+sanitized_report_result(Items) -> 
+    lists:map(fun(#{ status := success }=I) -> I;
+                 (#{ status := fail,
+                     failure := F }=I) -> 
+                      I#{ failure => sanitized_failure(F) } 
+              end, Items).
+
+sanitized_failure(#{ reason := R }=F) -> 
+    F#{ reason => sanitized_failure_reason(R) };
+
+sanitized_failure(F) ->  F.
+
+sanitized_failure_reason(#{ info := Info }=R) ->
+    R#{ info => sanitized_failure_reason_info(Info) };
+
+sanitized_failure_reason(R) -> R.
+
+sanitized_failure_reason_info(#{ data := _ }=I) ->
+    maps:without([data], I);
+
+sanitized_failure_reason_info(I) -> I.
 
 status() -> 
     cmqueue:status(tests_queue).

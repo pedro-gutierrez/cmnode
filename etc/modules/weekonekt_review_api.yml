@@ -20,6 +20,36 @@ spec:
           object:
             title:
               any: text
+            lat:
+              any: number
+            lon:
+              any: number
+            id:
+              any: text
+            images:
+              list:
+                object:
+                  id:
+                    any: text
+                  title:
+                    any: text
+            cover:
+              any: text
+            author:
+              object:
+                id:
+                  any: text
+                first:
+                  any: text
+                last:
+                  any: text
+            options:
+              list:
+                object:
+                  name:
+                    any: text
+                  contents:
+                    any: text
   update:
     query_review:
       model:
@@ -38,14 +68,30 @@ spec:
   encoders:
     review_query:
       object:
-        context:
-          keyword: review
-        bucket:
-          keyword: weekonekt
-        type:
-          keyword: review
-        id: 
-          key: id
+        query:
+          object:
+            context:
+              keyword: review
+            bucket:
+              keyword: weekonekt
+            type:
+              keyword: review
+            id: 
+              key: id
+        join:
+          object:
+            images:
+              object:
+                bucket:
+                  keyword: weekonekt
+                type:
+                  keyword: image
+            author:
+              object:
+                bucket: 
+                  keyword: users
+                type:
+                  keyword: user
     review:
       object:
         review:

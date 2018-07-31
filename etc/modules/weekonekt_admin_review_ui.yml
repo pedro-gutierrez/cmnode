@@ -9,6 +9,7 @@ spec:
       selected: "reviews"
       review: {}
       id: "none"
+      selected_image: "none"
   decoders:
     show_review:
       object:
@@ -18,6 +19,16 @@ spec:
           object:
             name: 
               keyword: show_review
+            id:
+              any: text
+    select_image:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: select_image
             id:
               any: text
     review:
@@ -30,6 +41,36 @@ spec:
               object:
                 title:
                   any: text
+                id:
+                  any: text
+                lat:
+                  any: number
+                lon:
+                  any: number
+                images:
+                  list:
+                    object:
+                      id: 
+                        any: text
+                      title:
+                        any: text
+                cover:
+                  any: text
+                author:
+                  object:
+                    id:
+                      any: text
+                    first:
+                      any: text
+                    last:
+                      any: text
+                options:
+                  list:
+                    object:
+                      name:
+                        any: text
+                      contents:
+                        any: text
   update:
     show_review:
       model:
@@ -43,11 +84,23 @@ spec:
           encoder: review_query
         - effect: ui
           encoder: review_layout_view
+    select_image:
+      model:
+        selected_image:
+          key: id
+          in: event
+      cmds:
+        - effect: ui
     review:
       model:
         review:
           key: review
           in: data
+        selected_image:
+          key: cover
+          in: 
+            key: review
+            in: data
         content_view: 
           keyword: review_view
       cmds:
@@ -62,20 +115,102 @@ spec:
           text: "review"
         id:
           key: id
+    review_option_view:
+      view:
+        tag: div
+        attrs:
+          key:
+            key: name
+            in: item
+          class: "review-option-view"
+          style: "margin-bottom: 15px;"
+        children:
+          - tag: h3
+            children:
+              - text:
+                  key: name
+                  in: item
+          - tag: div
+            children:
+              - text:
+                  key: contents
+                  in: item
     review_view:
       view:
         tag: div
+        attrs:
+          key: "review"
+          class: "columns"
         children:
-          - tag: h1
+          - tag: div
+            attrs:
+              class: "column col-4"
             children:
-              - text:
-                  key: title
-                  in: 
-                    key: review
-                    in: data
+              - tag: h1
+                children:
+                  - text:
+                      key: title
+                      in: 
+                        key: review
+                        in: data
+              - view: review_map_view
+                params:
+                  key: review
+                  in: data
+          - tag: div
+            attrs:
+              class: "column col-8"
+            children:
+              - tag: div
+                attrs:
+                  class: "columns"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "column col-12"
+                    children:
+                      - view: avatar_view
+                        params:
+                          object:
+                            size: "lg"
+                            initials: "MM"
+                      - text: "Recommended by Marcos"
+                      - tag: br
+                      - text: "12th June 1978"
+                  - tag: div
+                    attrs:
+                      class: "columns column col-12 mt-2"
+                    children: 
+                      - tag: div
+                        attrs:
+                          class: "column col-6"
+                        children:
+                          loop:
+                            key: options
+                            in:
+                              key: review
+                              in: data
+                          with: review_option_view
+                      - tag: div
+                        attrs:
+                          class: "column col-6"
+                        children:
+                          - view: gallery_view
+                            params:
+                              object:
+                                images:
+                                  key: images
+                                  in:
+                                    key: review
+                                    in: data
+                                selected: 
+                                  key: selected_image
+                                  in: data
     review_loading_view:
       view:
         tag: div
+        attrs:
+          key: "loading"
         children:
           - tag: span
             attrs:
@@ -101,3 +236,5 @@ spec:
                   key: review
                 id:
                   key: id
+                selected_image:
+                  key: selected_image

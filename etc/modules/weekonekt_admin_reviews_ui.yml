@@ -103,7 +103,7 @@ spec:
           src:
             text:
               format:
-                pattern: "~a/?id=~a"
+                pattern: "~a/?id=~a&size=big"
                 params:
                   - key: assets
                   - key: id
@@ -123,17 +123,12 @@ spec:
                 key: id
                 in: item
         children:
-          - tag: div
-            attrs:
-              class: "cover-image"
-              style:
-                text:
-                  format: 
-                    pattern: "background-image: url('~a/?id=~a')"
-                    params:
-                      - key: assets
-                      - key: cover
-                        in: item
+          - view: cover_image_view
+            params:
+              object:
+                id:
+                  key: cover
+                  in: item
           - tag: div
             attrs:
               class: "columns mt-4"
@@ -149,7 +144,7 @@ spec:
                         size: "lg"
                         photo:
                           format:
-                            pattern: "~a/?id=~a"
+                            pattern: "~a/?id=~a&size=tiny"
                             params:
                               - key: assets
                               - key: author 

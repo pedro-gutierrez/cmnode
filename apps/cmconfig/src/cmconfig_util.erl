@@ -409,96 +409,96 @@ compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
 compile_spec(Spec) ->
     
     Keys = [<<"decoders">>, <<"encoders">>, <<"init">>,
-            <<"update">>, <<"views">>, <<"effects">> ],
-    
-    Contents = lists:foldl(fun(Key, C0) ->
-                                   Term = #{ Key => maps:get(Key, Spec, #{})},
-                                   case compile_term(Term) of 
-                                        [] -> C0;
-                                        [_|_]=Other -> C0#{ compile_keyword(Key) => Other };
-                                        Map when map_size(Map) =:= 0 -> C0;
-                                        Other -> C0#{ compile_keyword(Key) => Other }
-                                   end
-                           end, #{}, Keys),
-    
-    #{ spec => Contents }.
+        <<"update">>, <<"views">>, <<"effects">> ],
+
+Contents = lists:foldl(fun(Key, C0) ->
+                               Term = #{ Key => maps:get(Key, Spec, #{})},
+                               case compile_term(Term) of 
+                                    [] -> C0;
+                                    [_|_]=Other -> C0#{ compile_keyword(Key) => Other };
+                                    Map when map_size(Map) =:= 0 -> C0;
+                                    Other -> C0#{ compile_keyword(Key) => Other }
+                               end
+                       end, #{}, Keys),
+
+#{ spec => Contents }.
 
 compile_config(Spec) -> 
-    case cmencode:encode(compile_object(Spec)) of 
-        {ok, Config} -> Config;
-        {error, E} -> 
-            cmkit:log({cmconfig, invalid_config, Spec, E}),
-            #{}
-    end.
+case cmencode:encode(compile_object(Spec)) of 
+    {ok, Config} -> Config;
+    {error, E} -> 
+        cmkit:log({cmconfig, invalid_config, Spec, E}),
+        #{}
+end.
 
 compile_modules([], #{ decoders := Decs }=Spec) -> 
-    Spec#{ decoders => sort_decoders(Decs) };
+Spec#{ decoders => sort_decoders(Decs) };
 
 compile_modules([], Spec) -> Spec;
-    
+
 compile_modules([{ok, ModSpec}|Rest], Spec) ->
-    compile_modules([ModSpec|Rest], Spec);
+compile_modules([ModSpec|Rest], Spec);
 
 compile_modules([ModSpec|Rest], Spec) when is_map(ModSpec) ->
-    compile_modules(Rest, merge_spec([decoders, 
-                                      encoders, 
-                                      init, 
-                                      update, 
-                                      views, 
-                                      effects
-                                     ], ModSpec, Spec));
-    
+compile_modules(Rest, merge_spec([decoders, 
+                                  encoders, 
+                                  init, 
+                                  update, 
+                                  views, 
+                                  effects
+                                 ], ModSpec, Spec));
+
 
 compile_modules([_|Rest], Spec) -> 
-    compile_modules(Rest, Spec).
+compile_modules(Rest, Spec).
 
 
 merge_spec([], _, Spec) -> Spec;
 merge_spec([decoders|Rem], Spec, Spec0) ->
-    Decs0 = maps:get(decoders, Spec0, []),
-    Decs = maps:get(decoders, Spec, []),
-    merge_spec(Rem, Spec, maps:put(decoders, Decs ++ Decs0, Spec0));
+Decs0 = maps:get(decoders, Spec0, []),
+Decs = maps:get(decoders, Spec, []),
+merge_spec(Rem, Spec, maps:put(decoders, Decs ++ Decs0, Spec0));
 
 merge_spec([init|Rem], 
-           #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, 
-           #{ init := #{ model := Model0, cmds := Cmds0 }}=Spec0) ->
-           merge_spec(Rem, Spec, 
-                      maps:put(init, #{ model => merge_model_spec(Model, Model0),
-                                        cmds => merge_cmds_spec(Cmds, Cmds0) 
-                                      }, Spec0));
+       #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, 
+       #{ init := #{ model := Model0, cmds := Cmds0 }}=Spec0) ->
+       merge_spec(Rem, Spec, 
+                  maps:put(init, #{ model => merge_model_spec(Model, Model0),
+                                    cmds => merge_cmds_spec(Cmds, Cmds0) 
+                                  }, Spec0));
 
 merge_spec([init|Rem], 
-           #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, Spec0) ->
-           merge_spec(Rem, Spec, 
-                      maps:put(init, #{ model => Model, 
-                                        cmds => Cmds 
-                                      }, Spec0));
+       #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, Spec0) ->
+       merge_spec(Rem, Spec, 
+                  maps:put(init, #{ model => Model, 
+                                    cmds => Cmds 
+                                  }, Spec0));
 
 merge_spec([update|Rem], Spec, Spec0) ->
-           merge_spec(Rem, Spec, 
-                      maps:put(update, merge_updates_spec( 
-                                         maps:get(update, Spec, #{}), 
-                                         maps:get(update, Spec0, #{})), Spec0));
+       merge_spec(Rem, Spec, 
+                  maps:put(update, merge_updates_spec( 
+                                     maps:get(update, Spec, #{}), 
+                                     maps:get(update, Spec0, #{})), Spec0));
 
 merge_spec([Key|Rem], Spec, Spec0) ->
-    merge_spec(Rem, Spec, 
-               maps:put(Key, maps:merge(maps:get(Key, Spec0, #{}),  maps:get(Key, Spec, #{})), Spec0)).
+merge_spec(Rem, Spec, 
+           maps:put(Key, maps:merge(maps:get(Key, Spec0, #{}),  maps:get(Key, Spec, #{})), Spec0)).
 
 merge_model_spec(#{ spec := S1 }, #{ spec := S2}) -> 
-    #{ type => object,
-       spec => maps:merge(S2, S1) 
-     }.
+#{ type => object,
+   spec => maps:merge(S2, S1) 
+ }.
 
 merge_cmds_spec(Cmds1, Cmds2) -> Cmds1 ++ Cmds2. 
 
 merge_updates_spec(Updates1, Updates2) when map_size(Updates2) =:= 0 -> Updates1;
 merge_updates_spec(Updates1, Updates2) ->
-    merge_updates_spec(maps:keys(Updates1), Updates1, Updates2).
+merge_updates_spec(maps:keys(Updates1), Updates1, Updates2).
 
 merge_updates_spec([], _, Out) -> Out;
 merge_updates_spec([K|Rem], U1, U2) ->
-    merge_updates_spec(Rem, U1, 
-                       maps:put(K, maps:get(K, U2, []) ++ maps:get(K, U1), U2)).
+merge_updates_spec(Rem, U1, 
+                   maps:put(K, maps:get(K, U2, []) ++ maps:get(K, U1), U2)).
 
 compile_option(#{ <<"when">> := When } = Spec) ->
 
@@ -515,1029 +515,1042 @@ compile_option(Spec) ->
      }.
 
 compile_terms(Specs) -> 
-    lists:map(fun compile_term/1, Specs).
+lists:map(fun compile_term/1, Specs).
 
 compile_term(#{ <<"decoders">> := Decs }) ->
-    compile_decoders(Decs);
+compile_decoders(Decs);
 
 compile_term(#{ <<"encoders">> := Encs }) ->
-    compile_encoders(Encs);
+compile_encoders(Encs);
 
 compile_term(#{ <<"encoder">> := Enc }) when is_binary(Enc) ->
-    #{ encoder => compile_keyword(Enc) };
+#{ encoder => compile_keyword(Enc) };
 
 compile_term(#{ <<"init">> := Init }) ->
-    compile_init(Init);
+compile_init(Init);
 
 compile_term(#{ <<"update">> := Update }) ->
-    compile_updates(Update);
+compile_updates(Update);
 
 compile_term(#{ <<"views">> := Views }) ->
-    compile_views(Views);
+compile_views(Views);
 
 compile_term(#{ <<"effects">> := Effects }) ->
-    compile_effects(Effects);
+compile_effects(Effects);
 
 compile_term(#{ <<"either">> := Specs }) when is_list(Specs) ->
-    #{ type => either,
-       options => lists:map(fun compile_option/1, Specs) };
+#{ type => either,
+   options => lists:map(fun compile_option/1, Specs) };
 
 
 compile_term(#{ <<"spec">> := Spec,
-                <<"to">> := To }) when is_binary(To) ->
-    #{ to => cmkit:to_atom(To),
-       spec => compile_term(Spec) 
-     };
+            <<"to">> := To }) when is_binary(To) ->
+#{ to => cmkit:to_atom(To),
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"connection">> := ConnSpec,
-                <<"status">> := Status }) ->
-    #{ connection => compile_term(ConnSpec),
-       status => cmkit:to_atom(Status)
-     };
+            <<"status">> := Status }) ->
+#{ connection => compile_term(ConnSpec),
+   status => cmkit:to_atom(Status)
+ };
 
 compile_term(#{ <<"data">> := <<"any">> }) ->
-    #{ type => data };
+#{ type => data };
 
 compile_term(#{ <<"any">> := <<"data">> }) ->
-    #{ type => data };
+#{ type => data };
 
 compile_term(#{ <<"file">> := <<"any">> }) ->
-    #{ type => file };
+#{ type => file };
 
 compile_term(#{ <<"any">> := <<"date">>,
-                <<"format">> := Format }) ->
-    #{ type => date,
-       format => cmkit:to_atom(Format) };
+            <<"format">> := Format }) ->
+#{ type => date,
+   format => cmkit:to_atom(Format) };
 
 compile_term(#{ <<"date">> := <<"any">>,
-                <<"format">> := Format }) ->
-    #{ type => date,
-       format => cmkit:to_atom(Format) };
+            <<"format">> := Format }) ->
+#{ type => date,
+   format => cmkit:to_atom(Format) };
 
 
 compile_term(#{ <<"calendar">> := #{ 
-                    <<"days">> := #{ <<"ago">> := Days }}}) -> 
+                <<"days">> := #{ <<"ago">> := Days }}}) -> 
 
-    #{ type => utc,
-       amount => compile_term(Days),
-       factor => 3600*24,
-       tense => past };
+#{ type => utc,
+   amount => compile_term(Days),
+   factor => 3600*24,
+   tense => past };
 
 compile_term(#{ <<"calendar">> := #{ 
-                    <<"days">> := #{ <<"in">> := Days }}}) -> 
+                <<"days">> := #{ <<"in">> := Days }}}) -> 
 
-    #{ type => utc,
-       amount => compile_term(Days),
-       factor => 3600*24,
-       tense  => future };
+#{ type => utc,
+   amount => compile_term(Days),
+   factor => 3600*24,
+   tense  => future };
 
 compile_term(#{ <<"base64">> := Spec,
-                <<"as">> := As }) ->
+            <<"as">> := As }) ->
 
-    #{ type => base64,
-       as => cmkit:to_atom(As),
-      spec => compile_term(Spec) };
+#{ type => base64,
+   as => cmkit:to_atom(As),
+  spec => compile_term(Spec) };
 
 compile_term(#{ <<"base64">> := Spec }) ->
-    #{ type => base64,
-      spec => compile_term(Spec) };
+#{ type => base64,
+  spec => compile_term(Spec) };
 
 compile_term(#{ <<"as">> := As,
-                <<"file">> := Spec }) when is_map(Spec) ->
-    #{ type => file,
-       as => cmkit:to_atom(As),
-       spec => compile_term(Spec) 
-     };
+            <<"file">> := Spec }) when is_map(Spec) ->
+#{ type => file,
+   as => cmkit:to_atom(As),
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"file">> := #{ <<"path">> := P,
-                                 <<"data">> := D }}) -> 
-    #{ type => file,
-       spec => #{ path => compile_term(P),
-                  data => compile_term(D)}};
+                             <<"data">> := D }}) -> 
+#{ type => file,
+   spec => #{ path => compile_term(P),
+              data => compile_term(D)}};
 
 compile_term(#{ <<"file">> := Spec }) when is_map(Spec) ->
-    #{ type => file,
-       spec => compile_term(Spec) 
-     };
+#{ type => file,
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"asset">> := Spec, 
-                <<"as">> := As }) ->
-    
-    #{ type => asset,
-       as => cmkit:to_atom(As),
-       spec => compile_term(Spec) 
-     };
+            <<"as">> := As }) ->
+
+#{ type => asset,
+   as => cmkit:to_atom(As),
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"asset">> := Spec}) ->
-    
-    #{ type => asset,
-       spec => compile_term(Spec) 
-     };
+
+#{ type => asset,
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"any">> := <<"file">> }) ->
-    #{ type => file };
+#{ type => file };
 
 compile_term(#{ <<"at">> := Spec,
-                <<"contents">> := DataSpec }) ->
-    #{ type => path,
-       location => compile_term(Spec),
-       state => present,
-       contents => compile_term(DataSpec)
-     };
+            <<"contents">> := DataSpec }) ->
+#{ type => path,
+   location => compile_term(Spec),
+   state => present,
+   contents => compile_term(DataSpec)
+ };
 
 compile_term(#{ <<"at">> := Spec }) ->
-    #{ type => path,
-       location => compile_term(Spec) 
-     };
+#{ type => path,
+   location => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"data">> := Spec,
-                <<"as">> := As }) ->
-    #{ type => data,
-        spec => compile_term(Spec),
-        as => cmkit:to_atom(As) };
+            <<"as">> := As }) ->
+#{ type => data,
+    spec => compile_term(Spec),
+    as => cmkit:to_atom(As) };
 
 compile_term(#{ <<"data">> := Spec }) ->
-    maps:merge(#{ type => data},
-               compile_term(Spec));
+maps:merge(#{ type => data},
+           compile_term(Spec));
 
 compile_term(#{ <<"rm">> := Spec }) -> 
-    #{ type => rm,
-      spec => compile_term(Spec) };
+#{ type => rm,
+  spec => compile_term(Spec) };
 
 compile_term(#{ <<"template">> := #{ <<"name">> := Name,
-                                     <<"params">> := ParamsSpec,
-                                     <<"dest">> := Dest }}) ->
-    #{ type => template,
-       name => cmkit:to_atom(Name),
-       params => compile_term(ParamsSpec),
-       dest => compile_term(Dest) };
+                                 <<"params">> := ParamsSpec,
+                                 <<"dest">> := Dest }}) ->
+#{ type => template,
+   name => cmkit:to_atom(Name),
+   params => compile_term(ParamsSpec),
+   dest => compile_term(Dest) };
 
 compile_term(#{<<"empty">> := <<"object">> }) ->
-    #{ type => object, size => 0 };
+#{ type => object, size => 0 };
 
 compile_term(#{<<"empty">> := <<"list">> }) ->
-    #{ type => list, size => 0 };
+#{ type => list, size => 0 };
 
 compile_term(#{<<"empty">> := _}) ->
-    #{ type => empty };
+#{ type => empty };
 
 compile_term(#{ <<"config">> := Key }) ->
-    #{ type => config,
-       spec => compile_keyword(Key) 
-     };
+#{ type => config,
+   spec => compile_keyword(Key) 
+ };
 
 compile_term(#{ <<"maybe">> := Spec }) ->
-    #{ maybe => compile_term(Spec) };
+#{ maybe => compile_term(Spec) };
 
 compile_term(#{ <<"object">> := Object}) ->
-    compile_object(Object);
+compile_object(Object);
 
 compile_term(#{ <<"object_without">> := Keys }) ->
-    #{ type => object_without,
-       spec => compile_terms(Keys) };
+#{ type => object_without,
+   spec => compile_terms(Keys) };
 
 compile_term(#{ <<"entries">> := Spec }) ->
-    #{ type => entries,
-       spec => compile_term(Spec)
-     };
+#{ type => entries,
+   spec => compile_term(Spec)
+ };
+
+compile_term(#{ <<"view">> := _,
+                <<"params">> := _ } = Spec) ->
+    compile_view(Spec);
 
 compile_term(#{ <<"view">> := View }) ->
-    #{ type => view ,
-       spec => compile_view(View)
-     };
+#{ type => view ,
+   spec => compile_view(View)
+ };
 
 compile_term(#{ <<"list">> := <<"empty">>}) ->
-    #{ type => list, size => 0 };
+#{ type => list, size => 0 };
 
 compile_term(#{ <<"list">> := <<"any">>}) ->
-    #{ type => list };
+#{ type => list };
 
 compile_term(#{ <<"any">> := <<"list">>}) ->
-    #{ type => list };
+#{ type => list };
 
 compile_term(#{ <<"list">> := #{ <<"with">> := Spec}}) ->
-    #{ type => list, with => compile_term(Spec) };
+#{ type => list, with => compile_term(Spec) };
 
 compile_term(#{ <<"list">> := #{ <<"without">> := Spec}}) ->
-    #{ type => list, without => compile_term(Spec) };
+#{ type => list, without => compile_term(Spec) };
 
 compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
-    #{ type => list,
-       value => lists:map( fun compile_term/1, Items) 
-     };
+#{ type => list,
+   value => lists:map( fun compile_term/1, Items) 
+ };
 
 compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }) when is_map(Spec) ->
-    #{ type => list,
-       size => Size,
-       spec => compile_term(Spec)
-     };
+#{ type => list,
+   size => Size,
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"list">> := Spec }) when is_map(Spec) ->
-    #{ type => list,
-       spec => compile_term(Spec)
-     };
+#{ type => list,
+   spec => compile_term(Spec)
+ };
+
+compile_term(#{ <<"merged_list">> := Specs }) when is_list(Specs) ->
+#{ type => merged_list,
+   spec => compile_terms(Specs)
+ };
 
 compile_term(#{ <<"first">> := Spec }) when is_map(Spec) ->
-    #{ type => first,
-       spec => compile_term(Spec)
-     };
+#{ type => first,
+   spec => compile_term(Spec)
+ };
 
 
 compile_term(#{ <<"merge">> := Specs }) when is_list(Specs) -> 
-    #{ type => merge,
-       spec => compile_terms(Specs)
-     };
+#{ type => merge,
+   spec => compile_terms(Specs)
+ };
 
 compile_term(#{ <<"map">> := #{ <<"value">> := From,
-                                <<"options">> := Options }}) ->
-    #{ type => map,
-       spec => #{ 
-         value => compile_term(From),
-         options => compile_options(Options)
-        }
-     };
+                            <<"options">> := Options }}) ->
+#{ type => map,
+   spec => #{ 
+     value => compile_term(From),
+     options => compile_options(Options)
+    }
+ };
+
+compile_term(#{ <<"hash">> := Spec }) -> 
+    #{ type => hash,
+       spec => compile_term(Spec) };
 
 compile_term(#{ <<"spec">> := Spec }) ->
-   compile_spec(Spec); 
+compile_spec(Spec); 
 
 compile_term(#{ <<"type">> := Type}) ->
-    compile_keyword(Type);
+compile_keyword(Type);
 
 compile_term(#{ <<"keyword">> := Keyword }) when is_binary(Keyword) ->
-    #{ type => keyword,
-       value => cmkit:to_atom(Keyword) };
+#{ type => keyword,
+   value => cmkit:to_atom(Keyword) };
 
 compile_term(#{ <<"keyword">> := Keyword }) when is_atom(Keyword) ->
-    #{ type => keyword,
-       value => Keyword };
+#{ type => keyword,
+   value => Keyword };
 
 compile_term(#{ <<"keyword">> := Spec }) when is_map(Spec) ->
-    #{ type => keyword,
-       spec => compile_term(Spec) };
+#{ type => keyword,
+   spec => compile_term(Spec) };
 
 
 compile_term(#{ <<"number">> := Num }) when is_number(Num) ->
-    #{ type => number, value => Num };
+#{ type => number, value => Num };
 
 compile_term(#{ <<"number">> := <<"any">> }) ->
-    #{ type => number };
+#{ type => number };
 
 compile_term(#{ <<"number">> := Spec }) when is_map(Spec) ->
-    #{ type => number, spec => compile_term(Spec) };
+#{ type => number, spec => compile_term(Spec) };
 
 compile_term(#{ <<"at_least">> := Spec }) ->
-    #{ type => greater_than,
-       spec => compile_term(Spec) };
+#{ type => greater_than,
+   spec => compile_term(Spec) };
 
 compile_term(#{ <<"literal">> := Text }) ->
-    #{ value => Text };
+#{ value => Text };
 
 compile_term(#{ <<"object">> := <<"any">> }) ->
-    #{ type => object };
+#{ type => object };
 
 compile_term(#{ <<"object">> := <<"empty">> }) ->
-    #{ type => object, size => 0 };
+#{ type => object, size => 0 };
 
 compile_term(#{ <<"empty">> := <<"object">> }) ->
-    #{ type => object, size => 0 };
+#{ type => object, size => 0 };
 
 compile_term(#{ <<"any">> := <<"object">> }) ->
-    #{ type => object };
+#{ type => object };
 
 compile_term(#{ <<"text">> := <<"any">> }) ->
-    #{ type => text };
+#{ type => text };
 
 compile_term(#{ <<"any">> := <<"text">> }) ->
-    #{ type => text };
+#{ type => text };
 
 compile_term(#{ <<"email">> := <<"any">> }) ->
-    #{ type => email };
+#{ type => email };
 
 compile_term(#{ <<"any">> := <<"email">> }) ->
-    #{ type => email };
+#{ type => email };
 
 compile_term(#{ <<"any">> := <<"keyword">> }) ->
-    #{ type => keyword };
+#{ type => keyword };
 
 compile_term(#{ <<"keyword">> := <<"any">> }) ->
-    #{ type => keyword };
+#{ type => keyword };
 
 compile_term(#{ <<"any">> := <<"number">> }) ->
-    #{ type => number };
+#{ type => number };
 
 compile_term(#{ <<"number">> := <<"any">> }) ->
-    #{ type => number };
+#{ type => number };
 
 compile_term(#{ <<"any">> := <<"boolean">> }) ->
-    #{ type => boolean };
+#{ type => boolean };
 
 compile_term(#{ <<"boolean">> := <<"any">> }) ->
-    #{ type => boolean };
+#{ type => boolean };
 
 compile_term(#{ <<"regexp">> := Regex }) ->
-    #{ type => regexp,
-        value => compile_term(Regex) };
+#{ type => regexp,
+    value => compile_term(Regex) };
 
 compile_term(#{ <<"text">> := Spec }) ->
-    
-    maps:merge(#{ type => text},
-               compile_term(Spec));
-  
+
+maps:merge(#{ type => text},
+           compile_term(Spec));
+
 
 compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
-                                   <<"params">> := Params }}) when is_list(Params) -> 
-    #{ type => format,
-       pattern => compile_term(Pattern),
-       params => compile_terms(Params) };
+                               <<"params">> := Params }}) when is_list(Params) -> 
+#{ type => format,
+   pattern => compile_term(Pattern),
+   params => compile_terms(Params) };
 
 compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
-                                   <<"params">> := Params }}) when is_map(Params) -> 
-    #{ type => format,
-       pattern => compile_term(Pattern),
-       params => compile_term(Params) };
+                               <<"params">> := Params }}) when is_map(Params) -> 
+#{ type => format,
+   pattern => compile_term(Pattern),
+   params => compile_term(Params) };
 
 compile_term(#{ <<"format">> := #{ <<"pattern">> := FormatSpec,
-                                        <<"date">> := DateSpec }}) -> 
+                                    <<"date">> := DateSpec }}) -> 
 
-    #{ type => format,
-       pattern => compile_term(FormatSpec),
-       date => compile_term(DateSpec) };
+#{ type => format,
+   pattern => compile_term(FormatSpec),
+   date => compile_term(DateSpec) };
 
 compile_term(#{ <<"files">> := Spec }) -> 
-    #{ type => files,
-       spec => compile_term(Spec) 
-     };
+#{ type => files,
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"size">> := Size}) -> 
-    #{ size => Size };
+#{ size => Size };
 
 compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from_data">> := _ }) -> from_data;
 
 compile_term(#{ <<"item">> := Num,
-                <<"in">> := In }) when is_map(In) ->
-    
-    #{ item => Num,
-       in => compile_term(In)
-     };
+            <<"in">> := In }) when is_map(In) ->
+
+#{ item => Num,
+   in => compile_term(In)
+ };
 
 compile_term(#{ <<"item">> := Num,
-                <<"in">> := In }) when is_binary(In) ->
-    
-    #{ item => Num,
-       in => compile_keyword(In)
-     };
+            <<"in">> := In }) when is_binary(In) ->
+
+#{ item => Num,
+   in => compile_keyword(In)
+ };
 
 compile_term(#{ <<"item">> := Num }) when is_number(Num) ->
-    #{ item => Num };
+#{ item => Num };
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }) when is_binary(Key) and is_binary(In) -> 
-    #{ key => compile_keyword(Key),
-       in => compile_keyword(In)
-     };
+            <<"in">> := In }) when is_binary(Key) and is_binary(In) -> 
+#{ key => compile_keyword(Key),
+   in => compile_keyword(In)
+ };
 
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }) when is_binary(Key) -> 
-    #{ key => compile_keyword(Key),
-       in => compile_term(In)
-     };
+            <<"in">> := In }) when is_binary(Key) -> 
+#{ key => compile_keyword(Key),
+   in => compile_term(In)
+ };
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }) when is_binary(In) -> 
-    #{ key => compile_term(Key),
-       in => compile_keyword(In)
-     };
+            <<"in">> := In }) when is_binary(In) -> 
+#{ key => compile_term(Key),
+   in => compile_keyword(In)
+ };
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }) -> 
-    #{ key => compile_term(Key),
-       in => compile_term(In)
-     };
+            <<"in">> := In }) -> 
+#{ key => compile_term(Key),
+   in => compile_term(In)
+ };
 
 compile_term(#{ <<"key">> := Key}) ->
-    #{ key => compile_keyword(Key) };
+#{ key => compile_keyword(Key) };
 
 
 compile_term(#{ <<"one_of">> := Specs }) when is_list(Specs) ->
-    #{ one_of => lists:map(fun compile_term/1, Specs) }; 
+#{ one_of => lists:map(fun compile_term/1, Specs) }; 
 
 
 compile_term(#{ <<"loop">> := From,
-                <<"context">> := Context,
-                <<"with">> := View }) when is_map(From) ->
-    
-    ItemViewSpec = case is_binary(View) of 
-                       true -> cmkit:to_atom(View);
-                       false -> compile_term(View)
-                   end,
+            <<"context">> := Context,
+            <<"with">> := View }) when is_map(From) ->
 
-    #{ loop => compile_term(From),
-       with => ItemViewSpec,
-       context => compile_term(Context) };
+ItemViewSpec = case is_binary(View) of 
+                   true -> cmkit:to_atom(View);
+                   false -> compile_term(View)
+               end,
+
+#{ loop => compile_term(From),
+   with => ItemViewSpec,
+   context => compile_term(Context) };
 
 compile_term(#{ <<"loop">> := From,
-                <<"context">> := _,
-                <<"with">> := _ } = Spec) when is_binary(From) ->
+            <<"context">> := _,
+            <<"with">> := _ } = Spec) when is_binary(From) ->
 
-    compile_term(Spec#{ <<"loop">> => #{ <<"key">> => From }});
+compile_term(Spec#{ <<"loop">> => #{ <<"key">> => From }});
 
 compile_term(#{ <<"loop">> := _} = Spec)  ->
 
-    compile_term(Spec#{ <<"context">> => #{} });
+compile_term(Spec#{ <<"context">> => #{} });
 
 compile_term(#{ <<"are_set">> := Specs }) when is_list(Specs) ->
-    #{ type => are_set,
-       spec => lists:map(fun compile_term/1, Specs)
-     };
+#{ type => are_set,
+   spec => lists:map(fun compile_term/1, Specs)
+ };
 
 compile_term(#{ <<"is_set">> := Spec }) when is_map(Spec) ->
-    #{ type => is_set,
-       spec => compile_term(Spec)
-     };
+#{ type => is_set,
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"not">> := Spec }) ->
-    #{ type => 'not',
-       spec => compile_term(Spec)
-     };
+#{ type => 'not',
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"eq">> := Specs }) when is_list(Specs) ->
-    #{ type => equal,
-       spec => lists:map(fun compile_term/1, Specs)
-     };
+#{ type => equal,
+   spec => lists:map(fun compile_term/1, Specs)
+ };
 
 compile_term(#{ <<"other_than">> := Spec }) ->
-    #{ type => other_than,
-       spec => compile_term(Spec) };
+#{ type => other_than,
+   spec => compile_term(Spec) };
 
 compile_term(#{ <<"gt">> := Specs }) when is_list(Specs) ->
-    #{ type => greater_than,
-       spec => lists:map(fun compile_term/1, Specs)
-     };
+#{ type => greater_than,
+   spec => lists:map(fun compile_term/1, Specs)
+ };
 
 compile_term(#{ <<"sum">> := Specs }) when is_list(Specs) ->
-    #{ type => sum,
-       spec => lists:map(fun compile_term/1, Specs)
-     };
+#{ type => sum,
+   spec => lists:map(fun compile_term/1, Specs)
+ };
 
 compile_term(#{ <<"and">> := Specs }) when is_list(Specs) ->
-    #{ type => 'and',
-       spec => lists:map(fun compile_term/1, Specs)
-     };
+#{ type => 'and',
+   spec => lists:map(fun compile_term/1, Specs)
+ };
 
 compile_term(#{ <<"ratio">> := #{ <<"num">> := Num,
-                                    <<"den">> := Den }}) ->
-    #{ type => ratio,
-       num => compile_term(Num),
-       den => compile_term(Den)
-     };
+                                <<"den">> := Den }}) ->
+#{ type => ratio,
+   num => compile_term(Num),
+   den => compile_term(Den)
+ };
 
 compile_term(#{ <<"percentage">> := #{ <<"num">> := Num,
-                                    <<"den">> := Den }}) ->
-    #{ type => percentage,
-       num => compile_term(Num),
-       den => compile_term(Den)
-     };
+                                <<"den">> := Den }}) ->
+#{ type => percentage,
+   num => compile_term(Num),
+   den => compile_term(Den)
+ };
 
 compile_term(#{ <<"member">> := Spec }) -> 
-   
-    #{ type => member,
-       spec => compile_term(Spec)
-     };
+
+#{ type => member,
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"present">> := Spec }) ->
-    #{ type => present,
-       spec => compile_term(Spec) };
+#{ type => present,
+   spec => compile_term(Spec) };
 
 compile_term(#{ <<"value">> := ValueSpec,
-                <<"of">> := CollectionSpec
-              }) ->
-    
-    #{ value => compile_term(ValueSpec),
-                  in => compile_term(CollectionSpec)
-     };
+            <<"of">> := CollectionSpec
+          }) ->
+
+#{ value => compile_term(ValueSpec),
+              in => compile_term(CollectionSpec)
+ };
 
 compile_term(#{ <<"all">> := Conds }) ->
-    #{ type => all,
-       spec => lists:map(fun compile_term/1, Conds) 
-     };
+#{ type => all,
+   spec => lists:map(fun compile_term/1, Conds) 
+ };
 
 compile_term(#{ <<"connect">> := Spec,
-               <<"as">> := As } = Spec0) ->
-    Expr = #{ type => connect,
-              as => compile_term(As),
-              spec => compile_term(Spec) },
+           <<"as">> := As } = Spec0) ->
+Expr = #{ type => connect,
+          as => compile_term(As),
+          spec => compile_term(Spec) },
 
-    Expr2 = case maps:get(<<"protocol">>, Spec0, undef) of 
-                undef -> 
-                    Expr;
-                ProtocolSpec -> 
-                    Expr#{ protocol => compile_term(ProtocolSpec) }
-            end,
+Expr2 = case maps:get(<<"protocol">>, Spec0, undef) of 
+            undef -> 
+                Expr;
+            ProtocolSpec -> 
+                Expr#{ protocol => compile_term(ProtocolSpec) }
+        end,
 
-    Expr2;
-    
+Expr2;
+
 
 compile_term(#{ <<"connect">> := Spec }) ->
-    #{ type => connect,
-       spec => compile_term(Spec) };
+#{ type => connect,
+   spec => compile_term(Spec) };
 
 compile_term(#{ <<"probe">> := Spec }) ->
-    
-    #{ type => probe,
-       spec => compile_term(Spec)
-     };
+
+#{ type => probe,
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"disconnect">> := Spec }) ->
-    
-    #{ type => disconnect,
-       spec => compile_term(Spec)
-     };
+
+#{ type => disconnect,
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"send">> := 
-                #{ <<"to">> := ConnSpec,
-                   <<"spec">> := Spec }}) ->
-    #{ type => send,
-       spec => #{ to => compile_term(ConnSpec),
-                  spec => compile_term(Spec) }};
+            #{ <<"to">> := ConnSpec,
+               <<"spec">> := Spec }}) ->
+#{ type => send,
+   spec => #{ to => compile_term(ConnSpec),
+              spec => compile_term(Spec) }};
 
 compile_term(#{ <<"send">> := Spec }) ->
-    
-    #{ type => send,
-       spec => compile_term(Spec)
-     };
+
+#{ type => send,
+   spec => compile_term(Spec)
+ };
 
 
 compile_term(#{ <<"receive">> := 
-                #{ <<"from">> := From,
-                   <<"spec">> := Spec,
-                   <<"as">> := As }}) ->
-    #{ type => recv,
-       from => compile_term(From),
-       spec => compile_term(Spec),
-       as => compile_keyword(As)
-     };
+            #{ <<"from">> := From,
+               <<"spec">> := Spec,
+               <<"as">> := As }}) ->
+#{ type => recv,
+   from => compile_term(From),
+   spec => compile_term(Spec),
+   as => compile_keyword(As)
+ };
 
 compile_term(#{ <<"receive">> := 
-                #{ <<"from">> := From,
-                   <<"spec">> := Spec,
-                   <<"remember">> := Remember }}) ->
-    #{ type => recv,
-       from => compile_term(From),
-       spec => compile_term(Spec),
-       as => compile_object(Remember)
-     };
+            #{ <<"from">> := From,
+               <<"spec">> := Spec,
+               <<"remember">> := Remember }}) ->
+#{ type => recv,
+   from => compile_term(From),
+   spec => compile_term(Spec),
+   as => compile_object(Remember)
+ };
 
 compile_term(#{ <<"receive">> := 
-                #{ <<"from">> := From,
-                   <<"spec">> := Spec }}) ->
+            #{ <<"from">> := From,
+               <<"spec">> := Spec }}) ->
 
-    #{ type => recv,
-       from => compile_term(From),
-       spec => compile_term(Spec),
-       as => latest 
-     };
+#{ type => recv,
+   from => compile_term(From),
+   spec => compile_term(Spec),
+   as => latest 
+ };
 
 compile_term(#{ <<"expect">> := Spec }) ->
-    #{ type => expect,
-       spec => compile_term(Spec)
-     };
+#{ type => expect,
+   spec => compile_term(Spec)
+ };
 
 compile_term(#{ <<"request">> := Spec,
-                <<"as">> := As }) ->
-    #{ type => request,
-       as => compile_term(As),
-       spec => compile_term(Spec) 
-     };
+            <<"as">> := As }) ->
+#{ type => request,
+   as => compile_term(As),
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"request">> := Spec }) ->
-    #{ type => request,
-       spec => compile_term(Spec) 
-     };
+#{ type => request,
+   spec => compile_term(Spec) 
+ };
 
 compile_term(#{ <<"response">> := Spec }) ->
-    #{ type => response,
-         spec => compile_term(Spec) 
-    };
+#{ type => response,
+     spec => compile_term(Spec) 
+};
 
 compile_term(#{ <<"join">> := #{ 
-                    <<"terms">> := Terms 
-                   }
-              }) ->
-    #{ type => join,
-       terms => compile_terms(Terms) };
+                <<"terms">> := Terms 
+               }
+          }) ->
+#{ type => join,
+   terms => compile_terms(Terms) };
 
 compile_term(#{ <<"join">> := Terms}) when is_list(Terms) ->  
-    #{ type => join,
-       terms => compile_terms(Terms) };
+#{ type => join,
+   terms => compile_terms(Terms) };
 
 compile_term(#{ <<"url">> := Url,
-                <<"method">> := Method } = Spec) ->
-    
-    Expr = #{ type => http,
-              url => compile_term(Url),
-              method => cmkit:to_atom(Method)
-            },
+            <<"method">> := Method } = Spec) ->
 
-    Expr2 = case maps:get(<<"headers">>, Spec, undef) of 
-                undef -> Expr;
-                HeadersSpec -> 
-                    Expr#{ headers => compile_term(HeadersSpec) }
-            end,
+Expr = #{ type => http,
+          url => compile_term(Url),
+          method => cmkit:to_atom(Method)
+        },
 
-    Expr3 = case maps:get(<<"body">>, Spec, undef) of 
-                undef -> Expr2;
-                BodySpec -> 
-                    Expr2#{ body => compile_term(BodySpec) }
-            end,
-    Expr3;
+Expr2 = case maps:get(<<"headers">>, Spec, undef) of 
+            undef -> Expr;
+            HeadersSpec -> 
+                Expr#{ headers => compile_term(HeadersSpec) }
+        end,
+
+Expr3 = case maps:get(<<"body">>, Spec, undef) of 
+            undef -> Expr2;
+            BodySpec -> 
+                Expr2#{ body => compile_term(BodySpec) }
+        end,
+Expr3;
 
 compile_term(#{ <<"host">> := Host,
-                <<"port">> := Port,
-                <<"transport">> := Transport,
-                <<"path">> := Path } = Spec) ->
-    
-    Expr = #{ type => url,
-              host => compile_term(Host),
-              port => compile_term(Port),
-              transport => compile_term(Transport),
-              path => compile_term(Path) },
+            <<"port">> := Port,
+            <<"transport">> := Transport,
+            <<"path">> := Path } = Spec) ->
 
-    Expr2 = case maps:get(<<"query">>, Spec, undef) of 
-                undef ->
-                    Expr;
-                QuerySpec -> 
-                    Expr#{ query => compile_term(QuerySpec) }
-            end,
-    Expr2;
+Expr = #{ type => url,
+          host => compile_term(Host),
+          port => compile_term(Port),
+          transport => compile_term(Transport),
+          path => compile_term(Path) },
+
+Expr2 = case maps:get(<<"query">>, Spec, undef) of 
+            undef ->
+                Expr;
+            QuerySpec -> 
+                Expr#{ query => compile_term(QuerySpec) }
+        end,
+Expr2;
 
 
 compile_term(#{ <<"multipart">> := #{ <<"files">> := FilesSpec } }) ->
-    #{ type => multipart,
-       files => compile_term(FilesSpec) };
+#{ type => multipart,
+   files => compile_term(FilesSpec) };
 
 
 compile_term(#{ <<"http">> := Spec }) ->
-    #{ type => exec,
-       spec => compile_term(Spec) };
+#{ type => exec,
+   spec => compile_term(Spec) };
 
 compile_term(#{ <<"procedure">> := Name,
-                <<"params">> := Params }) ->
+            <<"params">> := Params }) ->
 
-    #{ type => procedure,
-       name => cmkit:to_atom(Name),
-       params => compile_term(Params) };
+#{ type => procedure,
+   name => cmkit:to_atom(Name),
+   params => compile_term(Params) };
 
 compile_term(#{ <<"basic-auth">> := Spec }) ->
-    #{ type => basic_auth,
-       spec => compile_term(Spec) };
+#{ type => basic_auth,
+   spec => compile_term(Spec) };
 
 compile_term(#{ <<"task">> := Task }) -> 
-    #{ type => task,
-       name => compile_keyword(Task) };
+#{ type => task,
+   name => compile_keyword(Task) };
 
 compile_term(#{ <<"shell">> := 
-                    #{ <<"chwd">> := Chwd,
-                       <<"cmd">> := Cmd }}) ->
-    #{ type => shell,
-       chwd => compile_term(Chwd),
-       cmd => compile_term(Cmd) };
+                #{ <<"chwd">> := Chwd,
+                   <<"cmd">> := Cmd }}) ->
+#{ type => shell,
+   chwd => compile_term(Chwd),
+   cmd => compile_term(Cmd) };
 
 
 compile_term(#{ <<"kube">> := Spec}) ->
-    #{ type => kube,
-       spec => compile_kube_spec(Spec) };
+#{ type => kube,
+   spec => compile_kube_spec(Spec) };
 
 compile_term(#{ <<"slack">> := #{ <<"settings">> := SettingsSpec,
-                                  <<"severity">> := SeveritySpec,
-                                  <<"subject">> := SubjectSpec,
-                                  <<"body">> := BodySpec }}) ->
-    #{ type => slack,
-       spec => #{ settings => compile_term(SettingsSpec),
-                  severity => compile_term(SeveritySpec),
-                  subject => compile_term(SubjectSpec),
-                  body => compile_term(BodySpec) }};
+                              <<"severity">> := SeveritySpec,
+                              <<"subject">> := SubjectSpec,
+                              <<"body">> := BodySpec }}) ->
+#{ type => slack,
+   spec => #{ settings => compile_term(SettingsSpec),
+              severity => compile_term(SeveritySpec),
+              subject => compile_term(SubjectSpec),
+              body => compile_term(BodySpec) }};
 
 compile_term(#{ <<"git">> := #{ 
-                    <<"credentials">> := CredsSpec,
-                    <<"clone">> := #{ <<"repo">> := Repo,
-                                      <<"branch">> := Branch,
-                                      <<"dir">> := Dir }}}) -> 
-    #{ type => git,
-       spec => #{ action => clone,
-                  credentials => compile_term(CredsSpec),
-                  repo => compile_term(Repo),
-                  branch => cmkit:to_atom(Branch),
-                  dir => compile_term(Dir) }};
+                <<"credentials">> := CredsSpec,
+                <<"clone">> := #{ <<"repo">> := Repo,
+                                  <<"branch">> := Branch,
+                                  <<"dir">> := Dir }}}) -> 
+#{ type => git,
+   spec => #{ action => clone,
+              credentials => compile_term(CredsSpec),
+              repo => compile_term(Repo),
+              branch => cmkit:to_atom(Branch),
+              dir => compile_term(Dir) }};
 
 compile_term(#{ <<"git">> := #{ 
-                    <<"credentials">> := CredsSpec,
-                    <<"clone">> := #{ <<"repo">> := Repo,
-                                      <<"dir">> := Dir }}}) -> 
-    #{ type => git,
-       spec => #{ action => clone,
-                  credentials => compile_term(CredsSpec),
-                  branch => master,
-                  repo => compile_term(Repo),
-                  dir => compile_term(Dir) }};
+                <<"credentials">> := CredsSpec,
+                <<"clone">> := #{ <<"repo">> := Repo,
+                                  <<"dir">> := Dir }}}) -> 
+#{ type => git,
+   spec => #{ action => clone,
+              credentials => compile_term(CredsSpec),
+              branch => master,
+              repo => compile_term(Repo),
+              dir => compile_term(Dir) }};
 
 compile_term(#{ <<"git">> := #{ 
-                    <<"as">> := As,
-                    <<"credentials">> := CredsSpec,
-                    <<"tag">> := #{ <<"repo">> := Repo,
-                                    <<"dir">> := Dir,
-                                    <<"prefix">> := Prefix,
-                                    <<"increment">> := Increment } = Spec}}) -> 
-    GitSpec = #{ action => tag,
-                  as => cmkit:to_atom(As),
-                  credentials => compile_term(CredsSpec),
-                  repo => compile_term(Repo),
-                  dir => compile_term(Dir),
-                  prefix => compile_term(Prefix),
-                  increment => cmkit:to_atom(Increment) },
+                <<"as">> := As,
+                <<"credentials">> := CredsSpec,
+                <<"tag">> := #{ <<"repo">> := Repo,
+                                <<"dir">> := Dir,
+                                <<"prefix">> := Prefix,
+                                <<"increment">> := Increment } = Spec}}) -> 
+GitSpec = #{ action => tag,
+              as => cmkit:to_atom(As),
+              credentials => compile_term(CredsSpec),
+              repo => compile_term(Repo),
+              dir => compile_term(Dir),
+              prefix => compile_term(Prefix),
+              increment => cmkit:to_atom(Increment) },
 
-    GitSpec2  = case maps:get(<<"branch">>, Spec, undef) of 
-                    undef -> GitSpec;
-                    Br -> GitSpec#{ branch => cmkit:to_atom(Br) }
+GitSpec2  = case maps:get(<<"branch">>, Spec, undef) of 
+                undef -> GitSpec;
+                Br -> GitSpec#{ branch => cmkit:to_atom(Br) }
+            end,
+
+GitSpec3 = case maps:get(<<"clone">>, Spec, undef) of 
+               undef -> GitSpec2#{ clone => true };
+               V -> 
+                   GitSpec2#{ clone => cmkit:to_atom(V) }
                 end,
 
-    GitSpec3 = case maps:get(<<"clone">>, Spec, undef) of 
-                   undef -> GitSpec2#{ clone => true };
-                   V -> 
-                       GitSpec2#{ clone => cmkit:to_atom(V) }
-                    end,
-    
-    #{ type => git,
-       spec => GitSpec3 };
+#{ type => git,
+   spec => GitSpec3 };
 
 compile_term(#{ <<"docker">> := #{ 
-                    <<"credentials">> := CredsSpec,
-                    <<"build">> := #{ <<"repo">> := Repo,
-                                                     <<"tag">> := Tag,
-                                                     <<"dir">> := Dir }}}) -> 
-    #{ type => docker,
-       spec => #{ action => build,
-                  credentials => compile_term(CredsSpec),
-                  repo => compile_term(Repo),
-                  tag => compile_term(Tag),
-                  dir => compile_term(Dir) }
-     };
+                <<"credentials">> := CredsSpec,
+                <<"build">> := #{ <<"repo">> := Repo,
+                                                 <<"tag">> := Tag,
+                                                 <<"dir">> := Dir }}}) -> 
+#{ type => docker,
+   spec => #{ action => build,
+              credentials => compile_term(CredsSpec),
+              repo => compile_term(Repo),
+              tag => compile_term(Tag),
+              dir => compile_term(Dir) }
+ };
 
 compile_term(#{ <<"test">> := #{ 
-                    <<"name">> := Test,
-                    <<"settings">> := Settings,
-                    <<"opts">> := Opts }}) -> 
-    #{ type => test,
-       spec => #{ name => cmkit:to_atom(Test),
-                  settings => cmkit:to_atom(Settings),
-                  opts => compile_term(Opts) }};
+                <<"name">> := Test,
+                <<"settings">> := Settings,
+                <<"opts">> := Opts }}) -> 
+#{ type => test,
+   spec => #{ name => cmkit:to_atom(Test),
+              settings => cmkit:to_atom(Settings),
+              opts => compile_term(Opts) }};
 
 compile_term(#{ <<"wait">> := #{
-                    <<"sleep">> := Sleep,
-                    <<"retries">> := Retries,
-                    <<"condition">> := Condition }}) ->
-    #{ type => wait,
-       spec => #{ sleep => Sleep,
-                  retries => Retries,
-                  condition => compile_term(Condition) }};
+                <<"sleep">> := Sleep,
+                <<"retries">> := Retries,
+                <<"condition">> := Condition }}) ->
+#{ type => wait,
+   spec => #{ sleep => Sleep,
+              retries => Retries,
+              condition => compile_term(Condition) }};
 
 compile_term(#{ <<"wait">> := #{ 
-                    <<"seconds">> := Secs }}) -> 
-    #{ type => wait,
-       spec => #{
-         sleep => Secs * 1000 }};
+                <<"seconds">> := Secs }}) -> 
+#{ type => wait,
+   spec => #{
+     sleep => Secs * 1000 }};
 
 compile_term(#{ <<"match">> := #{
-                    <<"value">> := ValueSpec,
-                    <<"with">> := DecoderSpec } = MatchSpec}) ->
-   
-    Expr = #{ value => compile_term(ValueSpec),
-              decoder => compile_term(DecoderSpec)},
-    
-    Expr2 = case maps:get(<<"remember">>, MatchSpec, undef) of
-                undef -> Expr;
-                RememberSpec -> 
-                    Expr#{ map => compile_term(RememberSpec) }
-            end,
-    
-    #{ type => match, spec => Expr2 };
+                <<"value">> := ValueSpec,
+                <<"with">> := DecoderSpec } = MatchSpec}) ->
+
+Expr = #{ value => compile_term(ValueSpec),
+          decoder => compile_term(DecoderSpec)},
+
+Expr2 = case maps:get(<<"remember">>, MatchSpec, undef) of
+            undef -> Expr;
+            RememberSpec -> 
+                Expr#{ map => compile_term(RememberSpec) }
+        end,
+
+#{ type => match, spec => Expr2 };
 
 compile_term(#{ <<"find">> := TargetSpec,
-                <<"in">> := SourceSpec }) -> 
-    
-    #{ type => find,
-       items => compile_term(SourceSpec),
-       target => compile_term(TargetSpec) };
+            <<"in">> := SourceSpec }) -> 
+
+#{ type => find,
+   items => compile_term(SourceSpec),
+   target => compile_term(TargetSpec) };
 
 compile_term(#{ <<"iterate">> := SourceSpec,
-                <<"filter">> := FilterSpec, 
-                <<"with">> := DestSpec }) ->
-    
-    #{ type => iterate,
-       source => compile_term(SourceSpec),
-       filter => compile_term(FilterSpec),
-       dest => compile_term(DestSpec) };
+            <<"filter">> := FilterSpec, 
+            <<"with">> := DestSpec }) ->
+
+#{ type => iterate,
+   source => compile_term(SourceSpec),
+   filter => compile_term(FilterSpec),
+   dest => compile_term(DestSpec) };
 
 compile_term(#{ <<"iterate">> := SourceSpec,
-                <<"with">> := DestSpec }) ->
-    
-    #{ type => iterate,
-       source => compile_term(SourceSpec),
-       filter => none,
-       dest => compile_term(DestSpec) };
+            <<"with">> := DestSpec }) ->
+
+#{ type => iterate,
+   source => compile_term(SourceSpec),
+   filter => none,
+   dest => compile_term(DestSpec) };
 
 compile_term(#{ <<"attempt">> := #{ <<"spec">> := Spec,
-                                    <<"onerror">> := OnError } }) -> 
-    
-    #{ type => attempt,
-       spec  => compile_term(Spec),
-       onerror => compile_term(OnError)
-     };
+                                <<"onerror">> := OnError } }) -> 
+
+#{ type => attempt,
+   spec  => compile_term(Spec),
+   onerror => compile_term(OnError)
+ };
 
 compile_term(#{ <<"erlang">> := #{ <<"mod">> := Mod,
-                                   <<"fun">> := Fun } = Spec}) -> 
-    
-    Args = maps:get(<<"args">>, Spec, []),
+                               <<"fun">> := Fun } = Spec}) -> 
 
-    #{ type => erlang,
-       mod => compile_keyword(Mod),
-       function => compile_keyword(Fun),
-       args => compile_term(Args) };
+Args = maps:get(<<"args">>, Spec, []),
+
+#{ type => erlang,
+   mod => compile_keyword(Mod),
+   function => compile_keyword(Fun),
+   args => compile_term(Args) };
 
 compile_term(#{ <<"thumbnail">> := #{ <<"url">> := U,
-                                      <<"basename">> := B,
-                                      <<"sizes">> := S }}) -> 
-    
-    #{ type => thumbnail,
-       url => compile_term(U),
-       basename => compile_term(B),
-       sizes => compile_terms(S) };
+                                  <<"basename">> := B,
+                                  <<"sizes">> := S }}) -> 
+
+#{ type => thumbnail,
+   url => compile_term(U),
+   basename => compile_term(B),
+   sizes => compile_terms(S) };
 
 compile_term(#{ <<"s3">> := #{ <<"access">> := Access,
-                               <<"secret">> := Secret,
-                               <<"bucket">> := Bucket,
-                               <<"key">> := Key,
-                               <<"data">> := Data }}) -> 
-    
-    #{ type => s3,
-       spec => #{ access => compile_term(Access),
-                  secret => compile_term(Secret),
-                  bucket => compile_term(Bucket),
-                  key => compile_term(Key),
-                  data => compile_term(Data) }};
+                           <<"secret">> := Secret,
+                           <<"bucket">> := Bucket,
+                           <<"key">> := Key,
+                           <<"data">> := Data }}) -> 
+
+#{ type => s3,
+   spec => #{ access => compile_term(Access),
+              secret => compile_term(Secret),
+              bucket => compile_term(Bucket),
+              key => compile_term(Key),
+              data => compile_term(Data) }};
 
 compile_term(#{ <<"db">> := #{ <<"bucket">> := B,
-                               <<"type">> := T,
-                               <<"id">> := Id,
-                               <<"value">> := Value }}) -> 
-    #{ type => db,
-       spec => #{ bucket => compile_term(B),
-                  type => compile_term(T),
-                  id => compile_term(Id),
-                  value => compile_term(Value) }};
+                           <<"type">> := T,
+                           <<"id">> := Id,
+                           <<"value">> := Value }}) -> 
+#{ type => db,
+   spec => #{ bucket => compile_term(B),
+              type => compile_term(T),
+              id => compile_term(Id),
+              value => compile_term(Value) }};
 
 
 compile_term(#{ <<"queue">> := #{ <<"name">> := Name,
-                                  <<"finish">> := Id}}) ->
-    
-    #{ type => queue,
-       spec => #{ action => finish,
-                  name => compile_keyword(Name),
-                  id => compile_term(Id) }};
+                              <<"finish">> := Id}}) ->
+
+#{ type => queue,
+   spec => #{ action => finish,
+              name => compile_keyword(Name),
+              id => compile_term(Id) }};
 
 compile_term(Num) when is_number(Num) ->
-    #{ type => number, value => Num };
+#{ type => number, value => Num };
 
 compile_term(Text) when is_binary(Text) -> 
-    
-    #{ type => text, value => Text };
+
+#{ type => text, value => Text };
 
 compile_term(Term) when is_map(Term) ->
-    #{ type => object,
-       spec => maps:fold(fun(K, V, Out) ->
-                            K2 = cmkit:to_atom(K),
-                            V2 = compile_term(V),
-                            Out#{ K2 => V2 }
-                         end, #{}, Term) };
+#{ type => object,
+   spec => maps:fold(fun(K, V, Out) ->
+                        K2 = cmkit:to_atom(K),
+                        V2 = compile_term(V),
+                        Out#{ K2 => V2 }
+                     end, #{}, Term) };
 
 compile_term(true) -> 
-    #{ type => keyword,
-       value => true };
+#{ type => keyword,
+   value => true };
 
 compile_term(<<"yes">>) -> 
-    #{ type => keyword,
-       value => true };
+#{ type => keyword,
+   value => true };
 
 compile_term(false) -> 
-    #{ type => keyword,
-       value => false };
+#{ type => keyword,
+   value => false };
 
 compile_term(<<"no">>) -> 
-    #{ type => keyword,
-       value => false };
+#{ type => keyword,
+   value => false };
 
 compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }) ->
-    #{ lat => Lat, 
-       lon => Lon };
+#{ lat => Lat, 
+   lon => Lon };
 
 compile_term(#{}=Map) when map_size(Map) == 0 ->
-    #{ type => object };
+#{ type => object };
 
 compile_term(null) -> 
-    #{ type => object };
+#{ type => object };
 
 compile_term(Items) when is_list(Items) ->
-    #{ type => list,
-       value => lists:map( fun compile_term/1, Items) 
-     };
+#{ type => list,
+   value => lists:map( fun compile_term/1, Items) 
+ };
 
 compile_term([]) -> 
-    #{ type => list, value => [] };
+#{ type => list, value => [] };
 
 compile_term(Spec) ->
-    cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
-    #{ type => unknown, spec => Spec }.
+cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
+#{ type => unknown, spec => Spec }.
 
 
 compile_kube_spec(#{ <<"kind">> := Kind,
-                     <<"namespace">> := NsSpec,
-                     <<"state">> := StateSpec,
-                     <<"server">> := ApiServerSpec }=Spec) ->
-    
-    Expr = #{ state => compile_term(StateSpec),
-              namespace => compile_term(NsSpec),
-              resource => cmkit:to_atom(Kind),
-              server => compile_term(ApiServerSpec)
-            },
+                 <<"namespace">> := NsSpec,
+                 <<"state">> := StateSpec,
+                 <<"server">> := ApiServerSpec }=Spec) ->
 
-    Expr2 = case maps:get(<<"name">>, Spec, undef) of 
-                undef -> 
-                    Expr;
-                NameSpec ->
-                    Expr#{ name => compile_term(NameSpec) }
-            end,
-    
-    Expr3 = case maps:get(<<"props">>, Spec, undef) of 
-                undef ->
-                    Expr2;
-                PropsSpec ->
-                    Expr2#{ props => compile_term(PropsSpec) }
-            end,
+Expr = #{ state => compile_term(StateSpec),
+          namespace => compile_term(NsSpec),
+          resource => cmkit:to_atom(Kind),
+          server => compile_term(ApiServerSpec)
+        },
 
-    Expr3.
+Expr2 = case maps:get(<<"name">>, Spec, undef) of 
+            undef -> 
+                Expr;
+            NameSpec ->
+                Expr#{ name => compile_term(NameSpec) }
+        end,
+
+Expr3 = case maps:get(<<"props">>, Spec, undef) of 
+            undef ->
+                Expr2;
+            PropsSpec ->
+                Expr2#{ props => compile_term(PropsSpec) }
+        end,
+
+Expr3.
 
 compile_object(<<"any">>) -> 
-    #{ type => object };
+#{ type => object };
 
 compile_object(<<"empty">>) -> 
-    #{ type => object, size => 0 };
+#{ type => object, size => 0 };
 
 compile_object(null) ->
-    #{ type => object };
+#{ type => object };
 
 compile_object(Map) when is_map(Map) ->
-    #{ type => object,
-       spec => compile_object(maps:keys(Map), Map, #{}) }.
+#{ type => object,
+   spec => compile_object(maps:keys(Map), Map, #{}) }.
 
 compile_object([], _, Out) -> Out;
 compile_object([K|Rem], Map, Out) ->
-    compile_object(Rem, Map, Out#{ 
-                               compile_keyword(K) => compile_term(maps:get(K, Map))
-                              }).
+compile_object(Rem, Map, Out#{ 
+                           compile_keyword(K) => compile_term(maps:get(K, Map))
+                          }).
 
 compile_keyword(K) -> cmkit:to_atom(K).
 
 compile_decoders(Decs) when is_map(Decs) ->
-    compile_decoders(maps:keys(Decs), Decs, []);
+compile_decoders(maps:keys(Decs), Decs, []);
 
 compile_decoders(_) -> [].
 
 
 compile_decoders([], _, Out) -> sort_decoders(Out);
 compile_decoders([K|Rem], Decs, Out) ->
-    Msg = compile_keyword(K),
-    Dec = maps:get(K, Decs),
-    Spec = compile_term(Dec),
-    compile_decoders(Rem, Decs, [#{ msg => Msg,
-                                    priority => compile_priority(Dec),
-                                    spec => Spec}|Out]). 
+Msg = compile_keyword(K),
+Dec = maps:get(K, Decs),
+Spec = compile_term(Dec),
+compile_decoders(Rem, Decs, [#{ msg => Msg,
+                                priority => compile_priority(Dec),
+                                spec => Spec}|Out]). 
 
 compile_priority(#{ <<"priority">> := P }) ->
-    compile_keyword(P);
+compile_keyword(P);
 
 compile_priority(_) ->
-    compile_keyword(normal).
+compile_keyword(normal).
 
 
 compile_options(Spec) when is_map(Spec) ->
-    compile_options(maps:keys(Spec), Spec, []).
+compile_options(maps:keys(Spec), Spec, []).
 
 compile_options([], _, Out) -> Out;
 compile_options([K|Rem], Spec, Out) ->
-    compile_options(Rem, Spec, [#{ source => compile_term(K),
-                                   target => compile_term(maps:get(K, Spec))
-                                 }|Out]).
+compile_options(Rem, Spec, [#{ source => compile_term(K),
+                               target => compile_term(maps:get(K, Spec))
+                             }|Out]).
 
 
 sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
@@ -1550,151 +1563,151 @@ compare_priorities(#{ priority := _ }, #{ priority := _ }) -> true.
 
 
 compile_encoders(Encs) ->
-    compile_encoders(maps:keys(Encs), Encs, #{}).
+compile_encoders(maps:keys(Encs), Encs, #{}).
 
 compile_encoders([], _, Out) -> Out;
 compile_encoders([K|Rem], Encs, Out) ->
-    Name = compile_keyword(K),
-    Enc = compile_term(maps:get(K, Encs)),
-    compile_encoders(Rem, Encs, Out#{ Name => Enc}). 
+Name = compile_keyword(K),
+Enc = compile_term(maps:get(K, Encs)),
+compile_encoders(Rem, Encs, Out#{ Name => Enc}). 
 
 
 compile_updates(Updates) -> 
-    compile_updates(maps:keys(Updates), Updates, #{}).
+compile_updates(maps:keys(Updates), Updates, #{}).
 
 compile_updates([], _, Out) -> Out;
 compile_updates([K|Rem], Updates, Out) ->
-    Name = compile_keyword(K),
-    Init = compile_init(maps:get(K, Updates)),
-    compile_updates(Rem, Updates, Out#{ Name => Init }).
+Name = compile_keyword(K),
+Init = compile_init(maps:get(K, Updates)),
+compile_updates(Rem, Updates, Out#{ Name => Init }).
 
 compile_update_spec(#{ <<"when">> := When}=Spec) when is_map(Spec) -> 
-    #{ condition => compile_term(When), 
-       model => compile_model(maps:get(<<"model">>, Spec, #{})),
-       cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
-     };
+#{ condition => compile_term(When), 
+   model => compile_model(maps:get(<<"model">>, Spec, #{})),
+   cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
+ };
 
 compile_update_spec(Spec) when is_map(Spec) -> 
-    #{ condition => #{ type => true }, 
-       model => compile_model(maps:get(<<"model">>, Spec, #{})),
-       cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
-     }.
+#{ condition => #{ type => true }, 
+   model => compile_model(maps:get(<<"model">>, Spec, #{})),
+   cmds => compile_cmds(maps:get(<<"cmds">>, Spec, [])) 
+ }.
 
 compile_init(Spec) when is_map(Spec) ->
-    compile_init([Spec]);
+compile_init([Spec]);
 
 compile_init(Specs) when is_list(Specs) -> 
-    lists:map(fun compile_update_spec/1, Specs).
+lists:map(fun compile_update_spec/1, Specs).
 
 compile_views(Views) ->
-    compile_views(maps:keys(Views), Views, #{}).
+compile_views(maps:keys(Views), Views, #{}).
 
 compile_views([], _, Out) -> Out;
 compile_views([K|Rem], Views, Out) ->
-    Name = compile_keyword(K),
-    View = compile_view(maps:get(K, Views)),
-    compile_views(Rem, Views, Out#{ Name => View }).
+Name = compile_keyword(K),
+View = compile_view(maps:get(K, Views)),
+compile_views(Rem, Views, Out#{ Name => View }).
 
 
 compile_view(#{ <<"view">> := View,
-                <<"params">> := Params,
-                <<"when">> := When }) ->
-    
-    #{ view => compile_keyword(View),
-       params => compile_term(Params),
-       condition => compile_term(When) };
+            <<"params">> := Params,
+            <<"when">> := When }) ->
+
+#{ view => compile_keyword(View),
+   params => compile_term(Params),
+   condition => compile_term(When) };
 
 compile_view(#{ <<"view">> := View,
-                <<"when">> := When }) ->
-    
-    #{ view => compile_keyword(View),
-       condition => compile_term(When) };
-    
+            <<"when">> := When }) ->
+
+#{ view => compile_keyword(View),
+   condition => compile_term(When) };
+
 
 compile_view(#{ <<"view">> := View,
-                <<"params">> := Params }) ->
-    
-    #{ view => compile_view_name(View),
-       params  => compile_term(Params) };
+            <<"params">> := Params }) ->
+
+#{ view => compile_view_name(View),
+   params  => compile_term(Params) };
 
 compile_view(#{ <<"view">> := View }) ->
-    
-    #{ view => compile_view_name(View),
-       params  => #{} };
-    
-compile_view(#{ <<"tag">> := Tag,
-                <<"attrs">> := Attrs,
-                <<"children">> := Children }) when is_map(Children)->
-    #{ tag => Tag,
-       attrs => compile_view_attrs(Attrs),
-       children => compile_term(Children) 
-     };
+
+#{ view => compile_view_name(View),
+   params  => #{} };
 
 compile_view(#{ <<"tag">> := Tag,
-                <<"attrs">> := Attrs,
-                <<"children">> := Children }) when is_list(Children)->
-    #{ tag => Tag,
-       attrs => compile_view_attrs(Attrs),
-       children => lists:map(fun compile_view/1, Children) };
+            <<"attrs">> := Attrs,
+            <<"children">> := Children }) when is_map(Children)->
+#{ tag => Tag,
+   attrs => compile_view_attrs(Attrs),
+   children => compile_term(Children) 
+ };
+
+compile_view(#{ <<"tag">> := Tag,
+            <<"attrs">> := Attrs,
+            <<"children">> := Children }) when is_list(Children)->
+#{ tag => Tag,
+   attrs => compile_view_attrs(Attrs),
+   children => lists:map(fun compile_view/1, Children) };
 
 compile_view(#{ <<"tag">> := _ ,
-                <<"children">> := _ }=View) ->
-    compile_view(View#{ <<"attrs">> => #{}});
+            <<"children">> := _ }=View) ->
+compile_view(View#{ <<"attrs">> => #{}});
 
 compile_view(#{ <<"tag">> := _ ,
-                <<"attrs">> := _ }=View) ->
-    compile_view(View#{ <<"children">> => []});
+            <<"attrs">> := _ }=View) ->
+compile_view(View#{ <<"children">> => []});
 
 compile_view(#{ <<"tag">> := _ }=View) ->
-    compile_view(View#{ 
-                   <<"attrs">> => #{},
-                   <<"children">> => []});
+compile_view(View#{ 
+               <<"attrs">> => #{},
+               <<"children">> => []});
 
 compile_view(#{ <<"text">> := Text}) when is_binary(Text) ->
-    #{ text => #{ literal => Text }};
+#{ text => #{ literal => Text }};
 
 compile_view(#{ <<"text">> := Spec}) ->
-    #{ text => compile_term(Spec) };
+#{ text => compile_term(Spec) };
 
 
 compile_view(#{ <<"iterate">> := From,
-                <<"using">> := ItemView }) ->
-    #{ iterate => compile_term(From), 
-       using => compile_keyword(ItemView) };
+            <<"using">> := ItemView }) ->
+#{ iterate => compile_term(From), 
+   using => compile_keyword(ItemView) };
 
 compile_view(#{ <<"json">> := Spec,
-                <<"indent">> := Indent }) ->
-    #{ json => compile_term(Spec),
-       indent => compile_term(Indent) };
+            <<"indent">> := Indent }) ->
+#{ json => compile_term(Spec),
+   indent => compile_term(Indent) };
 
 compile_view(#{ <<"json">> := _} = Spec) ->
-    compile_view(Spec#{ <<"indent">> => 2 });
+compile_view(Spec#{ <<"indent">> => 2 });
 
 compile_view(#{ <<"timestamp">> :=  #{ <<"format">> := Format,
-                                       <<"value">> := Value }}) ->
-    
-    #{ timestamp => #{ format => cmkit:to_atom(Format),
-                       value => compile_term(Value) }};
+                                   <<"value">> := Value }}) ->
+
+#{ timestamp => #{ format => cmkit:to_atom(Format),
+                   value => compile_term(Value) }};
 
 compile_view(#{ <<"date">> :=  #{ <<"format">> := Format,
-                                  <<"value">> := Value }}) ->
-    
-    #{ date  => #{ 
-         format => compile_term(Format),
-         value => compile_term(Value) }};
+                              <<"value">> := Value }}) ->
+
+#{ date  => #{ 
+     format => compile_term(Format),
+     value => compile_term(Value) }};
 
 
 compile_view(#{ <<"map">> := #{ <<"id">> := Id,
-                                <<"style">> := Style,
-                                <<"zoom">> := Zoom,
-                                <<"center">> := Center,
-                                <<"markers">> := Markers }}) ->
+                            <<"style">> := Style,
+                            <<"zoom">> := Zoom,
+                            <<"center">> := Center,
+                            <<"markers">> := Markers }}) ->
 
-    #{ map => #{ id => compile_term(Id),
-                 style => cmkit:to_atom(Style),
-                 zoom => Zoom,
-                 center => compile_term(Center),
-                 markers => compile_terms(Markers) }};
+#{ map => #{ id => compile_term(Id),
+             style => cmkit:to_atom(Style),
+             zoom => Zoom,
+             center => compile_term(Center),
+             markers => compile_terms(Markers) }};
 
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),

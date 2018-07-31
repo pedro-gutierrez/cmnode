@@ -8,7 +8,9 @@ spec:
       object:
         headers:
           object:
-            authorization: "Bearer oauth-valid-token"
+            authorization:
+              text:
+                regexp: "Bearer user"
             client_id: "3434323666396432626437353336363735616464386335343930636332313237"
     invalid_authorization:
       object:
@@ -16,7 +18,9 @@ spec:
           object:
             authorization:
               text:
-                other_than: "Bearer oauth-valid-token"
+                other_than:
+                  text:
+                    regexp: "Bearer user"
             client_id: "3434323666396432626437353336363735616464386335343930636332313237"
     missing_authorization:
       object:
@@ -35,6 +39,11 @@ spec:
                     other_than: "3434323666396432626437353336363735616464386335343930636332313237"
   update:
     valid_authorization:
+      model:
+        user_id:
+          hash:
+            key: authorization
+            in: headers
       cmds:
         - effect: notify
           encoder: authorized
@@ -67,11 +76,28 @@ spec:
           object:
             Resultado:
               object:
-                Value: "OK"
+                VALUE: "OK"
                 RES:
                   object:
+                    CODE: "0"
                     DATA:
-                      BDU_ID: 56789
+                      BDU_ID:
+                        key: user_id
+                      name:
+                        format: 
+                          pattern: "name ~w"
+                          params:
+                            - key: user_id
+                      surname:
+                        format: 
+                          pattern: "surname ~w"
+                          params:
+                            - key: user_id
+                      email: 
+                        format: 
+                          pattern: "~w@mail.com"
+                          params:
+                            - key: user_id
     invalid_access_token:
       object:
         status: 401

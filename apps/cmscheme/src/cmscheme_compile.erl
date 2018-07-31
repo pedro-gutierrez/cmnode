@@ -683,6 +683,22 @@ view_children(Spec, Settings) when is_list(Spec) ->
                              cmscheme_ast:call(list, view_children(Spec, Settings, []))
                             ]);
 
+
+view_children(#{ type := merged_list, spec := Specs}, Settings) -> 
+
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym('merged-list'),
+                             cmscheme_ast:call(list, lists:map(fun(Spec) -> 
+                                                                       view_children(Spec, Settings)
+                                                               end, Specs))]);
+
+view_children(#{ type := list, value := Specs}, Settings) -> 
+
+    cmscheme_ast:call(list, [
+                             cmscheme_ast:sym(list),
+                             cmscheme_ast:call(list, terms(Specs, Settings))]);
+
+
 view_children(#{ loop := From, context := Context, with := View }, Settings) ->
 
     ViewAst = case is_binary(View) of

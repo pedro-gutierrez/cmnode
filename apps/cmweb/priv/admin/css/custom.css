@@ -155,8 +155,9 @@ div.landing.dark {
     background-color: rgb(16, 16, 16);
     color: white;
     padding: 30px;
-    border-color: rgba(63, 63, 63, 0.26);
+    border-color: rgba(73, 73, 73, 0.368627);
     display: block;
+    border-radius: 0px;
 }
 
 .dark .form-input {
@@ -180,7 +181,7 @@ div.landing.dark {
 .dark button.btn.btn-primary, .dark label.btn.btn-primary {
     margin-top: 8px;
     color: white;
-    border-radius: 4px;
+    ;border-radius: 4px;
     background: #0070c9;
     background-image: linear-gradient(rgb(66, 161, 236), rgb(0, 112, 201));
     border-color: rgb(0, 119, 204);
@@ -326,6 +327,10 @@ div.mapboxgl-ctrl {
     display: none !important;
 }
 
+.dark .mapboxgl-map {
+    border: 3px solid rgb(20, 20, 20);
+}
+
 .dark ul.tab {
     border-bottom: 0 !important;
 }
@@ -346,9 +351,10 @@ div.mapboxgl-ctrl {
 .dark .tab-item.active {
     /* background-color: rgba(20, 20, 20, 1); */
     background-color: rgb(16, 16, 16);
-    border-top: 1px solid rgba(73, 73, 73, 0.37);!important;
-    border-left: 1px solid rgba(73, 73, 73, 0.37);!important;
-    border-right: 1px solid rgba(73, 73, 73, 0.37);!important;
+    border-bottom: 2px solid rgb(16, 16, 16) !important;
+    border-top: 1px solid rgba(73, 73, 73, 0.37) !important;
+    border-left: 1px solid rgba(73, 73, 73, 0.37) !important;
+    border-right: 1px solid rgba(73, 73, 73, 0.37) !important;
     z-index: 10;
     border-radius: 3px 3px 0px 0px;
 }
@@ -415,3 +421,8 @@ div.mapboxgl-ctrl {
     font-weight: 600;
     font-family: "SF Display";
 }
+
+.dark .carousel {
+    background-color: transparent;
+}
+

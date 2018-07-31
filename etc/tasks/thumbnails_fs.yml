@@ -13,6 +13,8 @@ spec:
         - big
         - regular
         - small
+        - tiny
+        - avatar
   - queue:
       name: thumbnails_queue
       finish: 

@@ -122,23 +122,6 @@
           ('undef (list 'ok '()))
           (else (encode context-spec ctx)))))
 
-    (define (compile-views spec ctx)
-      (let ((v (resolve-view spec ctx)))
-        (case (car v)
-          ('ok
-           (let ((items-shared-ctx (compile-items-shared-context spec ctx)))
-             (case (car items-shared-ctx)
-               ('ok
-                   (let ((items (encode (get 'items spec) ctx))
-                         (v-ctx (merge effect-settings (set 'context (car (cdr items-shared-ctx)) '())))
-                         (item-view (car (cdr v))))
-                     (case (car items)
-                       ('ok (map (lambda (item)
-                                   (let ((v-ctx2 (set 'item item v-ctx)))
-                                     (compile-view item-view v-ctx2)))  (car (cdr items)))) 
-                       (else (console-error "unable to convert spec into a list of items" spec ctx)))))
-               (else (console-error "unable to encode items shared context" items-shared-ctx)))))
-          (else (console-error "could not resolve view" spec ctx v)))))
     
     (define (attr-name attr)
       (case (symbol? attr)
@@ -288,8 +271,35 @@
             (timer (lambda () (mapbox-map v ctx)) 0)
             (list "div" 
                   (list (list "style" "width: 100%; min-height: 300px;")
+                        (list "key" (car (cdr id)))
                         (list "id" (car (cdr id)))) '()))
           (else (console-error "cannot encode map id" id v)))))
+    
+    (define (compile-views type-spec ctx)
+      (let ((type (car type-spec))
+            (spec (car (cdr type-spec))))
+          (case type 
+            ('loop
+              (let ((v (resolve-view spec ctx)))
+                (case (car v)
+                  ('ok
+                   (let ((items-shared-ctx (compile-items-shared-context spec ctx)))
+                     (case (car items-shared-ctx)
+                       ('ok
+                           (let ((items (encode (get 'items spec) ctx))
+                                 (v-ctx (merge effect-settings (set 'context (car (cdr items-shared-ctx)) '())))
+                                 (item-view (car (cdr v))))
+                             (case (car items)
+                               ('ok (map (lambda (item)
+                                           (let ((v-ctx2 (set 'item item v-ctx)))
+                                             (compile-view item-view v-ctx2)))  (car (cdr items)))) 
+                               (else (console-error "unable to convert spec into a list of items" spec ctx items)))))
+                       (else (console-error "unable to encode items shared context" items-shared-ctx)))))
+                  (else (console-error "could not resolve view" spec ctx v)))))
+            ('list 
+                (map (lambda (s) (compile-view s ctx)) spec))
+            (else 
+              (console-error "compile-views unsupported type" type spec)))))
 
     (define (compile-view v ctx)
       (case (length v)
@@ -304,7 +314,12 @@
                 (list tag (map compile-attr-fn attrs) 
                       (map (lambda (c) (compile-view c ctx)) (car (cdr children-spec)))))
              ('loop
-                (list tag (map compile-attr-fn attrs) (compile-views (car (cdr children-spec)) ctx )))
+                (list tag (map compile-attr-fn attrs) (compile-views children-spec ctx )))
+             ('merged-list
+                (list tag (map compile-attr-fn attrs)
+                      (let ((children-views (map (lambda (spec)
+                                                (compile-views spec ctx)) (car (cdr children-spec)))))
+                            (apply append children-views))))
              (else
                (console-error "unsupported children spec" children-spec)))))
         ('2

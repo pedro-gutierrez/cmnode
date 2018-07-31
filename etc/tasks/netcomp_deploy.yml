@@ -74,6 +74,12 @@ spec:
                               subPath: "shell.config"
                               readOnly:
                                 keyword: true
+                          - object:
+                              name: "config"
+                              mountPath: "/opt/netcomp/config/data.config"
+                              subPath: "data.config"
+                              readOnly:
+                                keyword: true
                       ports:
                         iterate:
                           key: services

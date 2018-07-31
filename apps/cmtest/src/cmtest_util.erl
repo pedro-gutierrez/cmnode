@@ -263,7 +263,8 @@ run(#{ type := procedure,
                             AsSpec -> 
                                 case cmencode:encode(AsSpec, In) of 
                                     {ok, As} ->
-                                        {ok, World#{ data => Data#{ As => Res }}};
+                                        Key = cmkit:to_atom(As),
+                                        {ok, World#{ data => Data#{ Key => Res }}};
                                     {error, E } -> 
                                         {error, #{ error => encode_error,
                                                    phase => as,

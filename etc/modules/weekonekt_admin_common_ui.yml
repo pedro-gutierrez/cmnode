@@ -4,6 +4,219 @@ category: ui
 name: weekonekt_admin_common_ui
 spec:
   encoders:
+    carousel_locator_view:
+      view:
+        tag: input
+        attrs:
+          class: "carousel-locator"
+          id:
+            key: id
+            in: item
+          type: "radio"
+          name: "carousel-radio"
+          hidden: ""
+    carousel_checked_locator_view:
+      view:
+        tag: input
+        attrs:
+          class: "carousel-locator"
+          id:
+            key: id
+            in: item
+          type: "radio"
+          name: "carousel-radio"
+          hidden: ""
+          checked: ""
+    carousel_nav_item_view:
+      view:
+        tag: label
+        attrs:
+          class: "nav-item text-hide c-hand"
+          for:
+            key: id
+            in: item
+    carousel_nav_view:
+      view:
+        tag: div
+        attrs:
+          class: "carousel-nav"
+        children:
+          loop:
+            key: items
+          with: carousel_nav_item_view
+    carousel_item_view:
+      view:
+        tag: figure
+        attrs:
+          class: "carousel-item"
+        children: 
+          - tag: label
+            attrs:
+              class: "item-prev btn btn-action btn-lg"
+              for:
+                key: id
+                in: item
+            children:
+              - tag: i
+                attrs:
+                  class: "icon icon-arrow-left"
+          - tag: label
+            attrs:
+              class: "item-next btn btn-action btn-lg"
+              for:
+                key: id
+                in: item
+            children:
+              - tag: i
+                attrs:
+                  class: "icon icon-arrow-right"
+          - tag: img
+            attrs:
+              class: "img-responsive rounded"
+              src:
+                format:
+                  pattern: "~a/?id=~a"
+                  params:
+                    - key: assets
+                    - key: id
+                      in: item
+              alt:
+                key: title
+                in: item
+    carousel_container_view:
+      view:
+        tag: div
+        attrs:
+          class: "carousel-container"
+        children:
+          loop:
+            key: items
+          with: carousel_item_view
+    carousel_view:
+      view:
+        tag: figure
+        attrs:
+          class: "carousel"
+        children:
+          merged_list:
+            - loop:
+                 key: images
+              with: 
+                either:
+                  - when:
+                      eq:
+                        - number: 0
+                        - number: 0 
+                    keyword: carousel_checked_locator_view
+                  - keyword: carousel_locator_view
+            - list:
+                - view: carousel_container_view
+                  params:
+                    object:
+                      items:
+                        key: images
+                - view: carousel_nav_view
+                  params:
+                    object:
+                      items:
+                        key: images
+    review_map_view:
+      view:
+        view: location_map_view
+        params:
+          object:
+            id:
+              key: id
+            lon:
+              key: lon
+            lat:
+              key: lat
+    location_map_view:
+      view:
+        map:
+          id:
+            key: id
+          style: dark
+          center:
+            lat:
+              key: lat
+            lon:
+              key: lon
+          zoom: 9
+          markers:
+            - lat:
+                key: lat
+              lon:
+                key: lon
+    cover_image_view:
+      view:
+        tag: div
+        attrs:
+          class: "cover-image"
+          style:
+            text:
+              format: 
+                pattern: "background-image: url('~a/?id=~a&size=big')"
+                params:
+                  - key: assets
+                  - key: id
+    gallery_thumb_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-2 gallery-thumb c-hand"
+          onclick:
+            object:
+              name: 
+                keyword: select_image
+              id:
+                key: id
+                in: item
+        children:
+          - tag: img
+            attrs:
+              style: "max-width: 100%;"
+              src:
+                format:
+                  pattern: "~a/?id=~a&size=avatar"
+                  params:
+                    - key: assets
+                    - key: id
+                      in: item
+    gallery_selected_view:
+      view:
+        tag: div
+        attrs:
+          class: "gallery-selected column col-12"
+          style: "max-height: 320px;"
+        children:
+          - view: cover_image_view
+            params:
+              object:
+                id:
+                  key: selected
+    gallery_view:
+      view:
+        tag: div
+        attrs:
+          class: "gallery"
+        children:
+          - tag: div
+            attrs:
+              class: "columns"
+            children:
+              - view: gallery_selected_view
+                params:
+                  object:
+                    selected:
+                      key: selected
+          - tag: div
+            attrs:
+              class: "mt-2 columns"
+            children:
+              loop:
+                key: images
+              with: gallery_thumb_view
     avatar_view:
       view:
         tag: figure
@@ -60,6 +273,7 @@ spec:
               - tag: div
                 attrs:
                   class: "card"
+                  style: "padding: 15px !important"
                 children:
                   - view:
                       key: content_view

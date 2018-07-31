@@ -18,9 +18,12 @@ spec:
     asset_query:
       object:
         query:
-          id:
-            text:
-              other_than: "none"
+          object:
+            id:
+              text:
+                other_than: "none"
+            size:
+              any: text
     s3_not_found:
       object:
         stream:
@@ -76,6 +79,9 @@ spec:
       model:
         id: 
           key: id
+          in: query
+        size:
+          key: size
           in: query
         type:
           keyword: image
@@ -147,8 +153,10 @@ spec:
         stream:
           keyword: s3
         asset:
-          join:
-            - key: id
-            - text: "-big.jpg"
+          format:
+            pattern: "~s-~s.jpg"
+            params:
+              - key: id
+              - key: size
     stream:
       key: stream
