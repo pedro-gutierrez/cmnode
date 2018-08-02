@@ -502,6 +502,7 @@
             ('object (decode-items decode-object! (car (cdr spec)) in out))
             ('text (decode-items decode-text (car (cdr spec)) in out))
             ('file (decode-items decode-file (car (cdr spec)) in out))
+            ('one_of (decode-items decode-term spec in out))
             (else 
               (console-error "unsupported list decoder spec type" spec)
                 '(error invalid--list-type-spec))))))))

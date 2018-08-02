@@ -18,12 +18,15 @@
     (define (array? obj) (not (js-undefined? (js-ref obj "push"))))
 
     (define (json-decode-value v)
-      (case (or (string? v) (number? v) (boolean? v))
-        ('#t v)
+      (case (js-null? v)
+        ('#t '())
         (else 
-          (case (array? v)
-            ('#t (map json-decode-value (js-array->list v)))
-            (else (json-decode (js-keys v) v '()))))))
+          (case (or (string? v) (number? v) (boolean? v))
+            ('#t v)
+            (else 
+              (case (array? v)
+                ('#t (map json-decode-value (js-array->list v)))
+                (else (json-decode (js-keys v) v '()))))))))
               
     (define (json-decode keys obj out)
       (case (length keys)

@@ -58,6 +58,10 @@ spec:
                             value: "dkv-09-shp"
                           - name: DKV_PET_PORT
                             value: "9003"
+                          - name: DKV_PET_PATH
+                            value: "/_api"
+                          - name: DKV_PET_SCHEME
+                            value: "http"
                       ports:
                         list:
                           - object:

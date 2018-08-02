@@ -583,6 +583,19 @@ spec:
               one_of:
                 - text: "danger"
                 - text: "warning"
+    dkv_pet_proxy_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/node"
+            repository:
+              object:
+                name: 
+                  text: "dkv-pet-proxy"
     dkv_pet_proxy_docker_dev_ready:
       object:
         body:
@@ -1425,6 +1438,20 @@ spec:
           encoder: netcomp_deploy_task
         - effect: notify
           encoder: ok
+    dkv_pet_proxy_dev_changed:
+      model:
+        repo:
+          key: name
+          in: 
+            key: repository
+            in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_pet_proxy_build_task 
+        - effect: notify
+          encoder: ok
     dkv_pet_proxy_docker_dev_ready:
       model:
         settings:
@@ -2248,6 +2275,16 @@ spec:
           object:
             name:
               text: "dkv"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_pet_proxy_build_task:
+      object:
+        task:
+          keyword: pet_proxy_build
+        params:
+          object:
             slack:
               keyword: tests
             settings:

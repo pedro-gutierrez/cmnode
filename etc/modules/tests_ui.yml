@@ -293,7 +293,25 @@ spec:
                     - list:
                         size: 0
                     - list:
-                        object: any
+                        one_of:
+                          - object:
+                              elapsed:
+                                any: number
+                              scenario:
+                                any: text
+                              status: "success"
+                          - object:
+                              elapsed:
+                                any: number
+                              scenario:
+                                any: text
+                              status: "fail"
+                              failure:
+                                object:
+                                  step:
+                                    any: object
+                                  world:
+                                    any: object
     test_settings:
       object:
         effect:
