@@ -157,55 +157,262 @@ spec:
                 params:
                   key: review
                   in: data
+              - tag: div
+                attrs:
+                  class: "mt-2"
+                children:
+                  - view: gallery_view
+                    params:
+                      object:
+                        images:
+                          key: images
+                          in:
+                            key: review
+                            in: data
+                        selected: 
+                          key: selected_image
+                          in: data
           - tag: div
             attrs:
-              class: "column col-8"
+              class: "column col-4"
+            children:
+              - tag: div
+                children:
+                  loop:
+                    key: options
+                    in:
+                      key: review
+                      in: data
+                  with: review_option_view
+          - tag: div
+            attrs:
+              class: "column col-4 text-center"
             children:
               - tag: div
                 attrs:
-                  class: "columns"
+                  class: "floating-panel"
                 children:
                   - tag: div
-                    attrs:
-                      class: "column col-12"
                     children:
                       - view: avatar_view
                         params:
                           object:
-                            size: "lg"
+                            size: "xl"
                             initials: "MM"
-                      - text: "Recommended by Marcos"
-                      - tag: br
-                      - text: "12th June 1978"
                   - tag: div
                     attrs:
-                      class: "columns column col-12 mt-2"
-                    children: 
+                      class: "text-secondary mt-2"
+                      style: "font-size: 14px"
+                    children:
+                      - text: "Review posted by Marcos"
+                      - tag: br
+                      - text: "on June 12th, 2018"
+                  - tag: div
+                    attrs:
+                      class: "mt-2"
+                    children:
+                      - tag: span 
+                        attrs:
+                          class: "label label-rounded"
+                        children:
+                          - tag: i
+                            attrs:
+                              class: "fas fa-heart"
+                          - tag: span
+                            children:
+                              - text: "128 Likes"
+                  - tag: div
+                    attrs:
+                      class: "mt-2"
+                    children:
+                      - tag: button
+                        attrs:
+                          class: "btn btn-error"
+                        children:
+                          - text: "Turn off chat"
+                  - tag: div
+                    attrs:
+                      class: "chat text-left"
+                      style: "margin-top: 0.8rem;"
+                    children:
                       - tag: div
                         attrs:
-                          class: "column col-6"
+                          class: "messages mt-2"
+                          style: "overflow-y: scroll; max-height: 150px; border: 1px solid rgba(36, 36, 38, 0.75); padding: 10px;"
                         children:
-                          loop:
-                            key: options
-                            in:
-                              key: review
-                              in: data
-                          with: review_option_view
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "PG"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display:block; font-size: 10px;"
+                                    children:
+                                      - text: "11:10pm"
+                                  - text: "Hello"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "MM"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display:block; font-size: 10px;"
+                                    children:
+                                      - text: "11:10pm"
+                                  - text: "Hello there"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "PG"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display: block; font-size: 10px;"
+                                    children:
+                                      - text: "11:11pm"
+                                  - tag: div
+                                    children: 
+                                      - text: "Peleas como una vaca"
+                                  - tag: div
+                                    children: 
+                                      - text: "Mira, detras de ti, un mono de tres cabezas."
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "MM"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display: block; font-size: 10px;"
+                                    children:
+                                      - text: "11:12pm"
+                                  - text: "Yo soy cola, tu pegamento"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "PG"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display: block; font-size: 10px;"
+                                    children:
+                                      - text: "11:13pm"
+                                  - tag: div
+                                    children: 
+                                      - text: "No me estas ayudando"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "MM"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: div
+                                    children: 
+                                      - tag: i
+                                        attrs:
+                                          style: "position: relative; top: 3px;"
+                                          class: "fas fa-ellipsis-h"
                       - tag: div
                         attrs:
-                          class: "column col-6"
+                          class: "write mt-2"
                         children:
-                          - view: gallery_view
-                            params:
-                              object:
-                                images:
-                                  key: images
-                                  in:
-                                    key: review
-                                    in: data
-                                selected: 
-                                  key: selected_image
-                                  in: data
+                          - tag: span
+                            attrs:
+                              class: "text-secondary"
+                              style: "display: block; font-size: 12px"
+                            children:
+                              - text: "Type in a question and press ENTER to send"
+                          - tag: textarea
+                            attrs:
+                              class: "form-input"
+                              style: "padding-left: 0px; border: 0px !important;"
+                              rows: 3
+                            children:
+                              - text: "Solo tengo este pollo de goma"
     review_loading_view:
       view:
         tag: div

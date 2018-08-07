@@ -294,7 +294,7 @@ spec:
                 one_of:
                   - text: "dkv-client"
                   - text: "c4-client"
-                  - text: "sphera-brazil-cient"
+                  - text: "sphera-brazil-client"
                   - text: "sphera-rwanda-client"
                   - text: "sphera-videocal-client"
               repo_name:

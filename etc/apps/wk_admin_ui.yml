@@ -1,0 +1,10 @@
+version: 1.0
+type: app
+category: ui
+name: wk_admin_ui
+spec: 
+  modules:
+    - wk_admin_ui
+  config:
+    settings:
+      keyword: weekonekt_admin_ui

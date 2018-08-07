@@ -221,7 +221,7 @@ a { background-color: transparent !important
     -webkit-tap-highlight-color: transparent;
 }
 
-body, .dark, .dark input, .dark button, .dark a {
+body, .dark, .dark input, .dark button, .dark a, .dark textarea {
     font-family: "SF Display" !important;
     font-weight: 300;
     letter-spacing: 0.05rem;
@@ -402,6 +402,10 @@ div.mapboxgl-ctrl {
     top: 0;
 }
 
+.avatar-xl[data-initial]::before {
+    top: 4px;
+}
+
 .dark .avatar-presence {
     border: 1px solid white;
     box-shadow: none;
@@ -426,3 +430,18 @@ div.mapboxgl-ctrl {
     background-color: transparent;
 }
 
+.dark .floating-panel {
+    padding: 20px; background-color: rgb(26, 26, 26);
+}
+
+.dark .floating-panel .avatar {
+    background-color: rgba(43, 43, 43, 1);
+}
+
+*:focus {
+    outline:none !important;
+    outline-width: 0 !important;
+    box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+}

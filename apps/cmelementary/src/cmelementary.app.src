@@ -1,15 +1,11 @@
-{application, cmnode,
- [{description, "An OTP application"},
+{application, cmelementary,
+ [{description, "An OTP library"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { cmnode_app, []}},
   {applications,
    [kernel,
     stdlib,
-    cmkit,
-    cmdb,
-    cmconfig,
-    cmelementary
+    cmkit
    ]},
   {env,[]},
   {modules, []},

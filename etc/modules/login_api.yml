@@ -10,13 +10,17 @@ spec:
   decoders:
     login:
       object:
-        action:
-          text: 
-            literal: "login"
+        action: "login"
         username:
           email: any
         password:
           text: any
+    invalid_username:
+      object:
+        action: "login"
+        username:
+          other_than:
+            email: any
     email_not_found:
       object:
         context:
@@ -189,6 +193,10 @@ spec:
       cmds:
         - effect: db_get
           encoder: login_email_lookup
+    invalid_username:
+      cmds:
+        - effect: notify
+          encoder: invalid 
     email_not_found:
       cmds:
         - effect: notify

@@ -1,0 +1,369 @@
+(function() {
+    const state = {}
+    
+    function formatString(pattern, args) {
+        var argNum = 0;
+        return pattern.replace(/~a/gi, function(match) {
+            var curArgNum, prop = null;
+            curArgNum = argNum;
+            argNum++;
+            var result = curArgNum >= args.length ? "" : prop ? args[curArgNum][prop] || "" : args[curArgNum];
+            return result;
+        });
+    };
+
+
+    function encodeEntries(spec, data, next) {
+        function _enc(keys, spec, data, out, next) {
+            if (!keys.length) return next(null, out);
+            var k = keys.shift();
+            encode(spec[k], data, (err, encoded) => {
+                if (err) return next({ 
+                    error: 'encode',
+                    type: 'entries',
+                    spec: spec,
+                    reason: err
+                });
+                out[k] = encoded;
+                _enc(keys, spec, data, out, next);
+            });
+        }
+        _enc(Object.keys(spec), spec, data, {}, next);
+    }
+
+    function encodeKey(spec, data, next) {
+        if (spec.in) {
+            encode({ key: spec.in }, data, (err, data2) => {
+                if (err) return next({
+                    error: 'encode',
+                    type: 'in',
+                    spec: spec,
+                    reason: err
+                });
+                encodeKey({ key: spec.key }, data2, next);
+            });
+        } else {
+            if (!data.hasOwnProperty(spec.key)) return next({
+                error: 'encode',
+                type: 'key',
+                spec: spec,
+                data: data,
+                reason: 'missing_key'
+            });
+            return next(null, data[spec.key]);
+        }
+    }
+
+    function encodeList(items, data, next) {
+        function _enc(items, data, out, next) {
+            if (!items.length) return next(null, out);
+            var item = items.shift();
+            encode(item, data, (err, v) => {
+                if (err) return next({
+                    error: 'encode',
+                    type: 'list',
+                    spec: item,
+                    reason: err
+                });
+                out.push(v);
+                _enc(items, data, out, next);
+            });
+        }
+        _enc(items.slice(0), data, [], next);
+    }
+
+    function encodeFormat(spec, data, next) {
+        const { pattern, params } = spec.format;
+        encodeList(params, data, (err, encodedParams) => {
+            if (err) return next(err);
+            var v = formatString( pattern, encodedParams );
+            next(null, v);
+        });
+    }   
+        
+    function encodeMaybe(spec, data, next) {
+        encode(spec.maybe, data, (err, v) => {
+            return next(null, v) ;
+        });
+    }
+
+    function encodeEqual(spec, data, next) {
+        function _(rem, v) {
+            if (!rem.length) return next(null, true);
+            const s = rem.shift();
+            encode(s, data, (err, encoded) => {
+                if (err) return next(err);
+                return (v && encoded != v) ?
+                    next(null, false) :
+                    _(rem, encoded);
+            });
+        }
+        _(spec.equal.slice(0));
+    }
+
+    function encode(spec, data, next) {
+        switch(typeof(spec)) {
+            case "object": 
+                if (Array.isArray(spec)) {
+                    return encodeList(spec, data, next);
+                } else {
+                    if (spec.object) return encodeEntries(spec.object, data, next);
+                    if (spec.key) return encodeKey(spec, data, next);
+                    if (spec.format) return encodeFormat(spec, data, next);
+                    if (spec.maybe) return encodeMaybe(spec, data, next);
+                    if (spec.equal) return encodeEqual(spec, data, next);
+                    return next({ 
+                        error: 'encode',
+                        spec: spec,
+                        reason: 'not_implemented'
+                    });
+                }
+            default :
+                return next(null, spec);
+        }
+    }
+
+    function decodeObject(spec, data, ctx, next) {
+        if (!data || typeof(data) != 'object') {
+            return next({
+                error: "decode",
+                type: "object",
+                reason: "not_an_object",
+                spec: spec,
+                data: data
+            });
+        } else {
+            function _(keys, out) {
+                if (!keys.length) return next(null, out);
+                var k = keys.shift();
+                return decode(spec[k], data[k], ctx, (err, decoded) => {
+                    if (err) return next({
+                        error: "decode",
+                        type: "object",
+                        key: k,
+                        reason: err,
+                        spec: spec,
+                        data: data
+                    });
+                    out[k] = decoded;
+                    _(keys, out);
+                });
+            }
+            _(Object.keys(spec), {});
+        }
+    }
+    
+    const types = { 
+        "text": "string",
+        "number": "number",
+        "boolean": "boolean"
+    }
+
+    function decodeAny(spec, data, ctx, next) {
+        switch (spec) {
+            default: 
+                return typeof(data) === types[spec] ?
+                    next(null, data) : next({
+                        spec: spec,
+                        data: data,
+                        expected: types[spec],
+                        actual: typeof(data)
+                    });
+        }
+    }
+
+    function decode(spec, data, ctx, next) {
+        switch(typeof(spec)) {
+            case "object": 
+                if (Array.isArray(spec)) {
+                    return next({
+                        error: "decode_error",
+                        reason: "not_supported",
+                        spec: spec
+                    });
+                } else {
+                    if (spec.object) return decodeObject(spec.object, data, ctx, next);
+                    if (spec.any) return decodeAny(spec.any, data, ctx, next);
+                }
+            default :
+                if (spec == data) {
+                    return next(null, data);
+                } else return next({
+                    error: "decode_error",
+                    reason: "not_supported",
+                    spec: spec
+                });
+        }
+    }
+
+    function selectDecoder(data, decoders, next) {
+        function _(keys) {
+            if (!keys.length) return next({
+                error: "no_decoder",
+                data: data
+            });
+            var k = keys.shift();
+            return decode(decoders[k], data, state.model, (err, decoded) => {
+                if (err) return _(keys);
+                next(null, {msg: k, data: decoded});
+            });
+        }
+        _(Object.keys(decoders));
+    }
+    
+    function selectUpdate(msg, update, data, model, next) {
+        var clauses = update[msg];
+        if (!clauses) return next({
+            error: "no_update",
+            msg: msg,
+            update: update
+        });
+
+        function _(i) {
+            if (i == clauses.length) return next({
+                error: "no_condition",
+                msg: msg,
+                update: update,
+                input: input 
+            });
+            var c = clauses[i]
+            return encode(c.condition, model, (err, r) => {
+                if (err) return next({
+                    error: "eval_condition",
+                    reason: err,
+                    spec: c.condition,
+                    update: c,
+                    model: model
+                });
+                
+                return r ? next(null, c) : _(i+1);
+            });
+        }
+        _(0);
+    }
+
+
+    function app(next) {
+        fetch('/js/app.js')
+            .then((mod) => {
+                return mod.json();
+            })
+            .then(next)
+            .catch((err) => {
+                console.error("app error", err);
+            });
+    };
+
+    function effects(app, next) {
+        const names = Object.keys(app.effects);
+        Promise.all(names.map(function(n) {
+            return import('/js/' + app.effects[n].class  + '.js');           
+        })).then((mods) => {
+            const out = {};
+            for (var i=0; i<names.length; i++) {
+                const n = names[i];
+                const send = mods[i].default(n, app.effects[n].settings, {
+                    encode,
+                    decode,
+                    update
+                });
+                if (send instanceof Function) {
+                    out[n] = send;
+                } else {
+                    console.warn('effect ' + n + ' of type ' + app.effects[n].class 
+                        + ' is not returning a send function', send);
+                }   
+            }
+            next(out);
+        });
+    }
+    
+    function selectEncoder(enc, encoders, next) {
+        if (!enc) return next(null);
+        return encoders[enc] ? next(null, encoders[enc]) : next({
+            error: "no_such_encoder",
+            name: enc,
+            encoders: encoders
+        });
+    }
+
+    function applyCmds(encoders, effects, cmds, m2) {
+        cmds.forEach((cmd) => {
+            const { effect, encoder } = cmd;
+            const eff = effects[effect];
+            if (!eff) {
+                console.error("No such effect", { 
+                    effect: effect,
+                    cmd: cmd
+                });
+            } else {
+                selectEncoder(encoder, encoders, (err, enc) => {
+                    if (err) {
+                        console.error("No such encoder", err);
+                    } else eff(encoders, enc, Object.assign({}, m2));
+                });
+            }   
+        });
+    }
+
+    function init(app) {
+        const { init } = app;
+        const { model, cmds } = init;
+        encode(model, {}, (err, m2) => {
+            if (err) {
+                console.error("(init) cannot encode model", err);
+            } else {
+                state.model = m2; 
+                applyCmds(app.encoders, state.effects, cmds, state.model);
+            }
+        });
+    }
+    
+    function update(ev) {
+        const { decoders, update } = state.app;
+        selectDecoder(ev, decoders, (err, decoded) => {
+            if (err) {
+                console.error("Decode error", ev, err);
+            } else {
+                const { msg, data } = decoded;
+                selectUpdate(msg, update, data, state.model, (err, spec) => {
+                    if (err) {
+                        console.error("No update spec", msg, err);
+                    } else {
+                        const { encoders, effects } = state.app;
+                        if (!spec.model) {
+                            applyCmds(
+                                encoders,
+                                state.effects,
+                                spec.cmds, 
+                                state.model);
+                        } else {
+                            return encode(spec.model, data, (err, m2) => {
+                                if (err) {
+                                    console.error("Unable to update model", err);
+                                } else {
+                                    Object.assign(state.model, m2);
+                                    applyCmds(
+                                        encoders,
+                                        state.effects, 
+                                        spec.cmds, 
+                                        state.model);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    app(function(app) {
+        state.app = app;
+        console.log("app", state.app);
+        effects(app, (effs) => {
+            state.effects = effs;
+            init(app);
+        });
+    });
+
+})();

@@ -10,6 +10,8 @@
 encode(Spec) -> encode(Spec, #{}).
 encode(Spec, In) -> encode(Spec, In, #{}).
 
+encode(Map, _, _) when is_map(Map) andalso map_size(Map) =:= 0 -> 
+    {ok, #{}};
 
 encode(#{ type := object, spec := Spec}, In, Config) ->
     encode_object(Spec, In, Config);
@@ -138,6 +140,12 @@ encode(#{ type := member,
 encode(#{ type := text,
           spec := Spec }, In, Config) ->
     encode(Spec, In, Config);
+
+encode(#{ type := keyword, value := no }, _, _) -> 
+    {ok, false};
+
+encode(#{ type := keyword, value := yes }, _, _) -> 
+    {ok, true};
 
 encode(#{ type := keyword,
           value := Value }, _, _) when is_atom(Value) ->
@@ -891,8 +899,13 @@ encode(#{ type := hash,
             Other
     end;
 
+encode(#{ value := V}, _, _) -> {ok, V};
 
-encode(#{ spec := Spec }, _, _) -> {ok, Spec}.
+encode(#{ spec := Spec }, _, _) -> {ok, Spec};
+
+encode(Other, In, Config) when is_map(Other) ->
+    encode(#{ type => object,
+              spec => Other }, In, Config).
 
 encode_object(Spec, In, Config) ->
     encode_object(maps:keys(Spec), Spec, In, Config, #{}).

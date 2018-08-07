@@ -105,6 +105,8 @@ response_body(json, Body) -> cmkit:jsone(Body);
 response_body(_, Body) -> Body.
 
 mime(#{ <<"content-type">> := <<"application/json", _/binary>> }) -> json;
+mime(#{ <<"content-type">> := <<"application/json">> }) -> json;
+mime(#{ <<"content-type">> := <<"application/javascript">> }) -> json;
 mime(_) -> other.
 
 request_body(Req) ->
