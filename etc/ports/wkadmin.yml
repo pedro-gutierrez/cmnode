@@ -1,16 +1,16 @@
 version: 1.0
 type: port
-name: wk_admin
+name: wkadmin
 spec:
-  port: 8082
+  port: 8081
   acceptors: 1
   apps:
-    weekonekt_admin_api:
+    wkadmin_api:
       ws: "/ws"
       http: "/api"
-    weekonekt_file_api:
+    wkfiles_api:
       http: "/files"
-    weekonekt_assets_api:
+    wkassets_api:
       http: "/assets"
-    wk_admin_ui:
+    wkadmin_ui:
       http: "/js/app.js"

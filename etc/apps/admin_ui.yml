@@ -4,7 +4,7 @@ category: ui
 name: admin_ui
 spec: 
   modules:
-    - admin_scm
+    - admin_ui
   config:
     settings:
       keyword: admin_ui

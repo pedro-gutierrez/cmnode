@@ -155,6 +155,9 @@ term(#{ type := list, spec := Spec}, Settings) ->
             Other
     end;
 
+term(#{ type := list, size := Size}, _) -> 
+        {ok, #{ list => #{ size => Size }}};
+
 term(#{ type := object, spec := Spec}, Settings) -> 
     case compile_object(maps:keys(Spec), Spec, Settings, #{}) of 
         {ok, Compiled} -> 
@@ -204,7 +207,6 @@ term(#{ type := present, spec := Spec}, Settings) ->
 
 term(#{ type := list, value := V }, Settings) -> 
     terms(V, Settings);
-
 
 
 term(#{ type := format, 
@@ -442,8 +444,30 @@ term(#{ type := number }, _) ->
 term(#{ type := text }, _) -> 
     {ok, #{ any => text }};
 
+term(#{ type := list}, _) -> 
+    {ok, #{ any => list }};
+
+term(#{ type := boolean }, _) -> 
+    {ok, #{ any => boolean }};
+
+term(#{ type := object}, _) -> 
+    {ok, #{ any => object }};
+
 term(#{ type := file }, _) -> 
     {ok, #{ any => file }};
+
+term(#{ encoder := Encoder }, _) -> 
+    {ok, #{ encoder => Encoder }};
+
+term(#{ timestamp := #{ format := Format,
+                        value := Spec }}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Value} -> 
+            {ok, #{ timestamp => #{ format => Format,
+                                    value => Value }}};
+        Other -> 
+            Other
+    end;
 
 term(V, _) when is_atom(V) or is_number(V) -> 
     {ok, V};

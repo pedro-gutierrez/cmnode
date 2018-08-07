@@ -76,10 +76,16 @@ export default (name, settings, app) => {
         var itemView = view;
         var { err, value } = encode(spec.loop, ctx);
         if (err) return error(spec, ctx, err);
+        var items = value;
+        var { err, value } = encode(spec.context, ctx);
+        if (err) return error(spec, ctx, err);
+        var sharedCtx = value;
+        
         function _(i, out) {
-            if (i == value.length) return {view: out};
-            var item = value[i];
-            var { err, view } = compile(views, itemView, withSettings({item}));
+            if (i == items.length) return {view: out};
+            var item = items[i];
+            var itemCtx = Object.assign(withSettings({item}), {context: sharedCtx});
+            var { err, view } = compile(views, itemView, itemCtx);
             if (err) return {err};
             out.push(view);
             return _(i+1,out);
@@ -109,6 +115,45 @@ export default (name, settings, app) => {
         if (err) return error(spec, ctx, err);
         return { view: value }
     }
+    
+    mapboxgl.accessToken = "pk.eyJ1IjoiY29kZW11dGlueSIsImEiOiJjamk4b3RrZHAwbHVhM3BtNWx1eDg3eXFnIn0.jXq3glh_ARDIsVKUUo9jsw";
+
+    function compileMapbox(views, spec, ctx) {
+        var {err, value} = encode(spec.map.id, ctx);
+        if (err) return error(spec, ctx, err);
+        var id = value;
+        var {err, value} = encode(spec.map.center, ctx);
+        if (err) return error(spec, ctx, err);
+        var center = value;
+        var {error, value} = encode(spec.map.markers, ctx);
+        if (err) return error(spec, ctx, err);
+        var markers = value;
+        
+        setTimeout(() => {
+            var map = new mapboxgl.Map({
+                container: id,
+                style: "mapbox://styles/mapbox/" + spec.map.style + "-v9",
+                zoom: spec.map.zoom,
+                center: [center.lon, center.lat]
+            });
+            
+            markers.forEach((marker) => {
+                var m = new mapboxgl.Marker();
+                m.setLngLat([marker.lon, marker.lat]);
+                m.addTo(map);
+            });
+        }, 0);
+        return { view: ['div', { 
+            style: "width: 100%; height: 300px",
+            id: id
+        }]};
+    }
+
+    function compileTimestamp(view, spec, ctx) {
+        var {err, value} = encode(spec, ctx);
+        if (err) return error(spec, ctx, err);
+        return { view: value };
+    }
 
     function compile(views, spec, ctx) {
         if (Array.isArray(spec)) return compileList(views, spec, ctx);       
@@ -117,7 +162,9 @@ export default (name, settings, app) => {
         if (spec.text) return compileText(views, spec, ctx);
         if (spec.loop) return compileLoop(views, spec, ctx);
         if (spec.either) return compileEither(views, spec, ctx);
-        return error(spec, ctx, "not_supported");
+        if (spec.map) return compileMapbox(views, spec, ctx);
+        if (spec.timestamp) return compileTimestamp(views, spec, ctx);
+        return error(spec, ctx, "view_not_supported");
     }
 
     function render(view) {
@@ -126,6 +173,10 @@ export default (name, settings, app) => {
 
     function withSettings(ctx) {
         return Object.assign({}, settings, ctx);
+    }
+    
+    function withContext(spec, ctx) {
+        return Object.assign(ctx,{ context: spec.context });
     }
     
     return (views, v, model) => {

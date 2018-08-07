@@ -11,4 +11,4 @@ spec:
     mock_oauth_api:
       http: "/oauth"
     admin_ui:
-      http: "/scm/app.scm"
+      http: "/js/app.js"

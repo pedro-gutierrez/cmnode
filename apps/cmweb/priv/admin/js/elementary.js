@@ -112,6 +112,24 @@
         return _(0);
     }
 
+    function encodeUsingEncoder(spec, data) {
+        var enc = state.app.encoders[spec.encoder];
+        if (!enc) return error(spec, data, "no_such_encoder");
+        return encode(enc, data);
+    }
+
+    function encodeTimestamp(spec, data) {
+        if (spec.timestamp.format) {
+            switch(spec.timestamp.format) {
+                case "human":
+                    var {err, value} = encode(spec.timestamp.value, data);
+                    if (err) return error(spec, data, err);
+                    return { value: moment(value).fromNow() };
+            }
+        }
+        return error(spec, data, "unsupported_timestamp_spec");
+    }
+
 
     function encode(spec, data) {
         switch(typeof(spec)) {
@@ -123,8 +141,10 @@
                 if (spec.maybe) return encodeMaybe(spec, data);
                 if (spec.equal) return encodeEqual(spec, data);
                 if (spec.either) return encodeEither(spec, data);
+                if (spec.encoder) return encodeUsingEncoder(spec, data);
+                if (spec.timestamp) return encodeTimestamp(spec, data);
                 if (!Object.keys(spec).length) return {value: {}};
-                return error(spec, data, 'not_implemented');
+                return error(spec, data, 'encoder_not_supported');
             default: 
                 return { value: spec };
         }
@@ -153,6 +173,8 @@
                 if (typeof(data) === 'number') return {decoded: data};
             case "boolean":
                 if (typeof(data) === 'boolean') return {decoded: data};
+            case "list": 
+                if (Array.isArray(data)) return {decoded: data};
             default: 
                 return error(spec, data, "no_match");
         }
