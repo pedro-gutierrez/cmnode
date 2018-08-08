@@ -39,7 +39,7 @@ handle_call({put, Pairs, [{replicas, N}]}, _, #{ name := Name,
                                                 tid := Tid }=Bucket) ->
 
     Res = cmdb_util:put(Name, Tid, Pairs),
-    Nodes = lists:sublist(nodes(), N),
+    Nodes = lists:sublist(cmcloud:current_peer_nodes(), N),
     cmkit:cast(Nodes, cmdb, put, [Name, Pairs, []]),
     {reply, Res, Bucket};
 
@@ -51,7 +51,7 @@ handle_call({put_new, Pairs, []}, _, #{ name := Name,
 handle_call({put_new, Pairs, [{replicas, N}]}, _, #{ name := Name,
                                                      tid := Tid}=Bucket) ->
     Res = cmdb_util:put_new(Name, Tid, Pairs),
-    Nodes = lists:sublist(nodes(), N),
+    Nodes = lists:sublist(cmcloud:current_peer_nodes(), N),
     cmkit:cast(Nodes, cmdb, put_new, [Name, Pairs, []]),
     {reply, Res, Bucket}.
 

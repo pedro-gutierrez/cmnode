@@ -4,6 +4,7 @@
          all_ok/1,
          is_local/1,
          current_nodes/0,
+         current_peer_nodes/0,
          expected_nodes/0,
          is_clustered/0
         ]).
@@ -26,6 +27,10 @@ expected_nodes() ->
 current_nodes() ->
       ExpectedNodes = expected_nodes(),
       cmkit:intersection(ExpectedNodes, [node()|nodes()]).
+
+current_peer_nodes() ->
+      ExpectedNodes = expected_nodes(),
+      cmkit:intersection(ExpectedNodes, nodes()).
 
 localhost() -> cmkit:node_host_short(node()).
 
