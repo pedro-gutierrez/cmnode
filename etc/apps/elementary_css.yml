@@ -1,0 +1,11 @@
+version: 1.0
+type: app
+category: ui
+name: elementary_css
+spec: 
+  modules:
+    - css_common
+    - elementary_ui
+  config:
+    settings:
+      keyword: elementary

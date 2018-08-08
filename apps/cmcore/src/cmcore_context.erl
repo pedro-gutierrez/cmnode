@@ -18,25 +18,29 @@ start_link(Spec, Session) ->
 init([#{ debug := Debug, 
          config := Config,
          spec := Spec }, #{ id := Id, app := App }=Session]) ->
+    Start = cmkit:micros(),
+    Log = cmkit:log_fun(Debug),
     Effects = cmconfig:effects(),
     {ok, Effect} = cmcore_effect_sup:start_effect(Id),
     ok = cmsession:attach(Id, context, self()),
-    Log = cmkit:log_fun(Debug),
-    Log({ cmcore, App, Id, self() }),
-    {ok, initializing, Session#{ effect => Effect, 
+    InitTime = cmkit:elapsed(Start),
+    Log({ cmcore, App, Id, self(), InitTime }),
+    {ok, initializing, Session#{ start => Start,
+                                 effect => Effect, 
                                  effects => Effects,
                                  spec => Spec, 
                                  config => Config, 
                                  log => Log }}.
 
 initializing(cast, init,  #{app := App,
-                                     config := Config,
-                                     log := Log,
-                                     spec := Spec}=Session) ->
+                            config := Config,
+                            log := Log,
+                            spec := Spec}=Session) ->
+    Start = cmkit:micros(),
     case cmcore_util:init(Spec, Config) of 
         {ok, Model, Cmds} -> 
-            Log({cmore, init, Model, Cmds}),
             cmcore_util:cmds(Cmds, Model, Config, Session),
+            Log({cmore, init, Model, Cmds, cmkit:elapsed(Start)}),
             {next_state, ready, Session#{ model => Model }};
         {error, E} -> 
             server_error(App, Session, init, E),
@@ -50,15 +54,24 @@ ready(cast, {update, Data}, #{ app := App,
                                model := Model, 
                                log := Log }=Session) ->
     
+    Start = cmkit:micros(),
     Log({cmcore, data, App, Id, Data}),
     case cmcore_util:decode(Spec, Data, Config) of 
         {ok, Msg, Decoded} ->
+            E1 = cmkit:elapsed(Start),
             Log({cmcore, decoded, Msg, App, Id}),
             case cmcore_util:update_spec(Spec, Msg, Decoded, Model, Config) of 
                 {ok, UpdateSpec} ->
+                    E2 = cmkit:elapsed(Start),
                     case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, Cmds } ->
+                            E3 = cmkit:elapsed(Start),
                             cmcore_util:cmds(Cmds, Model2, Config, Session),
+                            E4 = cmkit:elapsed(Start),
+                            Log({cmcore, updated, Msg, App, Id, #{ decode => E1,
+                                                                   select => E2-E1,
+                                                                   update => E3-E2,
+                                                                   cmds => E4-E3 }}), 
                             {keep_state, Session#{ model => Model2 }};
                         {error, E} ->
                             server_error(App, Session, update, E),
@@ -94,7 +107,8 @@ server_error(App, Session, Phase, Reason) ->
     gen_statem:cast(self(), terminate),
     Info.
 
-terminate(Reason, _, #{ app := App, id := Id}) ->
-    cmkit:log({cmcore, App, Id, node(), terminated, Reason}),
+terminate(Reason, _, #{ app := App, id := Id, start := Start}) ->
+    Elapsed = cmkit:elapsed(Start), 
+    cmkit:log({cmcore, App, Id, node(), terminated, Reason, Elapsed}),
     ok.
 

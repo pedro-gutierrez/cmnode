@@ -152,6 +152,7 @@ spec:
       object:
         stream:
           keyword: s3
+        bytes: 64000
         asset:
           format:
             pattern: "~s-~s.jpg"

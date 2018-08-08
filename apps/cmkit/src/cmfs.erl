@@ -5,7 +5,6 @@ stream(#{ stream := Stream,
           path := Filename,
           context := #{ data := Data,
                         callback := {M, F} } = Context }=Spec) ->
-    cmkit:log({cmfs, stream, Spec}),
     Probes = lists:map(fun(N) -> 
                                case rpc:call(N, cmkit, file_info, [Filename]) of 
                                    {ok, Info} -> Info#{ node => N,

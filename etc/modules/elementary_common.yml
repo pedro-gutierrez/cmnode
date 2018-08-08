@@ -1,0 +1,44 @@
+version: 1.0
+type: module
+category: client
+name: elementary_common
+spec:
+  decoders:
+    compile:
+      object:
+        method: 
+          text:
+            literal: "GET"
+    render:
+      object:
+        language:
+          keyword: elementary
+        status:
+          keyword: ok
+        source:
+          any: object
+  update:
+    compile:
+      cmds:
+        - effect: elementary
+          encoder: app
+    render:
+      model:
+        source:
+          key: source
+      cmds:
+        - effect: notify
+          encoder: json
+        - effect: terminate
+  encoders:
+    json:
+      object:
+        status: 200
+        headers:
+          object:
+            content-type: "application/json"
+            cache-control: "no-cache, no-store, must-revalidate"
+            pragma: "no-cache"
+            expires: "0"
+        body:
+          key: source

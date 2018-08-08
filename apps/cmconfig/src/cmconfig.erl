@@ -76,18 +76,6 @@ mount(Transport, [#{ mounts := Mounts }]) ->
     end.
 
 
-
-effect_contract() ->
-  [{effect_info, 0}, 
-   {effect_apply, 2}
-  ].
-
-effects() ->
-    Mods = [ M ||M <-erlang:loaded(), cmkit:implements(M, effect_contract())],
-    lists:foldl(fun(Mod, Index) ->
-                        Name = Mod:effect_info(),
-                    Index#{ Name => Mod }
-                end, #{}, Mods).
-
+effects() -> cmconfig_cache:effects().
 tests() -> all(test).
 test(Name) -> find(test, Name).

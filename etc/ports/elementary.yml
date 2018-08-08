@@ -1,0 +1,12 @@
+version: 1.0
+type: port
+name: elementary 
+spec:
+  port: 8083
+  acceptors: 1
+  apps:
+    elementary_ui:
+      http: "/js/app.js"
+    elementary_css:
+      http: "/css/elementary.css"
+

@@ -36,7 +36,9 @@ terminate(Reason, SessionId) ->
     ok.
 
 handle({apply, Mod, Data}, SessionId) ->
-    Mod:effect_apply(Data, SessionId);
+    Start = cmkit:micros(),
+    Mod:effect_apply(Data, SessionId),
+    cmkit:log({effect, Mod, SessionId, cmkit:elapsed(Start)});
 
 handle(Other, SessionId) ->
     cmkit:warning({cmeffect, SessionId, ignored, Other}),

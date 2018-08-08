@@ -7,12 +7,13 @@
 effect_info() -> file.
 
 effect_apply(#{ stream := Stream,
+                bytes := Bytes,
                 asset := Asset } = Q, SessionId) ->
-    cmfs:stream(Q#{ bytes => 16384, 
-                          path => cmkit:asset(Asset),
-                          context => #{ data => #{ id => SessionId,
-                                                   stream => Stream },
-                                        callback => { ?MODULE, effect_stream } }}).
+    cmfs:stream(Q#{ bytes => Bytes, 
+                    path => cmkit:asset(Asset),
+                    context => #{ data => #{ id => SessionId,
+                                             stream => Stream },
+                                  callback => { ?MODULE, effect_stream } }}).
 
 effect_stream(#{ stream := Stream,
                  event := Ev,

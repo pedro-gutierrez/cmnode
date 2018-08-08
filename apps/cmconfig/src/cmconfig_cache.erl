@@ -9,12 +9,13 @@
          update/1,
          build_graph/1,
          all/1,
+         effects/0,
          find/2,
          children/2,
          ancestors/2,
          dump/0
         ]).
--record(data, {specs, graph }).
+-record(data, {effects, specs, graph }).
 
 callback_mode() ->
     state_functions.
@@ -23,8 +24,21 @@ start_link() ->
     gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
-    {ok, ready, #data{ specs = #{},
+    {ok, ready, #data{ effects = scan_effects(), 
+                       specs = #{},
                        graph = #{} }}.
+
+effect_contract() ->
+  [{effect_info, 0}, 
+   {effect_apply, 2}
+  ].
+
+scan_effects() ->
+    Mods = [ M ||M <-erlang:loaded(), cmkit:implements(M, effect_contract())],
+    lists:foldl(fun(Mod, Index) ->
+                        Name = Mod:effect_info(),
+                    Index#{ Name => Mod }
+                end, #{}, Mods).
 
 
 ready({call, From}, dump, #data{ graph = Graph, specs = Specs }=Data) ->
@@ -58,6 +72,9 @@ ready({call, From}, {put, #{ name := Name,
                          Alias => Key
                         }),
     {next_state, ready, Data#data{ specs = Specs2 }, [{reply, From, ok}]};
+
+ready({call, From}, effects, #data{ effects = Effects}=Data) ->
+    {next_state, ready, Data, [{reply, From, Effects}]};
 
 ready({call, From}, {all, Type}, #data{ specs = Specs}=Data) ->
     All = lists:filter(fun(#{ type := Type2 }) ->  
@@ -106,6 +123,9 @@ all(Type) ->
 
 find(Type, Id) ->
     call({find, Type, Id}).
+
+effects() -> 
+    call(effects).
 
 children(Type, Id) ->
     call({children, Type, Id}).

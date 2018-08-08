@@ -1,0 +1,22 @@
+version: 1.0
+type: module
+category: client
+name: elementary_ui
+spec:
+  encoders:
+    styles:
+      object:
+        settings:
+          config: settings
+        styles:
+          body:
+            background: 
+              color: red
+    app:
+      object:
+        settings:
+          config: settings
+        app:
+          spec: 
+            modules:
+              - elementary_effects
