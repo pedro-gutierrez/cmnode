@@ -18,7 +18,7 @@ stream(#{ stream := Stream,
                                           reason => E}
                                end
                                
-                       end, [node()|nodes()]),
+                       end, cmcloud:current_nodes()),
     
     case aggregate(Probes) of 
         not_found -> 
