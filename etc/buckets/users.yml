@@ -3,5 +3,3 @@ type: bucket
 name: users 
 spec:
   storage: disc
-  hosts: 
-    - Pedros-MacBook-Pro

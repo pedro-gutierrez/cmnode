@@ -3,5 +3,3 @@ type: bucket
 name: weekonekt 
 spec:
   storage: disc
-  hosts: 
-    - Pedros-MacBook-Pro
