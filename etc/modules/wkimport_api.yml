@@ -1,0 +1,385 @@
+version: 1.0
+category: api
+type: module
+name: wkimport_api
+spec:
+  decoders:
+    list_imports:
+      object:
+        action:
+          text:
+            literal: "imports"
+    create_import:
+      object:
+        action:
+          text:
+            literal: "create_import"
+    imports:
+      object:
+        context:
+          keyword: imports
+        values:
+          list: any
+    uuid_for_import:
+      object:
+        context:
+          keyword: import
+        uuid:
+          any: text
+    date_for_import:
+      object:
+        context:
+          keyword: new_import
+        now:
+          any: number
+    import_status:
+      object:
+        context:
+          keyword: import
+        type:
+          keyword: status
+        status:
+          keyword: ok
+        value:
+          object: 
+            status:
+              any: keyword
+            date:
+              any: number
+            id: 
+              any: text
+    wordpress_attached:
+      object:
+        context:
+          keyword: import_attachment
+        status:
+          keyword: ok
+    import_data:
+      object:
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: import
+        value:
+          object:
+            id:
+              any: text
+    attach_wordpress:
+      object:
+        action: 
+          text:
+            literal: "attach"
+        file:
+          any: text
+        import:
+          any: text
+    wordpress_importing:
+      object:
+        wordpress:
+          object:
+            status:
+              keyword: importing
+    wordpress_imported:
+      object:
+        wordpress:
+          object:
+            status:
+              keyword: finished
+            images:
+              any: number
+            reviews:
+              any: number
+    wordpress_error:
+      object:
+        wordpress:
+          object:
+            status:
+              keyword: error
+  encoders:
+    imports_query:
+      object:
+        context: 
+          keyword: imports
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: import
+    import_query:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: import
+        id:
+          key: uuid
+    uuid_for_import:
+      object:
+        context:
+          keyword: import
+    date_for_import:
+      object:
+        context:
+          keyword: new_import
+    import_entry:
+      object:
+        context: 
+          keyword: new_import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: import    
+        id:
+          key: uuid
+        new:
+          keyword: true
+        echo: 
+          keyword: true
+        value:
+          object:
+            id:
+              key: uuid
+    imports:
+      object:
+        imports:
+          key: imports
+    import_attachment_record:
+      object:
+        context: 
+          keyword: import_attachment
+        bucket: 
+          keyword: weekonekt
+        type:
+          keyword: wordpress
+        id: 
+          key: uuid
+        value:
+          key: file
+        new:
+          keyword: true
+    attachment_summary:
+      object:
+        import:
+          object:
+            id:
+              key: uuid
+            file:
+              key: file
+            status:
+              keyword: ok
+    import_summary:
+      object:
+        import:
+          object:
+            id:
+              key: id
+              in: event
+            reviews:
+              key: reviews
+              in: stats
+            images:
+              key: images
+              in: stats
+    import_status:
+      object:
+        import:
+          object:
+            id:
+              key: id
+              in: event
+            status:
+              key: status
+              in: event
+            date:
+              key: date
+              in: event
+    import_created_event:
+      object:
+        context: 
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: uuid
+        echo:
+          keyword: true
+        value:
+          object:
+            id:
+              key: id
+              in: import
+            date: 
+              key: now
+            status:
+              text:
+                keyword: created
+    import_started_event:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: id
+          in: import
+        echo:
+          keyword: true
+        value:
+          object:
+            status:
+              keyword: started
+            date:
+              key: now
+            id: 
+              key: id
+              in: import
+    import_finished_event:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: id
+          in: import
+        echo:
+          keyword: true
+        value:
+          object:
+            status:
+              keyword: finished
+            date:
+              key: now
+            id: 
+              key: id
+              in: import
+    import_error_event:
+      object:
+        context:
+          keyword: import
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: status
+        id:
+          key: id
+          in: import
+        echo:
+          keyword: true
+        value:
+          object:
+            status:
+              keyword: error
+            date:
+              key: now
+            id: 
+              key: id
+              in: import
+    wordpress_file:
+      object:
+        import:
+          key: file
+        bucket:
+          keyword: weekonekt
+  update:
+    list_imports:
+      - when:
+          encoder: is_weekonekt_admin
+        cmds:
+          - effect: db_get
+            encoder: imports_query
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    create_import:
+      - when:
+          encoder: is_weekonekt_admin
+        cmds:
+          - effect: uuid
+            encoder: uuid_for_import
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    uuid_for_import:
+      model:
+        uuid:
+          key: uuid
+      cmds:
+        - effect: now
+          encoder: date_for_import
+    date_for_import:
+      model:
+        now:
+          key: now
+      cmds:
+        - effect: db_put
+          encoder: import_entry
+    import_data:
+      model:
+        import:
+          key: value
+      cmds:
+        - effect: db_put
+          encoder: import_created_event
+    imports:
+      model:
+        imports: 
+          key: values
+      cmds:
+        - effect: notify
+          encoder: imports
+    attach_wordpress:
+      - when:
+          eq:
+            - key: id
+              in: 
+                key: event
+                in: model
+            - key: import
+              in: data
+        model:
+          file:
+            key: file
+        cmds:
+          - effect: db_put
+            encoder: import_attachment_record
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    wordpress_attached:
+      cmds:
+        - effect: notify
+          encoder: attachment_summary
+        - effect: weekonekt_admin
+          encoder: wordpress_file
+    wordpress_importing:
+      cmds:
+        - effect: db_put
+          encoder: import_started_event
+    wordpress_imported:
+      model:
+        stats:
+          key: wordpress
+      cmds:
+        - effect: notify 
+          encoder: import_summary
+        - effect: db_put
+          encoder: import_finished_event
+    wordpress_error:
+      cmds:
+        - effect: db_put
+          encoder: import_error_event
+    import_status:
+      model:
+        event:
+          key: value
+      cmds:
+        - effect: notify
+          encoder: import_status

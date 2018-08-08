@@ -32,7 +32,6 @@ spec:
             key: data
       cmds:
         - effect: ui
-          encoder: settings_view
     show_settings:
       cmds:
         - effect: ui

@@ -1,4 +1,5 @@
 (function() {
+    const config = (window.elementary || {})
     const state = {}
     
     function tc(fun) {
@@ -98,6 +99,22 @@
         return _(spec.equal.slice(0));
     }
 
+    function encodeIsSet(spec, data) {
+        var {err, value} = encode(spec.spec, data);
+        if (err) return error(spec, data, err);
+        return value ? { value: true } : { value: false };
+    }
+    
+    function encodeNot(spec, data) {
+        var {err, value} = encode(spec.spec, data);
+        if (err) return error(spec, data, err);
+        if (!typeof(value) === 'boolean') return error(spec, data, {
+            value: value,
+            reason: "not_a_boolean"
+        });
+        return { value: !value };
+    }
+
     function encodeEither(spec, data) {
         function _(i) {
             if (i == spec.either.length) return error(spec, data, "no_condition_matched")
@@ -120,14 +137,39 @@
 
     function encodeTimestamp(spec, data) {
         if (spec.timestamp.format) {
-            switch(spec.timestamp.format) {
+            var {err, value} = encode(spec.timestamp.format, data);
+            if (err) return error(spec, data, err);
+            var pattern = value;
+            var {err, value} = encode(spec.timestamp.value, data);
+            if (err) return error(spec, data, err);
+
+            switch(pattern) {
                 case "human":
-                    var {err, value} = encode(spec.timestamp.value, data);
-                    if (err) return error(spec, data, err);
                     return { value: moment(value).fromNow() };
+                default:
+                    return { value: moment(value).format(pattern) };
+
             }
         }
         return error(spec, data, "unsupported_timestamp_spec");
+    }
+
+    function encodeText(spec, data) {
+        var {err, value} = encode(spec.text, data);
+        if (err) return error(spec, data, err);
+        return { value: ''+ value };
+    }
+
+    function encodePercent(spec, data) {
+        var {err, value} = encode(spec.percent.num, data);
+        if (err) return error(spec, data, err);
+        var num = value;
+        var {err, value} = encode(spec.percent.den, data);
+        if (err) return error(spec, data, err);
+        var den = value;
+        if (!den) return { value: 0 }; 
+        return {value : Math.floor(num/den)*100};
+        
     }
 
 
@@ -143,6 +185,10 @@
                 if (spec.either) return encodeEither(spec, data);
                 if (spec.encoder) return encodeUsingEncoder(spec, data);
                 if (spec.timestamp) return encodeTimestamp(spec, data);
+                if (spec.text) return encodeText(spec, data);
+                if (spec.percent) return encodePercent(spec, data);
+                if (spec.is_set) return encodeIsSet(spec, data);
+                if (spec.not) return encodeNot(spec, data);
                 if (!Object.keys(spec).length) return {value: {}};
                 return error(spec, data, 'encoder_not_supported');
             default: 
@@ -155,18 +201,18 @@
         function _(keys, out) {
             if (!keys.length) return { decoded: out};
             var k = keys.shift();
-            var spec2 = spec[k];
+            var spec2 = spec.object[k];
             const {err, decoded} = decode(spec2, data[k], ctx);
             if (err) return error(spec, data, err);
             out[k] = decoded;
             return _(keys, out);
         }
-        return _(Object.keys(spec), {});
+        return _(Object.keys(spec.object), {});
     }
 
 
     function decodeAny(spec, data, ctx) {
-        switch (spec) {
+        switch (spec.any) {
             case "text":
                 if (typeof(data) === 'string') return {decoded: data};
             case "number":
@@ -175,90 +221,103 @@
                 if (typeof(data) === 'boolean') return {decoded: data};
             case "list": 
                 if (Array.isArray(data)) return {decoded: data};
+            case "object":
+                if (typeof(data) === 'object') return {decoded: data};
             default: 
                 return error(spec, data, "no_match");
         }
     }
 
-    function decodeObjects(spec, data, ctx) {
-        function _(rem, out) {
-            if (!rem.length) return {decoded: out};
-            var item = rem.shift();
-            const {err, decoded} = decodeObject(spec, item, ctx);
+    function decodeListItems(spec, data, ctx) {
+        var out = [];
+        for (var i=0; i<data.length; i++) {
+            var item = data[i];
+            var { err, decoded } = decode(spec, item, ctx);
             if (err) return error(spec, data, err);
             out.push(decoded);
-            return _(rem, out);
         }
-        return _(data.slice(0), []);
+        return { decoded: out};
     }
 
     function decodeList(spec, data, ctx) {
         if (!Array.isArray(data)) return error(spec, data, "no_match");
-        if (Array.isArray(spec)) {
+        if (Array.isArray(spec.list)) {
             return error(spec, data, "decoder_not_supported");
-        } else {
-            if (spec.object) return decodeObjects(spec.object, data, ctx);
-            return error(spec, data, "decoder_not_supported");
-        }
+        } else return decodeListItems(spec.list, data, ctx);
     }
     
     function decodeOne(spec, data, ctx) {
         function _(i) {
-            if (i == spec.length) return error(spec, data, "no_match")
-            var s = spec[i];
+            if (i == spec.one_of.length) return error(spec, data, "no_match")
+            var s = spec.one_of[i];
             var { err, decoded } = decode(s, data, ctx);
             if (err) return _(i+1);
             return { decoded };
         }
         return _(0);
-    }   
+    } 
+    
+    
+    function decodeJson(spec, data, ctx) {
+        try {
+            return { value: JSON.parse(spec.json)};
+        } catch (e) {
+            return { err: { json: spec.json, error: e} };
+        }
+    }
+    
+    function decodeSize(spec, data) {
+        var {err, value} = encode(spec.size, data);
+        if (err) return error(spec, data, err);
+        switch (typeof(data)) {
+            case 'object':
+                if (Array.isArray(data) && data.length == value) return {decoded:data}; 
+                if (Object.keys(data).length == value) return {decoded: data};
+            case 'string':
+                if (data && data.length == value) return {decoded: data};
+        }
+        return error(spec, data, "no_match");
+    };
 
     function decode(spec, data, ctx) {
         switch(typeof(spec)) {
             case "object":
                 if (Array.isArray(spec)) return error(spec, data, "decoder_not_supported");
-                if (spec.object) return decodeObject(spec.object, data, ctx);
-                if (spec.any) return decodeAny(spec.any, data, ctx);
-                if (spec.list) return decodeList(spec.list, data, ctx);
-                if (spec.one_of) return decodeOne(spec.one_of, data, ctx);
+                if (spec.object) return decodeObject(spec, data, ctx);
+                if (spec.any) return decodeAny(spec, data, ctx);
+                if (spec.list) return decodeList(spec, data, ctx);
+                if (spec.one_of) return decodeOne(spec, data, ctx);
+                if (spec.json) return decodeJson(spec, data, ctx);
+                if (spec.size) return decodeSize(spec, data, ctx);
             default :
                 return (spec === data) ? { decoded: data } : error(spec, data, "no_match");
         }
     }
 
     function tryDecoders(data, decoders) {
-        function _(keys) {
-            if (!keys.length) return error(null, data, "all_decoders_failed");
-            var k = keys.shift();
-            var spec = decoders[k];
+        if (!data.effect) return error(null, data, "no_effect_in_data");
+        var decs = decoders[data.effect];
+        if (!decs || !decs.length) return error(null, data, "no_decoders");
+        for (var i=0; i<decs.length; i++) {
+            var d = decs[i];
+            var spec = d.spec;
             const {err, decoded} = decode(spec, data, state.model)
-            if (err) return _(keys);
-            return {decoded: {msg: k, data: decoded}};
+            if (!err && decoded) return {decoded: {msg: d.msg, data: decoded}};
         }
-        return _(Object.keys(decoders));
+
+        return error(null, data, "all_decoders_failed");
     }
 
-    function selectUpdate(msg, update, data, model, next) {
+    function selectUpdate(msg, update, data, model) {
         var clauses = update[msg];
-        if (!clauses) return next({
-            error: "no_update",
-            msg: msg,
-            update: update
-        });
-
-        function _(i) {
-            if (i == clauses.length) return next({
-                error: "no_condition",
-                msg: msg,
-                update: update,
-                input: input
-            });
-            var c = clauses[i]
+        if (!clauses || !clauses.length) return error(msg, data, "no_update_implemented");
+        for (var i=0; i<clauses.length; i++) {
+            var c = clauses[i];
             const { err, value } = encode(c.condition, model);
             if (err) return error(c.condition, model, err);
-            return value ? next(null, c) : _(i+1);
+            if (value) return {spec: c};
         }
-        _(0);
+        return error(clauses, data, "all_conditions_failed");
     }
 
 
@@ -281,7 +340,8 @@
             const out = {};
             for (var i=0; i<names.length; i++) {
                 const n = names[i];
-                const send = mods[i].default(n, app.effects[n].settings, {
+                const settings = Object.assign({}, state.app.settings, app.effects[n].settings);
+                const send = mods[i].default(n, settings, {
                     encode,
                     decode,
                     update,
@@ -298,83 +358,119 @@
         });
     }
 
-    function selectEncoder(enc, encoders, next) {
-        if (!enc) return next(null);
-        return encoders[enc] ? next(null, encoders[enc]) : next({
-            error: "no_such_encoder",
-            name: enc,
-            encoders: encoders
-        });
-    }
-
     function applyCmds(encoders, effects, cmds, m2) {
         cmds.forEach((cmd) => {
             const { effect, encoder } = cmd;
             const eff = effects[effect];
             if (!eff) {
-                console.error("No such effect", {
-                    effect: effect,
-                    cmd: cmd
-                });
-            } else {
-                selectEncoder(encoder, encoders, (err, enc) => {
-                    if (err) {
-                        console.error("No such encoder", err);
-                    } else eff(encoders, enc, Object.assign({}, m2));
-                });
+                console.error("No such effect", cmd);
+                return;
             }
+
+            var enc = null;
+            if (encoder) {
+                enc = encoders[encoder];
+                if (!enc) {
+                    console.error("No such encoder", cmd);
+                    return;
+                }
+            }
+
+            setTimeout(() => {   
+                eff(encoders, enc, Object.assign({}, m2));
+            }, 0);
         });
     }
 
+    function updateModel(spec, data) {
+        if (!spec) return;
+        var {err, value} = encode(spec, data);
+        if (err) return err;
+        Object.assign(state.model, value);
+    }
+
+    function log(msg, data) {
+        if (state.app.settings.debug) console.log(msg, data);
+    }
+
+    function update(ev) {
+        const { encoders, effects, decoders, update } = state.app;
+        const t0 = new Date();
+        var {err, decoded } = tryDecoders(ev, decoders);
+        if (err) {
+            console.error("Decode error", err);
+            return;
+        }
+        const { msg, data } = decoded;
+        log("[core] decoded", decoded);
+        const t1= new Date();
+        var {err, spec} = selectUpdate(msg, update, data, state.model);
+        if (err) {
+            console.error("Update error", err);
+            return;
+        } 
+        
+        log("[core] update spec", spec);
+        var err = updateModel(spec.model, data);
+        if (err) {
+            console.error("Update error", err);
+            return;
+        }
+        const t2 = new Date();
+        log("[core] new model", state.model);
+        applyCmds(encoders, state.effects, spec.cmds, state.model);
+        const t3 = new Date();
+        if (state.app.settings.telemetry) {
+            console.log("[core]"
+                + "[decode " + (t1.getMilliseconds() - t0.getMilliseconds()) + "ms]"
+                + "[update " + (t2.getMilliseconds() - t1.getMilliseconds()) + "ms]"
+                + "[cmds " + (t3.getMilliseconds() - t2.getMilliseconds()) + "ms]");
+        }
+    }
+    
     function init(app) {
         const { init } = app;
         const { model, cmds } = init;
+
+        const t0 = new Date();
         const { err, value } = encode(model, {});
         if (err) {
             console.error("(init) cannot encode model", err);
         } else {
             state.model = value;
+            const t1 = new Date();
             applyCmds(app.encoders, state.effects, cmds, state.model);
+            const t2 = new Date();
+            if (state.app.settings.telemetry) {
+                console.log("[core]"
+                    + "[init " + (t1.getMilliseconds() - t0.getMilliseconds()) + "ms]"
+                    + "[cmds " + (t2.getMilliseconds() - t1.getMilliseconds()) + "ms]");
+            }
         }
     }
 
-    function update(ev) {
-        const { decoders, update } = state.app;
-        var {err, decoded } = tryDecoders(ev, decoders);
-        if (decoded) {
-            const { msg, data } = decoded;
-            selectUpdate(msg, update, data, state.model, (err, spec) => {
-                if (err) {
-                    console.error("No update spec", msg, err);
-                } else {
-                    const { encoders, effects } = state.app;
-                    if (!spec.model) {
-                        applyCmds(
-                            encoders,
-                            state.effects,
-                            spec.cmds,
-                            state.model);
-                    } else {
-                        const { err, value } = encode(spec.model, data);
-                        if (err) {
-                            console.error("Unable to update model", msg, spec, data, err);
-                        } else {
-                            Object.assign(state.model, value);
-                            applyCmds(
-                                encoders,
-                                state.effects,
-                                spec.cmds,
-                                state.model);
-                        }
-                    }
-                }
-            });
-        } else console.error("Decode error", ev, err);
+    function indexedDecoders(decs, index) {
+        var index = {};
+        for (var k in decs) {
+            if (decs.hasOwnProperty(k)) {
+                var d = decs[k];
+                var eff = d.object && d.object.effect ? d.object.effect : '_other';
+                if (!index[eff]) index[eff]=[];
+                index[eff].push({ msg: k, spec: d});
+            }
+        }
+        return index;
     }
 
+    function compiledApp(app) {
+        app.decoders = indexedDecoders(app.decoders);
+        app.settings = app.settings || {};
+        return app;
+    }
+    
     app(function(app) {
-        state.app = app;
-        console.log(app);
+        state.app = compiledApp(app);
+        if (state.app.settings.debug) console.log(app);
         effects(app, (effs) => {
             state.effects = effs;
             init(app);

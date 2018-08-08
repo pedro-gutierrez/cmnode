@@ -17,7 +17,8 @@ compile(#{ effects := EffectsSpec,
                                 {ok, Decoders} -> 
                                     case compile_encoders(EncoderSpecs, Settings) of 
                                         {ok, Encoders} -> 
-                                            {ok, #{ init => Init,
+                                            {ok, #{ settings => Settings,
+                                                    init => Init,
                                                     update => Updates,
                                                     decoders => Decoders,
                                                     encoders => Encoders,
@@ -364,14 +365,23 @@ term(#{ tag := Tag, attrs := AttrsSpec, children := ChildrenSpecs}, Settings) ->
             Other
     end;
 
-term(#{ view := View, params := ParamsSpec}, Settings) -> 
+term(#{ view := View, params := ParamsSpec, condition := ConditionSpec}, Settings) -> 
     case term(ParamsSpec, Settings) of 
         {ok, Params} -> 
-            {ok, #{ name => View,
-                    params => Params }};
+            case term(ConditionSpec, Settings) of 
+                {ok, Condition} -> 
+                    {ok, #{ name => View,
+                            condition => Condition,
+                            params => Params }};
+                Other -> 
+                    Other
+            end;
         Other -> 
             Other
     end;
+
+term(#{ view := _, params := _} = Spec, Settings) -> 
+    term(Spec#{ condition => true }, Settings);
 
 term(#{ loop := LoopSpec,
         context := ContextSpec,
@@ -456,15 +466,38 @@ term(#{ type := object}, _) ->
 term(#{ type := file }, _) -> 
     {ok, #{ any => file }};
 
+term(#{ type := is_set, spec := Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Expr} -> 
+            {ok, #{ is_set => Expr }};
+        Other -> 
+            Other
+    end;
+
+term(#{ type := 'not', spec := Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Expr} -> 
+            {ok, #{ 'not' => Expr }};
+        Other -> 
+            Other
+    end;
+
+
 term(#{ encoder := Encoder }, _) -> 
     {ok, #{ encoder => Encoder }};
 
-term(#{ timestamp := #{ format := Format,
+term(#{ timestamp := #{ format := FormatSpec,
                         value := Spec }}, Settings) -> 
-    case term(Spec, Settings) of 
-        {ok, Value} -> 
-            {ok, #{ timestamp => #{ format => Format,
-                                    value => Value }}};
+    
+    case term(FormatSpec, Settings) of 
+        {ok, Format} -> 
+            case term(Spec, Settings) of 
+                {ok, Value} -> 
+                    {ok, #{ timestamp => #{ format => Format,
+                                            value => Value }}};
+                Other -> 
+                    Other
+            end;
         Other -> 
             Other
     end;

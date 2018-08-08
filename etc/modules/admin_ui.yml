@@ -1,0 +1,66 @@
+version: 1.0
+type: module
+category: client
+name: admin_ui
+spec:
+  decoders:
+    compile:
+      object:
+        method: 
+          text:
+            literal: "GET"
+    render:
+      object:
+        language:
+          keyword: elementary
+        status:
+          keyword: ok
+        source:
+          any: object
+  update:
+    compile:
+      cmds:
+        - effect: elementary
+          encoder: app
+    render:
+      model:
+        source:
+          key: source
+      cmds:
+        - effect: notify
+          encoder: json
+        - effect: terminate
+  encoders:
+    app:
+      object:
+        settings:
+          config: settings
+        app:
+          spec: 
+            modules:
+              - ui_effects
+              - account_ui
+              - admin_common_ui
+              - admin_home_ui
+              - admin_sidebar_ui
+              - apps_ui
+              - nodes_ui
+              - ports_ui
+              - buckets_ui
+              - app_ui
+              - module_ui
+              - tracker_ui 
+              - tests_ui
+              - queues_ui
+              - settings_ui
+    json:
+      object:
+        status: 200
+        headers:
+          object:
+            content-type: "application/json"
+            cache-control: "no-cache, no-store, must-revalidate"
+            pragma: "no-cache"
+            expires: "0"
+        body:
+          key: source

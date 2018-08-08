@@ -1,0 +1,15 @@
+version: 1.0
+type: app
+category: api
+name: wkfile_api
+spec:
+  debug: true 
+  modules:
+    - common_api
+    - file_upload_api 
+    - token_api
+  config:
+    tokens_db:
+      keyword: weekonekt
+    files_db:
+      keyword: weekonekt

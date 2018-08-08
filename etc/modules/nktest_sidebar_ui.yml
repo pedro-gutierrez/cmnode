@@ -1,0 +1,25 @@
+version: 1.0
+type: module
+category: ui
+name: nktest_sidebar_ui
+spec:
+  encoders:
+    admin_sidebar:
+      view:
+        tag: div
+        attrs:
+          class: "text-center"
+          key: "sidebar"
+        children:
+          - view: sidebar_icon
+            params:
+              object:
+                name: "settings"
+                style: "fa fa-4x fa-sliders"
+                title: "Settings"
+          - view: sidebar_icon
+            params:
+              object:
+                name: "show_test_reports"
+                style: "fa fa-4x fa-check"
+                title: "Tests"

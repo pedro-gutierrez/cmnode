@@ -1,15 +1,15 @@
 version: 1.0
 type: module
 category: ui
-name: admin_home_ui 
+name: nktest_home_ui 
 spec:
   update:
     ready:
       cmds:
         - effect: ui
-          encoder: apps_view
+          encoder: test_reports_view
         - effect: ws
-          encoder: apps
+          encoder: test_reports
   decoders:
     ready:
       object:

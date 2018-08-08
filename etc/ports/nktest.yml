@@ -1,0 +1,14 @@
+version: 1.0
+type: port
+name: nktest 
+spec:
+  port: 8082
+  acceptors: 1
+  apps:
+    nktest_api:
+      ws: "/ws"
+      http: "/api"
+    mock_oauth_api:
+      http: "/oauth"
+    nktest_ui:
+      http: "/js/app.js"

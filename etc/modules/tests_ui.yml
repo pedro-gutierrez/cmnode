@@ -7,6 +7,7 @@ spec:
     model:
       tests: []
       test: {}
+      test_reports: []
       selected_test: ""
       tests_activity:
         object:
@@ -863,8 +864,7 @@ spec:
         tag: "tr"
         attrs:
           key:
-            key: query
-            in: item
+            key: index
         children:
           - tag: td
             attrs:
@@ -1342,9 +1342,7 @@ spec:
                           keyword: date_view
                         value:
                           object:
-                            format: 
-                              text:
-                                literal: "~a ~b ~e"
+                            format: "MMM Do YYYY"
                             value:
                               key: timestamp
                               in: report

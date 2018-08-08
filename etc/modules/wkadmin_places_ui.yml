@@ -1,0 +1,64 @@
+version: 1.0
+type: module
+category: ui
+name: wkadmin_places_ui
+spec:
+  init:
+    model:
+      places_content_view:
+        keyword: map_view
+  decoders:
+    show_places_ui:
+      object:
+        effect:
+          keyword: ui
+        event:
+          one_of:
+            - text:
+                literal: "places"
+            - keyword: places
+  update:
+    show_places_ui:
+      cmds:
+        - effect: ui
+          encoder: places_layout_view
+  encoders:
+    map_view:
+      view:
+         map:
+           id: "map"
+           style: dark
+           center:
+             lat: 36.6062825
+             lon: -4.5127096
+           zoom: 9
+           markers:
+             - lat: 36.6062825
+               lon: -4.5127096
+    places_main_view:
+      view:
+        tag: div
+        attrs:
+          class: "card"
+        children:
+          - view:
+              key: content_view
+              in: data
+
+    places_layout_view: 
+      view:
+        view: layout
+        params:
+          object:
+            theme:
+              key: theme
+            message:
+              key: message
+            content_view:
+              keyword: places_main_view
+            contents:
+              object:
+                content_view: 
+                  key: places_content_view
+            sidebar:
+              keyword: weekonekt_admin_sidebar

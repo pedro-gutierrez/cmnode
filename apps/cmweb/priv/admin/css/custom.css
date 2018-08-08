@@ -445,3 +445,16 @@ div.mapboxgl-ctrl {
     -moz-box-shadow: none !important;
     -webkit-box-shadow: none !important;
 }
+
+.json ul {
+  list-style-type: none;
+  margin: .0rem 0 .0rem .8rem;
+}
+.json .separator {
+    margin-right: 4px;
+}
+
+.json .list li.item:before {
+    content: "-";
+    float: left;
+}

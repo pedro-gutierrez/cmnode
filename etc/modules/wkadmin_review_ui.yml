@@ -1,0 +1,447 @@
+version: 1.0
+type: module
+category: ui
+name: wkadmin_review_ui
+spec:
+  init:
+    model:
+      theme: "dark"
+      selected: "reviews"
+      review: {}
+      id: "none"
+      selected_image: "none"
+  decoders:
+    show_review:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name: 
+              keyword: show_review
+            id:
+              any: text
+    select_image:
+      object:
+        effect:
+          keyword: ui
+        event:
+          object:
+            name:
+              keyword: select_image
+            id:
+              any: text
+    review:
+      object:
+        effect:
+          keyword: ws
+        data:
+          object:
+            review:
+              object:
+                title:
+                  any: text
+                id:
+                  any: text
+                lat:
+                  any: number
+                lon:
+                  any: number
+                images:
+                  list:
+                    object:
+                      id: 
+                        any: text
+                      title:
+                        any: text
+                cover:
+                  any: text
+                author:
+                  object:
+                    id:
+                      any: text
+                    first:
+                      any: text
+                    last:
+                      any: text
+                options:
+                  list:
+                    object:
+                      name:
+                        any: text
+                      contents:
+                        any: text
+  update:
+    show_review:
+      model:
+        id:
+          key: id
+          in: event
+        content_view:
+          keyword: review_loading_view
+      cmds:
+        - effect: ws
+          encoder: review_query
+        - effect: ui
+          encoder: review_layout_view
+    select_image:
+      model:
+        selected_image:
+          key: id
+          in: event
+      cmds:
+        - effect: ui
+    review:
+      model:
+        review:
+          key: review
+          in: data
+        selected_image:
+          key: cover
+          in: 
+            key: review
+            in: data
+        content_view: 
+          keyword: review_view
+      cmds:
+        - effect: ui
+          encoder: review_layout_view
+  encoders:
+    review_query:
+      object:
+        app:
+          text: "weekonekt"
+        action:
+          text: "review"
+        id:
+          key: id
+    review_option_view:
+      view:
+        tag: div
+        attrs:
+          key:
+            key: name
+            in: item
+          class: "review-option-view"
+          style: "margin-bottom: 15px;"
+        children:
+          - tag: h3
+            children:
+              - text:
+                  key: name
+                  in: item
+          - tag: div
+            children:
+              - text:
+                  key: contents
+                  in: item
+    review_view:
+      view:
+        tag: div
+        attrs:
+          key: "review"
+          class: "columns"
+        children:
+          - tag: div
+            attrs:
+              class: "column col-4"
+            children:
+              - tag: h1
+                children:
+                  - text:
+                      key: title
+                      in: 
+                        key: review
+                        in: data
+              - view: review_map_view
+                params:
+                  key: review
+                  in: data
+              - tag: div
+                attrs:
+                  class: "mt-2"
+                children:
+                  - view: gallery_view
+                    params:
+                      object:
+                        images:
+                          key: images
+                          in:
+                            key: review
+                            in: data
+                        selected: 
+                          key: selected_image
+                          in: data
+          - tag: div
+            attrs:
+              class: "column col-4"
+            children:
+              - tag: div
+                children:
+                  loop:
+                    key: options
+                    in:
+                      key: review
+                      in: data
+                  with: review_option_view
+          - tag: div
+            attrs:
+              class: "column col-4 text-center"
+            children:
+              - tag: div
+                attrs:
+                  class: "floating-panel"
+                children:
+                  - tag: div
+                    children:
+                      - view: avatar_view
+                        params:
+                          object:
+                            size: "xl"
+                            initials: "MM"
+                  - tag: div
+                    attrs:
+                      class: "text-secondary mt-2"
+                      style: "font-size: 14px"
+                    children:
+                      - text: "Review posted by Marcos"
+                      - tag: br
+                      - text: "on June 12th, 2018"
+                  - tag: div
+                    attrs:
+                      class: "mt-2"
+                    children:
+                      - tag: span 
+                        attrs:
+                          class: "label label-rounded"
+                        children:
+                          - tag: i
+                            attrs:
+                              class: "fas fa-heart"
+                          - tag: span
+                            children:
+                              - text: "128 Likes"
+                  - tag: div
+                    attrs:
+                      class: "mt-2"
+                    children:
+                      - tag: button
+                        attrs:
+                          class: "btn btn-error"
+                        children:
+                          - text: "Turn off chat"
+                  - tag: div
+                    attrs:
+                      class: "chat text-left"
+                      style: "margin-top: 0.8rem;"
+                    children:
+                      - tag: div
+                        attrs:
+                          class: "messages mt-2"
+                          style: "overflow-y: scroll; max-height: 150px; border: 1px solid rgba(36, 36, 38, 0.75); padding: 10px;"
+                        children:
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "PG"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display:block; font-size: 10px;"
+                                    children:
+                                      - text: "11:10pm"
+                                  - text: "Hello"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "MM"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display:block; font-size: 10px;"
+                                    children:
+                                      - text: "11:10pm"
+                                  - text: "Hello there"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "PG"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display: block; font-size: 10px;"
+                                    children:
+                                      - text: "11:11pm"
+                                  - tag: div
+                                    children: 
+                                      - text: "Peleas como una vaca"
+                                  - tag: div
+                                    children: 
+                                      - text: "Mira, detras de ti, un mono de tres cabezas."
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "MM"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display: block; font-size: 10px;"
+                                    children:
+                                      - text: "11:12pm"
+                                  - text: "Yo soy cola, tu pegamento"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "PG"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: span
+                                    attrs:
+                                      class: "text-secondary"
+                                      style: "display: block; font-size: 10px;"
+                                    children:
+                                      - text: "11:13pm"
+                                  - tag: div
+                                    children: 
+                                      - text: "No me estas ayudando"
+                          - tag: div
+                            attrs:
+                              class: "columns message mt-1"
+                            children:
+                              - tag: div
+                                attrs:
+                                  class: "column col-1"
+                                children:
+                                  - view: avatar_view
+                                    params:
+                                      object:
+                                        size: "rg"
+                                        initials: "MM"
+                              - tag: div
+                                attrs:
+                                  style: "padding-left: 20px"
+                                  class: "column col-11 text-left"
+                                children:
+                                  - tag: div
+                                    children: 
+                                      - tag: i
+                                        attrs:
+                                          style: "position: relative; top: 3px;"
+                                          class: "fas fa-ellipsis-h"
+                      - tag: div
+                        attrs:
+                          class: "write mt-2"
+                        children:
+                          - tag: span
+                            attrs:
+                              class: "text-secondary"
+                              style: "display: block; font-size: 12px"
+                            children:
+                              - text: "Type in a question and press ENTER to send"
+                          - tag: textarea
+                            attrs:
+                              class: "form-input"
+                              style: "padding-left: 0px; border: 0px !important;"
+                              rows: 3
+                            children:
+                              - text: "Solo tengo este pollo de goma"
+    review_loading_view:
+      view:
+        tag: div
+        attrs:
+          key: "loading"
+        children:
+          - tag: span
+            attrs:
+              class: "link"
+            children:
+              - text: "Loading review..."
+    review_layout_view: 
+      view:
+        view: weekonekt_admin_layout
+        params:
+          object:
+            theme:
+              key: theme
+            selected:
+              key: selected
+            message:
+              key: message
+            content_view:
+              key: content_view 
+            contents:
+              object:
+                review:
+                  key: review
+                id:
+                  key: id
+                selected_image:
+                  key: selected_image

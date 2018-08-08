@@ -1,0 +1,10 @@
+version: 1.0
+type: app
+category: ui
+name: wkadmin_ui
+spec: 
+  modules:
+    - wkadmin_ui
+  config:
+    settings:
+      keyword: wkadmin_ui

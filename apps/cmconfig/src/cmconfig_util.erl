@@ -402,6 +402,13 @@ compile_step(#{ <<"ref">> := Title })  ->
 compile_step(Title) when is_binary(Title) ->
       #{ ref => Title }.
 
+compile_spec(#{ <<"settings">> := Settings,
+                <<"modules">> := Modules}) when is_list(Modules) ->
+    Out = #{ 
+      settings => compile_term(Settings),
+      spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
+    Out;
+
 compile_spec(#{ <<"modules">> := Modules}) when is_list(Modules) ->
     Out = #{ spec => compile_modules(lists:map(fun cmconfig:module/1, Modules), #{})},
     Out;
@@ -1677,17 +1684,17 @@ compile_view(#{ <<"iterate">> := From,
 
 compile_view(#{ <<"json">> := Spec,
             <<"indent">> := Indent }) ->
-#{ json => compile_term(Spec),
-   indent => compile_term(Indent) };
+    #{ json => compile_term(Spec),
+       indent => compile_term(Indent) };
 
 compile_view(#{ <<"json">> := _} = Spec) ->
-compile_view(Spec#{ <<"indent">> => 2 });
+    compile_view(Spec#{ <<"indent">> => 2 });
 
 compile_view(#{ <<"timestamp">> :=  #{ <<"format">> := Format,
-                                   <<"value">> := Value }}) ->
+                                       <<"value">> := Value }}) ->
 
-#{ timestamp => #{ format => cmkit:to_atom(Format),
-                   value => compile_term(Value) }};
+    #{ timestamp => #{ format => compile_term(Format),
+                       value => compile_term(Value) }};
 
 compile_view(#{ <<"date">> :=  #{ <<"format">> := Format,
                               <<"value">> := Value }}) ->

@@ -25,12 +25,6 @@ spec:
           encoder: apps_view
         - effect: ws
           encoder: apps
-    ready:
-      cmds:
-        - effect: ui
-          encoder: apps_view
-        - effect: ws
-          encoder: apps
   encoders:
     app_table_item_view:
       view:
@@ -114,67 +108,6 @@ spec:
               key: apps
             sidebar:
               keyword: admin_sidebar
-    admin_sidebar:
-      view:
-        tag: div
-        attrs:
-          class: "text-center"
-          key: "sidebar"
-        children:
-          - view: sidebar_icon
-            params:
-              object:
-                name: "apps"
-                style: "fa fa-4x fa-flask"
-                title: "Apps"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "ports"
-                style: "fa fa-4x fa-rss"
-                title: "Ports"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "tables"
-                style: "fa fa-4x fa-database"
-                title: "Tables"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "queues"
-                style: "fa fa-4x fa-cogs"
-                title: "Queues"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "users"
-                style: "fa fa-4x fa-users"
-                title: "Users"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "metrics"
-                style: "fa fa-4x fa-area-chart"
-                title: "Metrics"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "settings"
-                style: "fa fa-4x fa-sliders"
-                title: "Settings"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "show_test_reports"
-                style: "fa fa-4x fa-check"
-                title: "Tests"
-          - view: sidebar_icon
-            params:
-              object:
-                name: "tracker"
-                style: "fa fa-4x fa-bug"
-                title: "Tracker"
     apps:
       object: 
         action:
@@ -190,12 +123,6 @@ spec:
         app:
           key: item 
   decoders:
-    ready:
-      object:
-        effect:
-          keyword: events
-        event:
-          keyword: user_logged_in
     show_apps:
       object:
         effect:

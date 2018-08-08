@@ -1,7 +1,11 @@
 export default (name, settings, app) => {
     const { encode, decode, update, tc} = app;
     const state = {};
-   
+  
+    function log(msg, data) {
+        if (settings.debug) console.log(msg, data);
+    }
+
     function event(eventName, value) {
         const e = { effect: name, event: eventName, value: value };
         update(e);
@@ -77,20 +81,20 @@ export default (name, settings, app) => {
         var { err, value } = encode(spec.loop, ctx);
         if (err) return error(spec, ctx, err);
         var items = value;
+        if (!items || !items.length) return {view: []};
         var { err, value } = encode(spec.context, ctx);
         if (err) return error(spec, ctx, err);
         var sharedCtx = value;
-        
-        function _(i, out) {
-            if (i == items.length) return {view: out};
+        var out = [];
+        for (var i=0; i<items.length; i++) {
             var item = items[i];
             var itemCtx = Object.assign(withSettings({item}), {context: sharedCtx});
+            itemCtx.index = i;
             var { err, view } = compile(views, itemView, itemCtx);
-            if (err) return {err};
+            if (err) return error(spec, ctx, err);
             out.push(view);
-            return _(i+1,out);
         }
-        return _(0, []);
+        return {view: out};
     }
 
     function compileViewRef(views, spec, ctx) {
@@ -98,7 +102,11 @@ export default (name, settings, app) => {
         if (err) return error(spec, ctx, err);
         var {err, value} = encode(spec.params, ctx);
         if (err) return error(spec, ctx, err);
-        return compile(views, view, withSettings(value));
+        var params = value;
+        var {err, value} = encode(spec.condition, ctx);
+        if (err) return error(spec, ctx, err);
+        return value ? compile(views, view, withSettings(params)) 
+            : {view: ['div']};
     }
 
     function compileTag(views, spec, ctx) {
@@ -155,6 +163,40 @@ export default (name, settings, app) => {
         return { view: value };
     }
 
+
+    function compileJsonTerm(value) {
+        if (!value) return [ 'span', { class: 'undefined'}, "Undefined" ];
+        var kind = typeof(value);
+        switch (kind) {
+            case 'object':
+                if (Array.isArray(value)) return [ 'ul', 
+                    { class: 'list'}
+                ].concat(value.map((v) => {
+                    return ['li', { class: 'item' }, compileJsonTerm(v) ];
+                }));
+
+                return [ 'ul',
+                    { class: 'object'}
+                ].concat(Object.keys(value).filter((k) => {
+                    return value.hasOwnProperty(k);
+                }).map((k) => {
+                    return ['li', { class: 'prop' }, 
+                        [ 'strong', { class: 'name' }, compileJsonTerm(k), ['span', { class: 'separator' }, ':' ]],
+                        compileJsonTerm(value[k]) ];
+                }));
+            default:
+                return [ 'span', { class: "value " + kind  }, "" + value ];
+        }
+    }
+
+    function compileJson(views, spec, ctx) {
+        var {err, value} = encode(spec.json.source, ctx);
+        if (err) return error(spec, ctx, err);
+        return { view: ['div', {
+            class: "json",
+        }, compileJsonTerm(value)]};
+    }
+
     function compile(views, spec, ctx) {
         if (Array.isArray(spec)) return compileList(views, spec, ctx);       
         if (spec.name) return compileViewRef(views, spec, ctx);
@@ -164,6 +206,7 @@ export default (name, settings, app) => {
         if (spec.either) return compileEither(views, spec, ctx);
         if (spec.map) return compileMapbox(views, spec, ctx);
         if (spec.timestamp) return compileTimestamp(views, spec, ctx);
+        if (spec.json) return compileJson(views, spec, ctx);
         return error(spec, ctx, "view_not_supported");
     }
 
@@ -191,6 +234,10 @@ export default (name, settings, app) => {
         } 
         
         var r = tc(() => { render(c.res.view) });
-        console.log("[compile " + c.millis + "ms] [render " + r.millis +"ms]");
+        if (settings.telemetry) {
+            console.log("[" + name + "]"
+                + "[compile " + c.millis + "ms]"
+                + "[render " + r.millis +"ms]");
+        }
     }
 };

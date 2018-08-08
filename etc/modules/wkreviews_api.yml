@@ -1,0 +1,69 @@
+version: 1.0
+category: api
+type: module
+name: wkreviews_api
+spec:
+  decoders:
+    list_reviews:
+      object:
+        app:
+          text: "weekonekt"
+        action:
+          text: "reviews"
+    reviews:
+      object:
+        bucket:
+          keyword: weekonekt
+        context:
+          keyword: reviews
+        type:
+          keyword: review
+        values:
+          list: 
+            object:
+              date: 
+                any: number
+              id:
+                any: text
+              lat:
+                any: number
+              lon:
+                any: number
+              title:
+                any: text
+              author:
+                any: text
+              cover:
+                one_of:
+                  - any: text
+                  - keyword: none
+  update:
+    list_reviews:
+      - when:
+          encoder: is_weekonekt_admin
+        cmds:
+          - effect: db_get
+            encoder: reviews_query 
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    reviews:
+      model:
+        reviews:
+          key: values
+      cmds:
+        - effect: notify
+          encoder: reviews
+  encoders:
+    reviews_query:
+      object:
+        context:
+          keyword: reviews
+        bucket:
+          keyword: weekonekt
+        type:
+          keyword: review
+    reviews:
+      object:
+        reviews:
+          key: reviews

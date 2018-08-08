@@ -164,7 +164,7 @@ spec:
               key: data
     date_view:
       view: 
-        date:
+        timestamp:
           format:
             key: format
             in: data
@@ -229,11 +229,10 @@ spec:
                   with: info_item_view
     json_view:
       view:
-        tag: pre
+        tag: div 
         attrs:
-          class: "code"
+          class: "spec"
+          style: "max-height: 300px; overflow: scroll"
         children:
-          - tag: code
-            children:
-              - json:
-                  key: source
+          - json:
+              key: source
