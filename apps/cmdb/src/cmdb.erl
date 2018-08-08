@@ -29,13 +29,13 @@ put_new(Bucket, Pairs, Opts) ->
     cmdb_bucket:put_new(Bucket, Pairs, Opts).
 
 get(Bucket, K) -> 
-    cmdb_util:get(Bucket, K, [node()|nodes()]).
+    cmdb_util:get(Bucket, K, cmcloud:current_nodes()).
 
 find(Bucket, Type) ->
-    cmdb_util:find(Bucket, Type, [node()|nodes()]).
+    cmdb_util:find(Bucket, Type, cmcloud:current_nodes()).
 
 reset(Bucket) ->
-    cmdb_util:reset(Bucket, [node()|nodes()]).
+    cmdb_util:reset(Bucket, cmcloud:current_nodes()).
 
 backup(_Db) ->  ok.
 restore(_Db, _Name) ->  ok.
