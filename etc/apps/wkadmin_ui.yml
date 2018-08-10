@@ -3,6 +3,7 @@ type: app
 category: ui
 name: wkadmin_ui
 spec: 
+  debug: true
   modules:
     - wkadmin_ui
   config:

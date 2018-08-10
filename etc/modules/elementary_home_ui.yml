@@ -1,0 +1,143 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_home_ui 
+spec:
+  init:
+    model:
+      content_view:
+        keyword: home_view
+      content: {}
+    cmds:
+      - effect: ui
+        encoder: layout_view
+  decoders:
+    show_home:
+      object:
+        effect: ui
+        event: home
+  update:
+    show_home:
+      model:
+        content_view:
+          keyword: home_view
+      cmds:
+        - effect: ui
+  encoders:
+    highlight_view:
+      view:
+        tag: div
+        attrs:
+          class:
+            format:
+              pattern: "column col-~a"
+              params:
+                - key: colspan
+                  in: context
+        children:
+          - tag: div
+            attrs:
+              class: "tile"
+            children:
+              - tag: div
+                attrs:
+                  class: "tile-icon"
+                children:
+                  - tag: i
+                    attrs:
+                      class:
+                        key: icon
+                        in: item
+              - tag: div
+                attrs:
+                  class: "tile-content"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "tile-title"
+                    children:
+                      - text:
+                          key: title
+                          in: item
+                  - tag: div
+                    attrs:
+                      class: "tile-subtitle"
+                    children:
+                      - text:
+                          key: description
+                          in: item
+    highlights_view:
+      view:
+        tag: div
+        attrs:
+          class: "highlights section content-section columns mt-2"
+        children:
+          loop: items
+          with: highlight_view
+          context:
+            object:
+              colspan:
+                key: width
+    home_view:
+      view:
+        tag: div
+        attrs:
+          class: "home"
+        children:
+          - view: jumbo_view
+            params:
+              object:
+                lead: "A functional, declarative and extensible framework for stateful, Elm-inspired UI applications"
+          - view: primary_button
+            params:
+              object:
+                title: "Download"
+                icon: "fas fa-download"
+                size: "xl"
+          - view: highlights_view
+            params:
+              object:
+                width: 6
+                items:
+                  list:
+                    - object:
+                        title: "Functional"
+                        icon: ""
+                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                    - object:
+                        title: "Declarative"
+                        icon: ""
+                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                    - object:
+                        title: "Extensible"
+                        icon: ""
+                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                    - object:
+                        title: "Stateful"
+                        icon: ""
+                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+          - tag: div
+            attrs:
+              class: "social section content-section"
+            children:
+              - view: subsubtitle_view
+                params:
+                  object:
+                    text: "Feedback"
+              - view: actions_view
+                params:
+                  object:
+                    style: "rounded"
+                    selected: ""
+                    items:
+                      list:
+                        - object:
+                            type: external_link
+                            title: ""
+                            icon: "fab fa-linkedin-in"
+                            url: "https://www.linkedin.com/in/pedro-gutiérrez-07470b19"
+                        - object:
+                            type: external_link
+                            title: ""
+                            icon: "far fa-envelope"
+                            url: "mailto:pedrogutierrez@mac.com"

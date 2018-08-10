@@ -1,0 +1,190 @@
+version: 1.0
+type: theme 
+name: elementary
+spec:
+  selectors:
+    - elem: "html"
+      style:
+        height: 100%
+    - elem: "body"
+      style:
+        min-height: 100%
+        height: 100%
+        font-size: 0.95rem
+        color:
+          key: primary 
+          in: 
+            key: fg
+            in: colors
+        background-color:
+          key: primary
+          in: 
+            key: bg
+            in: colors
+    - elem: "layout"
+      style:
+        position: relative
+        height: 100%
+    - class: "section"
+      style:
+        padding-left: 12em
+        padding-right: 12em
+    - class: "content-section"
+      style:
+        padding-top: 2rem
+        padding-bottom: 2rem
+    - elem: "footer"
+      style:
+        font-size: 14px
+        width: 100%
+        text-align: center
+        padding-top: 1rem
+        padding-bottom: 1rem
+        color:
+          key: secondary 
+          in:
+            key: fg
+            in: colors
+        background-color: 
+          key: dark
+          in:
+            key: bg
+            in: colors
+      selectors:
+        - elem: "span"
+          style:
+            opacity: "0.8"
+        - elem: i
+          style:
+            color:
+              key: danger
+              in: 
+                key: states
+                in: colors
+    - class: "important"
+      style:
+        color: 
+          key: primary
+          in: 
+            key: important
+            in: colors
+    - elem: "header"
+      style:
+        padding-top: 1rem
+        text-align: right
+      selectors:
+        - s-class: "icon-label"
+          style:
+            font-weight: 400;
+        - s-class: "menu-items"
+          style:
+            display: inline-block
+    - class: "tab"
+      style:
+        border: 0
+    - class: "home"
+      style:
+        text-align: center
+    - class: "highlights"
+      style:
+        background-color:
+          key: secondary
+          in: 
+            key: bg
+            in: colors
+        margin-top: 2rem;
+    - class: "jumbo"
+      style:
+        text-align: center
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+      selectors:
+        - elem: h1
+          style:
+            font-size: 4rem
+            font-weight: 600
+            margin-bottom: 0
+        - elem: div
+          style:
+            font-size: 1.5rem
+            color: 
+              key: secondary 
+              in: 
+                key: fg
+                in: colors
+    - class: "btn"
+      style:
+        border-radius: 4px;
+        text-transform: uppercase
+    - all-classes: "btn btn-primary"
+      style:
+        border-color:
+          key: tertiary 
+          in:
+            key: bg
+            in: colors
+        background-color: 
+          key: tertiary 
+          in:
+            key: bg
+            in: colors
+    - class: "btn-xl"
+      style:
+        font-size: 1.0rem
+        height: 3rem
+        padding-left: 1rem
+        padding-right: 1rem
+    - elem: "*"
+      style:
+        transition: background-color 0.5s ease
+    - class: "social"
+      style:  
+        text-align: center
+      selectors:
+        - s-class: 'subsubtitle'
+          style:
+            font-weight: bold
+            color:
+              key: tertiary
+              in:
+                key: fg
+                in: colors
+        - s-class: "action"
+          style:
+            margin-left: 0.2rem
+            margin-right: 0.2rem
+            display: inline-block
+            text-align: center
+            display: inline-block
+            border-radius: 50%
+            background-color:
+              key: dimmed
+              in:
+                key: bg
+                in: colors
+            font-size: 1.2rem
+            cursor: pointer
+            width: 48px
+            height: 48px
+          selectors:
+            - p-class: "hover"
+              style:
+                background-color:
+                  key: primary
+                  in: 
+                    key: important
+                    in: colors
+            - elem: "a"
+              style:
+                color:
+                  key: secondary
+                  in:
+                    key: fg
+                    in: colors
+                position: relative
+                left: 8px
+                top: 4px
+            - s-class: "fa-envelope"
+              style:
+                position: relative
+                top: 2px

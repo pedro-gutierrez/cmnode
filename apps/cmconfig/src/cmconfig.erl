@@ -20,7 +20,9 @@
          crons/0,
          cron/1,
          tasks/0,
-         task/1
+         task/1,
+         theme/1,
+         themes/0
         ]).
 
 all(Type) -> cmconfig_cache:all(Type).
@@ -51,6 +53,8 @@ cron(Name) -> find(cron, Name).
 tasks() -> all(task).
 task(Name) -> find(task, Name).
 
+themes() -> all(theme).
+theme(Name) -> find(theme, Name).
 
 mount(App, Port, Transport) ->
     case port(Port) of 

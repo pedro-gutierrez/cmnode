@@ -8,10 +8,9 @@ spec:
       object:
         settings:
           config: settings
-        styles:
-          body:
-            background: 
-              color: red
+        themes:
+          - keyword: elementary
+          - keyword: devaid
     app:
       object:
         settings:
@@ -20,3 +19,6 @@ spec:
           spec: 
             modules:
               - elementary_effects
+              - elementary_home_ui
+              - elementary_common_ui
+              - elementary_guide_ui

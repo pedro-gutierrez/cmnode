@@ -1,0 +1,256 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_common_ui 
+spec:
+  encoders:
+    icon_label:
+      view:
+        tag: span
+        attrs:
+          class: "icon-label"
+        children:
+          - tag: i
+            attrs:
+              class:
+                key: icon
+          - tag: span
+            attrs:
+              class: "mx-2"
+            children:
+              - text:
+                  key: title
+    action_button:
+      view:
+        tag: a
+        attrs:
+          class: "icon-label-action c-hand"
+          onclick:
+            key: id
+        children:
+          - view: icon_label
+            params:
+              object:
+                icon:
+                  key: icon
+                title:
+                  key: title
+    external_link:
+      view:
+        tag: a
+        attrs:
+          href:
+            key: url
+        children:
+          - view: icon_label
+            params:
+              object:
+                icon:
+                  key: icon
+                title:
+                  key: title
+    primary_button:
+      view:
+        tag: button
+        attrs:
+          class: 
+            format: 
+              pattern: "btn btn-primary btn-~a"
+              params:
+                - key: size
+        children:
+          - view: icon_label
+            params:
+              object:
+                icon:
+                  key: icon
+                title:
+                  key: title
+    nav_item_view:
+      view:
+        tag: li
+        attrs:
+          class: "nav-item"
+        children:
+          - view: icon_label
+            params:
+              key: item
+    nav_view:
+      view:
+        tag: ul
+        attrs:
+          class: "nav"
+        children:
+          loop: 
+            key: items
+          with: nav_item_view
+    main_menu_view:
+      view: 
+        view: menu_view
+        params:
+          object:
+            selected:
+              key: selected 
+            items:
+              list:
+                - object:
+                    type: action_button
+                    icon: "fas fa-book-open"
+                    title: "Guide"
+                    id: "guide"
+                - object:
+                    type: external_link 
+                    icon: "fab fa-github"
+                    title: "Github"
+                    url: "https://github.com/pedro-gutierrez/elementary"
+    menu_item_view:
+      view:
+        tag: li
+        attrs:
+          class: "tab-item menu-item c-hand"
+        children:
+          - view:
+              key: type
+              in: item
+            params:
+              key: item
+    action_view:
+      view:
+        tag: div
+        attrs:
+          class: 
+            format:
+              pattern: "action"
+              params:
+                - key: style
+                  in: context
+        children:
+          - view:
+              key: type
+              in: item
+            params:
+              key: item
+    actions_view:
+      view:
+        tag: div
+        attrs:
+          class: "actions"
+        children:
+          loop: items
+          with: action_view
+          context:
+            object:
+              style:
+                key: style
+              selected:
+                key: selected
+    menu_view:
+      view:
+        tag: ul
+        attrs:
+          class: "tab"
+        children:
+          loop: 
+            key: items
+          with: menu_item_view
+          context:
+            object:
+              selected:
+                key: selected
+    jumbo_view:
+      view:
+        tag: div
+        attrs:
+          class: "jumbo section"
+        children:
+          - tag: h1
+            children:
+              - tag: span
+                attrs:
+                  class: "important"
+                children:
+                  - text: "El"
+              - tag: span
+                children:
+                  - text: "e"
+              - tag: span
+                attrs:
+                  class: "important"
+                children:
+                  - text: "m"
+              - tag: span
+                children:
+                  - text: "entary"
+          - tag: div
+            children:
+              - text:
+                  key: lead
+    header_view:
+      view:
+        tag: header
+        attrs:
+          class: "header section"
+        children:
+          - tag: div
+            attrs:
+              class: "menu-items"
+            children:
+              - view: main_menu_view
+                params:
+                  object:
+                    selected:
+                      key: content_view
+    footer_view:
+      view:
+        tag: footer
+        attrs:
+          class: "section"
+        children:
+          - tag: span
+            children:
+              - text: "Designed with " 
+              - tag: i
+                attrs:
+                  class: "fas fa-heart"
+              - text: " by "
+              - tag: a
+                attrs:
+                  href: "https://themes.3rdwavemedia.com"
+                children:
+                  - text: "Xiaoying Riley"
+              - text: " for developers"
+              - tag: br
+              - text: "Built with ElementaryJS"
+    subsubtitle_view:
+      view:
+        tag: h4
+        attrs:
+          class: "subsubtitle"
+        children:
+          - text:
+              key: text
+    layout_view: 
+      view:
+        tag: div
+        attrs:
+          class:
+            format: 
+              pattern: "layout ~a"
+              params:
+                - key: theme
+        children:
+          - view: header_view
+            params:
+              object:
+                content_view:
+                  key: content_view
+          - tag: div
+            attrs:
+              class: "content"
+            children:
+              - view:
+                  key: content_view
+                params:
+                  key: content
+          - view: footer_view
+            params: {}

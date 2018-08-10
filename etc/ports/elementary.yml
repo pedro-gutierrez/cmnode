@@ -3,7 +3,7 @@ type: port
 name: elementary 
 spec:
   port: 8083
-  acceptors: 1
+  acceptors: 100
   apps:
     elementary_ui:
       http: "/js/app.js"
