@@ -86,11 +86,12 @@ spec:
           with: nav_item_view
     main_menu_view:
       view: 
-        view: menu_view
+        view: actions_view
         params:
           object:
             selected:
               key: selected 
+            style: "header-action"
             items:
               list:
                 - object:
@@ -103,24 +104,13 @@ spec:
                     icon: "fab fa-github"
                     title: "Github"
                     url: "https://github.com/pedro-gutierrez/elementary"
-    menu_item_view:
-      view:
-        tag: li
-        attrs:
-          class: "tab-item menu-item c-hand"
-        children:
-          - view:
-              key: type
-              in: item
-            params:
-              key: item
     action_view:
       view:
         tag: div
         attrs:
           class: 
             format:
-              pattern: "action"
+              pattern: "action ~a"
               params:
                 - key: style
                   in: context
@@ -142,19 +132,6 @@ spec:
             object:
               style:
                 key: style
-              selected:
-                key: selected
-    menu_view:
-      view:
-        tag: ul
-        attrs:
-          class: "tab"
-        children:
-          loop: 
-            key: items
-          with: menu_item_view
-          context:
-            object:
               selected:
                 key: selected
     jumbo_view:
@@ -180,7 +157,7 @@ spec:
                   - text: "m"
               - tag: span
                 children:
-                  - text: "entary"
+                  - text: "entaryJS"
           - tag: div
             children:
               - text:

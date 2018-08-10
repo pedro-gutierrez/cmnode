@@ -3,6 +3,20 @@ type: theme
 name: elementary
 spec:
   selectors:
+    - elem: "a, button"
+      selectors:
+        - p-class: "hover"
+          style:
+            -webkit-transition: all 0.6s ease
+            transition: all 0.6s ease
+            -moz-transition: all 0.6s ease
+    - class: "action"
+      selectors:
+        - p-class: "hover"
+          style:
+            -webkit-transition: all 0.6s ease
+            transition: all 0.6s ease
+            -moz-transition: all 0.6s ease
     - elem: "html"
       style:
         height: 100%
@@ -12,15 +26,11 @@ spec:
         height: 100%
         font-size: 0.95rem
         color:
-          key: primary 
-          in: 
-            key: fg
-            in: colors
+          key: darker
+          in: colors 
         background-color:
-          key: primary
-          in: 
-            key: bg
-            in: colors
+          key: default
+          in: colors
     - elem: "layout"
       style:
         position: relative
@@ -41,16 +51,23 @@ spec:
         padding-top: 1rem
         padding-bottom: 1rem
         color:
-          key: secondary 
-          in:
-            key: fg
-            in: colors
+          key: brightest 
+          in: colors
         background-color: 
-          key: dark
-          in:
-            key: bg
-            in: colors
+          key: darkest
+          in: colors
       selectors:
+        - elem: "a"
+          style:
+            color:
+              key: default
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                color: 
+                  key: dark
+                  in: colors
         - elem: "span"
           style:
             opacity: "0.8"
@@ -58,16 +75,12 @@ spec:
           style:
             color:
               key: danger
-              in: 
-                key: states
-                in: colors
+              in: colors
     - class: "important"
       style:
         color: 
-          key: primary
-          in: 
-            key: important
-            in: colors
+          key: warning 
+          in: colors 
     - elem: "header"
       style:
         padding-top: 1rem
@@ -76,9 +89,23 @@ spec:
         - s-class: "icon-label"
           style:
             font-weight: 400;
-        - s-class: "menu-items"
+        - s-class: "action"
           style:
             display: inline-block
+            margin-left: 10px
+          selectors:
+            - elem: a
+              style:
+                color: 
+                  key: darker
+                  in: colors
+              selectors:
+                - p-class: "hover"
+                  style:
+                    color:
+                      key: dark
+                      in: colors
+
     - class: "tab"
       style:
         border: 0
@@ -87,56 +114,56 @@ spec:
         text-align: center
     - class: "highlights"
       style:
-        background-color:
-          key: secondary
-          in: 
-            key: bg
-            in: colors
         margin-top: 2rem;
+        background-color:
+          key: bright
+          in: colors
     - class: "jumbo"
       style:
         text-align: center
-        margin-top: 2rem;
+        margin-top: 4rem;
         margin-bottom: 2rem;
       selectors:
         - elem: h1
           style:
-            font-size: 4rem
+            font-size: 6rem
             font-weight: 600
             margin-bottom: 0
         - elem: div
           style:
             font-size: 1.5rem
             color: 
-              key: secondary 
-              in: 
-                key: fg
-                in: colors
+              key: brightest
+              in: colors
     - class: "btn"
       style:
-        border-radius: 4px;
+        border-radius: 4px
         text-transform: uppercase
+    - elem: "a"
+      style:
+        text-decoration: none
+      selectors:
+        - p-class: "hover"
+          style:
+            text-decoration: none
     - all-classes: "btn btn-primary"
       style:
-        border-color:
-          key: tertiary 
-          in:
-            key: bg
-            in: colors
+        border: 0
         background-color: 
-          key: tertiary 
-          in:
-            key: bg
-            in: colors
+          key: darker
+          in: colors
+      selectors:
+        - p-class: "hover"
+          style:
+            background-color: 
+              key: darkest
+              in: colors
     - class: "btn-xl"
       style:
         font-size: 1.0rem
         height: 3rem
         padding-left: 1rem
         padding-right: 1rem
-    - elem: "*"
-      style:
-        transition: background-color 0.5s ease
     - class: "social"
       style:  
         text-align: center
@@ -145,10 +172,8 @@ spec:
           style:
             font-weight: bold
             color:
-              key: tertiary
-              in:
-                key: fg
-                in: colors
+              key: dark
+              in: colors
         - s-class: "action"
           style:
             margin-left: 0.2rem
@@ -158,10 +183,8 @@ spec:
             display: inline-block
             border-radius: 50%
             background-color:
-              key: dimmed
-              in:
-                key: bg
-                in: colors
+              key: dark
+              in: colors
             font-size: 1.2rem
             cursor: pointer
             width: 48px
@@ -170,17 +193,13 @@ spec:
             - p-class: "hover"
               style:
                 background-color:
-                  key: primary
-                  in: 
-                    key: important
-                    in: colors
+                  key: warning 
+                  in: colors
             - elem: "a"
               style:
                 color:
-                  key: secondary
-                  in:
-                    key: fg
-                    in: colors
+                  key: brightest
+                  in: colors
                 position: relative
                 left: 8px
                 top: 4px

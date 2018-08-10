@@ -3,18 +3,11 @@ type: theme
 name: devaid
 spec:
   colors:
-    fg:
-      primary: "#074f66"
-      secondary: "#fff"
-      tertiary: "rgb(14, 152, 197)"
-    important:
-      primary: "#eebf3f"
-      secondary: "#17baef"
-    bg:
-      primary: "#17baef"
-      secondary: "#f5f5f5"
-      tertiary: "#074f66"
-      dimmed: "#0c86ae"
-      dark: "rgb(4, 42, 54)"
-    states:
-      danger: "#fb866a"
+    brightest: "#fff"
+    bright: "#f5f5f5"
+    default: "#17baef"
+    dark: "#0c86ae"
+    darker: "#074f66"
+    darkest: "#042a36" 
+    danger: "#fb866a"
+    warning: "#eebf3f"
