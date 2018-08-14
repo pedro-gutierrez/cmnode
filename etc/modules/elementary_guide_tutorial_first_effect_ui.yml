@@ -1,0 +1,87 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_guide_tutorial_first_effect_ui 
+spec:
+  decoders:
+    show_guide_tutorial_first_effect:
+      object:
+        effect: ui
+        event: guide_tutorial_first_effect
+  update:
+    show_guide_tutorial_first_effect:
+      cmds:
+        - effect: ui
+      model:
+        object:
+          content_view: guide_view
+          content:
+            object:
+              guide_current_topic: guide_tutorial
+              guide_current_subtopic: guide_tutorial_first_effect
+              guide_content: 
+                object:
+                  items:
+                    list:
+                      - object:
+                          type: guide_section_view
+                          title: "Your first effect"
+                          items:
+                            list:
+                              - object:
+                                  type: guide_text_view
+                                  text: "In the previous lesson, we initialized our first Elementary app, but it is not doing too much yet. It is time now to get ready to start drawing a user interface."
+                              - object:
+                                  type: guide_paragraph_view
+                                  title: "About effects"
+                                  items:
+                                    list:
+                                      - object:
+                                          type: guide_text_view
+                                          text: "Elementary treats DOM manipulation just like HTTP communications, local storage or any other sort of interaction with the outside, impure world: as a side effect. Side effects are managed outside Elementary's core via extensions that we call Effect Managers."
+
+                              - object:
+                                  type: guide_paragraph_view
+                                  title: "About Elementary UI"
+                                  items:
+                                    list:
+                                      - object:
+                                          type: guide_text_view
+                                          text: "Elementary UI is the default UI Effect Manager for Elementary apps. First, let's download it:"
+                                            
+                                      - object:
+                                          type: guide_code_view
+                                          lang: "bash"
+                                          source: |
+                                            wget https://elementaryjs.com/elementary-ui.min.js
+
+                                      - object:
+                                          type: guide_text_view
+                                          text: "Then, let's register it:"
+                                      - object:
+                                          type: guide_code_view
+                                          lang: "javascript"
+                                          source: |
+                                            import {default as elementary} from "/elementary.min.js";
+                                            import {default as elementaryUi} from "/elementary-ui.min.js";
+                                            elementary({
+                                              init: {
+                                                  model: {
+                                                      tasks: [],
+                                                  },
+                                                  cmds: []
+                                              },
+                                              effects: {
+                                                ui: {
+                                                  name: "ui",
+                                                  fn: elementaryUi
+                                                }
+                                              }
+                                              encoders: {},
+                                              decoders: {},
+                                              update: {}
+                                            });
+
+                              - object:
+                                  type: guide_text_view
+                                  text: "That's it. If we reload the browser, we will see... exactly nothing! That's ok, since the only thing we did was binding the Elementary UI effect manager to a name. Now, we are all set up to actually start designing a user interface for our app."

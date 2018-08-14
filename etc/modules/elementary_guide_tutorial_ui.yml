@@ -1,0 +1,297 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_guide_tutorial_ui 
+spec:
+  decoders:
+    show_guide_tutorial:
+      object:
+        effect: ui
+        event: guide_tutorial
+    guide_tutorial_new_task:
+      object:
+        effect: ui
+        event: guide_tutorial_new_task
+        value:
+          any: text
+    new_task_title_changed:
+      object:
+        effect: ui
+        event: new_task_title_changed
+        value:
+          any: text
+    task_changed_state:
+      object:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "toggle-task"
+            task:
+              any: text
+    task_deleted:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "delete-task"
+            task:
+              any: text
+  update:
+    show_guide_tutorial:
+      model:
+        object:
+          content_view: guide_view
+          content:
+            object:
+              guide_current_topic: guide_tutorial
+              guide_current_subtopic: none
+              guide_content: 
+                object:
+                  tutorial:
+                    object:
+                      new_task_title: ""
+                      prompt: "initial prompt"
+                      tasks: 
+                        list:
+                          - object:
+                              title: "Learn ElementaryJS"
+                              state: "done"
+                          - object:
+                              title: "Write a cool ElementaryJS app"
+                              state: "pending"
+                  items:
+                    list:
+                      - object:
+                          type: guide_section_view
+                          title: "Tutorial"
+                          items:
+                            list:
+                              - object:
+                                  type: guide_text_view
+                                  text: "In this tutorial we go through the process of creating a simple but functional task management app. It will look something like this:"
+                              - object:
+                                  type: guide_tutorial_mockup_view
+      cmds:
+        - effect: ui
+    new_task_title_changed:
+      model:
+        object_with:
+          content:
+            object_with:
+              guide_content:
+                object_with:
+                  tutorial:
+                    object_with:
+                      new_task_title:
+                        key: value
+      cmds:
+        - effect: ui
+    guide_tutorial_new_task:
+      model:
+        object_with:
+          content:
+            object_with:
+              guide_content:
+                object_with:
+                  tutorial:
+                    object_with:
+                      new_task_title: ""
+                      tasks:
+                        list_with:
+                          object:
+                            title:
+                              key: value
+                            state: "pending"
+      cmds:
+        - effect: ui
+    task_changed_state:
+      model:
+        object_with:
+          content:
+            object_with:
+              guide_content:
+                object_with:
+                  tutorial:
+                    object_with:
+                      tasks:
+                        list_by_replacing:
+                          items:
+                            object:
+                              title:
+                                key: task
+                                in: event
+                          with:
+                            either:
+                              - when:
+                                  eq:
+                                    - key: state
+                                      in: item
+                                    - text: "pending"
+                                object_with:
+                                  state: "done"
+                              - object_with:
+                                  state: "pending"
+      cmds:
+        - effect: ui
+    task_deleted:
+      model:
+        object_with:
+          content:
+            object_with:
+              guide_content:
+                object_with:
+                  tutorial:
+                    object_with:
+                      tasks:
+                        list_without:
+                          object:
+                            title:
+                              key: task
+                              in: event
+      cmds:
+        - effect: ui
+  encoders:
+    text_field_view:
+      view:
+        tag: div
+        attrs:
+          class: "form-group"
+        children:
+          - tag: "label"
+            attrs:
+              class: "form-label"
+              for:
+                key: id
+          - tag: "input"
+            attrs:
+              class: "form-input"
+              type: "text"
+              id:
+                key: id
+              value:
+                key: title
+              autocomplete: off
+              onkeyup:
+                expression:
+                  either:
+                    - when:
+                        eq:
+                          - text: Enter
+                          - key: key
+                            in: event
+                      key: enter
+                    - key: input
+              placeholder: 
+                key: prompt
+    guide_tutorial_task_view:
+      view:
+        tag: div
+        attrs:
+          class: "task columns"
+          key:
+            key: title
+            in: item
+        children:
+          - tag: div
+            attrs:
+              class: "column col-9"
+            children:
+              - tag: span
+                attrs:
+                  class:
+                    key: state
+                    in: item
+                children:
+                  - text:
+                      key: title
+                      in: item
+          - tag: div
+            attrs:
+              class: "column col-3"
+            children:
+              - view: button
+                params:
+                  object:
+                    title:
+                      either:
+                        - when:
+                            eq:
+                              - key: state
+                                in: item
+                              - text: "done"
+                          text: "Undo"
+                        - text: "Mark done"
+                    style: "primary"
+                    size: "sm"
+                    icon: ""
+                    click:
+                      object:
+                        name: toggle-task
+                        task:
+                          key: title
+                          in: item
+              - view: button
+                when:
+                  eq:
+                    - key: state
+                      in: item
+                    - text: "done"
+                params:
+                  object:
+                    title: "Delete"
+                    style: "danger"
+                    size: "sm"
+                    icon: ""
+                    click:
+                      object:
+                        name: delete-task
+                        task:
+                          key: title
+                          in: item
+    guide_tutorial_title_view:
+      view:
+        tag: h4
+        children:
+          - text:
+              key: title
+
+    guide_tutorial_mockup_view:
+      view:
+        tag: div
+        attrs:
+          class: "guide-tutorial-mockup"
+        children:
+          - view: guide_tutorial_title_view
+            params:
+              object:
+                title: "ElementaryJS Todo"
+          - tag: div
+            attrs:
+              class: "tasks"
+            children:
+              loop:
+                key: tasks
+                in:
+                  key: tutorial
+                  in: context
+              with: guide_tutorial_task_view
+              context:
+                key: context
+          - tag: div
+            attrs:
+              class: "new-task-form"
+            children:
+              - view: text_field_view
+                params:
+                  object:
+                    prompt: "Enter something to do and press Enter"
+                    id: "new-task"
+                    enter: "guide_tutorial_new_task"
+                    input: "new_task_title_changed"
+                    title:
+                      text:
+                        key: new_task_title
+                        in:
+                          key: tutorial
+                          in: context
