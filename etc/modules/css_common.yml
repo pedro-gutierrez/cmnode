@@ -24,8 +24,9 @@ spec:
           encoder: styles
     render:
       model:
-        source:
-          key: source
+        object:
+          source:
+            key: source
       cmds:
         - effect: notify
           encoder: css

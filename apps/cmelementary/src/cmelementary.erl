@@ -148,6 +148,15 @@ terms([Spec|Rem], Settings, Out) ->
             Other
     end.
 
+term(#{ type := expression, spec := Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ expression => Compiled}};
+        Other -> 
+            Other
+    end;
+    
+
 term(#{ type := list, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
@@ -155,6 +164,39 @@ term(#{ type := list, spec := Spec}, Settings) ->
         Other -> 
             Other
     end;
+
+term(#{ type := list, with:= Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ list_with => Compiled}};
+        Other -> 
+            Other
+    end;
+
+term(#{ type := list_by_replacing, 
+        items := ItemsSpec,
+        with := WithSpec}, Settings) -> 
+    case term(ItemsSpec, Settings) of 
+        {ok, Items} ->
+            case term(WithSpec, Settings) of 
+                {ok, With} -> 
+                    {ok, #{ list_by_replacing => #{ items => Items,
+                                                    with => With }}};
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+term(#{ type := list, without:= Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ list_without => Compiled}};
+        Other -> 
+            Other
+    end;
+
 
 term(#{ type := list, size := Size}, _) -> 
         {ok, #{ list => #{ size => Size }}};
@@ -166,6 +208,23 @@ term(#{ type := object, spec := Spec}, Settings) ->
         Other -> 
             Other
     end;
+
+term(#{ type := object_with, spec := Spec}, Settings) -> 
+    case compile_object(maps:keys(Spec), Spec, Settings, #{}) of 
+        {ok, Compiled} -> 
+            {ok, #{ object_with => Compiled}};
+        Other -> 
+            Other
+    end;
+
+term(#{ type := object_without, spec := Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ object_without => Compiled}};
+        Other -> 
+            Other
+    end;
+
 
 term(#{ type := text, key := Key, in := In}, Settings) ->
     case term( #{ key => Key,
@@ -498,6 +557,23 @@ term(#{ timestamp := #{ format := FormatSpec,
                 Other -> 
                     Other
             end;
+        Other -> 
+            Other
+    end;
+
+term(#{ with := Spec}, Settings) -> 
+    cmkit:warning({cmelementary, Spec}),
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ with => Compiled}};
+        Other -> 
+            Other
+    end;
+
+term(#{ without:= Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ without => Compiled}};
         Other -> 
             Other
     end;

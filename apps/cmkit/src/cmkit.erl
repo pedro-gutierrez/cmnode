@@ -90,7 +90,7 @@ config(Key, App, Default) ->
     end.
 
 yamld(Bin) when is_binary(Bin) ->
-    yamld(binary_to_list(Bin));    
+    yamld(uniconvert(Bin));    
 
 yamld(Str) when is_list(Str) ->
     try 
@@ -435,8 +435,11 @@ closest_node(Nodes) ->
             lists:nth(rand:uniform(length(Nodes)), Nodes)
     end.
 
-uniconvert(String) ->
-    unicode:characters_to_binary(String, utf8).
+uniconvert(String) when is_list(String) ->
+    unicode:characters_to_binary(String, utf8);
+
+uniconvert(Bin) when is_binary(Bin) -> 
+    unicode:characters_to_list(Bin).
 
 %  try xmerl_ucs:from_utf8(String) of
 %    _ ->

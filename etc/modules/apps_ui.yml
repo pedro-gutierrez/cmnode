@@ -5,17 +5,19 @@ name: apps_ui
 spec:
   init:
     model:
-      apps: 
-        list: []
-      nodes:
-        list: []
+      object:
+        apps: 
+          list: []
+        nodes:
+          list: []
   update:
     apps:
       model:
-        apps:
-          key: data
-          in: 
+        object:
+          apps:
             key: data
+            in: 
+              key: data
       cmds:
         - effect: ui
           encoder: apps_view

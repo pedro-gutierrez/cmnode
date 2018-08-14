@@ -204,8 +204,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          test:
-            key: test
+          object:
+            test:
+              key: test
         cmds:
           - effect: test
             encoder: test_query
@@ -216,10 +217,11 @@ spec:
       - when:
           encoder: is_admin
         model:
-          test:
-            key: test
-          scenario:
-            key: scenario
+          object:
+            test:
+              key: test
+            scenario:
+              key: scenario
         cmds:
           - effect: test
             encoder: scenario_query
@@ -230,10 +232,11 @@ spec:
       - when:
           encoder: is_admin
         model:
-          test:
-            key: test
-          background:
-            key: background
+          object:
+            test:
+              key: test
+            background:
+              key: background
         cmds:
           - effect: test
             encoder: background_query
@@ -244,10 +247,11 @@ spec:
       - when:
           encoder: is_admin
         model:
-          test:
-            key: test
-          settings:
-            key: settings
+          object:
+            test:
+              key: test
+            settings:
+              key: settings
         cmds:
           - effect: test
             encoder: test_schedule_request
@@ -258,8 +262,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          test_job_id:
-            key: test
+          object:
+            test_job_id:
+              key: test
         cmds:
           - effect: test
             encoder: test_cancel_request
@@ -280,8 +285,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          days:
-            key: days
+          object:
+            days:
+              key: days
         cmds:
           - effect: test
             encoder: test_reports_query
@@ -292,8 +298,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          test_report:
-            key: report 
+          object:
+            test_report:
+              key: report 
         cmds:
           - effect: test
             encoder: test_report_query
@@ -311,57 +318,65 @@ spec:
             encoder: forbidden
     tests:
       model:
-        tests:
-          key: tests
+        object:
+          tests:
+            key: tests
       cmds:
         - effect: notify
           encoder: tests
     test:
       model:
-        test:
-          key: test
+        object:
+          test:
+            key: test
       cmds:
         - effect: notify
           encoder: test
     scenario:
       model:
-        scenario:
-          key: scenario
+        object:
+          scenario:
+            key: scenario
       cmds:
         - effect: notify
           encoder: scenario
     no_such_scenario:
       model:
-        scenario:
-          key: scenario
+        object:
+          scenario:
+            key: scenario
       cmds:
         - effect: notify
           encoder: scenario
     background: 
       model:
-        background:
-          key: background
+        object:
+          background:
+            key: background
       cmds:
         - effect: notify
           encoder: background
     tests_status:
       model:
-        status:
-          key: tests
+        object:
+          status:
+            key: tests
       cmds:
         - effect: notify
           encoder: tests_status
     test_reports:
       model:
-        test_reports:
-          key: test_reports
+        object:
+          test_reports:
+            key: test_reports
       cmds:
         - effect: notify
           encoder: test_reports
     test_report:
       model:
-        test_report:
-          key: test_report
+        object:
+          test_report:
+            key: test_report
       cmds:
         - effect: notify
           encoder: test_report

@@ -44,8 +44,9 @@ spec:
             encoder: forbidden
     buckets:
       model:
-        buckets:
-          key: buckets 
+        object:
+          buckets:
+            key: buckets 
       cmds:
         - effect: notify
           encoder: buckets

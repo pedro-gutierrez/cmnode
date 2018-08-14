@@ -53,15 +53,17 @@ spec:
   update:
     query_review:
       model:
-        id:
-          key: id
+        object:
+          id:
+            key: id
       cmds:
         - effect: db_get
           encoder: review_query
     review:
       model:
-        review:
-          key: value
+        object:
+          review:
+            key: value
       cmds:
         - effect: notify 
           encoder: review

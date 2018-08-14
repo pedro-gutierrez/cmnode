@@ -5,9 +5,10 @@ name: elementary_home_ui
 spec:
   init:
     model:
-      content_view:
-        keyword: home_view
-      content: {}
+      object:
+        content_view:
+          keyword: home_view
+        content: {}
     cmds:
       - effect: ui
         encoder: layout_view
@@ -19,29 +20,76 @@ spec:
   update:
     show_home:
       model:
-        content_view:
-          keyword: home_view
+        object:
+          content_view:
+            keyword: home_view
       cmds:
         - effect: ui
   encoders:
+    jumbo_view:
+      view:
+        tag: div
+        attrs:
+          class: "jumbo section"
+        children:
+          - tag: h1
+            children:
+              - tag: span
+                attrs:
+                  class: "important"
+                children:
+                  - text: "El"
+              - tag: span
+                children:
+                  - text: "e"
+              - tag: span
+                attrs:
+                  class: "important"
+                children:
+                  - text: "m"
+              - tag: span
+                children:
+                  - text: "entaryJS"
+          - tag: div
+            children:
+              - text:
+                  key: lead
+          - tag: div
+            attrs:
+              class: "jumbo-action"
+            children:
+              - view: button
+                params:
+                  object:
+                    style: "primary"
+                    size: "lg"
+                    title:
+                      key: title
+                      in: action
+                    icon:
+                      key: icon
+                      in: action
+                    click:
+                      key: click
+                      in: action
     highlight_view:
       view:
         tag: div
         attrs:
           class:
             format:
-              pattern: "column col-~a"
+              pattern: "column highlight col-~a"
               params:
                 - key: colspan
                   in: context
         children:
           - tag: div
             attrs:
-              class: "tile"
+              class: "columns"
             children:
               - tag: div
                 attrs:
-                  class: "tile-icon"
+                  class: "column highlight-icon col-2"
                 children:
                   - tag: i
                     attrs:
@@ -50,27 +98,25 @@ spec:
                         in: item
               - tag: div
                 attrs:
-                  class: "tile-content"
+                  class: "column highlight-content col-10"
                 children:
-                  - tag: div
-                    attrs:
-                      class: "tile-title"
-                    children:
-                      - text:
+                  - view: subsubtitle_view
+                    params:
+                      object:
+                        text: 
                           key: title
                           in: item
-                  - tag: div
-                    attrs:
-                      class: "tile-subtitle"
-                    children:
-                      - text:
+                  - view: paragraph_view
+                    params:
+                      object:
+                        text:
                           key: description
                           in: item
     highlights_view:
       view:
         tag: div
         attrs:
-          class: "highlights section content-section columns mt-2"
+          class: "highlights section section-content columns"
         children:
           loop: items
           with: highlight_view
@@ -87,13 +133,13 @@ spec:
           - view: jumbo_view
             params:
               object:
-                lead: "A functional, declarative and extensible framework for stateful, Elm-inspired UI applications"
-          - view: primary_button
-            params:
-              object:
-                title: "Download"
-                icon: "fas fa-download"
-                size: "xl"
+                lead: "Declarative and functional UI apps with a hint of Elm"
+                action:
+                  object:
+                    title: "Download"
+                    icon: "fas fa-download"
+                    size: "xl"
+                    click: ""
           - view: highlights_view
             params:
               object:
@@ -101,29 +147,29 @@ spec:
                 items:
                   list:
                     - object:
-                        title: "Functional"
-                        icon: ""
-                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                        title: "Simply JS"
+                        icon: "fab fa-js-square"
+                        description: "ElementaryJS is designed with simplicity in mind. You can use just pure Javascript to write your apps, with no need for any particular tooling."
                     - object:
-                        title: "Declarative"
-                        icon: ""
-                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                        title: "Declarative & functional"
+                        icon: "fas fa-cubes"
+                        description: "You application logic is described in terms of what the input data should look like, what your state transitions should be, and what data should be sent out to the world... Express that as simple JSON objects, and ElementaryJS takes it from there."
                     - object:
                         title: "Extensible"
-                        icon: ""
-                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                        icon: "fas fa-puzzle-piece"
+                        description: "ElementaryJS is made of a very small core that orchestrates the communication with effect managers. Effects such as DOM interaction, external communications via HTTP or Websockets, local storage, etc... are handled outside the core, via plugins that you can opt in. And it is really easy to build your own effect managers too."
                     - object:
                         title: "Stateful"
-                        icon: ""
-                        description: "Outline a benefit here. Tell users what your plugin/software can do for them. You can change the icon above to any of the 1000+ FontAwesome icons available."
+                        icon: "fas fa-shield-alt"
+                        description: "All your application's data lives inside a single datastructur, called the model, protected by and never mutated outside the core. By implementing the same design principles from the Elm architecture, Elementary apps have a neat separation between application logic and side effects."
           - tag: div
             attrs:
-              class: "social section content-section"
+              class: "social section section-content"
             children:
               - view: subsubtitle_view
                 params:
                   object:
-                    text: "Feedback"
+                    text: "Get Connected"
               - view: actions_view
                 params:
                   object:
@@ -136,8 +182,14 @@ spec:
                             title: ""
                             icon: "fab fa-linkedin-in"
                             url: "https://www.linkedin.com/in/pedro-gutiérrez-07470b19"
+                            style: ""
+                            visible:
+                              keyword: true
                         - object:
                             type: external_link
                             title: ""
                             icon: "far fa-envelope"
                             url: "mailto:pedrogutierrez@mac.com"
+                            style: ""
+                            visible:
+                              keyword: true

@@ -5,15 +5,17 @@ name: ports_ui
 spec:
   init:
     model:
-      ports:
-        list: []
+      object:
+        ports:
+          list: []
   update:
     ports:
       model:
-        ports:
-          key: data
-          in: 
+        object:
+          ports:
             key: data
+            in: 
+              key: data
       cmds:
         - effect: ui
           encoder: ports_view

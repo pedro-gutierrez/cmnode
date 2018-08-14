@@ -10,4 +10,5 @@ spec:
     darker: "#074f66"
     darkest: "#042a36" 
     danger: "#fb866a"
+    critical: "#bA3d20"
     warning: "#eebf3f"

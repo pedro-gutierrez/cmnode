@@ -5,8 +5,9 @@ name: wkadmin_places_ui
 spec:
   init:
     model:
-      places_content_view:
-        keyword: map_view
+      object:
+        places_content_view:
+          keyword: map_view
   decoders:
     show_places_ui:
       object:

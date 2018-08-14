@@ -70,24 +70,26 @@ spec:
           encoder: health
     file:
       model:
-        token:
-          key: cmauth
-          in: headers
-        file:
-          key: body
-        type:
-          key: content-type
-          in: headers
-        size:
-          key: content-length
-          in: headers
+        object:
+          token:
+            key: cmauth
+            in: headers
+          file:
+            key: body
+          type:
+            key: content-type
+            in: headers
+          size:
+            key: content-length
+            in: headers
       cmds:
         - effect: now
           encoder: file_upload_context
     date_for_file_upload:
       model:
-        now:
-          key: now
+        object:
+          now:
+            key: now
       cmds:
         - effect: db_get
           encoder: token_lookup
@@ -113,8 +115,9 @@ spec:
             encoder: forbidden
     uuid_for_file_upload:
       model:
-        uuid: 
-          key: uuid
+        object:
+          uuid: 
+            key: uuid
       cmds:
         - effect: db_put
           encoder: file_record

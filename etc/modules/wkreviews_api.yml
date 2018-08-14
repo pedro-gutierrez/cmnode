@@ -49,8 +49,9 @@ spec:
             encoder: forbidden
     reviews:
       model:
-        reviews:
-          key: values
+        object:
+          reviews:
+            key: values
       cmds:
         - effect: notify
           encoder: reviews

@@ -309,29 +309,33 @@ spec:
             encoder: forbidden
     uuid_for_import:
       model:
-        uuid:
-          key: uuid
+        object:
+          uuid:
+            key: uuid
       cmds:
         - effect: now
           encoder: date_for_import
     date_for_import:
       model:
-        now:
-          key: now
+        object:
+          now:
+            key: now
       cmds:
         - effect: db_put
           encoder: import_entry
     import_data:
       model:
-        import:
-          key: value
+        object:
+          import:
+            key: value
       cmds:
         - effect: db_put
           encoder: import_created_event
     imports:
       model:
-        imports: 
-          key: values
+        object:
+          imports: 
+            key: values
       cmds:
         - effect: notify
           encoder: imports
@@ -345,8 +349,9 @@ spec:
             - key: import
               in: data
         model:
-          file:
-            key: file
+          object:
+            file:
+              key: file
         cmds:
           - effect: db_put
             encoder: import_attachment_record
@@ -365,8 +370,9 @@ spec:
           encoder: import_started_event
     wordpress_imported:
       model:
-        stats:
-          key: wordpress
+        object:
+          stats:
+            key: wordpress
       cmds:
         - effect: notify 
           encoder: import_summary
@@ -378,8 +384,9 @@ spec:
           encoder: import_error_event
     import_status:
       model:
-        event:
-          key: value
+        object:
+          event:
+            key: value
       cmds:
         - effect: notify
           encoder: import_status

@@ -5,11 +5,12 @@ name: wkadmin_review_ui
 spec:
   init:
     model:
-      theme: "dark"
-      selected: "reviews"
-      review: {}
-      id: "none"
-      selected_image: "none"
+      object:
+        theme: "dark"
+        selected: "reviews"
+        review: {}
+        id: "none"
+        selected_image: "none"
   decoders:
     show_review:
       object:
@@ -74,11 +75,12 @@ spec:
   update:
     show_review:
       model:
-        id:
-          key: id
-          in: event
-        content_view:
-          keyword: review_loading_view
+        object:
+          id:
+            key: id
+            in: event
+          content_view:
+            keyword: review_loading_view
       cmds:
         - effect: ws
           encoder: review_query
@@ -86,23 +88,25 @@ spec:
           encoder: review_layout_view
     select_image:
       model:
-        selected_image:
-          key: id
-          in: event
+        object:
+          selected_image:
+            key: id
+            in: event
       cmds:
         - effect: ui
     review:
       model:
-        review:
-          key: review
-          in: data
-        selected_image:
-          key: cover
-          in: 
+        object:
+          review:
             key: review
             in: data
-        content_view: 
-          keyword: review_view
+          selected_image:
+            key: cover
+            in: 
+              key: review
+              in: data
+          content_view: 
+            keyword: review_view
       cmds:
         - effect: ui
           encoder: review_layout_view

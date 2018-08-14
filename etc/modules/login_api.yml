@@ -186,10 +186,11 @@ spec:
           encoder: invalid
     login:
       model:
-        email:
-          key: username
-        password:
-          key: password
+        object:
+          email:
+            key: username
+          password:
+            key: password
       cmds:
         - effect: db_get
           encoder: login_email_lookup
@@ -207,15 +208,17 @@ spec:
           encoder: not_found
     email_found:
       model:
-        uuid:
-          key: value 
+        object:
+          uuid:
+            key: value 
       cmds:
         - effect: db_get
           encoder: user_password_lookup
     user_found:
       model:
-        user:
-          key: value
+        object:
+          user:
+            key: value
       cmds:
         - effect: db_get
           encoder: login_roles_lookup
@@ -229,15 +232,17 @@ spec:
           encoder: forbidden
     roles_found:
       model:
-        roles:
-          key: value
+        object:
+          roles:
+            key: value
       cmds:
         - effect: notify
           encoder: login_user_data
     password_found:
       model:
-        password_in_db:
-          key: value
+        object:
+          password_in_db:
+            key: value
       cmds:
         - effect: crypt_verify
           encoder: password_check

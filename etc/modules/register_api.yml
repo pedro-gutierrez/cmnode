@@ -134,14 +134,15 @@ spec:
             - key: password_confirm
               in: data
         model:
-          first: 
-            key: first
-          last: 
-            key: last
-          email:
-            key: username
-          password:
-            key: password
+          object:
+            first: 
+              key: first
+            last: 
+              key: last
+            email:
+              key: username
+            password:
+              key: password
         cmds:
           - effect: db_get
             encoder: register_user_lookup
@@ -154,15 +155,17 @@ spec:
           encoder: conflict
     not_found:
       model:
-        state: 
-          keyword: registering
+        object:
+          state: 
+            keyword: registering
       cmds:
         - effect: uuid
           encoder: register_context 
     uuid_for_new_user:
       model:
-        uuid:
-          key: uuid
+        object:
+          uuid:
+            key: uuid
       cmds:
         - effect: db_put
           encoder: register_data

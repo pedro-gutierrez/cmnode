@@ -5,9 +5,10 @@ name: wkadmin_reviews_ui
 spec:
   init:
     model:
-      reviews: []
-      theme: "dark"
-      selected: "reviews"
+      object:
+        reviews: []
+        theme: "dark"
+        selected: "reviews"
   decoders:
     ready:
       object:
@@ -49,7 +50,8 @@ spec:
   update:
     ready:
       model:
-        reviews: []
+        object:
+          reviews: []
       cmds:
         - effect: ws
           encoder: reviews_query
@@ -57,7 +59,8 @@ spec:
           encoder: reviews_view
     show_reviews:
       model:
-        reviews: []
+        object:
+          reviews: []
       cmds:
         - effect: ws
           encoder: reviews_query
@@ -65,9 +68,10 @@ spec:
           encoder: reviews_view
     reviews:
       model:
-        reviews:
-          key: reviews
-          in: data
+        object:
+          reviews:
+            key: reviews
+            in: data
       cmds:
         - effect: ui
           encoder: reviews_view

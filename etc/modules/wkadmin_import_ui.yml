@@ -14,19 +14,20 @@ spec:
             literal: "/files"
   init:
     model:
-      import_action_view: 
-        keyword: import_selectfile_view
-      import: []
-      files: []
-      import_progress: 
-        number: 50
-      stage:
-        text: 
-          literal: "Not started"
-      import_stats: 
-        object:
-          reviews: 0
-          images: 0
+      object:
+        import_action_view: 
+          keyword: import_selectfile_view
+        import: []
+        files: []
+        import_progress: 
+          number: 50
+        stage:
+          text: 
+            literal: "Not started"
+        import_stats: 
+          object:
+            reviews: 0
+            images: 0
   decoders:
     show_import_ui:
       object:
@@ -162,28 +163,31 @@ spec:
   update:
     show_import_ui:
       model:
-        import_action_view:
-          keyword: import_selectfile_view
+        object:
+          import_action_view:
+            keyword: import_selectfile_view
       cmds:
         - effect: ui
           encoder: import_layout_view
     import_file_selected:
       model:
-        import_action_view: 
-          keyword: import_upload_summary_view
-        files:
-          key: value
+        object:
+          import_action_view: 
+            keyword: import_upload_summary_view
+          files:
+            key: value
       cmds:
         - effect: ui
           encoder: import_layout_view
     start_importing:
       model:
-        import_action_view: 
-          keyword: import_progress_view
-        import_progress: 15
-        stage:
-          text:
-            literal: "Creating a new import"
+        object:
+          import_action_view: 
+            keyword: import_progress_view
+          import_progress: 15
+          stage:
+            text:
+              literal: "Creating a new import"
       cmds:
         - effect: ws
           encoder: import_create_request
@@ -191,14 +195,15 @@ spec:
           encoder: import_layout_view
     import_created:
       model:
-        import:
-          key: import
-          in:
-            key: data
-        import_progress: 30
-        stage:
-          text:
-            literal: "Requesting permission to upload data"
+        object:
+          import:
+            key: import
+            in:
+              key: data
+          import_progress: 30
+          stage:
+            text:
+              literal: "Requesting permission to upload data"
       cmds:
         - effect: ws
           encoder: import_token_request 
@@ -206,25 +211,27 @@ spec:
           encoder: import_layout_view
     import_token:
       model:
-        token:
-          key: token
-          in: data
-        import_progress: 45
-        stage:
-          text:
-            literal: "Uploading"
+        object:
+          token:
+            key: token
+            in: data
+          import_progress: 45
+          stage:
+            text:
+              literal: "Uploading"
       cmds:
         - effect: file
           encoder: import_upload_request
     import_file_uploaded:
       model:
-        uploaded_file:
-          key: id
-          in: data
-        import_progress: 60
-        stage:
-          text:
-            literal: "Attaching file to import"
+        object:
+          uploaded_file:
+            key: id
+            in: data
+          import_progress: 60
+          stage:
+            text:
+              literal: "Attaching file to import"
       cmds:
         - effect: ws
           encoder: import_attachment
@@ -232,42 +239,47 @@ spec:
           encoder: import_layout_view
     import_file_attached:
       model:
-        import_progress: 75 
-        stage:
-          literal: "Starting to import"
+        object:
+          import_progress: 75 
+          stage:
+            literal: "Starting to import"
       cmds:
         - effect: ui
           encoder: import_layout_view
     import_started:
       model:
-        import_progress: 90 
-        stage:
-          literal: "Processing data"
+        object:
+          import_progress: 90 
+          stage:
+            literal: "Processing data"
       cmds:
         - effect: ui
           encoder: import_layout_view
     import_error:
       model:
-        import_action_view: 
-          keyword: import_error_view 
+        object:
+          import_action_view: 
+            keyword: import_error_view 
       cmds:
         - effect: ui
           encoder: import_layout_view
     import_finished:
-      model:  
-        import_progress: 100
-        stage:
-          literal: "Import finished!"
+      model:
+        object:
+          import_progress: 100
+          stage:
+            literal: "Import finished!"
       cmds:
         - effect: ui
           encoder: import_layout_view
     import_summary:
       model:
-        import_action_view: 
-          keyword: import_summary_view 
-        import_stats:
-          key: import
-          in: data
+        object:
+          import_action_view: 
+            keyword: import_summary_view 
+          import_stats:
+            key: import
+            in: data
       cmds:
         - effect: ui
           encoder: import_layout_view

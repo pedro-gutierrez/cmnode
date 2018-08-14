@@ -712,9 +712,21 @@ compile_term(#{ <<"maybe">> := Spec }) ->
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
 
-compile_term(#{ <<"object_without">> := Keys }) ->
+compile_term(#{ <<"object_without">> := Keys }) when is_list(Keys) ->
     #{ type => object_without,
        spec => compile_terms(Keys) };
+
+compile_term(#{ <<"object_without">> := Spec }) when is_map(Spec) ->
+    #{ type => object_without,
+       spec => compile_object(maps:keys(Spec), Spec, #{})};
+
+compile_term(#{ <<"object_with">> := Keys }) when is_list(Keys) ->
+    #{ type => object_with,
+       spec => compile_terms(Keys) };
+
+compile_term(#{ <<"object_with">> := Spec }) when is_map(Spec) ->
+    #{ type => object_with,
+       spec => compile_object(maps:keys(Spec), Spec, #{})};
 
 compile_term(#{ <<"entries">> := Spec }) ->
     #{ type => entries,
@@ -742,7 +754,19 @@ compile_term(#{ <<"any">> := <<"list">>}) ->
 compile_term(#{ <<"list">> := #{ <<"with">> := Spec}}) ->
     #{ type => list, with => compile_term(Spec) };
 
+compile_term(#{ <<"list_with">> := Spec}) ->
+    #{ type => list, with => compile_term(Spec) };
+
+compile_term(#{ <<"list_by_replacing">> := #{ <<"items">> := Items,
+                                              <<"with">> := With }}) ->
+    #{ type => list_by_replacing, 
+       items => compile_term(Items),
+       with => compile_term(With) };
+
 compile_term(#{ <<"list">> := #{ <<"without">> := Spec}}) ->
+    #{ type => list, without => compile_term(Spec) };
+
+compile_term(#{ <<"list_without">> := Spec}) ->
     #{ type => list, without => compile_term(Spec) };
 
 compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
@@ -792,6 +816,10 @@ compile_term(#{ <<"hash">> := Spec }) ->
 
 compile_term(#{ <<"spec">> := Spec }) ->
     compile_spec(Spec); 
+
+compile_term(#{ <<"expression">> := Spec }) ->
+    #{ type => expression, 
+       spec => compile_term(Spec) }; 
 
 compile_term(#{ <<"type">> := Type}) ->
     compile_keyword(Type);
@@ -993,6 +1021,11 @@ compile_term(#{ <<"is_set">> := Spec }) when is_map(Spec) ->
 compile_term(#{ <<"not">> := Spec }) ->
     #{ type => 'not',
        spec => compile_term(Spec)
+     };
+
+compile_term(#{ <<"equal">> := Specs }) when is_list(Specs) ->
+    #{ type => equal,
+       spec => lists:map(fun compile_term/1, Specs)
      };
 
 compile_term(#{ <<"eq">> := Specs }) when is_list(Specs) ->
@@ -1439,6 +1472,12 @@ compile_term(#{ <<"queue">> := #{ <<"name">> := Name,
                   name => compile_keyword(Name),
                   id => compile_term(Id) }};
 
+compile_term(#{ <<"with">> := Spec}) -> 
+    #{ with => compile_object(Spec) };
+
+compile_term(#{ <<"without">> := Spec}) -> 
+    #{ without => compile_term(Spec) };
+
 compile_term(Num) when is_number(Num) ->
     #{ type => number, value => Num };
 
@@ -1711,6 +1750,11 @@ compile_view(#{ <<"json">> := Spec,
 compile_view(#{ <<"json">> := _} = Spec) ->
     compile_view(Spec#{ <<"indent">> => 2 });
 
+compile_view(#{ <<"code">> := #{ <<"source">> := Source,
+                                 <<"lang">> := Lang }}) -> 
+    #{ code => #{ lang => compile_term(Lang),
+                 source => compile_term(Source) }};
+
 compile_view(#{ <<"timestamp">> :=  #{ <<"format">> := Format,
                                        <<"value">> := Value }}) ->
 
@@ -1755,7 +1799,7 @@ compile_view_attrs(Attrs) when is_map(Attrs) ->
               end, #{}, Attrs). 
 
 
-compile_model(Map) -> compile_object(Map).
+compile_model(Map) -> compile_term(Map).
 
 compile_cmds(Cmds) ->
     lists:map(fun compile_cmd/1, Cmds).

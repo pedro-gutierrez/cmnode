@@ -54,8 +54,9 @@ spec:
             encoder: forbidden
     ports:
       model:
-        ports:
-          key: ports 
+        object:
+          ports:
+            key: ports 
       cmds:
         - effect: notify
           encoder: ports

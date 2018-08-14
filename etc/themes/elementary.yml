@@ -17,6 +17,16 @@ spec:
             -webkit-transition: all 0.6s ease
             transition: all 0.6s ease
             -moz-transition: all 0.6s ease
+        - class: "hidden"
+          style:
+            display: none
+        - class: "active"
+          style:
+            text-decoration: none
+            font-weight: bold
+        - class: "level-2"
+          style:
+            margin-left: 1em
     - elem: "html"
       style:
         height: 100%
@@ -29,7 +39,7 @@ spec:
           key: darker
           in: colors 
         background-color:
-          key: default
+          key: darkest
           in: colors
     - elem: "layout"
       style:
@@ -39,10 +49,10 @@ spec:
       style:
         padding-left: 12em
         padding-right: 12em
-    - class: "content-section"
+    - class: "section-content"
       style:
-        padding-top: 2rem
-        padding-bottom: 2rem
+        padding-top: 2em
+        padding-bottom: 2em
     - elem: "footer"
       style:
         font-size: 14px
@@ -85,10 +95,15 @@ spec:
       style:
         padding-top: 1rem
         text-align: right
+        padding-bottom: 1em
+        background-color:
+          key: default
+          in: colors
       selectors:
         - s-class: "icon-label"
           style:
             font-weight: 400;
+            cursor: pointer
         - s-class: "action"
           style:
             display: inline-block
@@ -105,6 +120,11 @@ spec:
                     color:
                       key: dark
                       in: colors
+                - class: "active"
+                  style:
+                    color:
+                      key: dark
+                      in: colors
 
     - class: "tab"
       style:
@@ -114,15 +134,29 @@ spec:
         text-align: center
     - class: "highlights"
       style:
-        margin-top: 2rem;
         background-color:
           key: bright
           in: colors
+      selectors:
+        - s-class: "highlight-icon"
+          style:
+            font-size: 3em
+          selectors:
+            - elem: i
+              style:
+                position: relative;
+                top: -.8rem
+        - s-class: "highlight-content"
+          style:
+            text-align: left
     - class: "jumbo"
       style:
         text-align: center
-        margin-top: 4rem;
-        margin-bottom: 2rem;
+        padding-top: 4em
+        padding-bottom: 2em
+        background-color:
+          key: default
+          in: colors
       selectors:
         - elem: h1
           style:
@@ -135,6 +169,9 @@ spec:
             color: 
               key: brightest
               in: colors
+        - s-class: "jumbo-action"
+          style:
+            margin-top: 1em
     - class: "btn"
       style:
         border-radius: 4px
@@ -142,10 +179,15 @@ spec:
     - elem: "a"
       style:
         text-decoration: none
+        cursor: pointer
       selectors:
         - p-class: "hover"
           style:
             text-decoration: none
+        - class: "active"
+          style:
+            text-decoration: none
+            font-weight: bold
     - all-classes: "btn btn-primary"
       style:
         border: 0
@@ -158,6 +200,24 @@ spec:
             background-color: 
               key: darkest
               in: colors
+    - all-classes: "btn btn-danger"
+      style:
+        border: 0
+        color:
+          key: brightest
+          in: colors
+        background-color: 
+          key: danger
+          in: colors
+      selectors:
+        - p-class: "hover"
+          style:
+            color:
+              key: brightest
+              in: colors
+            background-color: 
+              key: critical
+              in: colors
     - class: "btn-xl"
       style:
         font-size: 1.0rem
@@ -167,10 +227,14 @@ spec:
     - class: "social"
       style:  
         text-align: center
+        background-color:
+          key: default
+          in: colors
       selectors:
         - s-class: 'subsubtitle'
           style:
             font-weight: bold
+            margin-bottom: 1em
             color:
               key: dark
               in: colors
@@ -207,3 +271,96 @@ spec:
               style:
                 position: relative
                 top: 2px
+    - elem: "code"
+      style:
+        font-size: 0.8rem
+        background-color:
+          format:
+            pattern: "~s !important"
+            params:
+              - key: darker
+                in: colors
+    - elem: "pre"
+      style:
+        border-radius: 5px
+        background-color:
+          format:
+            pattern: "~s !important"
+            params:
+              - key: darker
+                in: colors
+    - class: "guide"
+      style:
+        padding-top: 2rem
+        background-color:
+          key: bright
+          in: colors
+        min-height: 400px
+      selectors:
+        - s-class: guide-topic
+          style:
+            position: relative
+            top: -6px
+            min-height: 600px
+          selectors:
+            - s-class: "guide-paragraph"
+              style:
+                margin-top: 1em
+            - s-class: "toolbar-item"
+              selectors:
+                - elem: "a"
+                  style:
+                    padding: 0.2em .5em
+                    box-shadow: none
+            - s-class: "guide-tutorial-mockup"
+              style:
+                background-color:
+                  key: brightest
+                  in: colors
+                border-radius: 5px;
+                padding: 1em;
+                margin-top: 1em;
+                margin-bottom: 1em
+              selectors:
+                - s-class: "task"
+                  style:
+                    margin-bottom: .3rem
+                  selectors:
+                    - elem: "button"
+                      style:
+                        width: 100%
+                    - s-class: "done"
+                      style:
+                        text-decoration: line-through
+                - elem: input
+                  style:
+                    border: 0
+                    background-color:
+                      key: bright
+                      in: colors
+                    
+        - elem: a
+          style:
+            color: 
+              key: darker
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                color:
+                  key: dark
+                  in: colors
+        - elem: "input"
+          style:
+            border-radius: 5px
+            border-color:
+              key: dark
+              in: colors
+            padding: 1rem
+          selectors:
+            - p-class: "focus"
+              style:
+                border-color:
+                  key: darker
+                  in: colors
+

@@ -31,8 +31,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          app:
-            key: app
+          object:
+            app:
+              key: app
         cmds:
           - effect: config 
             encoder: app_config_query 
@@ -41,8 +42,9 @@ spec:
             encoder: forbidden
     app_config_found:
       model:
-        config:
-          key: config
+        object:
+          config:
+            key: config
       cmds:
         - effect: notify
           encoder: app_config

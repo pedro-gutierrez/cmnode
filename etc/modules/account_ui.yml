@@ -5,103 +5,115 @@ name: account_ui
 spec:
   init:
     model:
-      theme:
-        keyword: dark
-      message:
-        text:
-          literal: ""
-      email: 
-        text:
-          literal: ""
-      password:
-        text:
-          literal: ""
-      password_confirm:
-        text:
-          literal: ""
-      first:
-        text:
-          literal: ""
-      last:
-        text:
-          literal: ""
-      state: 
-        keyword: login 
+      object:
+        theme:
+          keyword: dark
+        message:
+          text:
+            literal: ""
+        email: 
+          text:
+            literal: ""
+        password:
+          text:
+            literal: ""
+        password_confirm:
+          text:
+            literal: ""
+        first:
+          text:
+            literal: ""
+        last:
+          text:
+            literal: ""
+        state: 
+          keyword: login 
     cmds:
       - effect: ui 
         encoder: login_view
   update:
     ws_connected:
       model:
-        message:
-          text:
-            literal: "Server reachable"
+        object:
+          message:
+            text:
+              literal: "Server reachable"
       cmds:
         - effect: ui
           encoder: login_view
     ws_disconnected:
       model:
-        message:
-          text:
-            literal: "Disconnected from server" 
+        object:
+          message:
+            text:
+              literal: "Disconnected from server" 
       cmds:
         - effect: ui
           encoder: login_view
     ws_error:
       model:
-        message:
-          text:
-            literal: "Server connection error"
+        object:
+          message:
+            text:
+              literal: "Server connection error"
       cmds:
         - effect: ui
           encoder: login_view
     ws_pong:
       model:
-        pong:
-          text:
-            literal: ""
+        object:
+          pong:
+            text:
+              literal: ""
     email_changed:
       model:
-        email:
-          key: value
+        object:
+          email:
+            key: value
       cmds:
         - effect: ui
     password_changed:
       model:
-        password:
-          key: value
+        object:
+          password:
+            key: value
       cmds:
         - effect: ui
     first_changed:
       model:
-        first:
-          key: value
+        object:
+          first:
+            key: value
       cmds:
         - effect: ui
     last_changed:
       model:
-        last:
-          key: value
+        object:
+          last:
+            key: value
       cmds:
         - effect: ui
     password_confirm_changed:
       model:
-        password_confirm:
-          key: value
+        object:
+          password_confirm:
+            key: value
       cmds:
         - effect: ui
     send_login:
       model:
-        state: 
-          keyword: logging_in
+        object:
+          state: 
+            keyword: logging_in
       cmds:
         - effect: ws
           encoder: login
         - effect: ui
     send_signup:
       model:
-        state:
-          keyword: registering
+        object:
+          state:
+            keyword: registering
       cmds:
         - effect: ws
           encoder: signup 
@@ -127,15 +139,16 @@ spec:
             - key: state
             - keyword: registering
         model:
-          password:
-            text: 
-              literal: ""
-          password_confirm:
-            text: 
-              literal: ""
-          message:
-            text:
-              literal: "Now please login with your new account"
+          object:
+            password:
+              text: 
+                literal: ""
+            password_confirm:
+              text: 
+                literal: ""
+            message:
+              text:
+                literal: "Now please login with your new account"
         cmds:
           - effect: ui
             encoder: login_view
@@ -144,9 +157,10 @@ spec:
             - key: state
             - keyword: logging_in 
         model:
-          message:
-            text:
-              literal: ""
+          object:
+            message:
+              text:
+                literal: ""
         cmds:
           - effect: events
             encoder: user_logged_in
@@ -155,12 +169,13 @@ spec:
           eq:
             - key: state
             - keyword: logging_in
-        model: 
-          state: 
-            keyword: login
-          message:
-            text:
-              literal: "Please check your data and try again"
+        model:
+          object:
+            state: 
+              keyword: login
+            message:
+              text:
+                literal: "Please check your data and try again"
         cmds:
           - effect: ui
     not_found:
@@ -168,12 +183,13 @@ spec:
           eq:
             - key: state
               keyword: logging_in
-        model: 
-          state: 
-            keyword: login
-          message:
-            text:
-              literal: "Invalid credentials"
+        model:
+          object:
+            state: 
+              keyword: login
+            message:
+              text:
+                literal: "Invalid credentials"
         cmds:
           - effect: ui
             encoder: login_view
@@ -183,11 +199,12 @@ spec:
             - key: state
             - keyword: logging_in
         model: 
-          state: 
-            keyword: login
-          message:
-            text:
-              literal: "Invalid credentials"
+          object:
+            state:
+              keyword: login
+            message:
+              text:
+                literal: "Invalid credentials"
         cmds:
           - effect: ui
   encoders:

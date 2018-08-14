@@ -38,8 +38,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          queue:
-            key: queue
+          object:
+            queue:
+              key: queue
         cmds:
           - effect: queue
             encoder: queue_query
@@ -48,15 +49,17 @@ spec:
             encoder: forbidden
     queues:
       model:
-        queues:
-          key: queues
+        object:
+          queues:
+            key: queues
       cmds:
         - effect: notify
           encoder: queues
     queue:
       model:
-        queue:
-          key: queue
+        object:
+          queue:
+            key: queue
       cmds:
         - effect: notify
           encoder: queue

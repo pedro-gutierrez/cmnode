@@ -46,8 +46,9 @@ spec:
             encoder: forbidden
     modules:
       model:
-        modules:
-          key: modules 
+        object:
+          modules:
+            key: modules 
       cmds:
         - effect: notify
           encoder: modules

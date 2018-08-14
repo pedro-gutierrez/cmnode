@@ -24,19 +24,31 @@
         });
     };
 
-    function encodeEntries(spec, data) {
-        function _(keys, v) {
-            if (!keys.length) return {value: v};
-            var k = keys.shift();
-            const { err, value } = encode(spec[k], data);
-            if (err) return error(spec[k], data, err);
-            v[k] = value;
-            return _(keys, v);
+    function encodeObject(spec, data, ctx) {
+        var out = {};
+        for (var k in spec) {
+            if (spec.hasOwnProperty(k)) {
+                const { err, value } = encode(spec[k], data, ctx);
+                if (err) return error(spec[k], data, err);
+                out[k] = value;
+            }
         }
-        return _(Object.keys(spec), {});
+        return { value: out };
+    }
+    
+    function encodeObjectWith(spec, data, ctx) {
+        var out = ctx;
+        for (var k in spec.object_with) {
+            if (spec.object_with.hasOwnProperty(k)) {
+                const { err, value } = encode(spec.object_with[k], data, ctx[k]);
+                if (err) return error(spec[k], data, err);
+                out[k] = value;
+            }
+        }
+        return { value: out };
     }
 
-    function encodeKey(spec, data) {
+    function encodeKey(spec, data, ctx) {
         if (!data) return error(spec, data, "no_data");
         switch(typeof(spec)) {
             case 'string':
@@ -44,15 +56,15 @@
                 return { value: data[spec]};
             case 'object':
                 if (spec.in) {
-                    var {err, value} = encodeKey(spec.in, data);
+                    var {err, value} = encodeKey(spec.in, data, ctx);
                     if (err) return error(spec, data, err);
-                    return encodeKey({ key: spec.key }, value)
+                    return encodeKey({ key: spec.key }, value, ctx)
                 } else {
                     switch (typeof(spec.key)) {
                         case 'object' :
-                            var {err, value} = encode(spec.key, data);
+                            var {err, value} = encode(spec.key, data, ctx);
                             if (err) return error(spec, data, err);
-                            return encodeKey({ key: value }, data);
+                            return encodeKey({ key: value }, data, ctx);
                         case 'string' :
                             if (!data.hasOwnProperty(spec.key)) return error(spec, data, "missing_key");
                             return { value: data[spec.key]};
@@ -65,48 +77,92 @@
         }
     }
 
-    function encodeList(items, data) {
+    function encodeList(items, data, ctx) {
         function _(items, v) {
             if (!items.length) return { value: v };
             var item = items.shift();
-            const { err, value } = encode(item, data);
+            const { err, value } = encode(item, data, ctx);
             if (err) return error(item, data, err);
             v.push(value);
             return _(items, v);
         }
         return _(items.slice(0), []);
     }
+    
+    function encodeListWith(spec, data, ctx) {
+        if (!ctx || !Array.isArray(ctx)) return error(spec, ctx, "not_a_list");
+        var {err, value} = encode(spec.list_with, data, ctx);
+        if (err) return error(spec, data, err);
+        ctx.push(value);
+        return { value: ctx };
+    }
+    
+    function encodeListWithout(spec, data, ctx) {
+        if (!ctx || !Array.isArray(ctx)) return error(spec, ctx, "not_a_list");
+        for (var i=0; i<ctx.length; i++) {
+            var item = ctx[i];
+            var {err, decoded} = decode(spec.list_without, item, data);
+            if (!err) {
+                //out[i] = item;
+                ctx.splice(i, 1);
+            }
+        }
+        return { value: ctx};
+    }
 
-    function encodeFormat(spec, data) {
+    function encodeListByReplacing(spec, data, ctx) {
+        if (!ctx || !Array.isArray(ctx)) return error(spec, ctx, "not_a_list");
+        var itemSpec = spec.list_by_replacing.items;
+        var encodeSpec = spec.list_by_replacing.with;
+        var out = [];
+        for (var i=0; i<ctx.length; i++) {
+            var item = ctx[i];
+            var {err, decoded} = decode(itemSpec, item, data);
+            if (err) {
+                out[i] = item;
+            } else {
+                var {err, value} = encode(encodeSpec, {item, data}, item);
+                if (err) return error(spec, data, err);
+                out[i] = value;
+            }
+        }
+        return {value: out};
+    }
+
+    function encodeFormat(spec, data, ctx) {
         const { pattern, params } = spec.format;
-        const { err, value } = encodeList(params, data);
+        const { err, value } = encodeList(params, data, ctx);
         return err ? error(spec, data, err) : {value: fmt( pattern, value)};
     }
 
-    function encodeMaybe(spec, data) {
-        const { err, value } = encode(spec.maybe, data);
+    function encodeMaybe(spec, data, ctx) {
+        const { err, value } = encode(spec.maybe, data, ctx);
         return {value};
     }
 
-    function encodeEqual(spec, data) {
-        function _(rem, v) {
-            if (!rem.length) return { value: true };
-            const s = rem.shift();
-            const { err, value } = encode(s, data);
+    function encodeEqual(spec, data, ctx) {
+        if (!spec.equal.length) return {value: false};
+        var {err, value}= encode(spec.equal[0], data, ctx);
+        if (err) return error(spec, data, err);
+        var expected = value;
+        for (var i=1; i<spec.equal.length; i++) {
+            var s = spec.equal[i];
+            var { err, value}= encode(s, data, ctx);
             if (err) return error(spec, data, err);
-            return (v && value != v) ? { value: false } : _(rem, value);
+            if (value != expected) return { value: false};
         }
-        return _(spec.equal.slice(0));
+        
+        return {value: true};
     }
 
-    function encodeIsSet(spec, data) {
-        var {err, value} = encode(spec.spec, data);
+    function encodeIsSet(spec, data, ctx) {
+        var {err, value} = encode(spec.spec, data, ctx);
         if (err) return error(spec, data, err);
         return value ? { value: true } : { value: false };
     }
     
-    function encodeNot(spec, data) {
-        var {err, value} = encode(spec.spec, data);
+    function encodeNot(spec, data, ctx) {
+        var {err, value} = encode(spec.spec, data, ctx);
         if (err) return error(spec, data, err);
         if (!typeof(value) === 'boolean') return error(spec, data, {
             value: value,
@@ -115,32 +171,32 @@
         return { value: !value };
     }
 
-    function encodeEither(spec, data) {
+    function encodeEither(spec, data, ctx) {
         function _(i) {
             if (i == spec.either.length) return error(spec, data, "no_condition_matched")
             var s = spec.either[i];
-            var { err, value } = encode(s.when, data);
+            var { err, value } = encode(s.when, data, ctx);
             if (err) return error(spec, data, err);
             if (!value) return _(i+1);
-            var { err, value } = encode(s.then, data);
+            var { err, value } = encode(s.then, data, ctx);
             if (err) return error(spec, data, err);
             return { value };
         }
         return _(0);
     }
 
-    function encodeUsingEncoder(spec, data) {
+    function encodeUsingEncoder(spec, data, ctx) {
         var enc = state.app.encoders[spec.encoder];
         if (!enc) return error(spec, data, "no_such_encoder");
-        return encode(enc, data);
+        return encode(enc, data, ctx);
     }
 
-    function encodeTimestamp(spec, data) {
+    function encodeTimestamp(spec, data, ctx) {
         if (spec.timestamp.format) {
-            var {err, value} = encode(spec.timestamp.format, data);
+            var {err, value} = encode(spec.timestamp.format, data, ctx);
             if (err) return error(spec, data, err);
             var pattern = value;
-            var {err, value} = encode(spec.timestamp.value, data);
+            var {err, value} = encode(spec.timestamp.value, data, ctx);
             if (err) return error(spec, data, err);
 
             switch(pattern) {
@@ -154,17 +210,17 @@
         return error(spec, data, "unsupported_timestamp_spec");
     }
 
-    function encodeText(spec, data) {
-        var {err, value} = encode(spec.text, data);
+    function encodeText(spec, data, ctx) {
+        var {err, value} = encode(spec.text, data, ctx);
         if (err) return error(spec, data, err);
-        return { value: ''+ value };
+        return { value: new String(''+value) };
     }
 
-    function encodePercent(spec, data) {
-        var {err, value} = encode(spec.percent.num, data);
+    function encodePercent(spec, data, ctx) {
+        var {err, value} = encode(spec.percent.num, data, ctx);
         if (err) return error(spec, data, err);
         var num = value;
-        var {err, value} = encode(spec.percent.den, data);
+        var {err, value} = encode(spec.percent.den, data, ctx);
         if (err) return error(spec, data, err);
         var den = value;
         if (!den) return { value: 0 }; 
@@ -172,28 +228,50 @@
         
     }
 
+    function encodeAny(spec, data, model, ctx) {
+        if (spec.any === 'object' && typeof(data) === 'object' && !Array.isArray(data)) {
+            return {value: data};
+        }
 
-    function encode(spec, data) {
+        return error(spec, data, "any spec not supported");
+    }
+    
+    function encodeExpression(spec, data, model, ctx) {
+        return {value: spec.expression};
+    }
+
+    function encode(spec, data, ctx) {
         switch(typeof(spec)) {
             case "object":
-                if (Array.isArray(spec)) return encodeList(spec, data);
-                if (spec.object) return encodeEntries(spec.object, data);
-                if (spec.key) return encodeKey(spec, data);
-                if (spec.format) return encodeFormat(spec, data);
-                if (spec.maybe) return encodeMaybe(spec, data);
-                if (spec.equal) return encodeEqual(spec, data);
-                if (spec.either) return encodeEither(spec, data);
-                if (spec.encoder) return encodeUsingEncoder(spec, data);
-                if (spec.timestamp) return encodeTimestamp(spec, data);
-                if (spec.text) return encodeText(spec, data);
-                if (spec.percent) return encodePercent(spec, data);
-                if (spec.is_set) return encodeIsSet(spec, data);
-                if (spec.not) return encodeNot(spec, data);
+                if (Array.isArray(spec)) return encodeList(spec, data, ctx);
+                if (spec.object) return encodeObject(spec.object, data, ctx);
+                if (spec.object_with) return encodeObjectWith(spec, data, ctx);
+                if (spec.list_with) return encodeListWith(spec, data, ctx);
+                if (spec.list_by_replacing) return encodeListByReplacing(spec, data, ctx);
+                if (spec.list_without) return encodeListWithout(spec, data, ctx);
+                if (spec.key) return encodeKey(spec, data, ctx);
+                if (spec.format) return encodeFormat(spec, data, ctx);
+                if (spec.maybe) return encodeMaybe(spec, data, ctx);
+                if (spec.equal) return encodeEqual(spec, data, ctx);
+                if (spec.either) return encodeEither(spec, data, ctx);
+                if (spec.encoder) return encodeUsingEncoder(spec, data, ctx);
+                if (spec.timestamp) return encodeTimestamp(spec, data, ctx);
+                if (spec.text) return encodeText(spec, data, ctx);
+                if (spec.percent) return encodePercent(spec, data, ctx);
+                if (spec.is_set) return encodeIsSet(spec, data, ctx);
+                if (spec.not) return encodeNot(spec, data, ctx);
+                if (spec.any) return encodeAny(spec, data, ctx);
+                if (spec.expression) return encodeExpression(spec, data, ctx);
                 if (!Object.keys(spec).length) return {value: {}};
-                return error(spec, data, 'encoder_not_supported');
             default: 
                 return { value: spec };
         }
+    }
+
+    function objectValueDecoder(spec, ctx) {
+        if (spec.key) {
+            return encode(spec, ctx);
+        } else return {value: spec};
     }
 
     function decodeObject(spec, data, ctx) {
@@ -201,8 +279,9 @@
         function _(keys, out) {
             if (!keys.length) return { decoded: out};
             var k = keys.shift();
-            var spec2 = spec.object[k];
-            const {err, decoded} = decode(spec2, data[k], ctx);
+            var {err, value} = objectValueDecoder(spec.object[k], ctx);
+            if (err) return error(spec, data, err);
+            var {err, decoded} = decode(value, data[k], ctx);
             if (err) return error(spec, data, err);
             out[k] = decoded;
             return _(keys, out);
@@ -289,6 +368,7 @@
                 if (spec.one_of) return decodeOne(spec, data, ctx);
                 if (spec.json) return decodeJson(spec, data, ctx);
                 if (spec.size) return decodeSize(spec, data, ctx);
+                return error(spec, data, "decoder_not_supported");
             default :
                 return (spec === data) ? { decoded: data } : error(spec, data, "no_match");
         }
@@ -384,7 +464,7 @@
 
     function updateModel(spec, data) {
         if (!spec) return;
-        var {err, value} = encode(spec, data);
+        var {err, value} = encode(spec, data, state.model);
         if (err) return err;
         Object.assign(state.model, value);
     }
@@ -393,7 +473,7 @@
         if (state.app.settings.debug) console.log(msg, data);
     }
 
-    function update(ev) {
+    function _update(ev) {
         const { encoders, effects, decoders, update } = state.app;
         const t0 = new Date();
         var {err, decoded } = tryDecoders(ev, decoders);
@@ -426,6 +506,12 @@
                 + "[update " + (t2.getMilliseconds() - t1.getMilliseconds()) + "ms]"
                 + "[cmds " + (t3.getMilliseconds() - t2.getMilliseconds()) + "ms]");
         }
+    }
+
+    function update(ev) {
+        setTimeout(function() {
+            _update(ev);
+        }, 0)
     }
     
     function init(app) {

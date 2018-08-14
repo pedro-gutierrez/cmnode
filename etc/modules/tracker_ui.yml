@@ -5,14 +5,16 @@ name: tracker_ui
 spec:
   init:
     model:
-      projects: []
+      object:
+        projects: []
   update:
     projects:
       model:
-        projects:
-          key: data
-          in: 
+        object:
+          projects:
             key: data
+            in: 
+              key: data
       cmds:
         - effect: ui
           encoder: projects_view
@@ -24,12 +26,13 @@ spec:
           encoder: projects
     show_new_project:
       model:
-        project_name:
-          text:
-            literal: ""
-        project_description:
-          text:
-            literal: ""
+        object:
+          project_name:
+            text:
+              literal: ""
+          project_description:
+            text:
+              literal: ""
       cmds:
         - effect: ui
           encoder: tracker_project_create_view
@@ -39,14 +42,16 @@ spec:
           encoder: tracker_bootstrap_view
     project_name:
       model:
-        project_name:
-          key: value
+        object:
+          project_name:
+            key: value
       cmds:
         - effect: ui
     project_description:
       model:
-        project_description:
-          key: value
+        object:
+          project_description:
+            key: value
       cmds:
         - effect: ui
     create_project:

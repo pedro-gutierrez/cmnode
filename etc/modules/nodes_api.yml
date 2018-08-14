@@ -44,8 +44,9 @@ spec:
             encoder: forbidden
     nodes:
       model:
-        nodes:
-          key: nodes 
+        object:
+          nodes:
+            key: nodes 
       cmds:
         - effect: notify
           encoder: nodes

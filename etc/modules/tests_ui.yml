@@ -5,20 +5,21 @@ name: tests_ui
 spec:
   init:
     model:
-      tests: []
-      test: {}
-      test_reports: []
-      selected_test: ""
-      tests_activity:
-        object:
-          active:
-            current: 0
-            max: 0
-            items: []
-          pending:
-            current: 0
-            max: 0
-            items: []
+      object:
+        tests: []
+        test: {}
+        test_reports: []
+        selected_test: ""
+        tests_activity:
+          object:
+            active:
+              current: 0
+              max: 0
+              items: []
+            pending:
+              current: 0
+              max: 0
+              items: []
   decoders:
     show_activity:
       object:
@@ -344,70 +345,79 @@ spec:
           encoder: tests_activity_view
     test_settings:
       model:
-        settings:
-          key: settings
-          in: data
+        object:
+          settings:
+            key: settings
+            in: data
       cmds:
         - effect: ui
     tests:
       model:
-        tests:
-          key: tests
-          in: 
-            key: data
+        object:
+          tests:
+            key: tests
+            in: 
+              key: data
       cmds:
         - effect: ui
     test_reports:
       model:
-        test_reports:
-          key: test_reports
-          in: data
+        object:
+          test_reports:
+            key: test_reports
+            in: data
       cmds:
         - effect: ui
     test_report:
       model:
-        test_report:
-          key: test_report
-          in: data
+        object:
+          test_report:
+            key: test_report
+            in: data
       cmds:
         - effect: ui
           encoder: test_report_view
     tests_activity:
       model:
-        tests_activity:
-          key: tests
-          in: data
+        object:
+          tests_activity:
+            key: tests
+            in: data
       cmds:
         - effect: ui
     show_test:
       model:
-        test: 
-          key: test
-          in: event
+        object:
+          test: 
+            key: test
+            in: event
       cmds:
         - effect: ws
           encoder: test_info
     show_scenario:
       model:
-        scenario: 
-          key: scenario
-          in: event
+        object:
+          scenario:
+            key: scenario
+            in: event
       cmds:
         - effect: ws
           encoder: scenario_info
     show_background:
       model:
-        background: 
-          key: background
-          in: event
+        object:
+          background: 
+            key: background
+            in: event
       cmds:
         - effect: ws
           encoder: background_info
     show_test_reports:
       model:
-        activity_panel:
-          keyword: visible
-        test_reports: []
+        object:
+          activity_panel:
+            keyword: visible
+          test_reports: []
       cmds:
         - effect: ui
           encoder: test_reports_view
@@ -421,49 +431,55 @@ spec:
           encoder: settings_query
     show_test_report:
       model:
-        report: 
-          key: report
-          in: event
+        object:
+          report: 
+            key: report
+            in: event
       cmds:
         - effect: ws
           encoder: test_report
     test:
       model:
-        test:
-          key: test
-          in: data
+        object:
+          test:
+            key: test
+            in: data
       cmds:
         - effect: ui
           encoder: test_view
     scenario:
       model:
-        scenario:
-          key: scenario
-          in: data
+        object:
+          scenario:
+            key: scenario
+            in: data
       cmds:
         - effect: ui
           encoder: scenario_view
     background:
       model:
-        background:
-          key: background
-          in: data
+        object:
+          background:
+            key: background
+            in: data
       cmds:
         - effect: ui
           encoder: background_view
     schedule_test:
       model:
-        selected_settings:
-          key: settings
-          in: event
+        object:
+          selected_settings:
+            key: settings
+            in: event
       cmds:
         - effect: ws
           encoder: schedule_test
     pre_schedule_test:
       model:
-        selected_test: 
-          key: test
-          in: event
+        object:
+          selected_test: 
+            key: test
+            in: event
       cmds:
         - effect: ws
           encoder: test_activity_query
@@ -471,9 +487,10 @@ spec:
           encoder: tests_activity_view
     cancel_test:
       model:
-        test_job_id:
-          key: id 
-          in: event
+        object:
+          test_job_id:
+            key: id 
+            in: event
       cmds:
         - effect: ws
           encoder: cancel_test

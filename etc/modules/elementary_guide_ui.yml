@@ -3,55 +3,95 @@ type: module
 category: ui
 name: elementary_guide_ui 
 spec:
-  decoders:
-    show_guide:
-      object:
-        effect: ui
-        event: guide
-  update:
-    show_guide:
-      model:
-        content_view: guide_layout_view
-        content:
-          object:
-            guide_view: guide_intro_view
-            guide_content: 
-              object:
-                message: "Hello"
-      cmds:
-        - effect: ui
   encoders: 
     guide_nav_view:
-      view:
-        view: nav_view
+      view: 
+        view: actions_view
         params:
           object:
-            selected:
-              key: selected 
+            style: "nav-action"
             items:
               - object:
-                  id: "guide_intro_view" 
-                  title: "Introduction"
+                  type: action_button
+                  id: "guide_get_started" 
+                  title: "Get started"
                   icon: ""
+                  style: "level-1"
+                  active:
+                    equal:
+                      - text: "guide_get_started"
+                      - key: selected_topic
+                  visible:
+                    keyword: true
               - object:
-                  id: "guide_setup_view" 
-                  title: "Setup"
+                  type: action_button
+                  id: "guide_tutorial" 
+                  title: "Tutorial"
                   icon: ""
+                  style: "level-1"
+                  active:
+                    equal:
+                      - text: "guide_tutorial"
+                      - key: selected_topic
+                  visible:
+                    keyword: true
               - object:
-                  id: "guide_concepts_view" 
-                  title: "Concepts"
+                  type: action_button
+                  id: "guide_tutorial_first_app" 
+                  title: "Your first app"
                   icon: ""
-    guide_intro_view:
+                  style: "level-2"
+                  active: 
+                    equal:
+                      - text: "guide_tutorial_first_app"
+                      - key: selected_subtopic
+                  visible:
+                    equal:
+                      - text: "guide_tutorial"
+                      - key: selected_topic
+              - object:
+                  type: action_button
+                  id: "guide_tutorial_first_effect" 
+                  title: "Your first effect"
+                  icon: ""
+                  style: "level-2"
+                  active: 
+                    equal:
+                      - text: "guide_tutorial_first_effect"
+                      - key: selected_subtopic
+                  visible:
+                    equal:
+                      - text: "guide_tutorial"
+                      - key: selected_topic
+              - object:
+                  type: action_button
+                  id: "guide_fundamentals" 
+                  title: "Fundamentals"
+                  icon: ""
+                  style: "level-1"
+                  active:
+                    equal:
+                      - text: "guide_fundamentals"
+                      - key: selected_topic
+                  visible:
+                    keyword: true
+              - object:
+                  type: action_button
+                  id: "guide_effects" 
+                  title: "Effects"
+                  icon: ""
+                  style: "level-1"
+                  active:
+                    equal:
+                      - text: "guide_effects"
+                      - key: selected_topic
+                  visible:
+                    keyword: true
+    guide_view:
       view:
-        tag: div
-        children:
-          - text:
-              key: message
-    guide_layout_view:
-      view:
-        tag: div
+        tag: section
         attrs:
-          class: "columns"
+          class: "columns section section-content guide"
         children:
           - tag: div
             attrs:
@@ -60,13 +100,102 @@ spec:
               - view: guide_nav_view
                 params:
                   object:
-                    selected:
-                      key: guide_view
+                    selected_topic:
+                      key: guide_current_topic
+                    selected_subtopic:
+                      key: guide_current_subtopic
           - tag: div
             attrs:
               class: "column col-9"
             children:
-              - view:
-                  key: guide_view
+              - view: guide_topic_view
                 params:
                   key: guide_content
+    guide_topic_view:
+      view:
+        tag: div
+        attrs:
+          class: "guide-topic"
+        children:
+          loop: items
+          with: guide_topic_item_view
+          context:
+            object:
+              tutorial:
+                maybe:
+                  key: tutorial
+    guide_topic_item_view:
+        view:
+          tag: div
+          attrs:
+            class: "guide-topic-item"
+          children:
+            - view:
+                key: type
+                in: item
+              params:
+                object:
+                  item: 
+                    key: item
+                  context:
+                    key: context
+    guide_section_view:
+      view:
+        tag: div
+        attrs:
+          class: "guide-section"
+        children:
+          - tag: h1
+            children:
+              - text:
+                  key: title
+                  in: item
+          - tag: div
+            children:
+              loop: 
+                key: items
+                in: item
+              with: guide_topic_item_view
+              context:
+                key: context
+    guide_paragraph_view:
+      view:
+        tag: div
+        attrs:
+          class: "guide-paragraph"
+        children:
+          - tag: h3
+            children:
+              - text:
+                  key: title
+                  in: item
+          - tag: div
+            children:
+              loop: 
+                key: items
+                in: item
+              with: guide_topic_item_view
+              context:
+                key: context
+    guide_text_view:
+      view:
+        tag: div
+        attrs:
+          class: "guide-text"
+        children:
+          - text:
+              key: text
+              in: item
+    guide_code_view:
+      view:
+        tag: div
+        attrs:
+          class: "guide-code"
+        children:
+          - code:
+              source:
+                key: source
+                in: item
+              lang:
+                key: lang
+                in: item

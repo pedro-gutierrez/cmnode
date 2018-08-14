@@ -55,8 +55,9 @@ spec:
             encoder: forbidden
     issues:
       model:
-        issues:
-          key: values
+        object:
+          issues:
+            key: values
       cmds:
         - effect: notify
           encoder: issues

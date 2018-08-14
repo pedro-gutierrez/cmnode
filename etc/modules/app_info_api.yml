@@ -41,8 +41,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          app:
-            key: app
+          object:
+            app:
+              key: app
         cmds:
           - effect: config 
             encoder: app_info_query 
@@ -51,10 +52,11 @@ spec:
             encoder: forbidden
     app_info_found:
       model:
-        category:
-          key: category
-        debug:
-          key: debug
+        object:
+          category:
+            key: category
+          debug:
+            key: debug
       cmds:
         - effect: notify
           encoder: app_info

@@ -36,8 +36,9 @@ spec:
       - when:
           encoder: is_admin
         model:
-          settings:
-            key: settings
+          object:
+            settings:
+              key: settings
         cmds:
           - effect: config 
             encoder: single_settings_query
@@ -46,8 +47,9 @@ spec:
             encoder: forbidden
     settings:
       model:
-        settings:
-          key: settings
+        object:
+          settings:
+            key: settings
       cmds:
         - effect: notify
           encoder: settings

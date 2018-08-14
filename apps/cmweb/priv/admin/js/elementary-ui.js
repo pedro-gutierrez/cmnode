@@ -7,7 +7,8 @@ export default (name, settings, app) => {
     }
 
     function event(eventName, value) {
-        const e = { effect: name, event: eventName, value: value };
+        const e = { effect: name, event: eventName };
+        if (value) e.value = value;
         update(e);
     }
 
@@ -16,36 +17,22 @@ export default (name, settings, app) => {
     }
 
     function evValue(target) {
-        return target.files || target.value || "";
+        var v = target.files || target.value;
+        if (v && typeof(v) === 'string') {
+            v = v.trimLeft();
+            return v.length ? v : null;
+        } return v;
     }
 
-    function addHandlers(attrs) {
-        function _(keys, out) {
-            if (!keys.length) return out;
-            var k = keys.shift();
-            var v = attrs[k];
-            switch (k) {
-                case "onclick":
-                    out[k] = () => { event(v); }
-                    break;
-                case "onchange":
-                    out.oninput = (ev) => {
-                        event(v, evValue(ev.target))
-                    }
-                    break;
-                case "oninput":
-                    out.onchange = (ev) => {
-                        event(v, evValue(ev.target))
-                    }
-                    break;
-                default: 
-                    out[k] = v
+    function evProps(ev) {
+        return { 
+            event: {
+                key: ev.key
             }
-            return _(keys, out);
-        };
-        return _(Object.keys(attrs), attrs);
+        }
     }
     
+
     function resolve(views, spec, ctx) {
         switch(typeof(spec)) {
             case 'object':
@@ -108,14 +95,32 @@ export default (name, settings, app) => {
         return value ? compile(views, view, withSettings(params)) 
             : {view: ['div']};
     }
+    
+    function attrsWithEvHandlers(attrs, ctx) {
+        for (var k in attrs) {
+            if (attrs.hasOwnProperty(k) && k.startsWith("on") ) {
+                var spec = attrs[k];
+                attrs[k] = (ev) => {
+                    const specCtx = Object.assign({}, ctx, evProps(ev));
+                    console.log("encoding handler event", spec, specCtx);
+                    const {err, value} = encode(spec, specCtx);
+                    if (err) {
+                        console.error("Error encoding handler event", k, spec, ev, err);
+                    } else event(value, evValue(ev.target));
+                }
+            }
+        }
+        return attrs;
+    }
 
     function compileTag(views, spec, ctx) {
         const { tag, attrs, children } = spec;
-        var { err, value } = encode(attrs, ctx);
+        var {err, value} = encode(attrs, ctx);
         if (err) return error(spec, ctx, err);
         var { err, view } = compile(views, children, ctx);
         if (err) return {err};
-        return { view: [tag, addHandlers(value) ].concat(view) };
+        var attrs2 = attrsWithEvHandlers(value, ctx);
+        return { view: [tag, attrs2 ].concat(view) };
     }
 
     function compileText(views, spec, ctx) {
@@ -163,38 +168,19 @@ export default (name, settings, app) => {
         return { view: value };
     }
 
-
-    function compileJsonTerm(value) {
-        if (!value) return [ 'span', { class: 'undefined'}, "Undefined" ];
-        var kind = typeof(value);
-        switch (kind) {
-            case 'object':
-                if (Array.isArray(value)) return [ 'ul', 
-                    { class: 'list'}
-                ].concat(value.map((v) => {
-                    return ['li', { class: 'item' }, compileJsonTerm(v) ];
-                }));
-
-                return [ 'ul',
-                    { class: 'object'}
-                ].concat(Object.keys(value).filter((k) => {
-                    return value.hasOwnProperty(k);
-                }).map((k) => {
-                    return ['li', { class: 'prop' }, 
-                        [ 'strong', { class: 'name' }, compileJsonTerm(k), ['span', { class: 'separator' }, ':' ]],
-                        compileJsonTerm(value[k]) ];
-                }));
-            default:
-                return [ 'span', { class: "value " + kind  }, "" + value ];
-        }
-    }
-
-    function compileJson(views, spec, ctx) {
-        var {err, value} = encode(spec.json.source, ctx);
+    function compileCode(views, spec, ctx) {
+        var {err, value} = encode(spec.code.source, ctx);
         if (err) return error(spec, ctx, err);
-        return { view: ['div', {
-            class: "json",
-        }, compileJsonTerm(value)]};
+        var source = value;
+        var {err, value} = encode(spec.code.lang, ctx);
+        if (err) return error(spec, ctx, err);
+        var lang = 'language-' + value;
+        setTimeout(Prism.highlightAll, 0);
+        return { view: ['pre', {
+            class: lang
+        }, ['code', {
+            class: lang
+        }, source]]};
     }
 
     function compile(views, spec, ctx) {
@@ -206,7 +192,7 @@ export default (name, settings, app) => {
         if (spec.either) return compileEither(views, spec, ctx);
         if (spec.map) return compileMapbox(views, spec, ctx);
         if (spec.timestamp) return compileTimestamp(views, spec, ctx);
-        if (spec.json) return compileJson(views, spec, ctx);
+        if (spec.code) return compileCode(views, spec, ctx);
         return error(spec, ctx, "view_not_supported");
     }
 

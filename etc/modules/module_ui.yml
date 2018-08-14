@@ -6,11 +6,12 @@ spec:
   update:
     show_module:
       model:
-        name:
-          key: name
-          in:
-            key: module
-            in: event
+        object:
+          name:
+            key: name
+            in:
+              key: module
+              in: event
       cmds:
         - effect: ui
           encoder: module_loading_view
@@ -18,9 +19,10 @@ spec:
           encoder: module
     module:
       model:
-        module:
-          key: module
-          in: data
+        object:
+          module:
+            key: module
+            in: data
       cmds:
         - effect: ui
           encoder: module_view

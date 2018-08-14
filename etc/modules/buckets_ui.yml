@@ -5,15 +5,17 @@ name: buckets_ui
 spec:
   init:
     model:
-      buckets:
-        list: []
+      object:
+        buckets:
+          list: []
   update:
     buckets:
       model:
-        buckets:
-          key: data
-          in: 
+        object:
+          buckets:
             key: data
+            in: 
+              key: data
       cmds:
         - effect: ui
           encoder: buckets_view

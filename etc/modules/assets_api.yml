@@ -77,14 +77,15 @@ spec:
         - effect: terminate
     asset_query:
       model:
-        id: 
-          key: id
-          in: query
-        size:
-          key: size
-          in: query
-        type:
-          keyword: image
+        object:
+          id: 
+            key: id
+            in: query
+          size:
+            key: size
+            in: query
+          type:
+            keyword: image
       cmds:
         - effect: file
           encoder: thumbnail_query
@@ -95,42 +96,45 @@ spec:
         - effect: terminate
     s3_start:
       model:
-        stream:
-          object:
-            event:
-              keyword: start
-            data:
-              object:
-                content-type:
-                  text: "image/jpeg"
-                content-length:
-                  key: content-length
-                  in:
-                    key: headers
+        object:
+          stream:
+            object:
+              event:
+                keyword: start
+              data:
+                object:
+                  content-type:
+                    text: "image/jpeg"
+                  content-length:
+                    key: content-length
                     in:
-                      key: data
+                      key: headers
+                      in:
+                        key: data
       cmds:
         - effect: stream
           encoder: stream 
     s3_data:
       model:
-        stream:
-          object:
-            event:
-              keyword: data
-            data:
-              key: data
+        object:
+          stream:
+            object:
+              event:
+                keyword: data
+              data:
+                key: data
       cmds:
         - effect: stream
           encoder: stream 
     s3_end:
       model:
-        stream:
-          object:
-            event:
-              keyword: end
-            data:
-              key: data
+        object:
+          stream:
+            object:
+              event:
+                keyword: end
+              data:
+                key: data
       cmds:
         - effect: stream
           encoder: stream 

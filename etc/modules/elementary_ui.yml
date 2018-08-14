@@ -22,3 +22,7 @@ spec:
               - elementary_home_ui
               - elementary_common_ui
               - elementary_guide_ui
+              - elementary_guide_get_started_ui
+              - elementary_guide_tutorial_ui
+              - elementary_guide_tutorial_first_app_ui
+              - elementary_guide_tutorial_first_effect_ui

@@ -306,10 +306,11 @@ spec:
             encoder: forbidden
     project_uuid:
       model:
-        uuid:
-          key: uuid
-        project_status:
-          keyword: planning
+        object:
+          uuid:
+            key: uuid
+          project_status:
+            keyword: planning
       cmds:
           - effect: db_put
             encoder: project_entries
@@ -317,10 +318,11 @@ spec:
       - when:
           encoder: is_admin
         model:
-          name:
-            key: name
-          description:
-            key: description
+          object:
+            name:
+              key: name
+            description:
+              key: description
         cmds:
           - effect: uuid
             encoder: project_context
@@ -331,14 +333,15 @@ spec:
       - when:
           encoder: is_admin
         model:
-          project:
-            key: project
-          name:
-            key: name
-          description:
-            key: description
-          state:
-            keyword: editing_project
+          object:
+            project:
+              key: project
+            name:
+              key: name
+            description:
+              key: description
+            state:
+              keyword: editing_project
         cmds:
           - effect: db_get
             encoder: project_owner_lookup_for_edit
@@ -347,8 +350,9 @@ spec:
             encoder: forbidden
     project_info:
       model:
-        project:
-          key: project
+        object:
+          project:
+            key: project
       cmds:
         - effect: db_get
           encoder: project_members_for_info
@@ -386,15 +390,17 @@ spec:
             encoder: forbidden
     project_found_for_info:
       model:
-        project:
-          key: value
+        object:
+          project:
+            key: value
       cmds:
         - effect: notify
           encoder: project
     project_found_for_edit:
       model:
-        project:
-          key: value
+        object:
+          project:
+            key: value
       cmds:
         - effect: db_put
           encoder: updated_project
@@ -404,7 +410,8 @@ spec:
           encoder: not_found
     projects_not_found:
       model:
-        projects: []
+        object:
+          projects: []
       cmds:
         - effect: notify
           encoder: projects
@@ -414,8 +421,9 @@ spec:
           encoder: project
     projects:
       model:
-        projects:
-          key: values
+        object:
+          projects:
+            key: values
       cmds:
         - effect: notify
           encoder: projects

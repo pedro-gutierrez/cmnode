@@ -5,8 +5,9 @@ name: settings_ui
 spec:
   init:
     model:
-      settings:
-        list: []
+      object:
+        settings:
+          list: []
   decoders:
     show_settings:
       object:
@@ -26,10 +27,11 @@ spec:
   update:
     settings:
       model:
-        settings:
-          key: settings
-          in: 
-            key: data
+        object:
+          settings:
+            key: settings
+            in: 
+              key: data
       cmds:
         - effect: ui
     show_settings:

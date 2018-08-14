@@ -44,8 +44,9 @@ spec:
             encoder: forbidden
     apps:
       model:
-        apps:
-          key: apps
+        object:
+          apps:
+            key: apps
       cmds:
         - effect: notify
           encoder: apps

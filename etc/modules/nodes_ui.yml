@@ -5,15 +5,17 @@ name: nodes_ui
 spec:
   init:
     model:
-      nodes:
-        list: []
+      object:
+        nodes:
+          list: []
   update:
     nodes:
       model:
-        nodes:
-          key: data
-          in: 
+        object:
+          nodes:
             key: data
+            in: 
+              key: data
       cmds:
         - effect: ui
           encoder: nodes_view

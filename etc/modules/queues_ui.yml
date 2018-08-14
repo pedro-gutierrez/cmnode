@@ -5,8 +5,9 @@ name: queues_ui
 spec:
   init:
     model:
-      queues:
-        list: []
+      object:
+        queues:
+          list: []
   decoders:
     show_queues:
       object:
@@ -26,10 +27,11 @@ spec:
   update:
     queues:
       model:
-        queues:
-          key: queues
-          in: 
-            key: data
+        object:
+          queues:
+            key: queues
+            in: 
+              key: data
       cmds:
         - effect: ui
           encoder: queues_view

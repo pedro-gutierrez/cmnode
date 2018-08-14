@@ -40,10 +40,11 @@ spec:
   update:
     valid_authorization:
       model:
-        user_id:
-          hash:
-            key: authorization
-            in: headers
+        object:
+          user_id:
+            hash:
+              key: authorization
+              in: headers
       cmds:
         - effect: notify
           encoder: authorized

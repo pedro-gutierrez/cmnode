@@ -5,33 +5,36 @@ name: app_ui
 spec:
   init:
     model:
-      category: 
-        keyword: none
-      debug:
-        keyword: none
-      config:
-        list: []
+      object:
+        category: 
+          keyword: none
+        debug:
+          keyword: none
+        config:
+          list: []
   update:
     app_info:
       model:
-        category:
-          key: category
-          in: 
-            key: info
-            in: data
-        debug:
-          key: debug
-          in:
-            key: info
-            in: data
+        object:
+          category:
+            key: category
+            in: 
+              key: info
+              in: data
+          debug:
+            key: debug
+            in:
+              key: info
+              in: data
       cmds:
         - effect: ui
           encoder: app_view
     app_config:
       model:
-        config:
-          key: config
-          in: data
+        object:
+          config:
+            key: config
+            in: data
       cmds:
         - effect: ui
           encoder: app_view
@@ -41,25 +44,27 @@ spec:
           encoder: app_view
     modules:
       model:
-        modules:
-          key: modules
-          in: data
-        modules_view:
-          keyword: app_modules_table_view
+        object:
+          modules:
+            key: modules
+            in: data
+          modules_view:
+            keyword: app_modules_table_view
       cmds:
         - effect: ui
           encoder: app_view
     show_app:
       model:
-        modules:
-          list: []
-        app:
-          key: name
-          in:
-            key: app
-            in: event
-        modules_view: 
-          keyword: app_modules_empty_view
+        object:
+          modules:
+            list: []
+          app:
+            key: name
+            in:
+              key: app
+              in: event
+          modules_view: 
+            keyword: app_modules_empty_view
       cmds:
         - effect: ui
           encoder: app_view

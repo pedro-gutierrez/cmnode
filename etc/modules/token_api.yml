@@ -73,26 +73,29 @@ spec:
   update:
     token_request:
       model:
-        subject:
-          key: subject
-        type:
-          key: type
-        intent:
-          key: intent
+        object:
+          subject:
+            key: subject
+          type:
+            key: type
+          intent:
+            key: intent
       cmds:
         - effect: uuid
           encoder: token_context
     uuid_for_token:
       model:
-        uuid:
-          key: uuid
+        object:
+          uuid:
+            key: uuid
       cmds:
         - effect: now
           encoder: token_context
     now_for_token:
       model:
-        now:
-          key: now
+        object:
+          now:
+            key: now
       cmds:
         - effect: db_put
           encoder: token_entries

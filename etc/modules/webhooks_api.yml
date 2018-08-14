@@ -883,8 +883,9 @@ spec:
   update:
     netc_certs_changed:
       model:
-        domain:
-          text: "netc.io"
+        object:
+          domain:
+            text: "netc.io"
       cmds:
         - effect: slack
           encoder: certs_changed_announcement
@@ -896,8 +897,9 @@ spec:
           encoder: ok
     netk_certs_changed:
       model:
-        domain:
-          text: "netk.io"
+        object:
+          domain:
+            text: "netk.io"
       cmds:
         - effect: slack
           encoder: certs_changed_announcement
@@ -907,11 +909,12 @@ spec:
           encoder: ok
     nimg_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -921,13 +924,14 @@ spec:
           encoder: ok
     nimg_docker_dev_ready:
       model:
-        settings:
-          keyword: dev
-        docker_image:
-          object:
-            name: "nimg"
-            repo: "netcomposer/nimg"
-            tag: "latest"
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name: "nimg"
+              repo: "netcomposer/nimg"
+              tag: "latest"
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -937,8 +941,9 @@ spec:
           encoder: ok
     nimg_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -954,14 +959,15 @@ spec:
           encoder: ok
     nimg_dev_tests_failed:
       model:
-        repo:
-          text: "netcomposer/nimg"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/nimg"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -973,17 +979,18 @@ spec:
           encoder: ok
     nimg_docker_release_ready:
       model:
-        settings:
-          keyword: preprod
-        docker_image:
-          object:
-            name: "nimg"
-            repo: "netcomposer/nimg"
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: "nimg"
+              repo: "netcomposer/nimg"
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1001,13 +1008,14 @@ spec:
           encoder: ok
     transcoder_docker_dev_ready:
       model:
-        settings:
-          keyword: dev
-        docker_image:
-          object:
-            name: "transcoder"
-            repo: "netcomposer/transcoder"
-            tag: "latest"
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name: "transcoder"
+              repo: "netcomposer/transcoder"
+              tag: "latest"
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1017,8 +1025,9 @@ spec:
           encoder: ok
     transcoder_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1034,14 +1043,15 @@ spec:
           encoder: ok
     transcoder_dev_tests_failed:
       model:
-        repo:
-          text: "netcomposer/transcoder"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/transcoder"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -1053,17 +1063,18 @@ spec:
           encoder: ok
     transcoder_docker_release_ready:
       model:
-        settings:
-          keyword: preprod
-        docker_image:
-          object:
-            name: "transcoder"
-            repo: "netcomposer/transcoder"
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: "transcoder"
+              repo: "netcomposer/transcoder"
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1073,8 +1084,9 @@ spec:
           encoder: ok
     docker_preprod_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1082,25 +1094,26 @@ spec:
           encoder: ok
     webclient_dev_docker_ready:
       model:
-        settings:
-          keyword: dev
-        docker_image:
-          object:
-            name:
-              key: name
-              in:
-                key: repository
-                in: body
-            repo:
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name:
+                key: name
+                in:
+                  key: repository
+                  in: body
+              repo:
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1110,25 +1123,26 @@ spec:
           encoder: ok
     webclient_release_docker_ready:
       model:
-        settings:
-          keyword: preprod
-        docker_image:
-          object:
-            name:
-              key: name
-              in:
-                key: repository
-                in: body
-            repo:
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name:
+                key: name
+                in:
+                  key: repository
+                  in: body
+              repo:
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1138,11 +1152,12 @@ spec:
           encoder: ok
     sipstorm_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1152,11 +1167,12 @@ spec:
           encoder: ok
     sipstorm_sms_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1166,11 +1182,12 @@ spec:
           encoder: ok
     sipstorm_c4_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1180,27 +1197,28 @@ spec:
           encoder: ok
     sipstorm_dev_docker_ready:
       model:
-        settings:
-          keyword: dev
-        name: 
-          text: "sipstorm"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sipstorm"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1210,8 +1228,9 @@ spec:
           encoder: ok
     sipstorm_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1227,14 +1246,15 @@ spec:
           encoder: ok
     sipstorm_dev_tests_failed:
       model:
-        repo:
-          text: "netcomposer/netcomp:sipstorm-latest"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/netcomp:sipstorm-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -1242,27 +1262,28 @@ spec:
           encoder: ok
     sipstorm_docker_release_ready:
       model:
-        settings:
-          keyword: preprod
-        name: 
-          text: "sipstorm"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sipstorm"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1272,11 +1293,12 @@ spec:
           encoder: ok
     nktelemed_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1292,11 +1314,12 @@ spec:
           encoder: ok
     nkteam_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1310,11 +1333,12 @@ spec:
           encoder: sphera_rwanda_build_task 
     dkv_telemed_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1322,11 +1346,12 @@ spec:
           encoder: dkv_build_task 
     dkv_collab_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1334,11 +1359,12 @@ spec:
           encoder: dkv_build_task 
     dkv_shp_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1346,27 +1372,28 @@ spec:
           encoder: dkv_build_task 
     dkv_dev_docker_ready:
       model:
-        settings:
-          keyword: dev
-        name: 
-          text: "dkv"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "dkv"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1376,8 +1403,9 @@ spec:
           encoder: ok
     dkv_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1395,14 +1423,15 @@ spec:
           encoder: ok
     dkv_dev_tests_failed:
       model:
-        repo:
-          text: "netcomposer/netcomp:dkv"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/netcomp:dkv"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -1410,27 +1439,28 @@ spec:
           encoder: ok
     dkv_docker_release_ready:
       model:
-        settings:
-          keyword: preprod
-        name: 
-          text: "dkv"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "dkv"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1440,11 +1470,12 @@ spec:
           encoder: ok
     dkv_pet_proxy_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1454,27 +1485,28 @@ spec:
           encoder: ok
     dkv_pet_proxy_docker_dev_ready:
       model:
-        settings:
-          keyword: dev
-        name: 
-          text: "dkv-pet-proxy"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "dkv-pet-proxy"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1484,8 +1516,9 @@ spec:
           encoder: ok
     dkv_pet_proxy_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1499,14 +1532,15 @@ spec:
           encoder: ok
     dkv_pet_dev_tests_failed:
       model:
-        repo:
-          text: "netcomposer/dkv-pet-proxy"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/dkv-pet-proxy"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -1514,11 +1548,12 @@ spec:
           encoder: ok
     sphera_telemed_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1532,11 +1567,12 @@ spec:
           encoder: ok
     sphera_collab_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1550,11 +1586,12 @@ spec:
           encoder: ok
     sphera_shp_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1568,11 +1605,12 @@ spec:
           encoder: ok
     sphera_videocal_dev_changed:
       model:
-        repo:
-          key: name
-          in: 
-            key: repository
-            in: body
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
       cmds:
         - effect: task
           encoder: github_changed_task
@@ -1582,27 +1620,28 @@ spec:
           encoder: ok
     sphera_general_dev_docker_ready:
       model:
-        settings:
-          keyword: dev
-        name: 
-          text: "sphera-general"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sphera-general"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1612,8 +1651,9 @@ spec:
           encoder: ok
     sphera_general_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1629,14 +1669,15 @@ spec:
           encoder: ok
     sphera_general_tests_failed:
       model:
-        repo:
-          text: "netcomposer/netcomp:sphera-general-latest"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/netcomp:sphera-general-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -1644,27 +1685,28 @@ spec:
           encoder: ok
     sphera_general_release_ready:
       model:
-        settings:
-          keyword: preprod
-        name: 
-          text: "sphera-general"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sphera-general"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1674,27 +1716,28 @@ spec:
           encoder: ok
     sphera_brazil_dev_docker_ready:
       model:
-        settings:
-          keyword: dev
-        name: 
-          text: "sphera-brazil"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sphera-brazil"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1704,8 +1747,9 @@ spec:
           encoder: ok
     sphera_brazil_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1721,14 +1765,15 @@ spec:
           encoder: ok
     sphera_brazil_tests_failed:
       model:
-        repo:
-          text: "netcomposer/netcomp:sphera-brazil-latest"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/netcomp:sphera-brazil-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
@@ -1736,27 +1781,28 @@ spec:
           encoder: ok
     sphera_brazil_release_ready:
       model:
-        settings:
-          keyword: preprod
-        name: 
-          text: "sphera-brazil"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sphera-brazil"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1766,27 +1812,28 @@ spec:
           encoder: ok
     sphera_rwanda_dev_docker_ready:
       model:
-        settings:
-          keyword: dev
-        name: 
-          text: "sphera-rwanda"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sphera-rwanda"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
@@ -1796,8 +1843,9 @@ spec:
           encoder: ok
     sphera_rwanda_dev_deployed:
       model:
-        deployment:
-          key: body
+        object:
+          deployment:
+            key: body
       cmds:
         - effect: task
           encoder: deploy_announce_task
@@ -1813,14 +1861,15 @@ spec:
           encoder: ok
     sphera_rwanda_tests_failed:
       model:
-        repo:
-          text: "netcomposer/netcomp:sphera-rwanda-latest"
-        settings:
-          key: settings
-          in: body
-        test:
-          key: test
-          in: body
+        object:
+          repo:
+            text: "netcomposer/netcomp:sphera-rwanda-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
       cmds:  
       #- effect: task
       #    encoder: release_aborted_announce_task 
@@ -1828,27 +1877,28 @@ spec:
           encoder: ok
     sphera_rwanda_release_ready:
       model:
-        settings:
-          keyword: preprod
-        name: 
-          text: "sphera-rwanda"
-        docker_image:
-          object:
-            name: 
-              key: name
-              in: 
-                key: repository
-                in: body
-            repo: 
-              key: repo_name
-              in: 
-                key: repository
-                in: body
-            tag:
-              key: tag
-              in: 
-                key: push_data
-                in: body
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sphera-rwanda"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
       cmds:  
         - effect: task
           encoder: docker_ready_task
