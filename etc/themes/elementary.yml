@@ -34,7 +34,11 @@ spec:
       style:
         min-height: 100%
         height: 100%
-        font-size: 0.95rem
+        font-size:
+          key: size
+          in:
+            key: regular
+            in: fonts
         color:
           key: darker
           in: colors 
@@ -45,23 +49,23 @@ spec:
       style:
         position: relative
         height: 100%
-    - class: "section"
-      style:
-        padding-left: 12em
-        padding-right: 12em
     - class: "section-content"
       style:
         padding-top: 2em
         padding-bottom: 2em
     - elem: "footer"
       style:
-        font-size: 14px
+        font-size:
+          key: size
+          in:
+            key: small
+            in: fonts
         width: 100%
         text-align: center
         padding-top: 1rem
         padding-bottom: 1rem
         color:
-          key: brightest 
+          key: bright 
           in: colors
         background-color: 
           key: darkest
@@ -78,9 +82,6 @@ spec:
                 color: 
                   key: dark
                   in: colors
-        - elem: "span"
-          style:
-            opacity: "0.8"
         - elem: i
           style:
             color:
@@ -102,7 +103,12 @@ spec:
       selectors:
         - s-class: "icon-label"
           style:
-            font-weight: 400;
+            font-size:
+              key: size
+              in:
+                key: regular
+                in: fonts
+            font-weight: bold
             cursor: pointer
         - s-class: "action"
           style:
@@ -134,6 +140,7 @@ spec:
         text-align: center
     - class: "highlights"
       style:
+        padding-top: 4em
         background-color:
           key: bright
           in: colors
@@ -152,26 +159,42 @@ spec:
     - class: "jumbo"
       style:
         text-align: center
-        padding-top: 4em
-        padding-bottom: 2em
+        padding-top: 5em
+        padding-bottom: 5em
         background-color:
           key: default
           in: colors
       selectors:
         - elem: h1
           style:
-            font-size: 6rem
+            font-size: 
+              key: size
+              in:
+                key: huge
+                in: fonts
+            color:
+              key: darker
+              in: colors
             font-weight: 600
             margin-bottom: 0
         - elem: div
           style:
-            font-size: 1.5rem
+            font-size:
+              key: size
+              in:
+                key: bigger
+                in: fonts
             color: 
               key: brightest
               in: colors
         - s-class: "jumbo-action"
           style:
             margin-top: 1em
+            font-size:
+              key: size
+              in:
+                key: biggest
+                in: fonts
     - class: "btn"
       style:
         border-radius: 4px
@@ -220,7 +243,11 @@ spec:
               in: colors
     - class: "btn-xl"
       style:
-        font-size: 1.0rem
+        font-size:
+          key: size
+          in:
+            key: biggest
+            in: fonts
         height: 3rem
         padding-left: 1rem
         padding-right: 1rem
@@ -273,7 +300,14 @@ spec:
                 top: 2px
     - elem: "code"
       style:
-        font-size: 0.8rem
+        font-size:
+          key: size
+          in:
+            key: regular
+            in: fonts
+        color: 
+          key: darkened
+          in: colors
         background-color:
           format:
             pattern: "~s !important"
@@ -282,6 +316,8 @@ spec:
                 in: colors
     - elem: "pre"
       style:
+        padding: 1em
+        margin: ".5em 0"
         border-radius: 5px
         background-color:
           format:
@@ -297,7 +333,12 @@ spec:
           in: colors
         min-height: 400px
       selectors:
-        - s-class: guide-topic
+        - s-class: "guide-nav-view"
+          style:
+            margin-bottom: 1em
+            padding-top: .5em
+            padding-bottom: .5em
+        - s-class: "guide-topic"
           style:
             position: relative
             top: -6px
@@ -336,8 +377,12 @@ spec:
                   style:
                     border: 0
                     background-color:
-                      key: bright
+                      key: brightest
                       in: colors
+                  selectors:
+                    - p-class: "hover"
+                      style:
+                        border: 0
                     
         - elem: a
           style:
@@ -352,15 +397,16 @@ spec:
                   in: colors
         - elem: "input"
           style:
-            border-radius: 5px
-            border-color:
-              key: dark
-              in: colors
-            padding: 1rem
+            padding-left: 0
           selectors:
             - p-class: "focus"
               style:
                 border-color:
                   key: darker
                   in: colors
+                outline: none !important;
+                outline-width: 0 !important;
+                box-shadow: none !important;
+                -moz-box-shadow: none !important;
+                -webkit-box-shadow: none !important;
 

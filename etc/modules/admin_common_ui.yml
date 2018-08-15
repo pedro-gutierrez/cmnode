@@ -231,8 +231,9 @@ spec:
       view:
         tag: div 
         attrs:
-          class: "spec"
-          style: "max-height: 300px; overflow: scroll"
+          class: "spec json-view"
         children:
-          - json:
-              key: source
+          - code:
+              source:
+                key: source
+              lang: "json"

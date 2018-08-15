@@ -38,7 +38,7 @@ spec:
                                     list:
                                       - object:
                                           type: guide_text_view
-                                          text: "Elementary treats DOM manipulation just like HTTP communications, local storage or any other sort of interaction with the outside, impure world: as a side effect. Side effects are managed outside Elementary's core via extensions that we call Effect Managers."
+                                          text: "Elementary treats DOM manipulation just like HTTP communications, local storage or any other sort of interaction with the outside, impure world: as a side effect. Side effects are managed outside Elementary's core via extensions that we call *effect managers*."
 
                               - object:
                                   type: guide_paragraph_view

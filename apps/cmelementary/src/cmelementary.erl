@@ -165,23 +165,32 @@ term(#{ type := list, spec := Spec}, Settings) ->
             Other
     end;
 
-term(#{ type := list, with:= Spec}, Settings) -> 
+term(#{ type := by_appending, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
-            {ok, #{ list_with => Compiled}};
+            {ok, #{ by_appending => Compiled}};
         Other -> 
             Other
     end;
 
-term(#{ type := list_by_replacing, 
+term(#{ type := by_replacing, 
+        spec := Spec }, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ by_replacing => Compiled }};
+        Other -> 
+            Other
+    end;
+
+term(#{ type := by_replacing, 
         items := ItemsSpec,
         with := WithSpec}, Settings) -> 
     case term(ItemsSpec, Settings) of 
         {ok, Items} ->
             case term(WithSpec, Settings) of 
                 {ok, With} -> 
-                    {ok, #{ list_by_replacing => #{ items => Items,
-                                                    with => With }}};
+                    {ok, #{ by_replacing => #{ items => Items,
+                                               with => With }}};
                 Other -> 
                     Other
             end;
@@ -189,14 +198,13 @@ term(#{ type := list_by_replacing,
             Other
     end;
 
-term(#{ type := list, without:= Spec}, Settings) -> 
+term(#{ type := by_removing, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
-            {ok, #{ list_without => Compiled}};
+            {ok, #{ by_removing => Compiled}};
         Other -> 
             Other
     end;
-
 
 term(#{ type := list, size := Size}, _) -> 
         {ok, #{ list => #{ size => Size }}};
@@ -208,23 +216,6 @@ term(#{ type := object, spec := Spec}, Settings) ->
         Other -> 
             Other
     end;
-
-term(#{ type := object_with, spec := Spec}, Settings) -> 
-    case compile_object(maps:keys(Spec), Spec, Settings, #{}) of 
-        {ok, Compiled} -> 
-            {ok, #{ object_with => Compiled}};
-        Other -> 
-            Other
-    end;
-
-term(#{ type := object_without, spec := Spec}, Settings) -> 
-    case term(Spec, Settings) of 
-        {ok, Compiled} -> 
-            {ok, #{ object_without => Compiled}};
-        Other -> 
-            Other
-    end;
-
 
 term(#{ type := text, key := Key, in := In}, Settings) ->
     case term( #{ key => Key,
@@ -334,6 +325,14 @@ term(#{ map := #{ center := CenterSpec,
                 Other -> 
                     Other
             end;
+        Other -> 
+            Other
+    end;
+
+term(#{ markdown := Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ markdown => Compiled }};
         Other -> 
             Other
     end;
@@ -574,6 +573,29 @@ term(#{ without:= Spec}, Settings) ->
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
             {ok, #{ without => Compiled}};
+        Other -> 
+            Other
+    end;
+
+term(#{ prettify := Spec }, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ prettify => Compiled}};
+        Other -> 
+            Other
+    end;
+
+term(#{ code := #{ lang := LangSpec,
+                   source := SourceSpec }}, Settings) -> 
+    case term(LangSpec, Settings) of 
+        {ok, Lang} -> 
+            case term(SourceSpec, Settings) of 
+                {ok, Source} -> 
+                    {ok, #{ code => #{ lang => Lang,
+                                       source => Source }}};
+                Other -> 
+                    Other
+            end;
         Other -> 
             Other
     end;

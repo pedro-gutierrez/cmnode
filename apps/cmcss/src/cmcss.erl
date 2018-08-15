@@ -1,12 +1,17 @@
 -module(cmcss).
--export([compile/3]).
+-export([compile/4]).
 
-compile(Colors, Selectors, Settings) -> 
+compile(Colors, Fonts, Selectors, Settings) -> 
     case merge_colors(Colors, Settings) of 
         {ok, C} ->
-            case encode_selectors(Selectors, C, Settings) of 
-                {ok, S} -> 
-                    compile_selectors(S);
+            case merge_fonts(Fonts, Settings) of 
+                {ok, F} ->
+                    case encode_selectors(Selectors, C, F, Settings) of 
+                        {ok, S} -> 
+                            compile_selectors(S);
+                        Other -> 
+                            Other
+                    end;
                 Other -> 
                     Other
             end;
@@ -24,8 +29,19 @@ merge_colors(Colors, Settings) ->
             Other
     end.
 
-encode_selectors(Selectors, C, Settings) -> 
-    case cmencode:encode_all(Selectors, #{ colors => C, 
+merge_fonts(Fonts, Settings) -> 
+    case cmencode:encode_all(Fonts, Settings) of
+        {ok, F} ->
+            {ok, lists:foldr(fun(F0, Merged) -> 
+                            maps:merge(Merged, F0)
+                        end, #{}, F)};
+        Other -> 
+            Other
+    end.
+
+encode_selectors(Selectors, C, F, Settings) -> 
+    case cmencode:encode_all(Selectors, #{ colors => C,
+                                           fonts => F,
                                            settings => Settings }) of 
         {ok, S} -> 
             {ok, lists:flatten(S)};

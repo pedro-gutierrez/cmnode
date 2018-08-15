@@ -120,8 +120,8 @@ spec:
                       keyword: true
                 - object:
                     type: action_button
-                    icon: "fas fa-book-open"
-                    title: "Guide"
+                    icon: "fas fa-graduation-cap"
+                    title: "Learn"
                     id: "guide"
                     style: ""
                     active:
@@ -133,7 +133,7 @@ spec:
                 - object:
                     type: external_link 
                     icon: "fab fa-github"
-                    title: "Github"
+                    title: "GitHub"
                     url: "https://github.com/pedro-gutierrez/elementary"
                     style: ""
                     visible:
@@ -181,17 +181,23 @@ spec:
       view:
         tag: header
         attrs:
-          class: "header section"
+          class: "header columns"
         children:
           - tag: div
             attrs:
-              class: "menu-items"
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
+          - tag: div
+            attrs:
+              class: "column col-8 col-xl-8 col-lg-8 col-md-10 col-sm-10 col-xs-10 menu-items"
             children:
               - view: main_menu_view
                 params:
                   object:
                     selected:
                       key: content_view
+          - tag: div
+            attrs:
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
     footer_view:
       view:
         tag: footer
@@ -212,7 +218,12 @@ spec:
                   - text: "Xiaoying Riley"
               - text: " for developers"
               - tag: br
-              - text: "Built with ElementaryJS"
+              - text: "Built with "
+              - tag: a
+                attrs:
+                  href: "https://elementaryjs.com"
+                children:
+                  - text: "ElementaryJS"
     subsubtitle_view:
       view:
         tag: h4

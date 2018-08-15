@@ -1440,21 +1440,11 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            key: id
-          class: "accordion"
+          class: "accordion-view"
         children:
-          - tag: input
+          - tag: div
             attrs:
-              class: "d-hide"
-              type: "checkbox"
-              id:
-                key: id
-          - tag: label
-            attrs:
-              class: "c-hand accordion-header"
-              for:
-                key: id
+              class: "header"
             children:
               - view:
                   key: view
@@ -1464,7 +1454,7 @@ spec:
                   in: header
           - tag: div
             attrs:
-              class: "accordion-body"
+              class: "body"
             children:
               - view:
                   key: view
@@ -1512,61 +1502,30 @@ spec:
                       keyword: text_view
                     value:
                       key: reason
-                      
-    test_report_failure_body_item_view:
-      view:
-        tag: "tr"
+    test_report_failure_body_view:
+      view: 
+        tag: div
+        attrs:
+          class: "columns report-failure-detail"
         children:
-          - tag: td
+          - tag: div
             attrs:
-              class: "v-top"
+              class: "column col-6"
             children:
               - view: json_view
                 params:
                   object:
                     source:
                       key: step
-                      in: item
-          - tag: td
+          - tag: div
             attrs:
-              class: "v-top"
+              class: "column col-6"
             children:
               - view: json_view
                 params:
                   object:
                     source:
-                      key: world 
-                      in: item
-
-    test_report_failure_body_view:
-      view: 
-        tag: div
-        attrs:
-          style: "margin-top: 15px"
-        children:
-          - view: table
-            params:
-              object:
-                headers:
-                  list:
-                    - object:
-                        title:
-                          text:
-                            literal: "Step"
-                    - object:
-                        title:
-                          text:
-                            literal: "World"
-                items:
-                  list:
-                    - object:
-                        step:
-                          key: step
-                        world:
-                          key: world
-                item_view:
-                  keyword: test_report_failure_body_item_view
-
+                      key: world
     test_report_result_header_view:
       view:
         tag: div
@@ -1609,8 +1568,7 @@ spec:
           - tag: span
             attrs:
               class: "text-secondary"
-            children:
-              - text: "No errors to show"
+            children: []
     test_report_result_error_view:
       view:
         tag: div
@@ -1653,6 +1611,9 @@ spec:
       view:
         tag: div
         attrs:
+          key:
+            key: scenario
+            in: item
           class: "container"
         children:
           - view: accordion_view

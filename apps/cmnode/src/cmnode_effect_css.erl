@@ -14,8 +14,8 @@ effect_apply(#{ settings := SettingsName,
             case cmencode:encode(SettingsSpec) of 
                 {ok, Settings} ->
                     case resolve(ThemeNames) of 
-                        {ok, Colors, Selectors} -> 
-                            case cmcss:compile(Colors, Selectors, Settings) of 
+                        {ok, Colors, Fonts, Selectors} -> 
+                            case cmcss:compile(Colors, Fonts, Selectors, Settings) of 
                                 {ok, Source} ->
                                     #{ language => css,
                                        status => ok,
@@ -41,13 +41,14 @@ err(Themes, I) ->
        reason => Themes
      }.
 
-resolve(Themes) -> resolve(Themes, [], []).
-resolve([], C, S) -> {ok, lists:reverse(C), lists:reverse(S)};
-resolve([N|Rem], C, S) -> 
+resolve(Themes) -> resolve(Themes, [], [], []).
+resolve([], C, F, S) -> {ok, lists:reverse(C), lists:reverse(F), lists:reverse(S)};
+resolve([N|Rem], C, F, S) -> 
     case cmconfig:theme(N) of 
         {ok, #{ spec := #{ colors := C0, 
-                           selectors := S0 } }} -> 
-            resolve(Rem, [C0|C], [S0|S]);
+                           selectors := S0,
+                           fonts := F0 } }} -> 
+            resolve(Rem, [C0|C], [F0|F], [S0|S]);
         Other -> 
             Other
     end.

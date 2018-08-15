@@ -458,3 +458,9 @@ div.mapboxgl-ctrl {
     content: "-";
     float: left;
 }
+
+.json-view pre, .json-view code {
+    max-height: 300px;
+    height: 300px;
+    overflow-y: scroll;
+}

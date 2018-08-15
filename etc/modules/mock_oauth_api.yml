@@ -25,7 +25,7 @@ spec:
     missing_authorization:
       object:
         headers:
-          object_without:
+          without_keys:
             - authorization
     invalid_client_id:
       object:
@@ -40,11 +40,19 @@ spec:
   update:
     valid_authorization:
       model:
-        object:
-          user_id:
-            hash:
-              key: authorization
-              in: headers
+        user_id:
+          hash:
+            key: authorization
+            in: headers
+        msad_id:
+          hash:
+            format:
+              pattern: "~s ~s"
+              params:
+                - key: authorization
+                  in: headers
+                - key: client_id
+                  in: headers
       cmds:
         - effect: notify
           encoder: authorized
@@ -82,6 +90,8 @@ spec:
                   object:
                     CODE: "0"
                     DATA:
+                      MSAD_ID:
+                        key: msad_id
                       BDU_ID:
                         key: user_id
                       name:

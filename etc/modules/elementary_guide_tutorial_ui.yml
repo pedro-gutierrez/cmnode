@@ -76,29 +76,29 @@ spec:
         - effect: ui
     new_task_title_changed:
       model:
-        object_with:
+        by_replacing:
           content:
-            object_with:
+            by_replacing:
               guide_content:
-                object_with:
+                by_replacing:
                   tutorial:
-                    object_with:
+                    by_replacing:
                       new_task_title:
                         key: value
       cmds:
         - effect: ui
     guide_tutorial_new_task:
       model:
-        object_with:
+        by_replacing:
           content:
-            object_with:
+            by_replacing:
               guide_content:
-                object_with:
+                by_replacing:
                   tutorial:
-                    object_with:
+                    by_replacing:
                       new_task_title: ""
                       tasks:
-                        list_with:
+                        by_appending:
                           object:
                             title:
                               key: value
@@ -107,15 +107,15 @@ spec:
         - effect: ui
     task_changed_state:
       model:
-        object_with:
+        by_replacing:
           content:
-            object_with:
+            by_replacing:
               guide_content:
-                object_with:
+                by_replacing:
                   tutorial:
-                    object_with:
+                    by_replacing:
                       tasks:
-                        list_by_replacing:
+                        by_replacing:
                           items:
                             object:
                               title:
@@ -128,23 +128,23 @@ spec:
                                     - key: state
                                       in: item
                                     - text: "pending"
-                                object_with:
+                                by_replacing:
                                   state: "done"
-                              - object_with:
+                              - by_replacing:
                                   state: "pending"
       cmds:
         - effect: ui
     task_deleted:
       model:
-        object_with:
+        by_replacing:
           content:
-            object_with:
+            by_replacing:
               guide_content:
-                object_with:
+                by_replacing:
                   tutorial:
-                    object_with:
+                    by_replacing:
                       tasks:
-                        list_without:
+                        by_removing:
                           object:
                             title:
                               key: task
@@ -195,7 +195,7 @@ spec:
         children:
           - tag: div
             attrs:
-              class: "column col-9"
+              class: "column col-8"
             children:
               - tag: span
                 attrs:
@@ -208,7 +208,7 @@ spec:
                       in: item
           - tag: div
             attrs:
-              class: "column col-3"
+              class: "column col-2"
             children:
               - view: button
                 params:
@@ -221,7 +221,7 @@ spec:
                                 in: item
                               - text: "done"
                           text: "Undo"
-                        - text: "Mark done"
+                        - text: "Done"
                     style: "primary"
                     size: "sm"
                     icon: ""
@@ -231,6 +231,10 @@ spec:
                         task:
                           key: title
                           in: item
+          - tag: div
+            attrs:
+              class: "column col-2"
+            children:
               - view: button
                 when:
                   eq:
@@ -265,7 +269,7 @@ spec:
           - view: guide_tutorial_title_view
             params:
               object:
-                title: "ElementaryJS Todo"
+                title: "Elementary Todo"
           - tag: div
             attrs:
               class: "tasks"

@@ -9,7 +9,7 @@ spec:
         view: actions_view
         params:
           object:
-            style: "nav-action"
+            style: "guide-nav-action nav-action"
             items:
               - object:
                   type: action_button
@@ -91,26 +91,44 @@ spec:
       view:
         tag: section
         attrs:
-          class: "columns section section-content guide"
+          class: "columns section-content guide"
         children:
           - tag: div
             attrs:
-              class: "column col-3"
-            children:
-              - view: guide_nav_view
-                params:
-                  object:
-                    selected_topic:
-                      key: guide_current_topic
-                    selected_subtopic:
-                      key: guide_current_subtopic
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
           - tag: div
             attrs:
-              class: "column col-9"
+              class: "column col-8 col-xl-8 col-lg-10 col-md-10 col-sm-10 col-xs-10"
             children:
-              - view: guide_topic_view
-                params:
-                  key: guide_content
+              - tag: div
+                attrs:
+                  class: "columns"
+                children:
+                  - tag: div
+                    attrs:
+                      class: "column col-3 col-xl-3 col-lg-3 col-md-12 col-sm-12 col-xs-12"
+                    children:
+                      - tag: div
+                        attrs:
+                          class: "guide-nav-view"
+                        children:
+                          - view: guide_nav_view
+                            params:
+                              object:
+                                selected_topic:
+                                  key: guide_current_topic
+                                selected_subtopic:
+                                  key: guide_current_subtopic
+                  - tag: div
+                    attrs:
+                      class: "column col-9 col-xl-9 col-lg-9 col-md-12 col-sm-12 col-xs-12"
+                    children:
+                      - view: guide_topic_view
+                        params:
+                          key: guide_content
+          - tag: div
+            attrs:
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
     guide_topic_view:
       view:
         tag: div
@@ -183,7 +201,7 @@ spec:
         attrs:
           class: "guide-text"
         children:
-          - text:
+          - markdown:
               key: text
               in: item
     guide_code_view:

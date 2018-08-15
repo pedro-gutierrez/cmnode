@@ -24,30 +24,22 @@
         });
     };
 
-    function encodeObject(spec, data, ctx) {
-        var out = {};
-        for (var k in spec) {
-            if (spec.hasOwnProperty(k)) {
-                const { err, value } = encode(spec[k], data, ctx);
-                if (err) return error(spec[k], data, err);
-                out[k] = value;
-            }
-        }
-        return { value: out };
-    }
-    
-    function encodeObjectWith(spec, data, ctx) {
-        var out = ctx;
-        for (var k in spec.object_with) {
-            if (spec.object_with.hasOwnProperty(k)) {
-                const { err, value } = encode(spec.object_with[k], data, ctx[k]);
-                if (err) return error(spec[k], data, err);
+
+    function encodeObject(spec, data, ctx, out) {
+        for (var k in spec.object) {
+            if (spec.object.hasOwnProperty(k)) {
+                const { err, value } = encode(spec.object[k], data, (ctx || {})[k]);
+                if (err) return error(spec.object[k], data, err);
                 out[k] = value;
             }
         }
         return { value: out };
     }
 
+    function encodeNewObject(spec, data, ctx) {
+        return encodeObject(spec, data, ctx, {});
+    }
+    
     function encodeKey(spec, data, ctx) {
         if (!data) return error(spec, data, "no_data");
         switch(typeof(spec)) {
@@ -58,7 +50,7 @@
                 if (spec.in) {
                     var {err, value} = encodeKey(spec.in, data, ctx);
                     if (err) return error(spec, data, err);
-                    return encodeKey({ key: spec.key }, value, ctx)
+                    return encodeKey({ key: spec.key}, value, ctx);
                 } else {
                     switch (typeof(spec.key)) {
                         case 'object' :
@@ -89,44 +81,65 @@
         return _(items.slice(0), []);
     }
     
-    function encodeListWith(spec, data, ctx) {
-        if (!ctx || !Array.isArray(ctx)) return error(spec, ctx, "not_a_list");
-        var {err, value} = encode(spec.list_with, data, ctx);
-        if (err) return error(spec, data, err);
-        ctx.push(value);
-        return { value: ctx };
+    function encodeByAppending(spec, data, ctx) {
+        if (!ctx) return error(spec, ctx, "no_data");
+        switch(typeof(ctx)) {
+            case 'object':
+                if (Array.isArray(ctx)) {
+                    var {err, value} = encode(spec.by_appending, data, ctx);
+                    if (err) return error(spec, data, err);
+                    ctx.push(value);
+                    return { value: ctx };
+                }
+        }
+
+        return error(spec, ctx, "by_adding spec not supported");
     }
     
-    function encodeListWithout(spec, data, ctx) {
-        if (!ctx || !Array.isArray(ctx)) return error(spec, ctx, "not_a_list");
-        for (var i=0; i<ctx.length; i++) {
-            var item = ctx[i];
-            var {err, decoded} = decode(spec.list_without, item, data);
-            if (!err) {
-                //out[i] = item;
-                ctx.splice(i, 1);
-            }
+    function encodeByRemoving(spec, data, ctx) {
+        if (!ctx) return error(spec, ctx, "no_data");
+        switch(typeof(ctx)) {
+            case 'object':
+                if (Array.isArray(ctx)) {
+                    for (var i=0; i<ctx.length; i++) {
+                        var item = ctx[i];
+                        var {err, decoded} = decode(spec.by_removing, item, data);
+                        if (!err) {
+                            ctx.splice(i, 1);
+                        }
+                    }
+                    return { value: ctx};
+                }
         }
-        return { value: ctx};
+        return error(spec, ctx, "by_removing spec not supported");
     }
 
-    function encodeListByReplacing(spec, data, ctx) {
-        if (!ctx || !Array.isArray(ctx)) return error(spec, ctx, "not_a_list");
-        var itemSpec = spec.list_by_replacing.items;
-        var encodeSpec = spec.list_by_replacing.with;
-        var out = [];
-        for (var i=0; i<ctx.length; i++) {
-            var item = ctx[i];
-            var {err, decoded} = decode(itemSpec, item, data);
-            if (err) {
-                out[i] = item;
-            } else {
-                var {err, value} = encode(encodeSpec, {item, data}, item);
-                if (err) return error(spec, data, err);
-                out[i] = value;
-            }
+    function encodeByReplacing(spec, data, ctx) {
+        if (!ctx) return error(spec, ctx, "no_data");
+        switch(typeof(ctx)) {
+            case 'object':
+                if (Array.isArray(ctx)) {
+                    var itemSpec = spec.by_replacing.items;
+                    var encodeSpec = spec.by_replacing.with;
+                    var out = [];
+                    for (var i=0; i<ctx.length; i++) {
+                        var item = ctx[i];
+                        var {err, decoded} = decode(itemSpec, item, data);
+                        if (err) {
+                            out[i] = item;
+                        } else {
+                            var {err, value} = encode(encodeSpec, {item, data}, item);
+                            if (err) return error(spec, data, err);
+                            out[i] = value;
+                        }
+                    }
+                    return {value: out};
+                }
+
+                return encodeObject(spec.by_replacing, data, ctx, ctx);
         }
-        return {value: out};
+        
+        return error(spec, ctx, "by_replacing spec not supported");
     }
 
     function encodeFormat(spec, data, ctx) {
@@ -228,7 +241,7 @@
         
     }
 
-    function encodeAny(spec, data, model, ctx) {
+    function encodeAny(spec, data, ctx) {
         if (spec.any === 'object' && typeof(data) === 'object' && !Array.isArray(data)) {
             return {value: data};
         }
@@ -236,19 +249,24 @@
         return error(spec, data, "any spec not supported");
     }
     
-    function encodeExpression(spec, data, model, ctx) {
+    function encodeExpression(spec, data, ctx) {
         return {value: spec.expression};
+    }
+
+    function encodePrettify(spec, data, ctx) {
+        var {err, value} = encode(spec.prettify, data, ctx);
+        if (err) return error(spec, data, err);
+        return {value: JSON.stringify(value, null, 2)};
     }
 
     function encode(spec, data, ctx) {
         switch(typeof(spec)) {
             case "object":
                 if (Array.isArray(spec)) return encodeList(spec, data, ctx);
-                if (spec.object) return encodeObject(spec.object, data, ctx);
-                if (spec.object_with) return encodeObjectWith(spec, data, ctx);
-                if (spec.list_with) return encodeListWith(spec, data, ctx);
-                if (spec.list_by_replacing) return encodeListByReplacing(spec, data, ctx);
-                if (spec.list_without) return encodeListWithout(spec, data, ctx);
+                if (spec.object) return encodeNewObject(spec, data, ctx);
+                if (spec.by_appending) return encodeByAppending(spec, data, ctx);
+                if (spec.by_replacing) return encodeByReplacing(spec, data, ctx);
+                if (spec.by_removing) return encodeByRemoving(spec, data, ctx);
                 if (spec.key) return encodeKey(spec, data, ctx);
                 if (spec.format) return encodeFormat(spec, data, ctx);
                 if (spec.maybe) return encodeMaybe(spec, data, ctx);
@@ -262,6 +280,7 @@
                 if (spec.not) return encodeNot(spec, data, ctx);
                 if (spec.any) return encodeAny(spec, data, ctx);
                 if (spec.expression) return encodeExpression(spec, data, ctx);
+                if (spec.prettify) return encodePrettify(spec, data, ctx);
                 if (!Object.keys(spec).length) return {value: {}};
             default: 
                 return { value: spec };

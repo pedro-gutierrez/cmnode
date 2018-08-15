@@ -59,7 +59,7 @@ spec:
 
                                       - object:
                                           type: guide_code_view
-                                          lang: "markup"
+                                          lang: "html"
                                           source: |
                                             <html>
                                               <head>

@@ -30,58 +30,63 @@ spec:
       view:
         tag: div
         attrs:
-          class: "jumbo section"
+          class: "jumbo columns"
         children:
-          - tag: h1
-            children:
-              - tag: span
-                attrs:
-                  class: "important"
-                children:
-                  - text: "El"
-              - tag: span
-                children:
-                  - text: "e"
-              - tag: span
-                attrs:
-                  class: "important"
-                children:
-                  - text: "m"
-              - tag: span
-                children:
-                  - text: "entaryJS"
-          - tag: div
-            children:
-              - text:
-                  key: lead
           - tag: div
             attrs:
-              class: "jumbo-action"
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
+          - tag: div
+            attrs:
+              class: "column col-8 col-xl-8 col-lg-10 col-md-10 col-sm-10 col-xs-10"
             children:
-              - view: button
-                params:
-                  object:
-                    style: "primary"
-                    size: "lg"
-                    title:
-                      key: title
-                      in: action
-                    icon:
-                      key: icon
-                      in: action
-                    click:
-                      key: click
-                      in: action
+              - tag: h1
+                children:
+                  - tag: span
+                    attrs:
+                      class: "important"
+                    children:
+                      - text: "El"
+                  - tag: span
+                    children:
+                      - text: "e"
+                  - tag: span
+                    attrs:
+                      class: "important"
+                    children:
+                      - text: "m"
+                  - tag: span
+                    children:
+                      - text: "entaryJS"
+              - tag: div
+                children:
+                  - text:
+                      key: lead
+              - tag: div
+                attrs:
+                  class: "jumbo-action"
+                children:
+                  - view: button
+                    params:
+                      object:
+                        style: "primary"
+                        size: "xl"
+                        title:
+                          key: title
+                          in: action
+                        icon:
+                          key: icon
+                          in: action
+                        click:
+                          key: click
+                          in: action
+          - tag: div
+            attrs:
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
     highlight_view:
       view:
         tag: div
         attrs:
-          class:
-            format:
-              pattern: "column highlight col-~a"
-              params:
-                - key: colspan
-                  in: context
+          class: "column highlight col-6 col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12"
         children:
           - tag: div
             attrs:
@@ -116,14 +121,24 @@ spec:
       view:
         tag: div
         attrs:
-          class: "highlights section section-content columns"
+          class: "highlights section-content columns"
         children:
-          loop: items
-          with: highlight_view
-          context:
-            object:
-              colspan:
-                key: width
+          - tag: div
+            attrs:
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
+          - tag: div
+            attrs:
+              class: "column col-8 col-xl-8 col-lg-8 col-md-10 col-sm-10 col-xs-10"
+            children:
+              - tag: div
+                attrs:
+                  class: "columns"
+                children:
+                  loop: items
+                  with: highlight_view
+          - tag: div
+            attrs:
+              class: "column col-2 col-xl-2 col-lg-2 col-md-1 col-sm-1 col-xs-1"
     home_view:
       view:
         tag: div
@@ -133,7 +148,7 @@ spec:
           - view: jumbo_view
             params:
               object:
-                lead: "Declarative and functional UI apps with a hint of Elm"
+                lead: "Declarative and functional UIs with a hint of Elm"
                 action:
                   object:
                     title: "Download"
@@ -147,11 +162,11 @@ spec:
                 items:
                   list:
                     - object:
-                        title: "Simply JS"
+                        title: "Modern, yet simple"
                         icon: "fab fa-js-square"
-                        description: "ElementaryJS is designed with simplicity in mind. You can use just pure Javascript to write your apps, with no need for any particular tooling."
+                        description: "ElementaryJS leverages the latest browser support for ES6 modules. No need for transpilers or any particular toolchains in order to write ElementaryJS apps. Just a static webserver and you are ready to go." 
                     - object:
-                        title: "Declarative & functional"
+                        title: "Declarative and functional"
                         icon: "fas fa-cubes"
                         description: "You application logic is described in terms of what the input data should look like, what your state transitions should be, and what data should be sent out to the world... Express that as simple JSON objects, and ElementaryJS takes it from there."
                     - object:
@@ -161,7 +176,7 @@ spec:
                     - object:
                         title: "Stateful"
                         icon: "fas fa-shield-alt"
-                        description: "All your application's data lives inside a single datastructur, called the model, protected by and never mutated outside the core. By implementing the same design principles from the Elm architecture, Elementary apps have a neat separation between application logic and side effects."
+                        description: "All your application's data lives inside a single datastructure, called the model, protected by and never mutated outside the core. By implementing the same design principles from the Elm architecture, Elementary apps have a neat separation between application logic and side effects."
           - tag: div
             attrs:
               class: "social section section-content"
@@ -182,14 +197,6 @@ spec:
                             title: ""
                             icon: "fab fa-linkedin-in"
                             url: "https://www.linkedin.com/in/pedro-gutiérrez-07470b19"
-                            style: ""
-                            visible:
-                              keyword: true
-                        - object:
-                            type: external_link
-                            title: ""
-                            icon: "far fa-envelope"
-                            url: "mailto:pedrogutierrez@mac.com"
                             style: ""
                             visible:
                               keyword: true

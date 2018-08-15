@@ -157,8 +157,16 @@ encode(#{ type := list,
 
 
 encode(#{ type := config,
-          spec := Key }, _, Config) ->
-    {ok, maps:get(Key, Config)};
+          spec := Key } = Spec, _, Config) ->
+    case maps:get(Key, Config, undef) of 
+        undef -> 
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       data => Config,
+                       reason => missing_key }};
+        V -> 
+            {ok, V}
+    end;
 
 
 encode(#{ type := url,

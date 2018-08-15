@@ -149,11 +149,12 @@ compile_theme(#{ <<"name">> := Name,
 
     C = compile_term(maps:get(<<"colors">>, Spec, #{})),
     S = compile_term(maps:get(<<"selectors">>, Spec, [])),
+    F = compile_term(maps:get(<<"fonts">>, Spec, #{})),
 
     #{ type => theme,
        rank => Rank,
        name => cmkit:to_atom(Name),
-       spec => #{ colors => C, selectors => S }}.
+       spec => #{ colors => C, fonts => F, selectors => S }}.
 
 compile_queue(#{ <<"name">> := Name,
                  <<"rank">> := Rank,
@@ -712,21 +713,13 @@ compile_term(#{ <<"maybe">> := Spec }) ->
 compile_term(#{ <<"object">> := Object}) ->
     compile_object(Object);
 
-compile_term(#{ <<"object_without">> := Keys }) when is_list(Keys) ->
-    #{ type => object_without,
+compile_term(#{ <<"without_keys">> := Keys }) when is_list(Keys) ->
+    #{ type => without_keys,
        spec => compile_terms(Keys) };
 
-compile_term(#{ <<"object_without">> := Spec }) when is_map(Spec) ->
-    #{ type => object_without,
-       spec => compile_object(maps:keys(Spec), Spec, #{})};
-
-compile_term(#{ <<"object_with">> := Keys }) when is_list(Keys) ->
-    #{ type => object_with,
+compile_term(#{ <<"with_keys">> := Keys }) when is_list(Keys) ->
+    #{ type => with_keys,
        spec => compile_terms(Keys) };
-
-compile_term(#{ <<"object_with">> := Spec }) when is_map(Spec) ->
-    #{ type => object_with,
-       spec => compile_object(maps:keys(Spec), Spec, #{})};
 
 compile_term(#{ <<"entries">> := Spec }) ->
     #{ type => entries,
@@ -751,23 +744,31 @@ compile_term(#{ <<"list">> := <<"any">>}) ->
 compile_term(#{ <<"any">> := <<"list">>}) ->
     #{ type => list };
 
-compile_term(#{ <<"list">> := #{ <<"with">> := Spec}}) ->
-    #{ type => list, with => compile_term(Spec) };
+compile_term(#{ <<"list">> := #{ <<"with">> := With }}) -> 
+    #{ type => list,
+       with => compile_term(With) };
 
-compile_term(#{ <<"list_with">> := Spec}) ->
-    #{ type => list, with => compile_term(Spec) };
+compile_term(#{ <<"list">> := #{ <<"without">> := With }}) -> 
+    #{ type => list,
+       without => compile_term(With) };
 
-compile_term(#{ <<"list_by_replacing">> := #{ <<"items">> := Items,
-                                              <<"with">> := With }}) ->
-    #{ type => list_by_replacing, 
+compile_term(#{ <<"by_replacing">> := #{ <<"items">> := Items,
+                                      <<"with">> := With }}) ->
+    #{ type => by_replacing, 
        items => compile_term(Items),
        with => compile_term(With) };
 
-compile_term(#{ <<"list">> := #{ <<"without">> := Spec}}) ->
-    #{ type => list, without => compile_term(Spec) };
+compile_term(#{ <<"by_replacing">> := Spec}) ->
+    #{ type => by_replacing, 
+       spec => compile_term(Spec) };
 
-compile_term(#{ <<"list_without">> := Spec}) ->
-    #{ type => list, without => compile_term(Spec) };
+compile_term(#{ <<"by_appending">> := Spec }) ->
+    #{ type => by_appending, 
+       spec => compile_term(Spec) };
+
+compile_term(#{ <<"by_removing">> := Spec }) ->
+    #{ type => by_removing, 
+       spec => compile_term(Spec) };
 
 compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
     #{ type => list,
@@ -928,9 +929,6 @@ compile_term(#{ <<"files">> := Spec }) ->
     #{ type => files,
        spec => compile_term(Spec) 
      };
-
-compile_term(#{ <<"size">> := Size}) -> 
-    #{ size => Size };
 
 compile_term(<<"from_data">>) -> from_data;
 compile_term(#{ <<"from_data">> := _ }) -> from_data;
@@ -1755,6 +1753,10 @@ compile_view(#{ <<"code">> := #{ <<"source">> := Source,
     #{ code => #{ lang => compile_term(Lang),
                  source => compile_term(Source) }};
 
+compile_view(#{ <<"prettify">> := Spec }) -> 
+    #{ type => prettify,
+       spec => Spec };
+
 compile_view(#{ <<"timestamp">> :=  #{ <<"format">> := Format,
                                        <<"value">> := Value }}) ->
 
@@ -1780,6 +1782,9 @@ compile_view(#{ <<"map">> := #{ <<"id">> := Id,
                  zoom => Zoom,
                  center => compile_term(Center),
                  markers => compile_terms(Markers) }};
+
+compile_view(#{ <<"markdown">> := Spec }) -> 
+    #{ markdown => compile_term(Spec)};
 
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),

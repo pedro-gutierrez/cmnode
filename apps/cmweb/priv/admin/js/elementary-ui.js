@@ -102,7 +102,6 @@ export default (name, settings, app) => {
                 var spec = attrs[k];
                 attrs[k] = (ev) => {
                     const specCtx = Object.assign({}, ctx, evProps(ev));
-                    console.log("encoding handler event", spec, specCtx);
                     const {err, value} = encode(spec, specCtx);
                     if (err) {
                         console.error("Error encoding handler event", k, spec, ev, err);
@@ -175,12 +174,54 @@ export default (name, settings, app) => {
         var {err, value} = encode(spec.code.lang, ctx);
         if (err) return error(spec, ctx, err);
         var lang = 'language-' + value;
-        setTimeout(Prism.highlightAll, 0);
+        if (value === 'json' && typeof(source) === 'object') {
+            source = JSON.stringify(source, null, 2)
+        }
+        var { value } = hljs.highlight(value, source);
+        var json = window.himalaya.parse(value);
         return { view: ['pre', {
             class: lang
         }, ['code', {
             class: lang
-        }, source]]};
+        }].concat(compileJsons(json))]};
+    }
+
+
+    function compileJsonAttrs(attrs) {
+        var out = {};
+        attrs.forEach((a) => {
+            out[a.key] = a.value;
+        });
+        return out;
+    }
+
+    function compileJson(el) {
+        switch (el.type) {
+            case 'element':
+                return [ el.tagName, compileJsonAttrs(el.attributes) ]
+                    .concat( el.children.map(compileJson));
+            case 'text':
+                return el
+                    .content
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace(/&#(\d+);/g, function(match, dec) {
+				        return String.fromCharCode(dec);
+			        })
+
+        }
+    }
+
+    function compileJsons(els) {
+        return els.map(compileJson);
+    }
+
+    function compileMarkdown(views, spec, ctx) {
+        var {err, value} = encode(spec.markdown, ctx);
+        if (err) return error(spec, ctx, err);
+        var html = marked(value);
+        var json = window.himalaya.parse(html);
+        return { view: compileJson(json[0]) };
     }
 
     function compile(views, spec, ctx) {
@@ -193,6 +234,7 @@ export default (name, settings, app) => {
         if (spec.map) return compileMapbox(views, spec, ctx);
         if (spec.timestamp) return compileTimestamp(views, spec, ctx);
         if (spec.code) return compileCode(views, spec, ctx);
+        if (spec.markdown) return compileMarkdown(views, spec, ctx);
         return error(spec, ctx, "view_not_supported");
     }
 

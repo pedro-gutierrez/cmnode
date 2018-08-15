@@ -57,22 +57,22 @@ decode_object([Key|Rem], Spec, Data, Context, Out) when is_map(Data) ->
 
     end.
 
-decode_object_without([], In) -> {ok, In};
-decode_object_without([K|Rem], In) ->
+decode_object_without_keys([], In) -> {ok, In};
+decode_object_without_keys([K|Rem], In) ->
     case cmkit:value_at(K, In) of 
-        undef -> decode_object_without(Rem, In);
+        undef -> decode_object_without_keys(Rem, In);
         _ -> no_match
     end.
 
-decode_term(#{ type := object_without, spec := KeySpecs}, In, _) when is_map(In) -> 
+decode_term(#{ type := without_keys, spec := KeySpecs}, In, _) when is_map(In) -> 
     case cmencode:encode_all(KeySpecs, In) of 
         {ok, Keys} -> 
-            decode_object_without(Keys, In);
+            decode_object_without_keys(Keys, In);
         Other -> 
             Other
     end;
 
-decode_term(#{ type := object_without, spec := _}, _, _) ->  no_match;
+decode_term(#{ type := without_keys, spec := _}, _, _) ->  no_match;
 
 decode_term(#{ type := data }, Data, _) when is_binary(Data) -> {ok, Data};
 decode_term(#{ type := data }, _, _) -> no_match;
