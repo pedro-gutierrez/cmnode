@@ -1,0 +1,31 @@
+version: 1.0
+type: module
+category: client
+name: nkpanel_ui
+spec:
+  encoders:
+    styles:
+      object:
+        settings:
+          config: settings
+        themes:
+          - keyword: luna
+          - keyword: admin 
+    app:
+      object:
+        settings:
+          config: settings
+        app:
+          spec: 
+            modules:
+              - nkpanel_ui_effects
+              - nkpanel_ui_events
+              - common_ui_ws
+              - common_ui_layouts
+              - common_ui_controls
+              - common_ui_login
+              - nkpanel_ui_common
+              - nkpanel_ui_test
+              - nkpanel_ui_report
+              - nkpanel_ui_release
+

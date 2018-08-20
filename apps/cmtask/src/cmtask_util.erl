@@ -131,7 +131,7 @@ run_item(_, #{ type := git, spec := #{ action := tag,
                                        clone := Clone,
                                        dir := DirSpec,
                                        prefix := PrefixSpec,
-                                       increment := Increment
+                                       increment := IncrementSpec
                                      } = Spec }, In) ->
     case cmencode:encode(RepoSpec, In) of 
         {ok, Repo} -> 
@@ -141,21 +141,25 @@ run_item(_, #{ type := git, spec := #{ action := tag,
                         {ok, Creds} -> 
                             case cmencode:encode(PrefixSpec, In) of 
                                 {ok, Prefix} -> 
-                                    GitParams = #{ dir => Dir,
-                                                   clone => Clone,
-                                                   credentials => Creds,
-                                                   increment => Increment,
-                                                   prefix => Prefix },        
+                                    case cmencode:encode(IncrementSpec, In) of 
+                                        {ok, Increment} -> 
+                                            GitParams = #{ dir => Dir,
+                                                           clone => Clone,
+                                                           credentials => Creds,
+                                                           increment => Increment,
+                                                           prefix => Prefix },        
 
-                                    GitParams2 = case maps:get(branch, Spec, undef) of 
-                                                     undef -> GitParams;
-                                                     Br -> GitParams#{ branch => Br }
-                                                 end,
-                                    case cmgit:tag(Repo, GitParams2) of 
-                                        {ok, Tag} -> 
-                                            {ok, #{ As => Tag }};
-                                        Other -> 
-                                            Other
+                                            GitParams2 = case maps:get(branch, Spec, undef) of 
+                                                             undef -> GitParams;
+                                                             Br -> GitParams#{ branch => Br }
+                                                         end,
+                                            case cmgit:tag(Repo, GitParams2) of 
+                                                {ok, Tag} -> 
+                                                    {ok, #{ As => Tag }};
+                                                Other -> 
+                                                    Other
+                                            end;
+                                        Other -> Other
                                     end;
                                 Other -> 
                                     Other

@@ -63,8 +63,7 @@ resolve_procedures([#{ type := procedure,
                        name := ProcName }=S|Rem], Procs, Steps) ->
     case maps:get(ProcName, Procs, undef) of 
         undef ->
-            {error, #{ reason => undefined,
-                       type => procedure,
+            {error, #{ error => missing_procedure,
                        name => ProcName }};
         #{ spec := Spec } = Spec0 ->
             S1 = S#{ spec => Spec },
@@ -100,7 +99,8 @@ resolve_backgrounds([#{ id := BId, title := Title }=BRef|Rem], #{ backgrounds :=
 
     case R of 
         undef -> 
-            {error, {undefined, background_or_step, BRef}};
+            {error, #{ error => missing_background_or_step,
+                       name => BRef }};
         #{ steps := Steps } = Resolved ->
             case resolve_procedures(Steps, Procs, []) of
                 {ok, Steps2} ->
@@ -122,7 +122,8 @@ resolve_steps([], _, Out) -> {ok, lists:reverse(Out)};
 resolve_steps([#{ ref := Title}|Rem], ReusableSteps, Out)  ->
     case maps:get(Title, ReusableSteps, undef) of 
         undef -> 
-            {error, {undefined, step, Title}};
+            {error, #{ error => missing_step,
+                       name => Title }};
         Resolved ->
             resolve_steps(Rem, ReusableSteps, [Resolved|Out])
     end;
@@ -351,11 +352,5 @@ close(#{ conns := _Conns }, _Pid) ->
 report_sort_fun(#{ timestamp := T1}, #{ timestamp := T2}) ->
     T1 > T2.
 
-printable(#{ conns := Conns,
-                   data := Data,
-                   retries := Retries }) ->
-    #{ conns => Conns,
-       data => cmkit:printable(128, Data),
-       retries => Retries }.
-
-
+printable(Map) ->
+    cmkit:printable(128, Map).

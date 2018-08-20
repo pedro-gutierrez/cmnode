@@ -22,7 +22,7 @@ tag(Repo, #{ dir := Dir,
             case tags(Dir) of
                 {ok, AllTags} -> 
                     Tags = tags_filtered_by(Prefix, AllTags),
-                    case next_tag(Tags, Increment) of 
+                    case next_tag(Tags, cmkit:to_bin(Increment)) of 
                         {ok, NextTag} ->
                             TagWithPrefix =  tag_with_prefix(Prefix, NextTag),
                             case branch(Params#{ repo => Repo, 
@@ -162,8 +162,11 @@ commit_cmd(Branch) ->
 push_branch_cmd(_Url, Branch) -> 
     cmkit:fmt("git push origin ~s", [Branch]).
 
-next_tag([], minor) -> 
-    {ok, {1, 0, 0}};
+next_tag([], <<"patch">>) -> 
+    {ok, {0, 0, 1}};
+
+next_tag([], <<"minor">>) -> 
+    {ok, {0, 1, 0}};
 
 next_tag([Latest|_], Increment) ->
     case Latest of  
@@ -173,13 +176,13 @@ next_tag([Latest|_], Increment) ->
             {error, Other}
     end.
 
-next_tag(Major, Minor, _, minor) ->
+next_tag(Major, Minor, _, <<"minor">>) ->
     {ok, {Major, Minor+1, 0}};
 
-next_tag(Major, _, _, major) ->
+next_tag(Major, _, _, <<"major">>) ->
     {ok, {Major+1, 0, 0}};
 
-next_tag(Major, Minor, Patch, patch) ->
+next_tag(Major, Minor, Patch, <<"patch">>) ->
     {ok, {Major, Minor, Patch +1}}.
 
 tags_filtered_by(Prefix, Items) -> 

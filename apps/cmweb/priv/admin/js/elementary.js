@@ -10,6 +10,14 @@
                  res: r };
     }
 
+    function typeOf(data) {
+        if (!data) return "undefined";
+        var t = typeof(data);
+        if (t === 'object') {
+            return (Array.isArray(data)) ? "list" : "object";
+        } else return (t === 'string') ? "text" : t;
+    }
+
     function error(spec, data, reason) {
         return {err: {spec, data, reason}};
     }
@@ -167,15 +175,32 @@
         
         return {value: true};
     }
+    
+    function encodeAnd(spec, data, ctx) {
+        if (!spec.and) return {value: false};
+        for (var i=0; i<spec.and.length; i++) {
+            var s = spec.and[i];
+            var {err, value}= encode(s, data, ctx);
+            if (err) return error(spec, data, err);
+            if (!value) return {value: false}
+        }
+        return {value: true};
+    }
 
     function encodeIsSet(spec, data, ctx) {
-        var {err, value} = encode(spec.spec, data, ctx);
+        var {err, value} = encode(spec.is_set, data, ctx);
         if (err) return error(spec, data, err);
-        return value ? { value: true } : { value: false };
+        var v = data[value];
+        if (!v) return {value: false};
+        switch (typeof(v)) {
+            case 'string':
+                return v.length ? { value: true }: {value: false};
+        }
+        return {value: true}
     }
     
     function encodeNot(spec, data, ctx) {
-        var {err, value} = encode(spec.spec, data, ctx);
+        var {err, value} = encode(spec.not, data, ctx);
         if (err) return error(spec, data, err);
         if (!typeof(value) === 'boolean') return error(spec, data, {
             value: value,
@@ -259,6 +284,47 @@
         return {value: JSON.stringify(value, null, 2)};
     }
 
+    function encodePercent(spec, data, ctx) {
+        var {err, value} = encode(spec.percent.den, data, ctx);
+        if (err) return error(spec, data, err);
+        if (!value) return error(spec, data, "denominator is zero");
+        var den = value;
+        var {err, value} = encode(spec.percent.num, data, ctx);
+        if (err) return error(spec, data, err);
+        return {value: Math.round(100*value/den)};
+    }
+
+    function encodeSum(spec, data, ctx) {
+        var {err, value} = encodeList(spec.sum, data, ctx);
+        if (err) return error(spec, data, err);
+        if (!value || !value.length) return {value: 0};
+        var sum = 0;
+        for (var i=0; i<value.length; i++) {
+            var item = value[i];
+            if (typeof(item) != 'number') return error(spec, item, "not_a_number");
+            sum += item;
+        }
+        return {value: sum};
+    }
+
+    var sizeEncoders = {
+        "undefined": (d) => { return 0},
+        "list": (d) => { return d.length },
+        "object": (d) => { return Object.keys(d).length },
+        "string": (d) => { return d.length },
+        "number": (d) => { return d.number },
+        "boolean": (d) => { return 0 }
+    }
+
+    function encodeSizeOf(spec, data, ctx) {
+        var {err, value} = encode(spec.size_of, data, ctx);
+        if (err) return error(spec, data, err);
+        var e = sizeEncoders[typeOf(value)];
+        if (!e) return error(spec, value, "cannot_encode_size");
+        var s = e(value);
+        return {value: s};
+    }
+
     function encode(spec, data, ctx) {
         switch(typeof(spec)) {
             case "object":
@@ -278,12 +344,24 @@
                 if (spec.percent) return encodePercent(spec, data, ctx);
                 if (spec.is_set) return encodeIsSet(spec, data, ctx);
                 if (spec.not) return encodeNot(spec, data, ctx);
+                if (spec.and) return encodeAnd(spec, data, ctx);
                 if (spec.any) return encodeAny(spec, data, ctx);
                 if (spec.expression) return encodeExpression(spec, data, ctx);
                 if (spec.prettify) return encodePrettify(spec, data, ctx);
+                if (spec.percent) return encodePercent(spec, data, ctx);
+                if (spec.sum) return encodeSum(spec, data, ctx);
+                if (spec.size_of) return encodeSizeOf(spec, data, ctx);
                 if (!Object.keys(spec).length) return {value: {}};
-            default: 
+                console.warn("returning spec as default encoding value", spec);
                 return { value: spec };
+            case "string":
+                return { value: spec };
+            case "boolean":
+                return { value: spec };
+            case "number":
+                return { value: spec };
+            default:
+                return error(spec, data, "encoder_not_supported");
         }
     }
 
@@ -295,35 +373,40 @@
 
     function decodeObject(spec, data, ctx) {
         if (!data || typeof(data) != 'object') return error(spec, data, "no_match");
-        function _(keys, out) {
-            if (!keys.length) return { decoded: out};
-            var k = keys.shift();
-            var {err, value} = objectValueDecoder(spec.object[k], ctx);
-            if (err) return error(spec, data, err);
-            var {err, decoded} = decode(value, data[k], ctx);
-            if (err) return error(spec, data, err);
-            out[k] = decoded;
-            return _(keys, out);
+        var out = {};
+        for (var k in spec.object) {
+            if (spec.object.hasOwnProperty(k)) {
+                var {err, value} = objectValueDecoder(spec.object[k], ctx);
+                if (err) return error(spec, data, err);
+                var {err, decoded} = decode(value, data[k], ctx);
+                if (err) return error(spec, data, err);
+                out[k] = decoded;
+            }
         }
-        return _(Object.keys(spec.object), {});
+        return {decoded: out};
+    }
+    
+    function decodeOtherThan(spec, data, ctx) {
+        var {err, value} = encode(spec.other_than, ctx);
+        if (err) return error(spec, data, err);
+        if (data != value) return {decoded: data};
+        return error(spec, data, "no_match");
+    }
+    
+
+    var anyConditions = {
+        "text": (data) => { return typeof(data) === 'string' },
+        "number": (data) => { return typeof(data) === 'number' },
+        "boolean": (data) => { return typeof(data) === 'boolean' },
+        "object": (data) => { return typeof(data) === 'object' },
+        "list": (data) => { return Array.isArray(data) }
     }
 
-
     function decodeAny(spec, data, ctx) {
-        switch (spec.any) {
-            case "text":
-                if (typeof(data) === 'string') return {decoded: data};
-            case "number":
-                if (typeof(data) === 'number') return {decoded: data};
-            case "boolean":
-                if (typeof(data) === 'boolean') return {decoded: data};
-            case "list": 
-                if (Array.isArray(data)) return {decoded: data};
-            case "object":
-                if (typeof(data) === 'object') return {decoded: data};
-            default: 
-                return error(spec, data, "no_match");
-        }
+        if (data == undefined || data == null) return error(spec, data, "no_data");
+        var d = anyConditions[spec.any];
+        if (!d || !d(data)) return error(spec, data, "no_match");
+        return {decoded: data}
     }
 
     function decodeListItems(spec, data, ctx) {
@@ -384,6 +467,7 @@
                 if (spec.object) return decodeObject(spec, data, ctx);
                 if (spec.any) return decodeAny(spec, data, ctx);
                 if (spec.list) return decodeList(spec, data, ctx);
+                if (spec.other_than) return decodeOtherThan(spec, data, ctx);
                 if (spec.one_of) return decodeOne(spec, data, ctx);
                 if (spec.json) return decodeJson(spec, data, ctx);
                 if (spec.size) return decodeSize(spec, data, ctx);

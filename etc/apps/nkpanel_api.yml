@@ -1,0 +1,26 @@
+version: 1.0
+type: app
+category: api
+name: nkpanel_api
+spec:
+  debug: true 
+  modules:
+    - common_api
+    - login_api
+    - register_api
+    - settings_api
+    - webhooks_api
+    - tests_api
+  config:
+    role:
+      keyword: admin
+    sessions:
+      keyword: many
+    key:
+      text:
+        literal: "87fb5ce6-d847-494b-ac35-a1a37186c276"
+    timeout:
+      number: 30
+    databases:
+      list:
+        - keyword: users 

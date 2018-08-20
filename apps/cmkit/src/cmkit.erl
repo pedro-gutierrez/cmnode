@@ -762,15 +762,24 @@ prefix(String, Prefix) ->
 printable(Term) -> printable(64, Term).
 
 printable(BinSize, List) when is_list(List) ->
-    case length(List) > BinSize of 
+    case is_string(List) of 
         true -> 
-            lists:sublist(List, BinSize);
-        false ->
-            List
+            case length(List) > BinSize of 
+                true -> 
+                    lists:sublist(List, BinSize);
+                false ->
+                    List
+            end;
+        false -> 
+            lists:map(fun(T) -> 
+                              printable(BinSize, T)
+                      end, List)
     end;
 
 printable(BinSize, Map) when is_map(Map) ->
-    maps:fold(fun(K, V, Acc) ->
+    maps:fold(fun(K, Pid, Acc) when is_pid(Pid) -> 
+                      Acc#{ K => <<"(omitted pid)">>} ;
+                 (K, V, Acc) ->
                       Acc#{ K => printable(BinSize, V) }
               end, #{}, Map);
 

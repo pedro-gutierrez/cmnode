@@ -448,7 +448,7 @@ compile_config(Spec) ->
     case cmencode:encode(compile_object(Spec)) of 
         {ok, Config} -> Config;
         {error, E} -> 
-            cmkit:log({cmconfig, invalid_config, Spec, E}),
+            cmkit:warning({cmconfig, invalid_config, Spec, E}),
             #{}
     end.
 
@@ -726,9 +726,9 @@ compile_term(#{ <<"entries">> := Spec }) ->
        spec => compile_term(Spec)
      };
 
-compile_term(#{ <<"view">> := _,
-                <<"params">> := _ } = Spec) ->
-    compile_view(Spec);
+%compile_term(#{ <<"view">> := _,
+%                <<"params">> := _ } = Spec) ->
+%    compile_view(Spec);
 
 compile_term(#{ <<"view">> := View }) ->
     #{ type => view ,
@@ -769,6 +769,10 @@ compile_term(#{ <<"by_appending">> := Spec }) ->
 compile_term(#{ <<"by_removing">> := Spec }) ->
     #{ type => by_removing, 
        spec => compile_term(Spec) };
+
+compile_term(#{ <<"size_of">> := Spec }) -> 
+    #{ type => size_of,
+       spec => compile_term(Spec) }; 
 
 compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
     #{ type => list,
@@ -1011,7 +1015,7 @@ compile_term(#{ <<"are_set">> := Specs }) when is_list(Specs) ->
        spec => lists:map(fun compile_term/1, Specs)
      };
 
-compile_term(#{ <<"is_set">> := Spec }) when is_map(Spec) ->
+compile_term(#{ <<"is_set">> := Spec }) ->
     #{ type => is_set,
        spec => compile_term(Spec)
      };
@@ -1319,7 +1323,7 @@ compile_term(#{ <<"git">> := #{
                  repo => compile_term(Repo),
                  dir => compile_term(Dir),
                  prefix => compile_term(Prefix),
-                 increment => cmkit:to_atom(Increment) },
+                 increment => compile_term(Increment) },
 
     GitSpec2  = case maps:get(<<"branch">>, Spec, undef) of 
                     undef -> GitSpec;
@@ -1677,27 +1681,28 @@ compile_views([K|Rem], Views, Out) ->
 compile_view(#{ <<"view">> := View,
                 <<"params">> := Params,
                 <<"when">> := When }) ->
-
-    #{ view => compile_keyword(View),
+    
+    
+    #{ view => compile_term(View),
        params => compile_term(Params),
        condition => compile_term(When) };
 
 compile_view(#{ <<"view">> := View,
                 <<"when">> := When }) ->
 
-    #{ view => compile_keyword(View),
+    #{ view => compile_term(View),
        condition => compile_term(When) };
 
 
 compile_view(#{ <<"view">> := View,
                 <<"params">> := Params }) ->
 
-    #{ view => compile_view_name(View),
+    #{ view => compile_term(View),
        params  => compile_term(Params) };
 
 compile_view(#{ <<"view">> := View }) ->
 
-    #{ view => compile_view_name(View),
+    #{ view => compile_term(View),
        params  => #{} };
 
 compile_view(#{ <<"tag">> := Tag,
@@ -1790,13 +1795,6 @@ compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),
     #{ view => not_supported,
        spec => Spec }.
-
-compile_view_name(Text) when is_binary(Text) ->
-    compile_keyword(Text);
-
-compile_view_name(Spec) ->
-    compile_term(Spec).
-
 
 compile_view_attrs(Attrs) when is_map(Attrs) ->
     maps:fold(fun(K, V, Attrs2) ->

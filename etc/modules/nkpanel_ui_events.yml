@@ -1,0 +1,23 @@
+version: 1.0
+type: module
+category: ui
+name: nkpanel_ui_events
+spec:
+  update:
+    ready:
+      cmds:
+        - effect: ui
+          encoder: test_view
+        - effect: ws
+          encoder: test_reports
+        - effect: ws
+          encoder: tests
+        - effect: ws
+          encoder: subscribe_to_tests
+  decoders:
+    ready:
+      object:
+        effect:
+          keyword: events
+        event:
+          keyword: user_logged_in

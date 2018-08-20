@@ -35,26 +35,33 @@ init([#{ name := Name,
                     } 
        }=Test, #{ title := Title }=Scenario, Settings, Runner]) ->
     Log = cmkit:log_fun(true),
+    Data = #{ log => Log,
+              test => Test,
+              scenario => Scenario,
+              steps => [],
+              settings => Settings,
+              world => #{ retries => #{ max => Retries,
+                                        left => Retries,
+                                        wait => Wait
+                                      },
+                          data => #{},
+                          conns => #{} },
+              runner => Runner,
+              started => cmkit:now()
+            },
+
     case cmtest_util:steps(Scenario, Test) of 
         {ok, Steps} ->
-            {ok, ready, #{ log => Log, 
-                           test => Test, 
-                           scenario => Scenario, 
-                           steps => Steps, 
-                           settings => Settings,
-                           world => #{ 
-                                       retries => #{ max => Retries,
-                                                     left => Retries,
-                                                     wait => Wait
-                                                   },
-                                       data => #{},
-                                       conns => #{} },
-                           runner => Runner,
-                           started => cmkit:now() 
-                         }};
-        Other ->
-            cmkit:danger({cmtest, error, Name, Title, Other}),
-            {stop, normal}
+            {ok, ready, Data#{ steps => Steps }};
+        {error, E} ->
+            cmkit:danger({cmtest, error, Name, Title, E}),
+            cmtest_runner:fatal(Name, Title, #{ test => Name,
+                                                scenario => Title,
+                                                step => #{},
+                                                world => #{},
+                                                reason => cmtest_util:printable(E)
+                                              }, 0, Runner),
+            {ok, ready, Data}
     end.
 
 
@@ -126,7 +133,7 @@ run_steps(#{ test := #{ name := Name },
                                                        scenario => Title,
                                                        step => Step,
                                                        world => cmtest_util:printable(World),
-                                                       reason => E
+                                                       reason => cmtest_util:printable(E)
                                                      }, Elapsed, Runner),
                     {keep_state, Data#{ steps => Rem }}
             end;

@@ -1,0 +1,12 @@
+version: 1.0
+type: app
+category: ui
+name: nkpanel_css
+spec: 
+  debug: true
+  modules:
+    - css_common
+    - nkpanel_ui
+  config:
+    settings:
+      keyword: nkpanel

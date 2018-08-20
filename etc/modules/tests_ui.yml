@@ -20,6 +20,7 @@ spec:
               current: 0
               max: 0
               items: []
+        selected_test_report_scenario: ""
   decoders:
     show_activity:
       object:
@@ -322,6 +323,25 @@ spec:
           object:
             settings:
               list: any
+    unselect_scenario_report:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "toggle-scenario-report"
+            scenario:
+              text:
+                key: selected_test_report_scenario
+    select_scenario_report:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "toggle-scenario-report"
+            scenario:
+              text:
+                other_than: 
+                  key: selected_test_report_scenario
   update:
     show_tests:
       cmds:
@@ -494,6 +514,18 @@ spec:
       cmds:
         - effect: ws
           encoder: cancel_test
+        - effect: ui
+    select_scenario_report:
+      model:
+        selected_test_report_scenario:
+          key: scenario
+          in: event
+      cmds:
+        - effect: ui
+    unselect_scenario_report:
+      model:
+        selected_test_report_scenario: ""
+      cmds:
         - effect: ui
   encoders:
     tests:
@@ -1530,9 +1562,14 @@ spec:
       view:
         tag: div
         attrs:
-          class: "columns"
+          class: "columns c-hand"
           key:
             key: scenario
+          onclick:
+            object:
+              name: "toggle-scenario-report"
+              scenario:
+                key: scenario
         children:
           - tag: div
             attrs:
@@ -1632,7 +1669,15 @@ spec:
                 body:
                   object:
                     view:
-                      keyword: test_report_result_body_view
+                      either:
+                        - when:
+                            eq:
+                              - key: selected_test_report_scenario
+                                in: context
+                              - key: scenario
+                                in: item
+                          keyword: test_report_result_body_view
+                        - keyword: test_report_result_success_view
                     data:
                       key: item
     test_report_result_view:
@@ -1645,6 +1690,10 @@ spec:
           loop:
             key: result
           with: test_report_result_item_view
+          context:
+            object:
+              selected_test_report_scenario:
+                key: selected_test_report_scenario
     test_report_sections_view:
       view:
         tag: div
@@ -1673,8 +1722,6 @@ spec:
                       in:
                         key: test_report
                         in: data
-
-          
           - view: test_report_stats_view
             params:
               object:
@@ -1684,6 +1731,9 @@ spec:
           - view: test_report_result_view
             params:
               object:
+                selected_test_report_scenario:
+                  key: selected_test_report_scenario
+                  in: data
                 result:
                   key: result
                   in:
@@ -1724,6 +1774,8 @@ spec:
                   key: settings
                 selected_test:
                   key: selected_test
+                selected_test_report_scenario:
+                  key: selected_test_report_scenario
             sidebar:
               keyword: admin_sidebar
     scenario_step_table_item_view:

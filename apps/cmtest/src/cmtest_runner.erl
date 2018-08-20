@@ -6,6 +6,7 @@
          progress/5,
          success/5,
          fail/5,
+         fatal/5,
          stop/1,
          start_link/0,
          init/1, 
@@ -34,6 +35,9 @@ success(T, S, Info, Elapsed, Pid) ->
 
 fail(T, S, Info, Elapsed, Pid) ->
     gen_statem:cast(Pid, {fail, T, S, Info, Elapsed}).
+
+fatal(T, S, Info, Elapsed, Pid) ->
+    gen_statem:cast(Pid, {fatal, T, S, Info, Elapsed}).
 
 ok(From) -> reply(From, ok).
 
@@ -133,6 +137,23 @@ ready(cast, {success, _, Title, _, Elapsed }, #{
             {stop, normal}
     end;
 
+ready(cast, {fatal, _, Title, Info, Elapsed }, #{  
+                                      pid := Pid,
+                                      test := #{ name := Name },
+                                      fail := Fail,
+                                      result := Result
+                                     }=Data) ->
+    Data2 = Data#{ fail => Fail + 1,
+                   result => [#{ test => Name, 
+                                 scenario => Title,
+                                 status => fail,
+                                 failure => Info,
+                                 elapsed => Elapsed }|Result] },
+
+    cmtest_scenario:stop(Pid),
+    report(Data2),
+    {stop, normal};
+
 ready(cast, {fail, _, Title, Info, Elapsed }, #{  
                                      pid := Pid,
                                      test := #{ name := Name }=Test,
@@ -141,22 +162,11 @@ ready(cast, {fail, _, Title, Info, Elapsed }, #{
                                      result := Result
                                     }=Data) ->
     
-    Info2 = case Info of 
-                #{ world := #{ conns := Conns } = World} -> 
-                    Conns2 = maps:map(fun(_, #{ pid := _ }=ConnInfo) ->
-                                              maps:without([pid], ConnInfo);
-                                         (_, V) -> V
-                                      end, Conns),
-
-                    Info#{ world => World#{ conns => Conns2 }};
-                _ -> Info
-            end,
-
     Data2 = Data#{ fail => Fail + 1,
                    result => [#{ test => Name, 
                                  scenario => Title,
                                  status => fail,
-                                 failure => Info2,
+                                 failure => Info,
                                  elapsed => Elapsed }|Result] },
     cmtest_scenario:stop(Pid),
     case start_scenario(Test, Rem, Data2) of 

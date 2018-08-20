@@ -1,0 +1,59 @@
+version: 1.0
+type: module
+category: client
+name: common_ui_ws 
+spec:
+  update:
+    ws_connected:
+      model:
+        object:
+          message: "Server reachable"
+      cmds:
+        - effect: ui
+    ws_disconnected:
+      model:
+        object:
+          message: "Disconnected from server" 
+      cmds:
+        - effect: ui
+    ws_error:
+      model:
+        object:
+          message: "Server connection error"
+      cmds:
+        - effect: ui
+    ws_pong:
+      model:
+        object:
+          pong: ""
+  decoders:
+    ws_connected:
+      object:
+        effect: "ws"
+        event: "connected"
+    ws_disconnected:
+      object:
+        effect: "ws"
+        event: "disconnected"
+    ws_error:
+      object:
+        effect: "ws"
+        event: "error"
+    invalid:
+      object:
+        effect: "ws"
+        data:
+          object:
+            error: "invalid"
+    not_found:
+      object:
+        effect: "ws" 
+        data:
+          object:
+            error: "not_found"
+    forbidden:
+      object:
+        effect: "ws"
+        data:
+          object:
+            error: "forbidden"

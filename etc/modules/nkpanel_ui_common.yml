@@ -1,0 +1,196 @@
+version: 1.0
+type: module
+category: ui
+name: nkpanel_ui_common
+spec:
+  decoders:
+    cancel_test:
+      object:
+        effect: "ui"
+        event:
+          object:
+            name: "cancel-test"
+            id:
+              any: number
+  update:
+    cancel_test:
+      model:
+        object:
+          test_job_id:
+            key: id 
+            in: event
+      cmds:
+        - effect: ws
+          encoder: cancel_test_query
+        - effect: ui
+  encoders:
+    cancel_test_query:
+      object:
+        action: "cancel"
+        test:
+          key: test_job_id
+    activity_detail:
+      view:
+        tag: div
+        attrs:
+          key: 
+            key: id
+        children:
+          - view: button
+            params:
+              object:
+                style: "btn-sm danger"
+                title: "Cancel"
+                onclick:
+                  object:
+                    name: "cancel-test"
+                    id:
+                      key: id
+          - tag: div
+            children:
+              - tag: h6
+                children:
+                  - text:
+                      key: title
+              - tag: p
+                children:
+                  - text:
+                      key: subtitle
+              - tag: span
+                children:
+                  - timestamp:
+                      format: human
+                      value:
+                        key: date
+    activity_item: 
+      view:
+        view: panel
+        params:
+          object:
+            style: "activity-item filled"
+            view: activity_detail
+            content:
+              object:
+                id:
+                  key: id
+                  in: item
+                title:
+                  key: test
+                  in: item
+                subtitle:
+                  key: info
+                  in: item
+                date:
+                  key: timestamp
+                  in: item
+    activity:
+      view:
+        tag: div
+        attrs:
+          class: "activity"
+        children:
+          - tag: div
+            children:
+              - tag: div
+                attrs:
+                  class: "icon"
+                children:
+                  - tag: i
+                    attrs:
+                      class: "fas fa-tasks"
+              - tag: div
+                attrs:
+                  class: "title"
+                children:
+                  - tag: h3
+                    children:
+                      - text: "Activity"
+                  - tag: span
+                    children:
+                      - text: "System activity in realtime"
+          - tag: section
+            children:
+              - view: progressbar
+                params:
+                  object:
+                    value:
+                      sum:
+                        - size_of:
+                            key: items 
+                            in:
+                              key: current
+                              in: content
+                        - size_of:
+                            key: items
+                            in:
+                              key: waiting
+                              in: content
+                    max:
+                      sum:
+                        - key: max
+                          in: 
+                            key: current
+                            in: content
+                        - key: max
+                          in: 
+                            key: waiting
+                            in: content
+              - tag: section
+                children:
+                  loop:
+                    key: items
+                    in:
+                      key: current
+                      in: content
+                  with: activity_item
+              - tag: section
+                children:
+                  loop:
+                    key: items
+                    in:
+                      key: waiting
+                      in: content
+                  with: activity_item
+    nkpanel_view:
+      view:
+        view: admin
+        params:
+          object:
+            header:
+              brand: "Netscale Panel"
+              content_view: admin_header
+              content: {}
+            inspector:
+              key: inspector
+            menu:
+              list: 
+                - object:
+                    title: "Test"
+                    active:
+                      either:
+                        - when:
+                           eq:
+                             - key: name
+                               in: feature
+                             - text: "test"
+                          keyword: true
+                        - keyword: false
+                    onclick: "show_test"
+                - object:
+                    title: "Release"
+                    active:
+                      either:
+                        - when:
+                           eq:
+                             - key: name
+                               in: feature
+                             - text: "release"
+                          keyword: true
+                        - keyword: false
+                    onclick: "show_release"
+            content_view:
+              key: view
+              in: feature
+            content:
+              key: content
+              in: feature

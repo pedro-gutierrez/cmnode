@@ -206,6 +206,15 @@ term(#{ type := by_removing, spec := Spec}, Settings) ->
             Other
     end;
 
+term(#{ type := size_of,
+        spec := Spec }, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ size_of => Compiled }};
+        Other -> 
+            Other
+    end;
+
 term(#{ type := list, size := Size}, _) -> 
         {ok, #{ list => #{ size => Size }}};
 
@@ -276,6 +285,14 @@ term(#{ type := format,
             Other
     end;
 
+term(#{ type := sum,
+        spec := Specs }, Settings) -> 
+    case terms(Specs, Settings) of 
+        {ok, CompiledTerms} -> 
+            {ok, #{ sum => CompiledTerms}};
+        Other -> 
+            Other
+    end;
 
 term(#{ type := percentage,
         den := DenSpec,
@@ -388,6 +405,14 @@ term(#{ one_of := Options }, Settings) ->
             Other
     end;
 
+term(#{ type := other_than, spec := Spec }, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ other_than => Compiled }};
+        Other -> 
+            Other
+    end;
+
 term(#{ type := merged_list, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Terms} -> 
@@ -423,14 +448,19 @@ term(#{ tag := Tag, attrs := AttrsSpec, children := ChildrenSpecs}, Settings) ->
             Other
     end;
 
-term(#{ view := View, params := ParamsSpec, condition := ConditionSpec}, Settings) -> 
-    case term(ParamsSpec, Settings) of 
-        {ok, Params} -> 
-            case term(ConditionSpec, Settings) of 
-                {ok, Condition} -> 
-                    {ok, #{ name => View,
-                            condition => Condition,
-                            params => Params }};
+term(#{ view := ViewSpec, params := ParamsSpec, condition := ConditionSpec}, Settings) -> 
+    case term(ViewSpec, Settings) of
+        {ok, View} -> 
+            case term(ParamsSpec, Settings) of 
+                {ok, Params} -> 
+                    case term(ConditionSpec, Settings) of 
+                        {ok, Condition} -> 
+                            {ok, #{ name => View,
+                                    condition => Condition,
+                                    params => Params }};
+                        Other -> 
+                            Other
+                    end;
                 Other -> 
                     Other
             end;
@@ -509,6 +539,9 @@ term(#{ value := V}, _) -> {ok, V};
 term(#{ type := number }, _) -> 
     {ok, #{ any => number }};
 
+term(#{ type := text, value := V }, _) -> 
+    {ok, #{ text => V }};
+
 term(#{ type := text }, _) -> 
     {ok, #{ any => text }};
 
@@ -540,6 +573,14 @@ term(#{ type := 'not', spec := Spec}, Settings) ->
             Other
     end;
 
+term(#{ type := 'and', spec := Spec}, Settings) -> 
+    case terms(Spec, Settings) of 
+        {ok, Exprs} -> 
+            {ok, #{ 'and' => Exprs }};
+        Other -> 
+            Other
+    end;
+
 
 term(#{ encoder := Encoder }, _) -> 
     {ok, #{ encoder => Encoder }};
@@ -561,7 +602,6 @@ term(#{ timestamp := #{ format := FormatSpec,
     end;
 
 term(#{ with := Spec}, Settings) -> 
-    cmkit:warning({cmelementary, Spec}),
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
             {ok, #{ with => Compiled}};

@@ -526,6 +526,35 @@ spec:
               object:
                 name: 
                   text: "dkv_shp"
+    dkv_pet_proxy_release_triggered:
+      object:
+        headers:
+          object:
+            x-token: "supersecret"
+        body:
+          release:
+            object:
+              component: "dkv-pet-proxy"
+              increment:
+                one_of:
+                  - text: "minor"
+                  - text: "patch"
+    netcomp_release_triggered:
+      object:
+        headers:
+          object:
+            x-token: "secret"
+        body:
+          release:
+            object:
+              component: "netcomp"
+              instance:
+                one_of:
+                  - text: "dkv"
+              increment:
+                one_of:
+                  - text: "minor"
+                  - text: "patch"
     dkv_dev_docker_ready:
       object:
         body:
@@ -609,6 +638,19 @@ spec:
                 text: "dkv-pet-proxy"
               repo_name:
                 any: text
+    dkv_pet_proxy_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                regexp: "v"
+          repository:
+            object:
+              name:
+                text: "dkv-pet-proxy"
+              repo_name:
+                any: text
     dkv_pet_proxy_dev_deployed:
       object:
         headers:
@@ -623,6 +665,20 @@ spec:
               text: "dev"
             tag:
               text: "latest"
+    dkv_pet_proxy_release_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-pet-proxy"
+            settings:
+              text: "dev"
+            tag:
+              regexp: "v"
     dkv_pet_dev_tests_passed:
       object:
         headers:
@@ -1437,6 +1493,17 @@ spec:
           encoder: release_aborted_announce_task 
         - effect: notify
           encoder: ok
+    netcomp_release_triggered:
+      model:
+        object:
+          release:
+            key: release
+            in: body
+      cmds:
+        - effect: task
+          encoder: netcomp_release_task
+        - effect: notify
+          encoder: ok
     dkv_docker_release_ready:
       model:
         object:
@@ -1526,6 +1593,17 @@ spec:
           encoder: dkv_pet_test
         - effect: notify
           encoder: ok
+    dkv_pet_proxy_release_triggered:
+      model:
+        object:
+          release:
+            key: release
+            in: body
+      cmds:
+        - effect: task
+          encoder: dkv_pet_proxy_release_task 
+        - effect: notify
+          encoder: ok
     dkv_pet_dev_tests_passed:
       cmds:  
         - effect: notify
@@ -1544,6 +1622,37 @@ spec:
       cmds:  
         - effect: task
           encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "dkv-pet-proxy"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_pet_proxy_deploy_task
         - effect: notify
           encoder: ok
     sphera_telemed_dev_changed:
@@ -2317,14 +2426,18 @@ spec:
               object:
                 enabled:
                   keyword: true
-    dkv_release_task:
+    netcomp_release_task:
       object:
         task:
           keyword: netcomp_release_build
         params:
           object:
             name:
-              text: "dkv"
+              key: instance
+              in: release
+            increment:
+              key: increment
+              in: release
             slack:
               keyword: tests
             settings:
@@ -2339,6 +2452,19 @@ spec:
               keyword: tests
             settings:
               keyword: dev
+    dkv_pet_proxy_release_task:
+      object:
+        task:
+          keyword: pet_proxy_release
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+            increment:
+              key: increment
+              in: release
     dkv_pet_proxy_deploy_task:
       object:
         task:

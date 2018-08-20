@@ -32,12 +32,12 @@ export default (name, settings, app) => {
         }
     }
     
-
     function resolve(views, spec, ctx) {
         switch(typeof(spec)) {
             case 'object':
                 const { err, value } = encode(spec, ctx);
                 if (err) return error(spec, ctx, "view_name_encode_error");
+                if (typeof(value) != 'string') return error(spec, ctx, "not_an_string");
                 return resolve(views, value, ctx);
             case 'string':
                 const resolved = views[spec];
@@ -101,6 +101,7 @@ export default (name, settings, app) => {
             if (attrs.hasOwnProperty(k) && k.startsWith("on") ) {
                 var spec = attrs[k];
                 attrs[k] = (ev) => {
+                    if (ev.preventDefault) ev.preventDefault();
                     const specCtx = Object.assign({}, ctx, evProps(ev));
                     const {err, value} = encode(spec, specCtx);
                     if (err) {
@@ -128,7 +129,22 @@ export default (name, settings, app) => {
         return { view: value }
     }
     
-    mapboxgl.accessToken = "pk.eyJ1IjoiY29kZW11dGlueSIsImEiOiJjamk4b3RrZHAwbHVhM3BtNWx1eDg3eXFnIn0.jXq3glh_ARDIsVKUUo9jsw";
+    
+    function displayMap(id, style, zoom, center, markers) {
+        mapboxgl.accessToken = "pk.eyJ1IjoiY29kZW11dGlueSIsImEiOiJjamk4b3RrZHAwbHVhM3BtNWx1eDg3eXFnIn0.jXq3glh_ARDIsVKUUo9jsw";
+        var map = new mapboxgl.Map({
+            container: id,
+            style: "mapbox://styles/mapbox/" + style + "-v9",
+            zoom: zoom,
+            center: [center.lon, center.lat]
+        });
+
+        markers.forEach((marker) => {
+            var m = new mapboxgl.Marker();
+            m.setLngLat([marker.lon, marker.lat]);
+            m.addTo(map);
+        });
+    }
 
     function compileMapbox(views, spec, ctx) {
         var {err, value} = encode(spec.map.id, ctx);
@@ -142,19 +158,9 @@ export default (name, settings, app) => {
         var markers = value;
         
         setTimeout(() => {
-            var map = new mapboxgl.Map({
-                container: id,
-                style: "mapbox://styles/mapbox/" + spec.map.style + "-v9",
-                zoom: spec.map.zoom,
-                center: [center.lon, center.lat]
-            });
-            
-            markers.forEach((marker) => {
-                var m = new mapboxgl.Marker();
-                m.setLngLat([marker.lon, marker.lat]);
-                m.addTo(map);
-            });
+            displayMap(id, spec.map.style, spec.map.zoom, center, markers);
         }, 0);
+
         return { view: ['div', { 
             style: "width: 100%; height: 300px",
             id: id

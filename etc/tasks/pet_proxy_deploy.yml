@@ -62,6 +62,47 @@ spec:
                             value: "/_api"
                           - name: DKV_PET_SCHEME
                             value: "http"
+                          - name: DKV_OAUTH_HOST
+                            value:
+                              key: host
+                              in:
+                                key: oauth
+                                in:
+                                  key: dkv
+                                  in: settings
+                          - name: DKV_OAUTH_PORT
+                            value:
+                              text:
+                                key: port
+                                in:
+                                  key: oauth
+                                  in:
+                                    key: dkv
+                                    in: settings
+                          - name: DKV_OAUTH_PATH
+                            value:
+                              key: path
+                              in:
+                                key: oauth
+                                in:
+                                  key: dkv
+                                  in: settings
+                          - name: DKV_OAUTH_SCHEME
+                            value:
+                              key: transport
+                              in:
+                                key: oauth
+                                in:
+                                  key: dkv
+                                  in: settings
+                          - name: DKV_OAUTH_CLIENT_ID
+                            value:
+                              key: client_id
+                              in:
+                                key: oauth
+                                in:
+                                  key: dkv
+                                  in: settings
                       ports:
                         list:
                           - object:

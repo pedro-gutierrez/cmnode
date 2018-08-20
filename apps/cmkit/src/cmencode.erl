@@ -139,7 +139,12 @@ encode(#{ type := member,
 
 encode(#{ type := text,
           spec := Spec }, In, Config) ->
-    encode(Spec, In, Config);
+    case encode(Spec, In, Config) of 
+        {ok, V} -> 
+            {ok, cmkit:to_bin(V)};
+        Other -> 
+            Other
+    end;
 
 encode(#{ type := keyword, value := no }, _, _) -> 
     {ok, false};

@@ -1,0 +1,14 @@
+version: 1.0
+type: port
+name: nkpanel 
+spec:
+  port: 8084
+  acceptors: 1
+  apps:
+    nkpanel_api:
+      ws: "/ws"
+    nkpanel_ui:
+      http: "/js/app.js"
+    nkpanel_css:
+      http: "/css/nkpanel.css"
+

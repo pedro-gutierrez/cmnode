@@ -2,12 +2,14 @@ version: 1.0
 type: task
 name: netcomp_release_build
 spec:
+  - task: netcomp_assembly
   - git:
       credentials:
         key: github
         in: settings
       tag: 
         repo: "github.com/kalta/netcomp.git"
+        branch: v09
         clone: false
         dir: 
           format: 
@@ -21,7 +23,9 @@ spec:
             params:
               - key: name
                 in: params
-        increment: minor 
+        increment:
+          key: increment
+          in: params
       as: tag
   - docker:
       credentials:

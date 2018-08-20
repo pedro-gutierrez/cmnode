@@ -1,0 +1,24 @@
+version: 1.0
+type: module
+category: ui
+name: nkpanel_ui_release
+spec:
+  decoders:
+    show_release:
+      object:
+        effect: "ui"
+        event: "show_release"
+  update:
+    show_release:
+      cmds:
+        - effect: ui
+          encoder: release_view
+  encoders:
+    release_view:
+      view:
+        view: nkpanel_view
+        params:
+          object:
+            feature:
+              name: "release"
+              content: {}

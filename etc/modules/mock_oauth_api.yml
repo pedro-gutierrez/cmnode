@@ -40,19 +40,20 @@ spec:
   update:
     valid_authorization:
       model:
-        user_id:
-          hash:
-            key: authorization
-            in: headers
-        msad_id:
-          hash:
-            format:
-              pattern: "~s ~s"
-              params:
-                - key: authorization
-                  in: headers
-                - key: client_id
-                  in: headers
+        object:
+          user_id:
+            hash:
+              key: authorization
+              in: headers
+          msad_id:
+            hash:
+              format:
+                pattern: "~s ~s"
+                params:
+                  - key: authorization
+                    in: headers
+                  - key: client_id
+                    in: headers
       cmds:
         - effect: notify
           encoder: authorized
