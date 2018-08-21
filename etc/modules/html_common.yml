@@ -1,0 +1,45 @@
+version: 1.0
+type: module
+category: client
+name: html_common
+spec:
+  decoders:
+    compile:
+      object:
+        method: 
+          text:
+            literal: "GET"
+    render:
+      object:
+        language:
+          keyword: html
+        status:
+          keyword: ok
+        source:
+          any: data
+  update:
+    compile:
+      cmds:
+        - effect: html
+          encoder: page
+    render:
+      model:
+        object:
+          source:
+            key: source
+      cmds:
+        - effect: notify
+          encoder: html
+        - effect: terminate
+  encoders:
+    html:
+      object:
+        status: 200
+        headers:
+          object:
+            content-type: "text/html"
+            cache-control: "no-cache, no-store, must-revalidate"
+            pragma: "no-cache"
+            expires: "0"
+        body:
+          key: source

@@ -11,6 +11,7 @@ spec:
     - settings_api
     - webhooks_api
     - tests_api
+    - release_api
   config:
     role:
       keyword: admin

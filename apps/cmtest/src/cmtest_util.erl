@@ -7,13 +7,19 @@
          report_sort_fun/2,
          printable/1]).
 
-start(Test, #{ title := Title}=Scenario, Settings, Runner) ->
-    case cmtest_scenario:start(Test, Scenario, Settings, Runner) of 
-        {ok, Pid} ->
-            {ok, Pid};
+start(Test, Scenario, Settings, Runner) ->
+    case cmtest_util:steps(Scenario, Test) of 
+        {ok, Steps} -> 
+            case cmtest_scenario_sup:start(Test, Scenario, Steps, Settings, Runner) of 
+                {ok, Pid} ->
+                    {ok, Pid};
+                Other ->
+                    Other
+            end;
         Other -> 
-            {error, {Title, Other}}
+            Other
     end.
+
 
 scenarios_by_tag(Tag, Scenarios) ->
     {ok, lists:filter(fun(#{ tags := Tags}) ->

@@ -1,0 +1,117 @@
+version: 1.0
+type: module
+category: server
+name: release_api 
+spec:
+  decoders:
+    dkv_pet_proxy_release_triggered:
+      object:
+        release:
+          object:
+            component: "dkv-pet-proxy"
+            increment:
+              one_of:
+                - text: "minor"
+                - text: "patch"
+    nimg_release_triggered:
+      object:
+        release:
+          object:
+            component: "nimg"
+            increment:
+              one_of:
+                - text: "minor"
+                - text: "patch"
+    netcomp_release_triggered:
+      object:
+        release:
+          object:
+            component: "netcomp"
+            instance:
+              one_of:
+                - text: "dkv"
+                - text: "sipstorm"
+            increment:
+              one_of:
+                - text: "minor"
+                - text: "patch"
+  update:
+    nimg_release_triggered:
+      model:
+        object:
+          release:
+            key: release
+      cmds:
+        - effect: task
+          encoder: nimg_release_task
+        - effect: notify
+          encoder: release_ack
+    netcomp_release_triggered:
+      model:
+        object:
+          release:
+            key: release
+      cmds:
+        - effect: task
+          encoder: netcomp_release_task
+        - effect: notify
+          encoder: release_ack
+    dkv_pet_proxy_release_triggered:
+      model:
+        object:
+          release:
+            key: release
+      cmds:
+        - effect: task
+          encoder: dkv_pet_proxy_release_task 
+        - effect: notify
+          encoder: release_ack
+  encoders:
+    release_ack:
+      object:
+        release:
+          key: release
+        status:  
+          keyword: ack
+    nimg_release_task:
+      object:
+        task:
+          keyword: nimg_release
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+            increment:
+              key: increment
+              in: release
+    netcomp_release_task:
+      object:
+        task:
+          keyword: netcomp_release_build
+        params:
+          object:
+            name:
+              key: instance
+              in: release
+            increment:
+              key: increment
+              in: release
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_pet_proxy_release_task:
+      object:
+        task:
+          keyword: pet_proxy_release
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+            increment:
+              key: increment
+              in: release

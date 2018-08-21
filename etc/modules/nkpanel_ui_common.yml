@@ -157,7 +157,7 @@ spec:
         params:
           object:
             header:
-              brand: "Netscale Panel"
+              brand: "Netscale CI"
               content_view: admin_header
               content: {}
             inspector:

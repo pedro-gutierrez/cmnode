@@ -1,0 +1,12 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_home
+spec:
+  encoders:
+    page:
+      view:
+        view: html
+        params: {}
+
+

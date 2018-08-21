@@ -39,6 +39,7 @@ spec:
     dark-4: "#31323A"
     dark-5: "#2A2D36"
     dark-6: "#25262D"
+    dark-6-translucid: "rgba(37, 38, 45, 0.83)"
     success: "#1bbf89"
     danger: "#fb866a"
     danger-translucid: "rgba(251, 134, 106, 0.32)"

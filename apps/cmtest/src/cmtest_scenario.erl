@@ -1,18 +1,14 @@
 -module(cmtest_scenario).
 -behaviour(gen_statem).
 -export([
-         start/4,
          next/1,
          stop/1,
-         start_link/4,
+         start_link/5,
          init/1, 
          callback_mode/0, 
          terminate/3,
          ready/3
         ]).
-
-start(Test, Spec, Settings, Runner) ->
-    cmtest_scenario_sup:start(Test, Spec, Settings, Runner).
 
 next(Pid) ->
     gen_statem:cast(Pid, next).
@@ -26,44 +22,27 @@ ok(Pid) ->
 callback_mode() ->
     state_functions.
 
-start_link(Test, Spec, Settings, Runner) ->
-    gen_statem:start_link(?MODULE, [Test, Spec, Settings, Runner], []).
+start_link(Test, Scenario, Steps, Settings, Runner) ->
+    gen_statem:start_link(?MODULE, [Test, Scenario, Steps, Settings, Runner], []).
 
-init([#{ name := Name,
-         config := #{ retries := Retries,
-                      wait := Wait 
-                    } 
-       }=Test, #{ title := Title }=Scenario, Settings, Runner]) ->
-    Log = cmkit:log_fun(true),
-    Data = #{ log => Log,
+init([#{ config := #{ retries := Retries,
+                      wait := Wait }}=Test, Scenario, Steps, Settings, Runner]) ->
+    Data = #{ log => cmkit:log_fun(true),
               test => Test,
               scenario => Scenario,
-              steps => [],
+              steps => Steps,
               settings => Settings,
               world => #{ retries => #{ max => Retries,
                                         left => Retries,
                                         wait => Wait
                                       },
                           data => #{},
-                          conns => #{} },
+                          conns => #{}},
               runner => Runner,
               started => cmkit:now()
             },
 
-    case cmtest_util:steps(Scenario, Test) of 
-        {ok, Steps} ->
-            {ok, ready, Data#{ steps => Steps }};
-        {error, E} ->
-            cmkit:danger({cmtest, error, Name, Title, E}),
-            cmtest_runner:fatal(Name, Title, #{ test => Name,
-                                                scenario => Title,
-                                                step => #{},
-                                                world => #{},
-                                                reason => cmtest_util:printable(E)
-                                              }, 0, Runner),
-            {ok, ready, Data}
-    end.
-
+    {ok, ready, Data}.
 
 ready(info, {ws, App, Ev}, #{ world := World }=Data) ->
     World2 = world_with_conn_status(App, Ev, World),
@@ -109,14 +88,16 @@ run_steps(#{ test := #{ name := Name },
                     cmkit:warning({cmtest, #{ test => Name,
                                               scenario => Title,
                                               step => StepTitle,
-                                              retries => Retries}}),
+                                              retries => Retries,
+                                              pid => self()}}),
                     {keep_state, Data#{ world => World2  }, 
                         [{state_timeout, Wait, retry}]};
                 
                 {ok, World2} ->
                     cmkit:success({cmtest, #{ test => Name,
                                               scenario => Title,
-                                              step => StepTitle}}),
+                                              step => StepTitle, 
+                                              pid => self() }}),
                     Elapsed = cmkit:now() - Started,
                     cmtest_runner:progress(Name, Title, length(Rem), Elapsed, Runner),
                     {keep_state, Data#{ world => World2#{ retries => Retries#{ left => MaxRetries }}, 
@@ -125,8 +106,9 @@ run_steps(#{ test := #{ name := Name },
                     
                 {error, E} ->
                     cmkit:danger({cmtest, #{ test => Name,
-                                              scenario => Title,
-                                              step => StepTitle }}),
+                                             scenario => Title,
+                                             step => StepTitle,
+                                             pid => self() }}),
                     Elapsed = cmkit:now() - Started,
                     close_conns(World),
                     cmtest_runner:fail(Name, Title, #{ test => Name,
@@ -140,6 +122,10 @@ run_steps(#{ test := #{ name := Name },
         [] ->
             Elapsed = cmkit:now() - Started,
             close_conns(World),
+            cmkit:success({cmtest, #{ test => Name,
+                                      scenario => Title,
+                                      elapsed => Elapsed,
+                                      pid => self() }}),
             cmtest_runner:success(Name, Title, 0, Elapsed, Runner),
             {keep_state, Data}
     end.

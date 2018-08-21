@@ -3,22 +3,429 @@ type: module
 category: ui
 name: nkpanel_ui_release
 spec:
+  init:
+    model:
+      release_ack: false
+      components:
+        list: 
+          - object:
+              title: "Sipstorm backend"
+              description: "Netcomposer v09 API for Sipstorm"
+              platform: "netcomp v09"
+              name: "netcomp"
+              instance: "sipstorm"
+          - object:
+              title: "Nimg"
+              description: "Image processor microservice"
+              platform: "nodejs"
+              name: "nimg"
+              instance: "default"
+          - object:
+              title: "DKV Backend"
+              description: "Netcomposer v09 SHP, PET and Collab APIs for DKV"
+              platform: "netcomp v09"
+              name: "netcomp"
+              instance: "dkv"
+          - object:
+              title: "DKV PET Proxy"
+              description: "Restful proxy façade API for the PET"
+              platform: "nodejs"
+              name: "dkv-pet-proxy"
+              instance: "default"
+          - object:
+              title: "Sphera Brazil backend"
+              description: "Netcomposer v09 Collab API for Sphera"
+              platform: "netcomp v09"
+              name: "netcomp"
+              instance: "sphera-brazil"
+          - object:
+              title: "Sphera Rwanda backend"
+              description: "Netcomposer v09 SHP and Collab APIs for Sphera"
+              platform: "netcomp v09"
+              name: "netcomp"
+              instance: "sphera-rwanda"
+          - object:
+              title: "Sphera Videocal backend"
+              description: "Netcomposer v09 Videocal API for Sphera"
+              platform: "netcomp v09"
+              name: "netcomp"
+              instance: "sphera-general"
   decoders:
     show_release:
       object:
         effect: "ui"
         event: "show_release"
+    component_selected:
+      object:
+        effect: "ui"
+        event:
+          object:
+            name: "select-component"
+            component:
+              object:
+                name:
+                  any: text
+                title:
+                  any: text
+                description:
+                  any: text
+                instance:
+                  any: text
+    release:
+      object:
+        effect: ui
+        event:
+          release:
+            any: text
+    release_ack:
+      object:
+        effect: "ws"
+        data:
+          object:
+            status: "ack"
+            release:
+              any: object
   update:
     show_release:
       cmds:
         - effect: ui
           encoder: release_view
+    component_selected:
+      model:
+        release_ack: false
+        component:
+          key: component
+          in: event
+      cmds:
+        - effect: ui
+    release:
+      model:
+        release:
+          key: release
+          in: event
+      cmds:
+        - effect: ws
+          encoder: release_query
+        - effect: ui
+    release_ack:
+      model:
+        release_ack: true
+      cmds:
+        - effect: ui
   encoders:
+    release_query:
+      object:
+        release:
+          component:
+            key: name
+            in: component
+          instance:
+            key: instance
+            in: component
+          increment:
+            key: release
+    row_select_control:
+      view:
+        tag: span
+        attrs:
+          class: "toggle mx-2"
+          onclick:
+            key: onclick
+        children:
+          - tag: i
+            attrs:
+              class: "fas fa-chevron-circle-right"
+    component_platform_label:
+      view:
+        view: status-label
+        params:
+          object:
+            style: "default"
+            title:
+              key: title 
+    component_table_item:
+      view:
+        tag: div
+        attrs:
+          class: "row"
+          key: 
+            key: title 
+            in: item
+        children:
+          - tag: div
+            attrs:
+              class: "status wide"
+            children:
+              - view: component_platform_label
+                params:
+                  object:
+                    title:
+                      key: platform
+                      in: item
+          - tag: div
+            attrs: 
+              class: "content with-status"
+            children:
+              - tag: div
+                attrs:
+                  class: "info"
+                children:
+                  - view: row_select_control
+                    params:
+                      object:
+                        onclick:
+                          object:
+                            name: "select-component"
+                            component:
+                              object:
+                                title:
+                                  key: title
+                                  in: item
+                                description:
+                                  key: description
+                                  in: item
+                                name:
+                                  key: name
+                                  in: item
+                                instance:
+                                  key: instance
+                                  in: item
+              - tag: h6
+                children:
+                  - text:
+                      key: title
+                      in: item
+              - tag: span
+                children:
+                  - text:
+                      key: description
+                      in: item
+    components_table:
+      view:
+        tag: div
+        attrs:
+          class: "table"
+        children:
+          - tag: div
+            attrs:
+              class: "title"
+            children:
+              - tag: h6 
+                children:
+                  - text: "Components"
+              - tag: span 
+                children:
+                  - text: "List of available software components"
+          - tag: div
+            attrs:
+              class: "body"
+            children:
+              loop:
+                key: components 
+              with: component_table_item
+    components_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-6"
+        children:
+          - view: panel
+            params:
+              object:
+                style: ""
+                view: components_table
+                content:
+                  object:
+                    components:
+                      key: components
+    release_button:
+      view:
+        tag: div
+        attrs:
+          class: "row"
+        children:
+          - tag: div
+            attrs:
+              class: "info"
+            children:
+              - view: button
+                params:
+                  object:
+                    style: "btn-sm primary"
+                    title: "New release"
+                    onclick:
+                      object:
+                        event: "release"
+                        release:
+                          key: kind
+          - tag: div
+            children:
+              - tag: div
+                attrs:
+                  class: "title"
+                children:
+                  - text:
+                      key: title
+              - tag: div
+                attrs:
+                  class: "description"
+                children:
+                  - text:
+                      key: description
+              - tag: div
+                attrs:
+                  class: "note"
+                children:
+                  - view: status-label
+                    params:
+                      object:
+                        style: "default"
+                        title: "Note"
+                  - tag: p
+                    children:
+                      - text:
+                          key: note
+
+    release_tag_form:
+      view:
+        tag: div
+        attrs:
+          class: "form"
+        children:
+          - tag: div
+            attrs:
+              class: "title"
+            children:
+              - text:
+                  key: title
+                  in: component
+          - tag: div
+            attrs:
+              class: "description"
+            children:
+              - text:
+                  key: description
+                  in: component
+          - tag: div
+            attrs:
+              class: "actions"
+            children:
+              - view: release_button
+                params:
+                  object:
+                    title: "Bugfix release"
+                    description: "Use this option when you make backwards-compatible bug fixes"
+                    note: "A release tag vX.Y.Z will be created, with Z increased by one"
+                    kind: "patch"
+              - view: release_button
+                params:
+                  object:
+                    title: "Feature release"
+                    description: "Use this option when you add functionality in a backwards-compatible manner"
+                    note: "A release tag vX.Y.Z will be created, with Y increased by one, and Z set to zero"
+                    kind: "minor"
+              - view: release_button
+                params:
+                  object:
+                    title: "Major release"
+                    description: "Use this option when you make major architecture or incompatible API changes"
+                    note: "A release tag vX.Y.Z will be created, with X increased by one, and both Y and Z will be set to zero"
+                    kind: "major"
+    release_tag_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-6"
+          style: "max-height: 8rem; height: 8rem"
+        children:
+          - view:
+              either:
+                - when:
+                    eq:
+                      - keyword: true
+                      - key: ack
+                  text: dialog
+                - when:
+                    not:
+                      is_set: "component"
+                  text: dialog
+                - text: panel
+            params:
+              either:
+                - when:
+                    eq:
+                      - keyword: true
+                      - key: ack
+                  object:
+                    title: "Release acknowledged"
+                    subtitle: "Please check your Slack notifications"
+                - when:
+                    not:
+                      is_set: "component"
+                  object:
+                    title: "No component selected"
+                    subtitle: "Please select a component from the list on the left"
+                - object:
+                    view: release_tag_form
+                    style: "filled"
+                    content:
+                      object:
+                        component:
+                          maybe:
+                            key: component
+    release_dashboard:
+      view:
+        view: main
+        params:
+          object:
+            title: "Release"
+            subtitle: "Create and deploy component tags"
+            icon: "fas fa-shipping-fast"
+            views:
+              list:
+                - object:
+                    name: components_view
+                    content:
+                      object: 
+                        components:
+                          key: components
+                - object:
+                    name: release_tag_view
+                    content:
+                      object:
+                        ack:
+                          key: release_ack
+                        component:
+                          maybe:
+                            key: component
     release_view:
       view:
         view: nkpanel_view
         params:
           object:
+            inspector:
+              object:
+                view: activity
+                visibility: 
+                  key: inspector
+                content:
+                  current:
+                    key: active
+                    in: test_activity
+                  waiting:
+                    key: pending
+                    in: test_activity
             feature:
-              name: "release"
-              content: {}
+              object:
+                name: "release"
+                view: "release_dashboard"
+                content:
+                  object:
+                    release_ack:
+                      key: release_ack
+                    components:
+                      key: components
+                    component:
+                      maybe:
+                        key: component
+

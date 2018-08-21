@@ -5,8 +5,11 @@ spec:
   port: 8084
   acceptors: 1
   apps:
+    mock_oauth_api:
+      http: "/oauth"
     nkpanel_api:
       ws: "/ws"
+      http: "/api"
     nkpanel_ui:
       http: "/js/app.js"
     nkpanel_css:

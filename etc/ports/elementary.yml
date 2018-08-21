@@ -5,8 +5,8 @@ spec:
   port: 8083
   acceptors: 100
   apps:
-    elementary_ui:
-      http: "/js/app.js"
+    elementary_home:
+      http: "/"
     elementary_css:
       http: "/css/elementary.css"
 

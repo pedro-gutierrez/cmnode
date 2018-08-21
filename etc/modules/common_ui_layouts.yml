@@ -29,6 +29,24 @@ spec:
         cmds:
           - effect: ui
   encoders:
+    dialog:
+      view:
+        tag: div
+        attrs:
+          class: "dialog"
+        children:
+          - tag: h3
+            attrs:
+              class: "title"
+            children:
+              - text: 
+                  key: title
+          - tag: span
+            attrs:
+              class: "subtitle"
+            children:
+            - text:
+                key: subtitle
     json_view:
       view:
         tag: div
@@ -264,12 +282,12 @@ spec:
               - tag: i
                 attrs:
                   class: "fas fa-bars"
-          - view: avatar
-            params:
-              object:
-                size: rg
-                initials:
-                  key: initials
+#          - view: avatar
+#            params:
+#              object:
+#                size: rg
+#                initials:
+#                  key: initials
     
     menu_item:
       view:
@@ -358,7 +376,9 @@ spec:
             children:
               - view: brand
                 params:
-                  brand: "Netscale Panel"
+                  brand: 
+                    key: brand
+                    in: header
               - view: nav
                 params:
                   initials: "PG"

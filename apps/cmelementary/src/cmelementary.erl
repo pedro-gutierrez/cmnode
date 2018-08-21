@@ -468,6 +468,9 @@ term(#{ view := ViewSpec, params := ParamsSpec, condition := ConditionSpec}, Set
             Other
     end;
 
+term(#{ view := _, condition := _} = Spec, Settings) -> 
+    term(Spec#{ params => #{}}, Settings);
+
 term(#{ view := _, params := _} = Spec, Settings) -> 
     term(Spec#{ condition => true }, Settings);
 
