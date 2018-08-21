@@ -1,7 +1,7 @@
 version: 1.0
 type: module
-category: client
-name: html_common
+category: server
+name: html_api_common
 spec:
   decoders:
     compile:

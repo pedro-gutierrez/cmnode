@@ -5,7 +5,7 @@ spec:
   port: 8083
   acceptors: 100
   apps:
-    elementary_home:
+    elementary_html_home:
       http: "/"
     elementary_css:
       http: "/css/elementary.css"

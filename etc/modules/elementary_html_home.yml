@@ -1,0 +1,20 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_html_home
+spec:
+  encoders:
+    page:
+      object:
+        settings:
+          config: settings
+        page:
+          view:
+            view: html
+            params:
+              object:
+                title: "ElementaryJS.com - Declarative & Functional UIs with a hint of Elm"
+        app:
+          spec: 
+            modules:
+              - html_ui_common

@@ -1,0 +1,42 @@
+version: 1.0
+type: module
+category: client
+name: html_ui_common
+spec:
+  views:
+    html:
+      tag: html
+      children:
+        - tag: head
+          attrs:
+            lang: "en"
+          children:
+            - tag: title
+              children:
+                - text:
+                    key: title
+            - tag: meta
+              attrs:
+                charset: "utf-8"
+            - tag: meta
+              attrs:
+                name: "robots"
+                content: "index, follow"
+            - tag: meta
+              attrs:
+                name: "viewport"
+                content: "width=device-width, initial-scale=1.0, shrink-to-fit=no"
+            - tag: meta
+              attrs:
+                http-equiv: "x-ua-compatible"
+                content: "ie=edge"
+            - tag: meta
+              attrs:
+                name: "author"
+                content: "Pedro Gutierrez"
+            - tag: link
+              attrs:
+                rel: "stylesheet"
+                href: "/css/elementary.css"
+        - tag: body
+

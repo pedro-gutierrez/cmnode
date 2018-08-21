@@ -40,7 +40,8 @@ app_routes(Port, #{ name := Name, mounts := Mounts }) ->
               end, Mounts).
 
 mount_route(App, #{ path := Path, transport := http }, Port) ->
-    { Path ++ "/[...]", cmweb_http, #{app => App, port => Port, transport => http }};
+    %{ Path ++ "/[...]", cmweb_http, #{app => App, port => Port, transport => http }};
+    { Path, cmweb_http, #{app => App, port => Port, transport => http }};
 
 mount_route(App, #{ path := Path, transport := ws }, Port) ->
     { Path, cmweb_ws, #{ app => App, port => Port, transport => ws }}.

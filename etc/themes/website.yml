@@ -1,0 +1,9 @@
+version: 1.0
+type: theme 
+name: website 
+spec:
+  selectors:
+    - elem: "body"
+      style:
+        height: initial !important
+        min-height: initial !important
