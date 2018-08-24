@@ -36,10 +36,13 @@ spec:
             text-align: center 
           selectors:
             - elem: "ul"
+              style:
+                margin-left: 0
               selectors:
                 - elem: "li"
                   style:
-                    margin-left: .6rem
+                    margin-left: .3rem
+                    margin-right: .3rem
                     display: inline-block
                   selectors:
                     - elem: "a"
