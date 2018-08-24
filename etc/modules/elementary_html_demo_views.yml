@@ -1,0 +1,10 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_html_guide_views
+spec:
+  views:
+    demo:
+      tag: div
+      attrs:
+        id: "demoApp"

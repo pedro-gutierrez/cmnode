@@ -1,0 +1,231 @@
+version: 1.0
+type: theme 
+name: controls
+spec:
+  selectors:
+    - elem: "pre::-webkit-scrollbar"
+      style:
+        width: 10px
+        height: 10px
+        border-radius: 4px
+        background-color:
+          format:
+            pattern: "~s !important"
+            params:
+              - key: dark-5
+                in: colors
+    - elem: "pre::-webkit-scrollbar-thumb"
+      style:
+        width: 10px
+        border-radius: 4px
+        background-color:
+          format:
+            pattern: "~s !important"
+            params:
+              - key: dark-3
+                in: colors
+    - elem: "pre::-webkit-scrollbar-corner"
+      style:
+        background-color:
+          format:
+            pattern: "~s !important"
+            params:
+              - key: dark-5
+                in: colors
+    - elem: "*"
+      selectors:
+        - p-class: "focus"
+          style:
+            outline: none !important;
+            outline-width: 0 !important;
+            box-shadow: none !important;
+            -moz-box-shadow: none !important;
+            -webkit-box-shadow: none !important;
+    - elem: "a"
+      selectors:
+        - elem: "i"
+          style:
+            margin-right: .3rem
+    - elem: "a, button, i"
+      style:
+        -webkit-transition: all 0.6s ease
+        transition: all 0.6s ease
+        -moz-transition: all 0.6s ease
+      selectors:
+        - p-class: "hover"
+          style:
+            -webkit-transition: all 0.6s ease
+            transition: all 0.6s ease
+            -moz-transition: all 0.6s ease
+    - class: "btn"
+      style:
+        padding: 3px 12px
+        border-radius: 4px
+        border: 1px solid
+      selectors:
+        - class: "btn-sm"
+          style:
+            font-size:
+              key: small
+              in: font_sizes
+        - class: "btn-xl"
+          style:
+            padding: .7rem .5rem
+            height: 3rem
+            width: 10rem
+            font-size:
+              key: h4
+              in: font_sizes
+        - class: "secondary"
+          style:
+            background-color: transparent
+            color:
+              key: default
+              in: colors
+            border-color:
+              key: dark-3
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                background-color:
+                  key: dark-15-translucid
+                  in: colors
+                border-color:
+                  key: dark-3
+                  in: colors
+        - class: "danger"
+          style:
+            background-color: transparent
+            color:
+              key: default
+              in: colors
+            border-color:
+              key: danger
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                background-color:
+                  key: danger-translucid
+                  in: colors
+                border-color:
+                  key: danger
+                  in: colors
+        - class: "primary"
+          style:
+            background-color: transparent
+            color:
+              key: default
+              in: colors
+            border-color:
+              key: warning
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                background-color:
+                  key: warning-translucid
+                  in: colors
+                border-color:
+                  key: warning
+                  in: colors
+    - elem: "a"
+      style:
+        text-decoration: none
+        cursor: pointer
+      selectors:
+        - p-class: "hover"
+          style:
+            text-decoration: none
+        - class: "active"
+          style:
+            text-decoration: none
+            font-weight: bold
+    - elem: "code"
+      style:
+        color: 
+          key: darkened
+          in: colors
+        background-color: "transparent !important"
+    - elem: "pre"
+      style:
+        padding: 1em
+        margin: ".5em 0"
+        border-radius: 5px
+        background-color: "transparent !important"
+        max-height: 360px
+        overflow-y: scroll
+      selectors:
+        - p-elem: "-webkit-scrollbar"
+          style:
+            width: 10px
+            height: 10px
+            border-radius: 4px
+            background-color: "transparent !important"
+        - p-elem: "-webkit-scrollbar-thumb"
+          style:
+            width: 10px
+            border-radius: 4px
+            background-color:
+              format:
+                pattern: "~s !important"
+                params:
+                  - key: dark-6
+                    in: colors
+        - p-elem: "-webkit-scrollbar-corner"
+          style:
+            background-color: "transparent !important"
+    - class: "bar"
+      style:
+        background-color:
+          key: dark-4
+          in: colors
+      selectors:
+        - s-class: "bar-item"
+          style:
+            background:
+              key: warning
+              in: colors
+    - class: "label"
+      style:
+        text-transform: uppercase
+        font-size: .5rem
+        letter-spacing: .05rem
+        margin-right: .3rem
+        border: 1px solid
+        background-color: transparent !important
+      selectors:
+        - class: "label-success"
+          style:
+            border-color: 
+              key: success
+              in: colors
+            color: 
+              format:
+                pattern: "~s !important"
+                params:
+                  - key: success 
+                    in: colors
+        - class: "label-danger"
+          style:
+            border-color: 
+              key: danger
+              in: colors
+            color: 
+              format:
+                pattern: "~s !important"
+                params:
+                  - key: danger 
+                    in: colors
+        - class: "label-warning"
+          style:
+            border-color: 
+              key: warning
+              in: colors
+            color: 
+              format:
+                pattern: "~s !important"
+                params:
+                  - key: warning
+                    in: colors

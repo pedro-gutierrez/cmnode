@@ -1,0 +1,80 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_html_common
+spec:
+  views:
+    footer:
+      tag: div
+      children:
+        - tag: p
+          children:
+            - view: link
+              params:
+                object: 
+                  title: ""
+                  target: "https://www.linkedin.com/in/pedro-gutiérrez-07470b19"
+                  icon: "fab fa-linkedin-in"
+                  style: ""
+            - view: link
+              params:
+                object: 
+                  title: ""
+                  target: "https://github.com/pedro-gutierrez/elementary"
+                  icon: "fab fa-github"
+                  style: ""
+            
+            - view: link
+              params:
+                object: 
+                  title: ""
+                  target: "https://www.paypal.me/pedrogutierrezruiz"
+                  icon: "fab fa-paypal"
+                  style: ""
+        - tag: p
+          children:
+            - text: "Licensed under the "
+            - view: link
+              params:
+                object: 
+                  title: "MIT License"
+                  target: "https://github.com/pedro-gutierrez/elementary/blob/master/LICENSE"
+                  style: ""
+                  icon: ""
+    
+    website:  
+      view: html
+      params:
+        object:
+          title: "ElementaryJS.com - Declarative and functional UIs with a hint of Elm"
+          subtitle:
+            key: page
+          layout:
+            key: layout
+          stylesheets:
+            key: stylesheets
+          scripts:
+            key: scripts
+          header:
+            menu:
+              active:
+                key: page
+              items:
+                list:
+                  - object:
+                      target: "/"
+                      title: "Home"
+                      style: ""
+                      icon: ""
+                  - object:
+                      target: "/demo.html"
+                      title: "Demo"
+                      style: ""
+                      icon: ""
+                  - object:
+                      target: "/guide.html"
+                      title: "Guide"
+                      style: ""
+                      icon: ""
+          sections:
+            key: sections

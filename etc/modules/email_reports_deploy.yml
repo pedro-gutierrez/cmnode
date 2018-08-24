@@ -1,0 +1,183 @@
+version: 1.0
+type: task
+name: email_reports_deploy
+spec:
+  - kube:
+      kind: deployment
+      name:
+        key: name
+        in: params
+      state: 
+        keyword: present
+      server:
+        key: kubernetes
+        in: settings
+      namespace: nc
+      props:
+        object:
+          retries: 120
+          labels:
+            object:
+              app:
+                key: name
+                in: params
+          replicas: 1
+          spec:
+            object:
+              imagePullSecrets:
+                list:
+                  - name: 
+                      text: docker
+              containers:
+                list:
+                  - object:
+                      name:
+                        key: name
+                        in: params
+                      imagePullPolicy: 
+                        text: "Always"
+                      image:
+                        text:
+                          format:
+                            pattern: "~s:~s"
+                            params:
+                              - key: repo
+                                in: params
+                              - key: tag
+                                in: params
+                      readinessProbe:
+                        httpGet:
+                          path: /
+                          port: 8080
+                        initialDelaySeconds: 5
+                        timeoutSeconds: 1
+                        periodSeconds: 15
+                      ports:
+                        list:
+                          - object:
+                              containerPort: 8080
+                              name:
+                                text: "http"
+                              protocol:
+                                text: "TCP"
+                      env:
+                        list:
+                          - name: MANDRILL_API
+                            value: "https://mandrillapp.com/api/1.0/"
+                          - name: MANDRILL_KEY
+                            value:
+                              key: key
+                              in:
+                                key: mandrill
+                                in:
+                                  key: email-reports
+                                  in: settings
+                          - name: MANDRILL_FROM_NAME
+                            value:
+                              key: name
+                              in:
+                                key: from
+                                in:
+                                  key: mandrill
+                                  in:
+                                    key: email-reports
+                                    in: settings
+                          - name: MANDRILL_FROM_EMAIL
+                            value:
+                              key: email
+                              in:
+                                key: from
+                                in:
+                                  key: mandrill
+                                  in:
+                                    key: email-reports
+                                    in: settings
+                          - name: MANDRILL_SUBJECT
+                            value:
+                              key: subject
+                              in:
+                                key: mandrill
+                                in:
+                                  key: email-reports
+                                  in: settings
+                          - name: MANDRILL_TEMPLATE
+                            value:
+                              key: template
+                              in:
+                                key: mandrill
+                                in:
+                                  key: email-reports
+                                  in: settings
+                          - name: NETCOMP_API
+                            value:
+                              key: netcomp
+                              in:
+                                key: email-reports
+                                in: settings
+                          - name: VERBOSE
+                            value:
+                              key: verbose
+                              in:
+                                key: email-reports
+                                in: settings
+  - wait:
+      condition:
+        eq:
+          - number: 200
+          - key: status
+            in:
+              http:
+                method: get
+                url:
+                  host:
+                    key: host
+                    in: settings
+                  port:
+                    key: port
+                    in:
+                      key: email-reports
+                      in: settings
+                  path:
+                    key: path
+                    in:
+                      key: email-reports
+                      in: settings
+                  transport:
+                    key: transport
+                    in:
+                      key: email-reports
+                      in: settings
+                headers:
+                  authorization:
+                    basic-auth:
+                      key: auth
+                      in:
+                        key: security
+                        in: settings
+
+      sleep: 1000
+      retries: 60
+  - http:
+      method: post 
+      url:
+        object:
+          url:
+            key: default
+            in:
+              key: webhooks
+              in: settings
+      headers:
+        object:
+          x-cm-event:
+            text: "deploy-summary"
+      body:
+        object:
+          settings:
+            key: settings
+            in: params
+          repo:
+            key: repo
+            in: params
+          tag:
+            key: tag
+            in: params

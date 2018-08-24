@@ -150,6 +150,74 @@ spec:
               one_of:
                 - text: "danger"
                 - text: "warning"
+    email_reports_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "email-reports"
+    email_reports_tag_created:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: 
+                regexp: "refs/tags/v"
+            repository:
+              object:
+                name: 
+                  text: "email-reports"
+    email_reports_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "email-reports"
+              repo_name:
+                any: text
+    email_reports_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "v"
+          repository:
+            object:
+              name:
+                text: "email-reports"
+              repo_name:
+                any: text
+    email_reports_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/email-reports"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
     transcoder_dev_changed:
       object:
         headers:
@@ -1034,6 +1102,73 @@ spec:
           encoder: docker_ready_task
         - effect: task
           encoder: nimg_deploy_task
+        - effect: notify
+          encoder: ok
+    email_reports_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: email_reports_build_task 
+        - effect: notify
+          encoder: ok
+    email_reports_docker_dev_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name: "email-reports"
+              repo: "netcomposer/email-reports"
+              tag: "latest"
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: email_reports_deploy_task
+        - effect: notify
+          encoder: ok
+    email_reports_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: notify
+          encoder: ok
+    email_reports_tag_created:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    email_reports_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: "email-reports"
+              repo: "netcomposer/email-reports"
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: email_reports_deploy_task
         - effect: notify
           encoder: ok
     transcoder_dev_changed:
@@ -2130,6 +2265,35 @@ spec:
               object:
                 enabled:
                   keyword: true
+    email_reports_build_task:
+      object:
+        task:
+          keyword: email_reports_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    email_reports_deploy_task:
+      object:
+        task:
+          keyword: email_reports_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
     transcoder_build_task:
       object:
         task:

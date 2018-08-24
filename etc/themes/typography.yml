@@ -1,0 +1,14 @@
+version: 1.0
+type: theme 
+name: typography
+spec:
+  font-sizes:
+    h1: 10vw
+    h2: 56px
+    h3: 36px
+    h4: 30px
+    h5: 24px
+    h6: 20px
+    body: 14px
+    small:  12px
+    tiny:  8px

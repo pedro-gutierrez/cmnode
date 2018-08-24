@@ -1,9 +1,218 @@
 version: 1.0
 type: theme 
-name: website 
+name: website
 spec:
   selectors:
+    - elem: "html"
+      style:
+        height: 100%
     - elem: "body"
       style:
-        height: initial !important
-        min-height: initial !important
+        font-size:
+          key: body 
+          in: font_sizes
+        color:
+          key: default
+          in: colors 
+        background-color:
+          key: dark-6
+          in: colors
+    - elem: "header"
+      style:
+        padding-top: 1em
+        padding-left: 8rem
+        padding-right: 8rem
+        background-color:
+          key: dark-4
+          in: colors
+      selectors:
+        - elem: ul
+          style:
+            margin-top: 0
+            margin-bottom: 0
+        - elem: "nav"
+          style: 
+            text-align: right
+          selectors:
+            - elem: "ul"
+              selectors:
+                - elem: "li"
+                  style:
+                    margin-left: .6rem
+                    display: inline-block
+                  selectors:
+                    - elem: "a"
+                      style:
+                        text-transform: uppercase
+    - elem: "main"
+      style:
+        padding-left: 8rem
+        padding-right: 8rem
+        background-color:
+          key: dark-4
+          in: colors
+      selectors:
+        - elem: "p"
+          style:
+            margin-bottom: 2px
+        - elem: "a"
+          style:
+            color:
+              key: brightest
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                color:
+                  key: warning
+                  in: colors
+
+    - elem: "li"
+      selectors:
+        - class: "active"
+          selectors:
+            - elem: "a"
+              style:
+                color: 
+                  key: warning
+                  in: colors
+    - class: "centered"
+      selectors:
+        - elem: "section"
+          style:
+            text-align: center
+    - class: "jumbo"
+      style:
+        padding-top: 5em
+        padding-bottom: 3em
+      selectors:
+        - elem: h1
+          style:
+            text-transform: uppercase
+            letter-spacing: .2rem
+            margin-bottom: 2px
+            color:
+              key: brightest
+              in: colors
+            font-size:
+              key: h1
+              in: font_sizes
+          selectors:
+            - s-class: "highlighted"
+              style:
+                color: 
+                  key: warning
+                  in: colors
+        - elem: p
+          style:
+            margin-bottom: .4rem
+            font-size:
+              key: h4
+              in: font_sizes
+        - elem: a
+          style:
+            margin-top: 1rem
+    - class: "highlights"
+      style:
+        color:
+          key: dark-1
+          in: colors
+        padding-bottom: 2em
+      selectors:
+        - elem: "article"
+          style:
+            margin-bottom: 2em
+          selectors:
+            - elem: "h1"
+              style:
+                margin-bottom: .2rem
+    - class: "demo"
+      style:
+        padding-top: 5em
+        padding-bottom: 3em
+
+    - elem: "a"
+      style:
+        color:
+          key: default
+          in: colors
+      selectors:
+        - p-class: "hover"
+          style:
+            color:
+              key: warning
+              in: colors
+    - elem: "a"
+      selectors:
+        - class: "primary"
+          style:
+            background-color:
+              format:
+                pattern: "~s !important"
+                params:
+                  - key: dark-6
+                    in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                color:
+                  format:
+                    pattern: "~s !important"
+                    params:
+                      - key: dark-6
+                        in: colors
+                background-color:
+                  format:
+                    pattern: "~s !important"
+                    params:
+                      - key: warning
+                        in: colors
+
+    - elem: "footer"
+      style:
+        padding-top: .8rem
+        padding-bottom: .5rem
+        padding-left: 3em
+        padding-right: 3em
+        text-align: center
+        width: 100%
+        font-size:
+          key: small
+          in: font_sizes
+        color:
+          key: dark-3
+          in: colors
+        background-color: 
+          key: dark-6
+          in: colors
+      selectors:
+        - elem: "p"
+          style:
+            margin-bottom: .3rem
+        - elem: "i"
+          style:
+            margin-left: .1rem
+            margin-right: .1rem
+            font-size:
+              key: h5
+              in: font_sizes
+            color:
+              key: default
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                color: 
+                  key: warning
+                  in: colors
+        - elem: "a"
+          style:
+            color:
+              key: default
+              in: colors
+          selectors:
+            - p-class: "hover"
+              style:
+                color: 
+                  key: warning
+                  in: colors

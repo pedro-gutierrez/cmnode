@@ -1,14 +1,19 @@
 -module(cmcss).
--export([compile/4]).
+-export([compile/5]).
 
-compile(Colors, Fonts, Selectors, Settings) -> 
-    case merge_colors(Colors, Settings) of 
+compile(Colors, Fonts, FontSizes, Selectors, Settings) -> 
+    case merge(Colors, Settings) of 
         {ok, C} ->
-            case merge_fonts(Fonts, Settings) of 
+            case merge(Fonts, Settings) of 
                 {ok, F} ->
-                    case encode_selectors(Selectors, C, F, Settings) of 
-                        {ok, S} -> 
-                            compile_selectors(S);
+                    case merge(FontSizes, Settings) of 
+                        {ok, FS} ->
+                            case encode_selectors(Selectors, C, F, FS, Settings) of 
+                                {ok, S} -> 
+                                    compile_selectors(S);
+                                Other -> 
+                                    Other
+                            end;
                         Other -> 
                             Other
                     end;
@@ -19,29 +24,20 @@ compile(Colors, Fonts, Selectors, Settings) ->
             Other
     end.
 
-merge_colors(Colors, Settings) -> 
-    case cmencode:encode_all(Colors, Settings) of
-        {ok, C} ->
-            {ok, lists:foldr(fun(C0, Merged) -> 
-                            maps:merge(Merged, C0)
-                        end, #{}, C)};
+merge(All, Settings) -> 
+    case cmencode:encode_all(All, Settings) of
+        {ok, Encoded} ->
+            {ok, lists:foldr(fun(E0, Merged) -> 
+                            maps:merge(Merged, E0)
+                        end, #{}, Encoded)};
         Other -> 
             Other
     end.
 
-merge_fonts(Fonts, Settings) -> 
-    case cmencode:encode_all(Fonts, Settings) of
-        {ok, F} ->
-            {ok, lists:foldr(fun(F0, Merged) -> 
-                            maps:merge(Merged, F0)
-                        end, #{}, F)};
-        Other -> 
-            Other
-    end.
-
-encode_selectors(Selectors, C, F, Settings) -> 
+encode_selectors(Selectors, C, F, FS, Settings) -> 
     case cmencode:encode_all(Selectors, #{ colors => C,
-                                           fonts => F,
+                                           fonts => F, 
+                                           font_sizes => FS,
                                            settings => Settings }) of 
         {ok, S} -> 
             {ok, lists:flatten(S)};

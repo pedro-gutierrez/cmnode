@@ -15,6 +15,12 @@ spec:
               name: "netcomp"
               instance: "sipstorm"
           - object:
+              title: "Email Reports"
+              description: "Email reporting microservice"
+              platform: "golang"
+              name: "email-reports"
+              instance: "default"
+          - object:
               title: "Nimg"
               description: "Image processor microservice"
               platform: "nodejs"

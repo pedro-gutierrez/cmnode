@@ -1,7 +1,7 @@
 version: 1.0
 type: module
 category: ui
-name: elementary_html_home
+name: elementary_html_guide
 spec:
   encoders:
     page:
@@ -13,22 +13,16 @@ spec:
             view: website
             params:
               object:
-                page: "Home"
-                layout: "centered"
+                page: "Guide"
+                layout: "left"
                 stylesheets:
                   - name: elementary-ui-styles
                   - name: fontawesome5.min
                   - name: elementary
                 scripts: []
-                sections:
-                  list:
-                    - object:
-                        name: jumbo
-                    - object:
-                        name: highlights 
+                sections: []
         app:
           spec: 
             modules:
               - html_ui_common
               - elementary_html_common
-              - elementary_html_home_views

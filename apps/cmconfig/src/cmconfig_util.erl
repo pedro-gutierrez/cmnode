@@ -150,11 +150,12 @@ compile_theme(#{ <<"name">> := Name,
     C = compile_term(maps:get(<<"colors">>, Spec, #{})),
     S = compile_term(maps:get(<<"selectors">>, Spec, [])),
     F = compile_term(maps:get(<<"fonts">>, Spec, #{})),
+    FS = compile_term(maps:get(<<"font-sizes">>, Spec, #{})),
 
     #{ type => theme,
        rank => Rank,
        name => cmkit:to_atom(Name),
-       spec => #{ colors => C, fonts => F, selectors => S }}.
+       spec => #{ colors => C, fonts => F, font_sizes => FS, selectors => S }}.
 
 compile_queue(#{ <<"name">> := Name,
                  <<"rank">> := Rank,
@@ -803,6 +804,11 @@ compile_term(#{ <<"first">> := Spec }) when is_map(Spec) ->
 
 compile_term(#{ <<"merge">> := Specs }) when is_list(Specs) -> 
     #{ type => merge,
+       spec => compile_terms(Specs)
+     };
+
+compile_term(#{ <<"flattened">> := Specs }) when is_list(Specs) -> 
+    #{ type => flattened,
        spec => compile_terms(Specs)
      };
 
@@ -1790,6 +1796,12 @@ compile_view(#{ <<"map">> := #{ <<"id">> := Id,
 
 compile_view(#{ <<"markdown">> := Spec }) -> 
     #{ markdown => compile_term(Spec)};
+
+
+compile_view(#{ <<"loop">> := _ ,
+                <<"with">> := _ } = Spec) ->
+    compile_term(Spec);
+
 
 compile_view(Spec) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),

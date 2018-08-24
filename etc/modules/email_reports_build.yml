@@ -1,0 +1,20 @@
+version: 1.0
+type: task
+name: email_reports_build
+spec:
+  - git:
+      credentials:
+        key: github
+        in: settings
+      clone: 
+        repo: "github.com/netscale-technologies/email-reports.git"
+        dir: "/tmp/email-reports"
+  - docker:
+      credentials:
+        key: docker
+        in: settings
+      build:
+        dir: "/tmp/email-reports"
+        repo: "netcomposer/email-reports"
+        tag: "latest"
+

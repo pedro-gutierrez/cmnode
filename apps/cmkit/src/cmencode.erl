@@ -10,6 +10,9 @@
 encode(Spec) -> encode(Spec, #{}).
 encode(Spec, In) -> encode(Spec, In, #{}).
 
+encode(#{ literal := Value}, _, _) -> 
+    {ok, Value};
+
 encode(Map, _, _) when is_map(Map) andalso map_size(Map) =:= 0 -> 
     {ok, #{}};
 
@@ -89,6 +92,32 @@ encode(#{ key := KeySpec, in := _ }=Spec, In, Config) when is_map(KeySpec) ->
 encode(#{ key := Key}, In, Config) -> 
     encode(Key, In, Config);
 
+encode(#{ type := either, options := Opts}, In, Config) -> 
+    encode_options(Opts, In, Config);
+
+encode(#{ type := condition, 
+          condition := #{ type := true },
+          spec := Spec}, In, Config) -> 
+    
+    encode(Spec, In, Config);
+
+encode(#{ type := condition, 
+          condition := #{ type := false },
+          spec := _}, _, _) -> 
+            
+    {error, condition_not_satisfied};
+
+encode(#{ type := condition, 
+          condition := C,
+          spec := Spec}, In, Config) -> 
+    case encode(C, In, Config) of 
+        {ok, true} -> 
+            encode(Spec, In, Config);
+        {ok, false} ->
+            {error, condition_not_satisfied};
+        Other -> 
+            Other
+    end;
 
 encode(#{ type := text, value := Value }, _, _) ->
     {ok, cmkit:to_bin(Value) };
@@ -589,12 +618,14 @@ encode(#{ type := asset,
     end;
 
 encode(#{ type := equal, 
-          spec := Specs }, In, Config) when is_list(Specs) -> 
+          spec := Specs } = Spec, In, Config) when is_list(Specs) -> 
+    case encode_all(Specs, In, Config) of 
+        {ok, Terms} ->
+            {ok, all_equal(Terms)};
+        {error, E} -> 
+            fail(Spec, In, E)
+    end;
     
-    {ok, all_equal(lists:map(fun(Spec) ->
-                                encode(Spec, In, Config)
-                        end, Specs))};
-
 encode(#{ type := greater_than,
           spec := [Spec1, Spec2] }, In, Config) ->
     case { encode(Spec1, In, Config), encode(Spec2, In, Config) } of 
@@ -626,8 +657,8 @@ encode(#{ type := join,
     case encode_all(Specs, In, Config) of 
         {ok, EncodedTerms} ->
             {ok, cmkit:bin_join(EncodedTerms)};
-        Other -> 
-            fail_encoding(Spec, In, Other)
+        {error, E} -> 
+            fail(Spec, In, E)
     end;
 
 encode(#{ type := format, 
@@ -758,8 +789,8 @@ encode(#{ type := merge,
             {ok, lists:foldl(fun(M, Acc) -> 
                                      maps:merge(Acc, M)
                              end, #{}, EncodedTerms) };
-        Other -> 
-            fail_encoding(Spec, In, Other)
+        {error, E} -> 
+            fail(Spec, In, E)
     end;
 
 encode(#{ type := connect,
@@ -939,8 +970,8 @@ encode_list([Spec|Rem], In, Config, Out) ->
     case encode(Spec, In, Config) of 
         {ok, Encoded} ->
             encode_list(Rem, In, Config, [Encoded|Out]);
-        Other -> 
-            fail_encoding(Spec, In, Other)
+        {error, E} -> 
+            fail(Spec, In, E)
     end.
 
 map(Dest, In, Config, Source) -> 
@@ -956,7 +987,7 @@ map(DestSpec, In, Config, [Item|Rem], Out) ->
     end.
 
 
-fail_encoding(Spec, In, Out) ->
+fail(Spec, In, Out) ->
     {error, #{ status => encode_error,
                spec => Spec,
                data => In,
@@ -979,6 +1010,16 @@ encode_all([Spec|Rem], In, Config, Out) ->
             Other
     end.
 
+encode_options([], _, _) -> {error, #{ status => encode_error,
+                                       reason => no_condition_did_verify }};
+encode_options([C|Rem], In, Config) ->
+    case encode(C, In, Config) of 
+        {ok, V} -> {ok, V};
+        {error, condition_not_satisfied} -> 
+            encode_options(Rem, In, Config);
+        Other -> 
+            Other
+    end.
 
 encode_retry(0, _, Condition, In, _) -> 
     {error, #{ status => encode_error,

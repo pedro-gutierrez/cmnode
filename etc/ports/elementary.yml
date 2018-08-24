@@ -7,6 +7,10 @@ spec:
   apps:
     elementary_html_home:
       http: "/"
+    elementary_html_guide:
+      http: "/guide.html"
+    elementary_html_demo:
+      http: "/demo.html"
     elementary_css:
       http: "/css/elementary.css"
 

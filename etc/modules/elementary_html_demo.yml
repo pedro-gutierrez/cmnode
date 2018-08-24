@@ -1,7 +1,7 @@
 version: 1.0
 type: module
 category: ui
-name: elementary_html_home
+name: elementary_html_demo
 spec:
   encoders:
     page:
@@ -13,22 +13,27 @@ spec:
             view: website
             params:
               object:
-                page: "Home"
+                page: "Demo"
                 layout: "centered"
                 stylesheets:
                   - name: elementary-ui-styles
                   - name: fontawesome5.min
                   - name: elementary
-                scripts: []
-                sections:
+                scripts:
                   list:
                     - object:
-                        name: jumbo
+                        name: elementary-ui-deps
+                        type: application/javascript
                     - object:
-                        name: highlights 
+                        name: demo/demo
+                        type: module
+                sections: 
+                  list:
+                    - object:
+                        name: demo
         app:
           spec: 
             modules:
               - html_ui_common
               - elementary_html_common
-              - elementary_html_home_views
+              - elementary_html_guide_views

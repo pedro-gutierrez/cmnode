@@ -4,6 +4,87 @@ category: client
 name: html_ui_common
 spec:
   views:
+    highlighted:
+      tag: span
+      attrs:
+        class: "highlighted"
+      children:
+        - text:
+            key: text
+    link:
+      tag: a
+      attrs:
+        class:
+          key: style
+        href: 
+          key: target
+      children:
+        - tag: i
+          attrs:
+            class: 
+              key: icon
+        - text:
+            key: title
+    menu-item:
+      tag: li
+      attrs:
+        class:
+          either:
+            - when:
+                eq:
+                  - key: active
+                    in: context
+                  - key: title
+                    in: item
+              text: "active"
+            - text: ""
+      children:
+        - view: link
+          params:
+            key: item
+    menu:
+      tag: nav
+      children:
+        - tag: ul
+          children:
+            loop: items
+            with: menu-item
+            context:
+              object:
+                active:
+                  key: active
+    section:
+      tag: section
+      attrs:
+        class: 
+          key: name
+          in: item
+      children:
+        - view:
+            key: name
+            in: item
+    stylesheet:
+      tag: link
+      attrs:
+        rel: "stylesheet"
+        href:
+          format: 
+            pattern: "/css/~s.css"
+            params:
+              - key: name
+                in: item
+    script:
+      tag: script
+      attrs:
+        src: 
+          format: 
+            pattern: "/js/~s.js"
+            params:
+              - key: name
+                in: item
+        type:
+          key: type
+          in: item
     html:
       tag: html
       children:
@@ -14,7 +95,11 @@ spec:
             - tag: title
               children:
                 - text:
-                    key: title
+                    format:
+                      pattern: "~s - ~s"
+                      params:
+                        - key: title
+                        - key: subtitle
             - tag: meta
               attrs:
                 charset: "utf-8"
@@ -34,9 +119,34 @@ spec:
               attrs:
                 name: "author"
                 content: "Pedro Gutierrez"
-            - tag: link
-              attrs:
-                rel: "stylesheet"
-                href: "/css/elementary.css"
+            - loop: stylesheets
+              with: stylesheet
+            - loop: scripts
+              with: script
         - tag: body
-
+          attrs:
+            class:
+              key: layout
+          children:
+            - tag: header
+              children:
+                - view: menu
+                  params:
+                    object:
+                      active:
+                        key: active
+                        in:
+                          key: menu
+                          in: header
+                      items:
+                        key: items
+                        in: 
+                          key: menu
+                          in: header
+            - tag: main
+              children:
+                loop: sections
+                with: section
+            - tag: footer
+              children:
+                - view: footer

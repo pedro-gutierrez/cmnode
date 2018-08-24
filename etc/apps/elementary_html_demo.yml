@@ -1,0 +1,12 @@
+version: 1.0
+type: app
+category: ui
+name: elementary_html_demo
+spec: 
+  debug: true 
+  modules:
+    - html_api_common
+    - elementary_html_demo
+  config:
+    settings:
+      keyword: elementary

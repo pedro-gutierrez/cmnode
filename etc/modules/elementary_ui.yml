@@ -10,5 +10,7 @@ spec:
           config: settings
         themes:
           - keyword: luna
-          - keyword: admin 
           - keyword: website
+          - keyword: controls
+          - keyword: typography 
+          - keyword: demo 
