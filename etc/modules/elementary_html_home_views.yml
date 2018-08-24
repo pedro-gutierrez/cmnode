@@ -80,4 +80,4 @@ spec:
                   title: "Download"
                   icon: "fas fa-download"
                   style: "btn btn-xl primary"
-                  target: "https://github.com/pedro-gutierrez/elementary/releases/latest"
+                  target: "https://github.com/pedro-gutierrez/elementaryjs/releases/latest"
