@@ -3,10 +3,10 @@ type: theme
 name: typography
 spec:
   font-sizes:
-    h1: 10vw
+    h1: 5vw
     h2: 56px
     h3: 36px
-    h4: 30px
+    h4: 28px
     h5: 24px
     h6: 20px
     body: 14px

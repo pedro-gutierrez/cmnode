@@ -33,7 +33,7 @@ spec:
                   style: ""
         - tag: p
           children:
-            - text: "Licensed under the "
+            - text: "Licensed under the"
             - view: link
               params:
                 object: 

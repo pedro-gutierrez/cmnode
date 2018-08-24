@@ -37,22 +37,21 @@ spec:
             object:
               title: "Declarative"
               icon: ""
-              body: "Express your application logic as simple objects, put them in a JSON document, and let ElementaryJS coordinate them for you."
+              body: "With ElementaryJS, you express your application logic as expression objects, in JSON. The framework takes care of everything else."
 
         - view: highlight
           params:
             object:
               title: "Extensible"
               icon: ""
-              body: "Enhance ElementaryJS' small core functionality with the officially supported effect managers. And It is also really easy to build your own."
+              body: "ElementaryJS is made of a very small core, designed to be extended via plugins (we call them effect managers). You can use the officially supported effect managers, but it is also very easy to write your own."
             
         - view: highlight
           params:
             object:
               title: "Functional"
               icon: ""
-              body: "ElementaryJS borrows arquitectural ideas from the Elm architecture, and offers you a neat separation between pure application state management, and impure side effects."
-
+              body: "ElementaryJS is heavily inspired from Elm. As such, what you get is a neat separation between pure application state management, and the impure world of side effects. This results in code that is safer and easier to reason about."
 
     jumbo:
       tag: div

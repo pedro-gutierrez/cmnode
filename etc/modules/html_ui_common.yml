@@ -119,6 +119,16 @@ spec:
               attrs:
                 name: "author"
                 content: "Pedro Gutierrez"
+            - tag: meta 
+              attrs:
+                name: "description"
+                content: "ElementaryJS is a new Javascript library for building user interfaces in a declarative and functional fashion. Inspired from Elm."
+            - tag: link
+              attrs:
+                rel: "sitemap"
+                type: "text/plain"
+                title: "Sitemap"
+                href: "/sitemap.txt"
             - loop: stylesheets
               with: stylesheet
             - loop: scripts
