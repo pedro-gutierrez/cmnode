@@ -89,6 +89,7 @@ app({
             view: {
                 tag: "input",
                 attrs: {
+                    class: "mt-2",
                     type: "text",
                     value: {
                         key: "title"
@@ -120,7 +121,7 @@ app({
         },
         tasksView: {
             view: {
-                tag: "ul",
+                tag: "div",
                 children: {
                     loop: {
                         key: "tasks"
@@ -131,80 +132,101 @@ app({
         },
         taskView: {
             view: {
-                tag: "li",
+                tag: "div",
                 attrs: {
                     object: {
                         key: {
                             key: "title",
                         },
                         class: {
-                            key: "state",
+                            format: {
+                                pattern: "columns mt-2 ~a",
+                                params: [
+                                    { key: "state" }
+                                ]
+                            }
                         }
                     }
                 },
                 children: [
-                    {
-                        view: "button",
-                        params: {
-                            style: "primary",
-                            whenPressed: {
-                                name: "changeTaskState",
-                                task: {
-                                    key: "title",
-                                }
-                            },
-                            title: {
-                                either: [
-                                    {
-                                        when: {
-                                            equal: [
-                                                { key: "state" },
-                                                { text: "pending" }
-                                            ]
-                                        },
-                                        then: {
-                                            text: "Done"
-                                        }
-                                    },
-                                    { 
-                                        then: {
-                                            text: "Undo" 
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        view: "button",
-                        condition: {
-                            equal: [
-                                { 
-                                    key: "state",
-                                },
-                                { 
-                                    text: "done" 
-                                }
-                            ]
+                    { 
+                        tag: "div",
+                        attrs: { 
+                            class: "column col-6"
                         },
-                        params: {
-                            style: "danger",
-                            whenPressed: {
-                                name: "deleteTask",
-                                task: {
-                                    key: "title",
+                        children: [
+                            { 
+                                view: "label",
+                                params: {
+                                    title: {
+                                        key: "title",
+                                    }
                                 }
-                            },
-                            title: "Delete"
-                        }
+                            }
+                        ]
                     },
                     { 
-                        view: "label",
-                        params: {
-                            title: {
-                                key: "title",
+                        tag: "div",
+                        attrs: { 
+                            class: "column text-right col-6"
+                        },
+                        children: [
+                            {
+                                view: "button",
+                                params: {
+                                    style: "primary",
+                                    whenPressed: {
+                                        name: "changeTaskState",
+                                        task: {
+                                            key: "title",
+                                        }
+                                    },
+                                    title: {
+                                        either: [
+                                            {
+                                                when: {
+                                                    equal: [
+                                                        { key: "state" },
+                                                        { text: "pending" }
+                                                    ]
+                                                },
+                                                then: {
+                                                    text: "Done"
+                                                }
+                                            },
+                                            { 
+                                                then: {
+                                                    text: "Undo" 
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                view: "button",
+                                condition: {
+                                    equal: [
+                                        { 
+                                            key: "state",
+                                        },
+                                        { 
+                                            text: "done" 
+                                        }
+                                    ]
+                                },
+                                params: {
+                                    style: "danger",
+                                    whenPressed: {
+                                        name: "deleteTask",
+                                        task: {
+                                            key: "title",
+                                        }
+                                    },
+                                    title: "Delete"
+                                }
                             }
-                        }
+                        ]
                     }
                 ]
             }

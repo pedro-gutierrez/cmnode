@@ -14,7 +14,7 @@ spec:
             params:
               object:
                 page: "Demo"
-                layout: "centered demo"
+                layout: "demo"
                 stylesheets:
                   - name: elementary-ui-styles
                   - name: fontawesome5.min

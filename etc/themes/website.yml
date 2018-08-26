@@ -29,9 +29,10 @@ spec:
           style:
             margin-top: 0
             margin-bottom: 0
+            padding-right: 20%
         - elem: "nav"
           style: 
-            text-align: center 
+            text-align: right 
           selectors:
             - elem: "ul"
               style:
@@ -83,10 +84,11 @@ spec:
             text-align: center
     - class: "jumbo"
       style:
+        box-shadow: 0 4px 4px -2px rgba(20, 20, 20, 0.82)
         background-color:
           key: dark-6
           in: colors
-        padding-top: 5em
+        padding-top: 3em
         padding-bottom: 3em
         padding-left: 20%
         padding-right: 20%
