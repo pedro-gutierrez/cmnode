@@ -56,9 +56,14 @@ spec:
     section:
       tag: section
       attrs:
-        class: 
-          key: name
-          in: item
+        class:
+          format: 
+            pattern: "~s ~s"
+            params:
+              - key: name
+                in: item
+              - key: style
+                in: item
       children:
         - view:
             key: name
@@ -154,6 +159,8 @@ spec:
                           key: menu
                           in: header
             - tag: main
+              attrs:
+                class: "columns"
               children:
                 loop: sections
                 with: section

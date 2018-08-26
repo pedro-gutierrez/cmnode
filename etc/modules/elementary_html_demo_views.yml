@@ -4,7 +4,11 @@ category: ui
 name: elementary_html_guide_views
 spec:
   views:
-    demo:
+    todo:
       tag: div
       attrs:
-        id: "demoApp"
+        id: "todoDemoApp"
+    http:
+      tag: div
+      attrs:
+        id: "httpDemoApp"

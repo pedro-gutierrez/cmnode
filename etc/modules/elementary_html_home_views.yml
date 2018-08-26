@@ -22,9 +22,9 @@ spec:
             - text:
                 key: body
     highlights:
-      tag: section
+      tag: div
       attrs:
-        class: "columns highlights"
+        class: "columns"
       children:
         - view: highlight
           params:

@@ -24,8 +24,10 @@ spec:
                   list:
                     - object:
                         name: jumbo
+                        style: "column col-12"
                     - object:
-                        name: highlights 
+                        name: highlights
+                        style: "column col-12"
         app:
           spec: 
             modules:

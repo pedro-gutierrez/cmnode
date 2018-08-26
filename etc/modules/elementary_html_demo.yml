@@ -14,7 +14,7 @@ spec:
             params:
               object:
                 page: "Demo"
-                layout: "centered"
+                layout: "centered demo"
                 stylesheets:
                   - name: elementary-ui-styles
                   - name: fontawesome5.min
@@ -25,12 +25,19 @@ spec:
                         name: elementary-ui-deps
                         type: application/javascript
                     - object:
-                        name: demo/demo
+                        name: demo/todoDemo
+                        type: module
+                    - object:
+                        name: demo/httpDemo
                         type: module
                 sections: 
                   list:
                     - object:
-                        name: demo
+                        name: todo
+                        style: "col-12"
+                    - object:
+                        name: http
+                        style: "col-12"
         app:
           spec: 
             modules:

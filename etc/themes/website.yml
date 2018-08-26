@@ -21,10 +21,8 @@ spec:
       style:
         padding-top: 1em
         padding-bottom: 1em
-        padding-left: 20%
-        padding-right: 20%
         background-color:
-          key: dark-4
+          key: dark-6
           in: colors
       selectors:
         - elem: ul
@@ -50,8 +48,6 @@ spec:
                         text-transform: uppercase
     - elem: "main"
       style:
-        padding-left: 20%
-        padding-right: 20%
         background-color:
           key: dark-4
           in: colors
@@ -87,8 +83,13 @@ spec:
             text-align: center
     - class: "jumbo"
       style:
+        background-color:
+          key: dark-6
+          in: colors
         padding-top: 5em
         padding-bottom: 3em
+        padding-left: 20%
+        padding-right: 20%
       selectors:
         - elem: h1
           style:
@@ -119,6 +120,9 @@ spec:
             margin-top: 1rem
     - class: "highlights"
       style:
+        padding-top: 2em
+        padding-left: 20%
+        padding-right: 20%
         color:
           key: dark-1
           in: colors
@@ -131,11 +135,6 @@ spec:
             - elem: "h1"
               style:
                 margin-bottom: .2rem
-    - class: "demo"
-      style:
-        padding-top: 5em
-        padding-bottom: 3em
-
     - elem: "a"
       style:
         color:
