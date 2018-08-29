@@ -1,0 +1,12 @@
+version: 1.0
+type: app
+category: api
+name: echo 
+spec:
+  debug: true 
+  modules:
+    - ping
+    - echo
+  config:
+    timeout:
+      number: 30

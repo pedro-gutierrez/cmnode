@@ -613,6 +613,15 @@ compile_term(#{ <<"calendar">> := #{
        factor => 3600*24,
        tense  => future };
 
+compile_term(#{ <<"encrypt">> := #{ <<"method">> := Method,
+                                    <<"key">> := Key,
+                                    <<"value">> := Value }}) -> 
+    #{ type => encrypt,
+       spec => #{
+         method => compile_keyword(Method),
+         key => compile_term(Key),
+         value => compile_term(Value) } };
+
 compile_term(#{ <<"base64">> := Spec,
                 <<"as">> := As }) ->
 
@@ -622,6 +631,10 @@ compile_term(#{ <<"base64">> := Spec,
 
 compile_term(#{ <<"base64">> := Spec }) ->
     #{ type => base64,
+       spec => compile_term(Spec) };
+
+compile_term(#{ <<"json">> := Spec }) -> 
+    #{ type => json,
        spec => compile_term(Spec) };
 
 compile_term(#{ <<"as">> := As,

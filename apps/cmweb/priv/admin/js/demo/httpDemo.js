@@ -1,101 +1,139 @@
-/*!
- * ElementaryJS.com
- * (c) 2018 Pedro Gutierrez
- * Released under the MIT License.
- */
+//
+// ElementaryJS.com
+// (c) 2018 Pedro Gutierrez
+// Released under the MIT License.
+//
 import {default as app} from "/js/demo/elementary.js";
 import {default as ui} from "/js/demo/elementary-ui.js";
+import {default as http} from "/js/demo/elementary-http.js";
 
 app({
-    settings: {
+  settings: {
+    debug: true,
+    telemetry: true
+  },
+  effects: {
+    ui: {
+      fun: ui,
+      settings: {
         debug: true,
-        telemetry: true
+        domEl: "httpApp"
+      }
     },
-    init: {
-        model: {},
-        cmds: [
-            { effect: "ui", encoder: "demoView"}
-        ]
-    },
-    effects: {
-        ui: {
-            fun: ui,
-            settings: {
-                debug: false,
-                domEl: "httpDemoApp"
-            }
-        }
-    },
-    encoders: {
-        demoView: {
-            view: {
-                tag: "div",
-                attrs: {
-                    class: "columns"
-                },
-                children: [
-                    { 
-                        view: "introView" 
-                    }
-                ]
-            }
-        },
-        link: {
-            view: {
-                tag: "a",
-                attrs: {
-                    href: {
-                        key: "target"
-                    }
-                },
-                children: [
-                    { tag: "i",
-                      attrs: {
-                        class: { key: "icon" }}},
-                    { text: { key: "title" }}
-                ]
-            }
-        },
-        introView: {
-            view: {
-                tag: "article",
-                attrs: {
-                    class: "col-6 col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12"
-                },
-                children: [
-                    {
-                        tag: "h1",
-                        children: [
-                            { 
-                                text: "HTTP App" 
-                            }
-                        ]
-                    },
-                    {
-                        tag: "p",
-                        children: [
-                            {
-                                text: "This is a simple app that shows how to use the HTTP effect manager. It fetches the source code of the To-do app from the server, and renders it with nice syntax highlighting." }
-                        ]
-                    },
-                    {   tag: "p",
-                        children: [
-                            { 
-                                view: "link",
-                                params: {
-                                    icon: "fas fa-download",
-                                    title: "Source",   
-                                    target: "/js/demo/httpDemo.js"
-                                }
-                            },
-                        ]
-                    }
-                ]
-            }
-        }
-    },
-    decoders: {
-    },
-    update: {
+    http: {
+      fun: http,
+      settings: {
+        debug: true,
+      }
     }
+  },
+  init: {
+    model: {
+      source: ""
+    },
+    cmds: [
+      { effect: "http", encoder: "sourceQuery" },
+      { effect: "ui", encoder: "demoView" }
+    ]
+  },
+  encoders: {
+    sourceQuery: {
+      method: "get",
+      url: "/js/demo/todoDemo.js",
+    },
+    demoView: {
+      view: {
+        tag: "div",
+        children: [
+          { 
+            tag: "div",
+            attrs: {
+              class: "notification"
+            },
+            children: [
+              {
+                tag: "p", 
+                attrs: {
+                  class: "title"  
+                },
+                children: [
+                  { text: "Http" }
+                ]
+              },
+              {
+                tag: "p",
+                children: [
+                  { 
+                    text: "This app shows how to fetch remote server data via HTTP. Here, we download the source code of the Todo app, then we render it with some nice syntax highlighting." 
+                  }
+
+                ]
+              },
+              {
+                tag: "p",
+                attrs: {
+                  class: "actions"
+                },
+                children: [
+                  {
+                    tag: "a",
+                    attrs: {
+                      href: "/js/demo/httpDemo.js",
+                      class: "is-fullwidth is-link"
+                    },
+                    children: [
+                      {
+                        tag: "span",
+                        children: [
+                          { text: "Source" }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            tag: "div",
+            attrs: {
+              class: "tile-content"
+            },
+            children: [
+              { 
+                code: { 
+                  source: {
+                    key: "source" 
+                  },
+                  lang: "javascript"
+                }
+
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  decoders: {
+    sourceFetched: {
+      effect: "http",
+      status: 200,
+      body: {
+        any: "text"
+      }
+    }
+  },
+  update: {
+    sourceFetched: {
+      model: {
+        source: {
+          key: "body"
+        }
+      },
+      cmds: [
+        { effect: "ui" }
+      ]
+    }
+  }
 });

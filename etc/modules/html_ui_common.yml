@@ -14,15 +14,9 @@ spec:
     link:
       tag: a
       attrs:
-        class:
-          key: style
         href: 
           key: target
       children:
-        - tag: i
-          attrs:
-            class: 
-              key: icon
         - text:
             key: title
     menu-item:
@@ -42,17 +36,54 @@ spec:
         - view: link
           params:
             key: item
-    menu:
-      tag: nav
+    icon:
+      tag: span
+      attrs:
+        class: "icon"
       children:
-        - tag: ul
+        - tag: i
+          attrs:
+            class:
+              key: icon
+    navbar-item:
+      tag: a
+      attrs:
+        class: "navbar-item"
+        href:
+          key: target
+          in: item
+      children:
+        - view: icon
+          params:
+            object:
+              icon:
+                key: icon
+                in: item
+        - tag: span
           children:
-            loop: items
-            with: menu-item
-            context:
-              object:
-                active:
-                  key: active
+            - text:
+                key: title
+                in: item
+    nav:
+      tag: nav
+      attrs:
+        class: "navbar"
+      children:
+        - tag: div
+          attrs:
+            class: "container"
+          children:
+            - tag: div
+              attrs:
+                class: "navbar-menu"
+                id: "nav"
+              children:
+                - tag: div
+                  attrs:
+                    class: "navbar-end"
+                  children:
+                    loop: items
+                    with: navbar-item
     section:
       tag: section
       attrs:
@@ -115,7 +146,7 @@ spec:
             - tag: meta
               attrs:
                 name: "viewport"
-                content: "width=device-width, initial-scale=1.0, shrink-to-fit=no"
+                content: "width=device-width, initial-scale=1"
             - tag: meta
               attrs:
                 http-equiv: "x-ua-compatible"
@@ -139,31 +170,26 @@ spec:
             - loop: scripts
               with: script
         - tag: body
-          attrs:
-            class:
-              key: layout
           children:
-            - tag: header
-              children:
-                - view: menu
-                  params:
-                    object:
-                      active:
-                        key: active
-                        in:
-                          key: menu
-                          in: header
-                      items:
-                        key: items
-                        in: 
-                          key: menu
-                          in: header
+            - view: nav 
+              params:
+                object:
+                  active:
+                    key: active
+                    in:
+                      key: menu
+                      in: header
+                  items:
+                    key: items
+                    in: 
+                      key: menu
+                      in: header
             - tag: main
-              attrs:
-                class: "columns"
               children:
                 loop: sections
                 with: section
             - tag: footer
+              attrs:
+                class: "footer"
               children:
                 - view: footer

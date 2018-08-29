@@ -3,63 +3,44 @@ type: theme
 name: demo 
 spec:
   selectors:
-    - class: "demo"
+    - class: "done"
       selectors:
-        - elem: "header"
+        - elem: "span"
           style:
-            box-shadow: 0 4px 4px -2px rgba(20, 20, 20, 0.82)
-        - elem: "main"
+            text-decoration: line-through
+    - class: "notification"
+      selectors:
+        - s-class: "actions"
           style:
-            padding-top: 2em
-            padding-bottom: 2em
-            padding-left: 20%
-            padding-right: 20%
-          selectors:
-            - elem: "section"
-              style:
-                margin-bottom: 2em
-            - s-class: "app"
-              style:
-                border-radius: 4px
-                background-color:
-                  key: dark-5
-                  in: colors
-                padding: .5em 1em 1em 1em
-            - elem: "article"
-              style:
-                 text-align: "left"
-                 margin-bottom: 1em
-                 padding-right: 1rem
-            - elem: "h1"
-              style:
-                color: 
-                  key: brightest
-                  in: colors
-                font-size:
-                  key: h6
-                  in: font_sizes
-            - s-class: "done"
-              selectors:
-                - elem: "label"
-                  style:
-                    text-decoration: line-through
-            - elem: "button"
-              style:
-                margin-left: .3rem
-                margin-bottom: .3rem
-                width: 50%
-            - elem: "input"
-              style:
-                background-color:
-                  key: dark-5
-                  in: colors
-                border-color:
-                  key: dark-5
-                  in: colors
-                border-radius: 4px;
-                border: 0
-                max-width: 500px
-                width: 100%
-                color:
-                  key: default
-                  in: colors
+            margin-top: .5rem
+    - class: "is-paddingless"
+      selectors:
+        - s-class: "tile-content"
+          style:
+            padding: 0 1.5rem 1.5rem
+        - s-class: "notification"
+          style:
+            border-bottom-left-radius: 0
+            border-bottom-right-radius: 0
+    - elem: "pre"
+      style:
+        background-color: transparent;
+        white-space: pre-wrap;
+        max-height: 500px;
+    - class: "hljs-comment"
+      style:
+        color: "#D0D1CD"
+    - class: "hljs-keyword"
+      style:
+        font-weight: bold
+    - class: "hljs-string"
+      style:
+        color: "#FA7C91"
+    - class: "hljs-attr"
+      style:
+        color: "#9EA08A"
+    - class: "hljs-literal"
+      style:
+        color: "#8A4D76"
+
+

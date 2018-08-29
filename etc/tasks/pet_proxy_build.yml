@@ -8,7 +8,7 @@ spec:
         in: settings
       clone: 
         repo: "github.com/netscale-technologies/dkv-pet-proxy.git"
-        branch: "node"
+        branch: "master"
         dir: "/tmp/dkv-pet-proxy"
   - docker:
       credentials:

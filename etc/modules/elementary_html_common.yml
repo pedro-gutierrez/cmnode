@@ -6,34 +6,36 @@ spec:
   views:
     footer:
       tag: div
+      attrs:
+        class: "container"
       children:
         - tag: p
           children:
             - view: link
               params:
                 object: 
-                  title: ""
+                  title: "LinkedIn "
                   target: "https://www.linkedin.com/in/pedro-gutiérrez-07470b19"
-                  icon: "fab fa-linkedin-in"
+                  icon: ""
                   style: ""
             - view: link
               params:
                 object: 
-                  title: ""
-                  target: "https://github.com/pedro-gutierrez/elementary"
-                  icon: "fab fa-github"
+                  title: "GitHub "
+                  target: "https://github.com/pedro-gutierrez/elementaryjs"
+                  icon: ""
                   style: ""
             
             - view: link
               params:
                 object: 
-                  title: ""
+                  title: "Donate "
                   target: "https://www.paypal.me/pedrogutierrezruiz"
-                  icon: "fab fa-paypal"
+                  icon: ""
                   style: ""
         - tag: p
           children:
-            - text: "Licensed under the"
+            - text: "Licensed under the "
             - view: link
               params:
                 object: 
@@ -65,16 +67,16 @@ spec:
                       target: "/"
                       title: "Home"
                       style: ""
-                      icon: ""
+                      icon: "fas fa-home"
                   - object:
                       target: "/demo.html"
                       title: "Demo"
                       style: ""
-                      icon: ""
+                      icon: "far fa-play-circle"
                   - object:
                       target: "/guide.html"
                       title: "Guide"
                       style: ""
-                      icon: ""
+                      icon: "fas fa-book"
           sections:
             key: sections

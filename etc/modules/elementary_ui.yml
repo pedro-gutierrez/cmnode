@@ -9,8 +9,4 @@ spec:
         settings:
           config: settings
         themes:
-          - keyword: luna
-          - keyword: website
-          - keyword: controls
-          - keyword: typography 
           - keyword: demo 

@@ -14,20 +14,19 @@ spec:
             params:
               object:
                 page: "Home"
-                layout: "centered"
+                layout: ""
                 stylesheets:
-                  - name: elementary-ui-styles
                   - name: fontawesome5.min
-                  - name: elementary
+                  - name: pastel 
                 scripts: []
                 sections:
                   list:
                     - object:
-                        name: jumbo
-                        style: "column col-12"
+                        name: hero 
+                        style: ""
                     - object:
-                        name: highlights
-                        style: "column col-12"
+                        name: highlights 
+                        style: "section"
         app:
           spec: 
             modules:

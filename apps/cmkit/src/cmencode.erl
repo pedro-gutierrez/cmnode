@@ -609,6 +609,37 @@ encode(#{ type := base64,
                        reason => Other }}
     end;
 
+encode(#{ type := json,
+          spec := JsonSpec }, In, Config) -> 
+    case encode(JsonSpec, In, Config) of 
+        {ok, Term} -> 
+            {ok, cmkit:jsone(Term)};
+        Other -> 
+            Other
+    end;
+
+encode(#{ type := encrypt,
+          spec := #{ method := aes_cbc,
+                     key := KeySpec,
+                     value := ValueSpec }}, In, Config) ->
+
+    case encode(KeySpec, In, Config) of
+        {ok, Key} ->
+            case encode(ValueSpec, In, Config) of 
+                {ok, Value} -> 
+                    case cmkit:encrypt(Key, Value) of 
+                        error -> 
+                            {error, encrypt_error};
+                        {ok, Cypher} -> 
+                            {ok, Cypher}
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
 encode(#{ type := asset,
           spec := Spec }, In, Config) ->
     case encode(Spec, In, Config) of

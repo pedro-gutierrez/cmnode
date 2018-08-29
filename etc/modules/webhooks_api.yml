@@ -672,7 +672,7 @@ spec:
         body:
           object:
             ref: 
-              text: "refs/heads/node"
+              text: "refs/heads/master"
             repository:
               object:
                 name: 

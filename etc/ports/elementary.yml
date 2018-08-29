@@ -5,6 +5,8 @@ spec:
   port: 8083
   acceptors: 100
   apps:
+    echo:
+      ws: "/echo"
     elementary_html_home:
       http: "/"
     elementary_html_guide:

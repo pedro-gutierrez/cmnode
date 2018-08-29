@@ -114,7 +114,7 @@ export default (appSpec) => {
     function encodeStringKey(k, d, c) {
         if (d && d.hasOwnProperty(k)) return {value: d[k]};
         if (c && c.hasOwnProperty(k)) return {value: c[k]};
-        if (c.$context && c.$context.hasOwnProperty(k)) return {value: c.$context[k]};
+        if (c && c.$context && c.$context.hasOwnProperty(k)) return {value: c.$context[k]};
         return error(k, Object.assign({}, d, c), "no_such_key");
     }
     

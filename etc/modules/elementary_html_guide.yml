@@ -14,10 +14,10 @@ spec:
             params:
               object:
                 page: "Guide"
-                layout: "left"
+                layout: ""
                 stylesheets:
-                  - name: elementary-ui-styles
                   - name: fontawesome5.min
+                  - name: pastel
                   - name: elementary
                 scripts: []
                 sections: []

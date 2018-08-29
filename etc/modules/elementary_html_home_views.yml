@@ -5,78 +5,84 @@ name: elementary_html_home_views
 spec:
   views:
     highlight:
-      tag: article
+      tag: div
       attrs:
-        class: "column col-6 col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12"
+        class: "column is-half"
       children:
-        - tag: i
-          attrs:
-            class:
-              key: icon
-        - tag: h1
+        - tag: article
           children:
-            - text:
-                key: title
-        - tag: p
-          children:
-            - text:
-                key: body
+            - tag: h1
+              attrs:
+                class: "title is-size-4"
+              children:
+                - text:
+                    key: title
+            - tag: p
+              children:
+                - text:
+                    key: body
     highlights:
       tag: div
       attrs:
-        class: "columns"
+        class: "container"
       children:
-        - view: highlight
-          params:
-            object:
-              title: "Modern"
-              icon: ""
-              body: "ElementaryJS leverages the latest browser support for ES6 modules. No more need for transpilers or complicated toolchains."
-        - view: highlight
-          params:
-            object:
-              title: "Declarative"
-              icon: ""
-              body: "With ElementaryJS, you express your application logic as expression objects, in JSON. The framework takes care of everything else."
+        - tag: div
+          attrs:
+            class: "columns is-multiline"
+          children:
+            - view: highlight
+              params:
+                object:
+                  title: "Modern, yet simple"
+                  icon: ""
+                  body: "ElementaryJS leverages the latest browser support for ES6 modules. No more need for transpilers or complicated toolchains."
+            - view: highlight
+              params:
+                object:
+                  title: "Declarative"
+                  icon: ""
+                  body: "With ElementaryJS, your code is data. Express your application logic as simple JSON objects and let the framework takes care of everything else."
+            - view: highlight
+              params:
+                object:
+                  title: "Extensible"
+                  icon: ""
+                  body: "ElementaryJS is made of a very small core, designed to be extended via plugins (we call them effect managers). You can use the officially supported effect managers, but it is also very easy to write your own."
+            - view: highlight
+              params:
+                object:
+                  title: "Functional"
+                  icon: ""
+                  body: "ElementaryJS is heavily inspired from Elm. As such, what you get is a neat separation between pure application state management, and the impure world of side effects. This results in code that is safer and easier to reason about."
 
-        - view: highlight
-          params:
-            object:
-              title: "Extensible"
-              icon: ""
-              body: "ElementaryJS is made of a very small core, designed to be extended via plugins (we call them effect managers). You can use the officially supported effect managers, but it is also very easy to write your own."
-            
-        - view: highlight
-          params:
-            object:
-              title: "Functional"
-              icon: ""
-              body: "ElementaryJS is heavily inspired from Elm. As such, what you get is a neat separation between pure application state management, and the impure world of side effects. This results in code that is safer and easier to reason about."
-
-    jumbo:
+    hero:
       tag: div
+      attrs:
+        class: "hero-body"
       children:
-        - tag: h1
+        - tag: div
+          attrs:
+            class: "container"
           children:
-            - view: highlighted
-              params:
-                object:
-                  text: "El"
-            - text: "e"
-            - view: highlighted
-              params:
-                object:
-                  text: "m"
-            - text: "entaryJS"
-        - tag: p
-          children:
-            - text: "Declarative and functional UIs with a hint of Elm"
-        - tag: p
-          children:
-            - view: link
-              params:
-                object:
-                  title: "Download"
-                  icon: "fas fa-download"
-                  style: "btn btn-xl primary"
-                  target: "https://github.com/pedro-gutierrez/elementaryjs/releases/latest"
+            - tag: h1
+              attrs:
+                class: "title"
+              children:
+                - text: "ElementaryJS"
+            - tag: h2
+              attrs:
+                class: "subtitle"
+              children:
+                - text: "Declarative and functional UIs with a hint of Elm"
+            - tag: a
+              attrs:
+                class: "button is-primary is-large"
+                href: "https://github.com/pedro-gutierrez/elementaryjs/releases/latest"
+              children:
+                - view: icon
+                  params:
+                    object:
+                      icon: "fas fa-download"
+                - tag: span
+                  children:
+                    - text: "Download"

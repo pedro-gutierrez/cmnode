@@ -8,7 +8,7 @@ spec:
         in: settings
       tag: 
         repo: "github.com/netscale-technologies/dkv-pet-proxy.git"
-        branch: node
+        branch: master
         clone: true
         dir: "/tmp/dkv-pet-proxy"
         prefix: "v"

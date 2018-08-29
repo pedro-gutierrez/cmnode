@@ -1,438 +1,382 @@
-/*!
- * ElementaryJS.com
- * (c) 2018 Pedro Gutierrez
- * Released under the MIT License.
- */
+//
+// ElementaryJS.com
+// (c) 2018 Pedro Gutierrez
+// Released under the MIT License.
+//
 import {default as app} from "/js/demo/elementary.js";
 import {default as ui} from "/js/demo/elementary-ui.js";
 
 app({
-    settings: {
-        debug: true,
-        telemetry: true
+  settings: {
+    debug: true,
+    telemetry: true
+  },
+  effects: {
+    ui: {
+      fun: ui,
+      settings: {
+        debug: false,
+        domEl: "todoApp"
+      }
     },
-    init: {
-        model: {
-            taskTitle: "",
-            tasks: [
-                {
-                    title: "Read the guide",
-                    state: "done"
-                }, 
-                {
-                    title: "Write a cool ElementaryJS app",
-                    state: "pending"
-                }, 
-            ]
-        },
-        cmds: [
-            {
-                effect: "ui",
-                encoder: "demoView"
-            }
-        ]
+  },
+  init: {
+    model: {
+      taskTitle: "",
+      tasks: [
+        {
+          title: "Read the guide",
+          state: "done"
+        }, 
+        {
+          title: "Write a cool ElementaryJS app",
+          state: "pending"
+        }, 
+      ]
     },
-    effects: {
-        ui: {
-            fun: ui,
-            settings: {
-                debug: false,
-                domEl: "todoDemoApp"
-            }
-        }
-    },
-    encoders: {
-        demoView: {
-            view: {
-                tag: "div",
+    cmds: [
+      {
+        effect: "ui",
+        encoder: "demoView"
+      }
+    ]
+  },
+  encoders: {
+    demoView: {
+      view: {
+        tag: "div",
+        children: [
+          { 
+            tag: "div",
+            attrs: {
+              class: "notification"
+            },
+            children: [
+              {
+                tag: "p", 
                 attrs: {
-                    class: "columns"
+                  class: "title"  
                 },
                 children: [
-                    { view: "introView" },
-                    { view: "appView",
-                      params: {
-                        tasks: { key: "tasks" },
-                        taskTitle: { key: "taskTitle" }  
+                  { text: "Basic" }
+                ]
+              },
+
+              {
+                tag: "p",
+                children: [
+                  { 
+                    text: "A simple Todo app that shows how to render a view and  keep it in sync with the application model." 
+                  }
+
+                ]
+              },
+
+              {
+                tag: "p",
+                attrs: {
+                  class: "actions"
+                },
+                children: [
+                  {
+                    tag: "a",
+                    attrs: {
+                      href: "/js/demo/todoDemo.js",
+                      class: "is-fullwidth is-link"
+                    },
+                    children: [
+                      {
+                        tag: "span",
+                        children: [
+                          { text: "Source" }
+                        ]
                       }
-                    }
+                    ]
+                  }
                 ]
-            }
-        },
-        appView: {
-            view: {
+              }
+            ]
+          },
+
+          { 
+            tag: "div",
+            attrs: {
+              class: "tile-content"
+            },
+            children: [
+              { 
+                view: "tasksView",
+                params: {
+                  tasks: { key: "tasks" },
+                }
+              },
+              { 
                 tag: "div",
                 attrs: {
-                    class: "column col-6 col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12 app"
+                  class: "field"
                 },
                 children: [
-                    { 
-                        view: "tasksView",
-                        params: {
-                            tasks: {
-                                key: "tasks"
-                            }
-                        }
+                  { 
+                    tag: "div",
+                    attrs: { 
+                      class: "control" 
                     },
-                    {
-                        view: "taskForm",
-                        params: {
-                            title: {
-                                key: "taskTitle"
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        taskForm: {
-            view: {
-                tag: "input",
-                attrs: {
-                    class: "mt-2",
-                    type: "text",
-                    value: {
-                        key: "title"
-                    },
-                    autocomplete: "off",
-                    placeholder: "Enter something to do and press Enter",
-                    onkeyup: {
-                        expression: {
-                            either: [
+                    children: [
+                      { 
+                        tag: "input", 
+                        attrs: { 
+                          class: "input", 
+                          type: "text", 
+                          placeholder: "Enter a task and press Enter" ,
+                          onkeyup: {
+                            expression: {
+                              either: [
                                 {
-                                    when: {
-                                        equal: [
-                                            { text: "Enter" },
-                                            { key: "key", in: "event" }
-                                        ]
-                                    },
-
-                                    then: "taskSubmitted"
-                                },
-
-                                { 
-                                    then: "taskTitleChanged" 
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        tasksView: {
-            view: {
-                tag: "div",
-                children: {
-                    loop: {
-                        key: "tasks"
-                    },
-                    with: "taskView"
-                }
-            }
-        },
-        taskView: {
-            view: {
-                tag: "div",
-                attrs: {
-                    object: {
-                        key: {
-                            key: "title",
-                        },
-                        class: {
-                            format: {
-                                pattern: "columns mt-2 ~a",
-                                params: [
-                                    { key: "state" }
-                                ]
-                            }
-                        }
-                    }
-                },
-                children: [
-                    { 
-                        tag: "div",
-                        attrs: { 
-                            class: "column col-6"
-                        },
-                        children: [
-                            { 
-                                view: "label",
-                                params: {
-                                    title: {
-                                        key: "title",
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    { 
-                        tag: "div",
-                        attrs: { 
-                            class: "column text-right col-6"
-                        },
-                        children: [
-                            {
-                                view: "button",
-                                params: {
-                                    style: "primary",
-                                    whenPressed: {
-                                        name: "changeTaskState",
-                                        task: {
-                                            key: "title",
-                                        }
-                                    },
-                                    title: {
-                                        either: [
-                                            {
-                                                when: {
-                                                    equal: [
-                                                        { key: "state" },
-                                                        { text: "pending" }
-                                                    ]
-                                                },
-                                                then: {
-                                                    text: "Done"
-                                                }
-                                            },
-                                            { 
-                                                then: {
-                                                    text: "Undo" 
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            },
-                            {
-                                view: "button",
-                                condition: {
+                                  when: {
                                     equal: [
-                                        { 
-                                            key: "state",
-                                        },
-                                        { 
-                                            text: "done" 
-                                        }
+                                      { text: "Enter" },
+                                      { key: "key", in: "event" }
                                     ]
+                                  },
+
+                                  then: "taskSubmitted"
                                 },
-                                params: {
-                                    style: "danger",
-                                    whenPressed: {
-                                        name: "deleteTask",
-                                        task: {
-                                            key: "title",
-                                        }
-                                    },
-                                    title: "Delete"
-                                }
+                                { then: "taskTitleChanged" }
+                              ]
                             }
-                        ]
-                    }
+                          },
+                          value: { key: "taskTitle" }
+                        }
+                      }
+                    ]
+                  }
                 ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    tasksView: {
+      view: {
+        tag: "div",
+        attrs: {
+          class: "field"
+        },
+        children: {
+          loop: {
+            key: "tasks"
+          },
+          with: "taskView"
+        }
+      }
+    },
+    taskView: {
+      view: {
+        tag: "div",
+        attrs: {
+          object: {
+            key: {
+              key: "title",
+            },
+            class: {
+              format: {
+                pattern: "field ~a",
+                params: [
+                  { key: "state" }
+                ]
+              }
             }
+          }
         },
-        label: {
-            view: {
-                tag: "label",
-                children: [
+        children: [
+          { 
+            tag: "span",
+            children: [
+              { text: { key: "title" } }
+            ]
+          },
+          { 
+            tag: "div",
+            children: [
+              { 
+                tag: "a",
+                when: {
+                  equal: [
                     { 
-                        text: {
-                            key: "title"
-                        }
-                    }
-                ]
-            }   
-        },
-        button: {
-            view: {
-                tag: "button",
-                attrs: {
-                    class: {
-                        format: {
-                            pattern: "btn btn-sm ~a",
-                            params: [
-                                { key: "style" }
-                            ]
-                        }
+                      key: "state",
                     },
-                    onclick: { 
-                        key: "whenPressed"
+                    { 
+                      text: "done" 
                     }
+                  ]
+                },
+                attrs: {
+                  class: "is-link",
+                  href: "#",
+                  onclick: {
+                    name: "deleteTask",
+                    task: {
+                      key: "title",
+                    }
+                  },
                 },
                 children: [
-                    {
-                        text: {
-                            key: "title"
-                        }
-                    }
+                  { text: "Delete " }
                 ]
-                
-            }
-        },
-        link: {
-            view: {
+              },
+              { 
                 tag: "a",
                 attrs: {
-                    href: {
-                        key: "target"
+                  class: "is-link",
+                  onclick: {
+                    name: "changeTaskState",
+                    task: {
+                      key: "title",
                     }
+                  },
                 },
                 children: [
-                    { tag: "i",
-                      attrs: {
-                        class: { key: "icon" }}},
-                    { text: { key: "title" }}
-                ]
-            }
-        },
-        introView: {
-            view: {
-                tag: "article",
-                attrs: {
-                    class: "col-6 col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12"
-                },
-                children: [
-                    {
-                        tag: "h1",
-                        children: [
-                            { 
-                                text: "To-Do App" 
-                            }
-                        ]
-                    },
-                    {
-                        tag: "p",
-                        children: [
-                            {
-                                text: "This simple app shows the basics of how to use the UI effect manager in order to render your model, and manage state transitions by responding to mouse and keyboard events." }
-                        ]
-                    },
-                    {   tag: "p",
-                        children: [
-                            { 
-                                view: "link",
-                                params: {
-                                    icon: "fas fa-download",
-                                    title: "Source",   
-                                    target: "/js/demo/todoDemo.js"
-                                }
-                            },
-                        ]
-                    }
-                ]
-            }
-        }
-    },
-    decoders: {
-        taskTitleChanged: {
-            effect: "ui",
-            event: "taskTitleChanged",
-            value: {
-                any: "text"
-            }
-        },
-        taskSubmitted: {
-            effect: "ui",
-            event: "taskSubmitted"
-        },
-        changeTaskState: {
-            effect: "ui",
-            event: {
-                name: "changeTaskState",
-                task: {
-                    any: "text"
-                }
-            }
-        },
-        deleteTask: {
-            effect: "ui",
-            event: {
-                name: "deleteTask",
-                task: {
-                    any: "text"
-                }
-            }
-        },
-
-    },
-    update: {
-        taskTitleChanged: {
-            model: {
-                taskTitle: {
-                    key: "value"
-                }
-            },
-            cmds: [
-                { effect: "ui" }
-            ]
-        },
-        taskSubmitted: {
-            model: {
-                taskTitle: "",
-                tasks: {
-                    byAppending: {
-                        state: "pending",
-                        title: {
-                            key: "taskTitle"
-                        }
-                    }
-                }
-            },
-            cmds: [
-                { effect: "ui" }
-            ]
-        },
-        changeTaskState: {
-            model: {
-                tasks: {
-                    byReplacing: {
-                        items: {
-                            title: {
-                                key: "task",
-                                in: "event"
-                            }
+                  { 
+                    text: {
+                      either: [
+                        {
+                          when: {
+                            equal: [
+                              { key: "state" },
+                              { text: "pending" }
+                            ]
+                          },
+                          then: {
+                            text: "Done"
+                          }
                         },
-                        with: {
-                            byReplacing: {
-                                state: {
-                                    either: [
-                                        {
-                                            when: {
-                                                equal: [
-                                                    { key: "state" },
-                                                    { text: "pending" }
-                                                ]
-                                            },
-                                            then: { text: "done" }
-                                        },
-                                        { 
-                                            then: { text: "pending" } 
-                                        }
-                                    ]
-                                }
-                            }
+                        { 
+                          then: {
+                            text: "Undo" 
+                          }
                         }
+                      ]
                     }
-                }
-            },
-            cmds: [
-                { effect: "ui" }
+                  }
+                ]
+              }
             ]
-        },
-        deleteTask: {
-            model: {
-                tasks: {
-                    byRemoving: {
-                        title: {
-                            key: "task",
-                            in: "event"
-                        }
-                    }
-                }
-            },
-            cmds: [
-                { effect: "ui"}
-            ]
+          },
+        ]
+      }
+    },
+  },
+  decoders: {
+    taskTitleChanged: {
+      effect: "ui",
+      event: "taskTitleChanged",
+      value: {
+        any: "text"
+      }
+    },
+    taskSubmitted: {
+      effect: "ui",
+      event: "taskSubmitted"
+    },
+    changeTaskState: {
+      effect: "ui",
+      event: {
+        name: "changeTaskState",
+        task: {
+          any: "text"
         }
+      }
+    },
+    deleteTask: {
+      effect: "ui",
+      event: {
+        name: "deleteTask",
+        task: {
+          any: "text"
+        }
+      }
+    },
+
+  },
+  update: {
+    taskTitleChanged: {
+      model: {
+        taskTitle: {
+          key: "value"
+        }
+      },
+      cmds: [
+        { effect: "ui" }
+      ]
+    },
+    taskSubmitted: {
+      model: {
+        taskTitle: "",
+        tasks: {
+          byAppending: {
+            state: "pending",
+            title: {
+              key: "taskTitle"
+            }
+          }
+        }
+      },
+      cmds: [
+        { effect: "ui" }
+      ]
+    },
+    changeTaskState: {
+      model: {
+        tasks: {
+          byReplacing: {
+            items: {
+              title: {
+                key: "task",
+                in: "event"
+              }
+            },
+            with: {
+              byReplacing: {
+                state: {
+                  either: [
+                    {
+                      when: {
+                        equal: [
+                          { key: "state" },
+                          { text: "pending" }
+                        ]
+                      },
+                      then: { text: "done" }
+                    },
+                    { 
+                      then: { text: "pending" } 
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      cmds: [
+        { effect: "ui" }
+      ]
+    },
+    deleteTask: {
+      model: {
+        tasks: {
+          byRemoving: {
+            title: {
+              key: "task",
+              in: "event"
+            }
+          }
+        }
+      },
+      cmds: [
+        { effect: "ui"}
+      ]
     }
+  }
 });

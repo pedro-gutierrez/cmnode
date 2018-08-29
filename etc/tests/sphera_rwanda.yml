@@ -4,8 +4,400 @@ name: sphera_rwanda
 spec:
   config:
     retries: 4
-    wait: 250
+    wait: 1000
+  procedures:
+    - name: collab_connection
+      spec:
+        connect:
+          host: 
+            key: host
+            in: settings 
+          port:
+            key: port
+            in:
+              key: collab
+              in:
+                key: sphera-rwanda
+                in: settings
+          path:
+            join:
+              terms:
+                - key: path
+                  in: 
+                    key: collab
+                    in: 
+                      key: sphera-rwanda
+                      in: settings
+                - text:
+                    literal: "/_api/ws"
+          transport:
+            key: transport
+            in:
+              key: collab
+              in:
+                key: sphera-rwanda
+                in: settings
+        as:
+          key: name
+          in: params
+        protocol:
+          spec:
+            decoders:
+              ping:
+                object:
+                  cmd: "ping"
+                  tid:
+                    any: number
+            update:
+              ping:
+                model:
+                  tid:
+                    key: tid
+                cmds:
+                  - effect: reply
+                    encoder: pong
+            encoders:
+              pong:
+                object:
+                  result: "ok"
+                  tid:
+                    key: tid
+  steps:
+    - title: "I use Doctor1's connection"
+      merge:
+        - key: data
+        - object:
+            current_conn:
+              keyword: doctor1
+    - title: "A collab connection for Doctor1"
+      procedure: collab_connection
+      params:
+        object:
+          name:
+            keyword: doctor1
+    - title: "Ensure Doctor1's connection is up"
+      probe:
+        connection: 
+          keyword: doctor1
+        status: up
+    - title: "Login as Doctor1"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/login"
+            tid: 1
+            data:
+              object:
+                user_id: "doctor1@rwanda.sphera"
+                password: "1234"
+    - title: "Launch notifications"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/launch_notifications"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data: {}
+    - title: "Launch media notifications"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/media/launch_notifications"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data: {}
+    - title: "Expect an ack"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            ack:
+              any: number
+        remember:
+          last_ack:
+            key: ack
+    - title: "Expect an ok"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            result: 
+              text: "ok"
+            tid:
+              any: number
+    - title: "Expect an invalid role error"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            result: 
+              text: "error"
+            data:
+              object:
+                code: "role_invalid"
+    - title: "Start a chat session"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/start_session"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data: {}
+    - title: "Expect a chat session id"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            result: 
+              text: "ok"
+            tid:
+              any: number
+            data:
+              object:
+                session_id:
+                  text:
+                    regexp: "chat.session-"
+    - title: "Expect a session id"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            result: 
+              text: "ok"
+            tid:
+              any: number
+            data:
+              object:
+                session_id:
+                  any: text
+    - title: "I try to create an encounter using the collab"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/create_encounter"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data:
+              object:
+                patient_id:
+                  key: patient_id
+                  in: data
+                location_id: "/sphera/rwanda/locations/test"
+                speciality:  "/sphera/rwanda/collab/med.specialities/pediatrics"
+                patient_info:
+                  object:
+                    type: "sphera_shp_1"
+                    data:
+                      object:
+                        medical_questionary:
+                          object:
+                            data: "a value"
+                    text: "some text"
+    - title: "Expect an encounter id"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            event: "sphera/collab/new_message"
+            data:
+              object:
+                body:
+                  encounter_id:
+                    any: text
+        remember:
+          encounter_id:
+            key: encounter_id
+            in: 
+              key: body
+              in: data
+    - title: "Set the doctor for the encounter"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/set_encounter_doctor"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data:
+              object:
+                encounter_id:
+                  key: encounter_id
+                  in: data
+    - title: "Add a report to the encounter"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/add_encounter_report"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data:
+              object:
+                encounter_id:
+                  key: encounter_id
+                  in: data
+                report_info:
+                  object:
+                    report: "this is a test"
+                    extra_field: "an extra field"
+    - title: "Confirm the encounter"
+      send:
+        to: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            cmd: "sphera/collab/save_encounter_report"
+            tid:
+              sum:
+                - number: 1
+                - key: last_ack
+                  in: data
+            data:
+              object:
+                encounter_id:
+                  key: encounter_id
+                  in: data
+                confirmed: true
+                report_info:
+                  object:
+                    message: "this is a testi (confirmed)"
+    - title: "Expect an assigned encounter"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            event: "sphera/collab/new_message"
+            data:
+              object:
+                conversation_id:
+                  any: text
+                session_id:
+                  any: text
+                text: "doctor assigned"
+    - title: "Expect a resolved encounter"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            event: "sphera/collab/updated_status"
+            data:
+              object:
+                conversation_id:
+                  any: text
+                session_id:
+                  any: text
+                status: "resolved"
+    - title: "Expect an updated message for that encounter"
+      receive:
+        from: 
+          key: current_conn
+          in: data
+        spec:
+          object:
+            event: "sphera/collab/updated_message"
+            data:
+              object:
+                body:
+                  encounter_id:
+                    key: encounter_id
+                    in: data
+                text: "encounter capture"
   backgrounds:
+    - title: "I have a chat session"
+      steps:
+        - ref: "Start a chat session"
+        - ref: "Expect an ack"
+        - ref: "Expect an ok"
+        - ref: "Expect a chat session id"
+    - title: "I turn on chat notifications"
+      steps:
+        - ref: "Launch notifications"
+        - ref: "Expect an ack"
+        - ref: "Expect an ok"
+    - title: "I turn on media notifications"
+      steps:
+        - ref: "Launch media notifications"
+        - ref: "Expect an ack"
+        - ref: "Expect an ok"
+    - title: "A collab connection for a doctor"
+      steps:
+        - ref: "A collab connection for Doctor1"
+        - ref: "Ensure Doctor1's connection is up"
+        - ref: "I use Doctor1's connection"
+    - title: "I am logged in as a doctor on the collab"
+      steps:
+        - ref: "Login as Doctor1"
+        - ref: "Expect an ack" 
+        - ref: "Expect a session id"
+    - title: "Assign that encounter to me"
+      steps:
+        - ref: "Set the doctor for the encounter"
+        - ref: "Expect an ack"
+        - ref: "Expect an ok"
+    - title: "I added a new report to the encounter"
+      steps:
+        - ref: "Add a report to the encounter"
+        - ref: "Expect an ack"
+        - ref: "Expect an ok"
+    - title: "I confirmed the encounter"
+      steps:
+        - ref: "Confirm the encounter"
+        - ref: "Expect an ack"
+        - ref: "Expect an ok"
     - title: "Sphera SHP api is online"
       steps:
         - title: "Connect to the Sphera SHP http api"
@@ -180,7 +572,7 @@ spec:
                     cmd: "objects/domain/unload_childs"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
         - title: "Check we got an ok"
           receive:
             from: shp_api       
@@ -207,7 +599,7 @@ spec:
                     cmd: "objects/domain/delete_childs_of_type"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
                         type: "med.consent"
         - title: "Check we got an ok"
           receive:
@@ -235,7 +627,7 @@ spec:
                     cmd: "objects/domain/delete_childs_of_type"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
                         type: "med.operator"
         - title: "Check we got an ok"
           receive:
@@ -291,7 +683,7 @@ spec:
                     cmd: "objects/domain/unload_childs"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
         - title: "Check we got an ok"
           receive:
             from: shp_api       
@@ -318,7 +710,7 @@ spec:
                     cmd: "objects/domain/delete_childs_of_type"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
                         type: "med.patient"
         - title: "Check we got an ok"
           receive:
@@ -346,7 +738,7 @@ spec:
                     cmd: "objects/domain/unload_childs"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
         - title: "Check we got an ok"
           receive:
             from: shp_api       
@@ -373,8 +765,126 @@ spec:
                     cmd: "objects/domain/delete_childs_of_type"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
                         type: "conversation"
+    - title: "There are no tokens"
+      steps:
+        - title: "Unload all objects under /sphera"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/unload_childs"
+                    data:
+                      object:
+                        id: "/sphera/rwanda"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+        - title: "Delete all collab tokens"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera/rwanda/collab/tokens"
+                        type: "token"
+        - title: "Delete all other tokens"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/tokens"
+                        type: "token"
+    - title: "There are no messages"
+      steps:
+        - title: "Unload all objects under /sphera"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/unload_childs"
+                    data:
+                      object:
+                        id: "/sphera/rwanda"
+        - title: "Check we got an ok"
+          receive:
+            from: shp_api       
+            spec:
+              object:
+                status: 200
+                body:
+                  result: "ok"
+        - title: "Delete all messages"
+          send:
+            to: shp_api
+            spec:
+              object:
+                headers:
+                  object:
+                    x-netcomposer-auth:
+                      key: token
+                      in: data
+                    content-type: 
+                      text:
+                        literal: "application/json"
+                body:
+                  object:
+                    cmd: "objects/domain/delete_childs_of_type"
+                    data:
+                      object:
+                        id: "/sphera/rwanda/collab/messages"
+                        type: "message"
     - title: "There are no encounters"
       steps:
         - title: "Unload all objects under /sphera"
@@ -395,7 +905,7 @@ spec:
                     cmd: "objects/domain/unload_childs"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
         - title: "Check we got an ok"
           receive:
             from: shp_api       
@@ -422,7 +932,7 @@ spec:
                     cmd: "objects/domain/delete_childs_of_type"
                     data:
                       object:
-                        id: "/sphera"
+                        id: "/sphera/rwanda"
                         type: "med.encounter"
         - title: "Check we got an ok"
           receive:
@@ -489,7 +999,7 @@ spec:
               object:
                 status: 200
 
-    - title: "There is a patient with id 9000 and initials ABC"
+    - title: "There is a patient"
       steps:
         - title: "Create a patient 9000 with initials ABC"
           send:
@@ -538,7 +1048,7 @@ spec:
                         id:
                           any: text
             remember:
-              patient:
+              patient_id:
                 key: id
                 in: 
                   key: data
@@ -757,7 +1267,7 @@ spec:
                   object:
                     result: "ok"
 
-    - title: "An encounter in pediatrics is created for the patient" 
+    - title: "A new encounter" 
       steps:
         - title: "Create an encounter for patient 9000 in pediatrics"
           send:
@@ -802,7 +1312,7 @@ spec:
                         conversation:
                           any: text
             remember:
-              encounter:
+              encounter_id:
                 key: encounter_id
                 in:
                   key: data
@@ -813,9 +1323,9 @@ spec:
                   key: data
                   in: body
 
-    - title: "New report for that encounter"
+    - title: "There is a report for that encounter"
       steps:
-        - title: "Get reports for the encounter"
+        - title: "Find reports"
           send:
             to: shp_api
             spec:
@@ -829,7 +1339,7 @@ spec:
                   object:
                     cmd: "sphera/shp/find_reports"
 
-        - title: "Verify I got a new report at position 0"
+        - title: "Verify I got a report"
           receive:
             from: shp_api
             spec:
@@ -839,8 +1349,12 @@ spec:
                   object:
                     data:
                       list:
-                        object:
-                          status: "new"
+                        - object:
+                            reports:
+                              list:
+                                - object:
+                                    text:
+                                      any: text
     - title: "Medical data uploaded for that encounter"
       steps:
         - title: "Upload medical data with a equal to 1"
@@ -859,7 +1373,7 @@ spec:
                     data:
                       object:
                         encounter_id:
-                          key: encounter
+                          key: encounter_id
                           in: data
                         data:
                           object:
@@ -899,7 +1413,7 @@ spec:
                         in: settings
                   - text: 
                       literal: "/encounter/"
-                  - key: encounter
+                  - key: encounter_id
                     in: data
                   - text:
                       literal: "/_file?name=file.txt"
@@ -1116,6 +1630,7 @@ spec:
         - "There are no objects of type consent"
         - "There are no objects of type operator"
         - "There is an operator"
+        - "There are no tokens"
         - "I am logged in as an operator"
         - "Get last consent returns a consent error"
     
@@ -1137,6 +1652,7 @@ spec:
         - "There are no objects of type operator"
         - "There is an operator"
         - "There is a consent"
+        - "There are no tokens"
         - "I am logged in as an operator"
         - "Get last consent returns a consent error"
     
@@ -1159,6 +1675,7 @@ spec:
         - "There are no objects of type operator"
         - "There is an operator"
         - "There is a default consent"
+        - "There are no tokens"
         - "I am logged in as an operator"
         - "Get last consent returns the consent data"
       steps:
@@ -1190,6 +1707,7 @@ spec:
         - "There are no objects of type operator"
         - "There is an operator"
         - "There is a default consent"
+        - "There are no tokens"
         - "I am logged in as an operator"
         - "The consent is signed"
         - "Get last consent returns the consent data"
@@ -1223,6 +1741,7 @@ spec:
         - "There are no objects of type operator"
         - "There is an operator"
         - "There is a default consent"
+        - "There are no tokens"
         - "I am logged in as a doctor"
       steps:
         - title: "Try to set the consent as signed"
@@ -1274,7 +1793,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
       steps:
         - title: "Try to find a patient without a token"
           send:
@@ -1312,7 +1832,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
         - "Get empty data for patient 9000"
 
@@ -1331,7 +1852,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as a doctor"
         - "Get empty data for patient 9000"
     
@@ -1350,7 +1872,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as a doctor"
       steps:
         - title: "Update patient birth date to 01-01-2001"
@@ -1431,7 +1954,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
       steps:
         - title: "As a anonymous user, try to update patient birth date to 01-01-2001"
           send:
@@ -1474,7 +1998,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as a doctor"
       steps:
         - title: "Create an encounter for patient 9000 in pediatrics"
@@ -1517,6 +2042,30 @@ spec:
                       object:
                         code: "role_invalid"
     
+    - title: "Doctor tries to create an encounter, using the collab api"
+      tags: 
+        - shp
+        - sphera 
+        - rwanda
+        - doctor 
+        - encounter
+        - current
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "Default channels are present"
+        - "There is a patient"
+        - "There are no tokens"
+        - "A collab connection for a doctor"
+        - "I am logged in as a doctor on the collab"
+        - "I have a chat session"
+        - "I turn on chat notifications"
+        - "I try to create an encounter using the collab"
+        - "Expect an invalid role error"
+    
     - title: "Anonymous user tries to create an encounter for a patient"
       tags: 
         - shp
@@ -1531,7 +2080,8 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
       steps:
         - title: "As an anonymous user, try to create an encounter for patient 9000 in pediatrics"
           send:
@@ -1578,9 +2128,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
     
     - title: "Anonymous user tries to obtain a report"
       tags: 
@@ -1596,9 +2147,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
       steps:
         - title: "As an anonymous user, try to obtain a report"
           send:
@@ -1618,24 +2170,6 @@ spec:
               object:
                 status: 403
 
-    - title: "Operator is able to obtain reports for a new encounter"
-      tags: 
-        - shp
-        - sphera 
-        - rwanda
-        - operator 
-        - reports 
-      backgrounds:
-        - "Sphera SHP api is online"
-        - "I am logged in as admin"
-        - "There are no conversations"
-        - "There are no encounters"
-        - "There are no patients"
-        - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
-        - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
-        - "New report for that encounter"
     
     - title: "Operator is able to upload medical data for an encounter"
       tags: 
@@ -1651,9 +2185,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
         - "Medical data uploaded for that encounter"
     
     - title: "Doctor is able to upload medical data for an encounter"
@@ -1670,9 +2205,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
         - "I am logged in as a doctor"
         - "Medical data uploaded for that encounter"
     
@@ -1691,9 +2227,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
         - "I am logged in as a doctor"
         - "Medical data uploaded for that encounter"
         - "I am logged in as an operator"
@@ -1714,9 +2251,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
       steps:
         - title: "As an anonymous user, try to upload medical data with a equal to 1"
           send:
@@ -1731,7 +2269,7 @@ spec:
                     data:
                       object:
                         encounter_id:
-                          key: encounter
+                          key: encounter_id
                           in: data
                         data:
                           object:
@@ -1758,9 +2296,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
       steps:
         - title: "Check whether doctor is online for the encounter"
           send:
@@ -1778,7 +2317,7 @@ spec:
                     data:
                       object:
                         encounter_id:
-                          key: encounter
+                          key: encounter_id
                           in: data
         - title: "Verify the doctor is offline"
           receive:
@@ -1809,9 +2348,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
       steps:
         - title: "As an anonymous user, check whether doctor is online for the encounter"
           send:
@@ -1826,7 +2366,7 @@ spec:
                     data:
                       object:
                         encounter_id:
-                          key: encounter
+                          key: encounter_id
                           in: data
         - title: "Verify we got a 403"
           receive:
@@ -1849,9 +2389,10 @@ spec:
         - "There are no encounters"
         - "There are no patients"
         - "Default channels are present"
-        - "There is a patient with id 9000 and initials ABC"
+        - "There is a patient"
+        - "There are no tokens"
         - "I am logged in as an operator"
-        - "An encounter in pediatrics is created for the patient"
+        - "A new encounter"
         - "That encounter file upload api for name file.txt"
       steps:
         - title: "Upload a file to that encounter"
@@ -1893,4 +2434,59 @@ spec:
                     data:
                       object:
                         code: "token_invalid"
+    - title: "Doctor can resolve encounter"
+      tags: 
+        - collab
+        - sphera 
+        - rwanda
+        - doctor
+        - reports
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "There are no messages"
+        - "Default channels are present"
+        - "There is a patient"
+        - "I am logged in as an operator"
+        - "A new encounter"
+        - "There are no tokens"
+        - "A collab connection for a doctor"
+        - "I am logged in as a doctor on the collab"
+        - "I have a chat session"
+        - "I turn on chat notifications"
+        - "Assign that encounter to me"
+        - "Expect an assigned encounter"
+        - "I added a new report to the encounter"
+        - "Expect a resolved encounter"
+        - "I am logged in as an operator"
+        - "There is a report for that encounter"
 
+    - title: "Doctor can confirm encounter"
+      tags: 
+        - collab
+        - sphera 
+        - rwanda
+        - doctor
+      backgrounds:
+        - "Sphera SHP api is online"
+        - "I am logged in as admin"
+        - "There are no conversations"
+        - "There are no encounters"
+        - "There are no patients"
+        - "There are no messages"
+        - "Default channels are present"
+        - "There is a patient"
+        - "I am logged in as an operator"
+        - "A new encounter"
+        - "There are no tokens"
+        - "A collab connection for a doctor"
+        - "I am logged in as a doctor on the collab"
+        - "I have a chat session"
+        - "I turn on chat notifications"
+        - "Assign that encounter to me"
+        - "Expect an assigned encounter"
+        - "I confirmed the encounter"
+        - "Expect a resolved encounter"

@@ -83,6 +83,10 @@ export default (name, settings, app) => {
         return {view: out};
     }
 
+    function emptyView() {
+        return {view: ['div']};
+    }
+
     function compileViewRef(views, spec, ctx) {
         var { err, view } = resolve(views, spec.view, ctx);
         if (err) return error(spec, ctx, err);
@@ -90,11 +94,11 @@ export default (name, settings, app) => {
             ? encode(spec.params, ctx) : { value: {}};
         if (err) return error(spec, ctx, err);
         var params = value;
-        var {err, value} = spec.condition 
-            ? encode(spec.condition, ctx) : { value: true};
+        var {err, value} = spec.when
+            ? encode(spec.when, ctx) : { value: true};
         if (err) return error(spec, ctx, err);
         return value ? compile(views, view, withSettings(params)) 
-            : {view: ['div']};
+            : emptyView();
     }
     
     function attrsWithEvHandlers(attrs, ctx) {
@@ -117,13 +121,18 @@ export default (name, settings, app) => {
     }
 
     function compileTag(views, spec, ctx) {
-        const { tag, attrs, children } = spec;
-        var {err, value} = encode(attrs ||{}, ctx);
+        const { tag, attrs, children, when } = spec;
+        var {err, value} = when 
+            ? encode(when, ctx) : { value: true};
         if (err) return error(spec, ctx, err);
-        var { err, view } = compile(views, children, ctx);
-        if (err) return {err};
-        var attrs2 = attrsWithEvHandlers(value, ctx);
-        return { view: [tag, attrs2 ].concat(view) };
+        if (value) {
+            var {err, value} = encode(attrs ||{}, ctx);
+            if (err) return error(spec, ctx, err);
+            var { err, view } = compile(views, children, ctx);
+            if (err) return {err};
+            var attrs2 = attrsWithEvHandlers(value, ctx);
+            return { view: [tag, attrs2 ].concat(view) };
+        } else return emptyView();
     }
 
     function compileText(views, spec, ctx) {

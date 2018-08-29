@@ -1,0 +1,23 @@
+version: 1.0
+type: module
+category: server
+name: echo
+spec:
+  decoders:
+    message:
+      object:
+        message:
+          any: text
+  encoders:
+    echo:
+      object:
+        reply:
+          key: message
+  update:
+    message:
+      model:
+        message:
+          key: message
+      cmds:
+        - effect: notify
+          encoder: echo

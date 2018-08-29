@@ -14,11 +14,11 @@ spec:
             params:
               object:
                 page: "Demo"
-                layout: "demo"
+                layout: ""
                 stylesheets:
-                  - name: elementary-ui-styles
                   - name: fontawesome5.min
-                  - name: elementary
+                  - name: pastel 
+                  - name: elementary 
                 scripts:
                   list:
                     - object:
@@ -30,14 +30,14 @@ spec:
                     - object:
                         name: demo/httpDemo
                         type: module
+                    - object:
+                        name: demo/wsDemo
+                        type: module
                 sections: 
                   list:
                     - object:
-                        name: todo
-                        style: "col-12"
-                    - object:
-                        name: http
-                        style: "col-12"
+                        name: apps 
+                        style: "section"
         app:
           spec: 
             modules:

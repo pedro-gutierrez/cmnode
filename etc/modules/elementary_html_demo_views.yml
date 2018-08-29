@@ -4,11 +4,32 @@ category: ui
 name: elementary_html_guide_views
 spec:
   views:
-    todo:
+    apps:
       tag: div
       attrs:
-        id: "todoDemoApp"
-    http:
-      tag: div
-      attrs:
-        id: "httpDemoApp"
+        class: "container"
+      children:
+        - tag: div
+          attrs:
+            class: "tile is-ancestor is-shadowless"
+          children:
+              - tag: div
+                attrs:
+                  class: "tile is-4 is-vertical is-parent is-shadowless"
+                children:
+                  - tag: "div"
+                    attrs:
+                      id: "todoApp"
+                      class: "tile is-child box is-shadowless is-paddingless"
+                  - tag: "div"
+                    attrs:
+                      id: "wsApp"
+                      class: "tile is-child box is-shadowless is-paddingless"
+              - tag: div
+                attrs:
+                  class: "tile is-parent is-shadowless"
+                children:
+                  - tag: "div"
+                    attrs:
+                      id: "httpApp"
+                      class: "tile is-child box is-shadowless is-paddingless"

@@ -13,6 +13,7 @@ spec:
               one_of:
                 - text: "minor"
                 - text: "patch"
+                - text: "major"
     nimg_release_triggered:
       object:
         release:
@@ -22,6 +23,7 @@ spec:
               one_of:
                 - text: "minor"
                 - text: "patch"
+                - text: "major"
     email_reports_release_triggered:
       object:
         release:
@@ -31,6 +33,7 @@ spec:
               one_of:
                 - text: "minor"
                 - text: "patch"
+                - text: "major"
     netcomp_release_triggered:
       object:
         release:
@@ -40,10 +43,14 @@ spec:
               one_of:
                 - text: "dkv"
                 - text: "sipstorm"
+                - text: "sphera-rwanda"
+                - text: "sphera-brazil"
+                - text: "sphera-general"
             increment:
               one_of:
                 - text: "minor"
                 - text: "patch"
+                - text: "major"
   update:
     nimg_release_triggered:
       model:
