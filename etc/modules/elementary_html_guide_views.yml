@@ -1,0 +1,174 @@
+version: 1.0
+type: module
+category: ui
+name: elementary_html_guide_views
+spec:
+  views:
+    guide_menu_label:
+      tag: p
+      attrs:
+        class: "menu-label"
+      children:
+        - text:
+            key: title
+    guide_menu_item:
+      tag: li
+      children:
+        - tag: a
+          attrs:
+            class:
+              either:
+                - when:
+                    eq:
+                      - key: active
+                      - key: title
+                  text: "is-active"
+                - text: ""
+          children:
+            - text:
+                key: title
+    guide_menu:
+      tag: aside
+      attrs:
+        class: "menu"
+      children:
+        - view: guide_menu_label
+          params:
+            object:
+              title: "Getting started"
+        - tag: ul
+          attrs:
+            class: "menu-list"
+          children:
+            - view: guide_menu_item
+              params:
+                object:
+                  title: "Installation"
+                  active: 
+                    key: active
+        - view: guide_menu_label
+          params:
+            object:
+              title: "Main concepts"
+        - view: guide_menu_label
+          params:
+            object:
+              title: "API Reference"
+    guide_page:
+      tag: "div"
+      attrs:
+        class: "container"
+      children:
+        - tag: div
+          attrs:
+            class: "columns"
+          children:
+            - tag: div
+              attrs:
+                class: "column is-one-third"
+              children:
+                - view: guide_menu
+                  params:
+                    active:
+                      key: title
+            - tag: div
+              attrs:
+                class: "column is-two-thirds guide-content"
+              children:
+                - tag: h1
+                  attrs:
+                    class: "title"
+                  children:
+                    - text:
+                        key: title
+                - tag: div
+                  children:
+                    loop: items
+                    with: guide_content
+    guide_content:
+      view:
+        key: type
+        in: item
+      params:
+        content:
+          key: content
+          in: item
+    page-section:
+      tag: section
+      attrs:
+        class: "section"
+      children:
+        - text:
+            key: content
+    code:
+      tag: pre
+      attrs:
+        class:
+          format:
+            pattern: "has-background-white language-~s"
+            params:
+              - key: lang
+                in: content
+      children:
+        - tag: code
+          attrs:
+            class:
+              format:
+                pattern: "language-~s"
+                params:
+                  - key: lang
+                    in: content
+          children:
+            - text:
+                key: source
+                in: content
+    guide_installation_page: 
+      view: guide_page
+      params:
+        object:
+          title: "Installation"
+          items:
+            - object: 
+                type: "page-section"
+                content: "Setting up ElementaryJS is quite trivial. First of all, let's download Elementary. You can grab it either from GitHub, or more conveniently at this location:"
+            - object: 
+                type: "code"
+                content: 
+                  lang: bash
+                  source: |
+                    wget https://www.elementaryjs.com/js/elementary.js
+
+            - object: 
+                type: "page-section"
+                content: "Next, let's add it to a minimal HTML document:"
+            - object: 
+                type: "code"
+                content: 
+                  lang: html
+                  source: |
+                    <html>
+                      <head>
+                      </head>
+                      <body>
+                          <script type="module">
+                            import {default as app} from "/elementary.js";
+                            app({
+                              // we will add stuff here later
+                            });
+                          </script>
+                      </body>
+                    </html>
+            - object: 
+                type: "page-section"
+                content: "You will need a static web server (most likely you already have one) for development as ES6 modules can not be loaded directly from the file system. Here we use npx:"
+
+            - object: 
+                type: "code"
+                content: 
+                  lang: bash
+                  source: |
+                    npx serve
+
+            - object: 
+                type: "page-section"
+                content: "Point your browser at localhost:5000 (or whatever port npx fired up) and you should see a blank page. Our app isn't doing much yet, but we fix this in the next steps of this guide. "

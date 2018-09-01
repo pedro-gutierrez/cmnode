@@ -68,13 +68,18 @@ compiled_view(#{ loop := _,
 
 
 compiled_view(#{ text := Spec}, _, Ctx, Settings) when is_map(Spec) -> 
-    encoded(Spec, Ctx, Settings);
+    case encoded(Spec, Ctx, Settings) of 
+        {ok, Encoded} -> 
+            {ok, escapeHtml(Encoded)};
+        Other -> 
+            Other
+    end;
 
 compiled_view(#{ text := Bin}, _, _, _) when is_binary(Bin) ->
-    {ok, Bin};
+    {ok, escapeHtml(Bin)};
 
 compiled_view(#{ text := Other}, _, _, _) ->
-    {ok, cmkit:to_bin(Other)}.
+    {ok, escapeHtml(cmkit:to_bin(Other))}.
 
 
 resolved(Name, Views, _, _) when is_atom(Name) or is_binary(Name) -> 
@@ -93,6 +98,9 @@ resolved(Spec, Views, Ctx, Settings) when is_map(Spec) ->
         Other -> 
             Other
     end.
+
+escapeHtml(Bin) ->
+    binary:replace(binary:replace(Bin, <<"<">>, <<"&lt;">>, [global]), <<">">>, <<"&gt;">>, [global]).
 
 
 

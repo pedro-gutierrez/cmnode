@@ -793,6 +793,11 @@ compile_term(#{ <<"list">> := Items }) when is_list(Items) ->
        value => lists:map( fun compile_term/1, Items) 
      };
 
+compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }) when is_map(Spec) andalso map_size(Spec) =:= 1 ->
+    #{ type => list,
+       size => Size
+     };
+
 compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }) when is_map(Spec) ->
     #{ type => list,
        size => Size,

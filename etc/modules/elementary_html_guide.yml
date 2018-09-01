@@ -19,10 +19,21 @@ spec:
                   - name: fontawesome5.min
                   - name: pastel
                   - name: elementary
-                scripts: []
-                sections: []
+                scripts:
+                  list:
+                    - object:
+                        name: highlight
+                        type: application/javascript
+                    - object:
+                        name: highlight-on-load
+                        type: application/javascript
+                sections: 
+                  - object:
+                      name: guide_installation_page
+                      style: "section"
         app:
           spec: 
             modules:
               - html_ui_common
               - elementary_html_common
+              - elementary_html_guide_views

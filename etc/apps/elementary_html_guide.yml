@@ -6,6 +6,7 @@ spec:
   debug: true 
   modules:
     - html_api_common
+    - elementary_html_guide_views
     - elementary_html_guide
   config:
     settings:

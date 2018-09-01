@@ -43,4 +43,5 @@ spec:
             modules:
               - html_ui_common
               - elementary_html_common
-              - elementary_html_guide_views
+              - elementary_html_demo_views
+

@@ -346,6 +346,7 @@ spec:
                   - text: "sphera-brazil-cient"
                   - text: "sphera-rwanda-client"
                   - text: "sphera-videocal-client"
+                  - text: "sphera-morocco-client"
               repo_name:
                 any: text
     webclient_release_docker_ready:
@@ -365,6 +366,7 @@ spec:
                   - text: "sphera-brazil-client"
                   - text: "sphera-rwanda-client"
                   - text: "sphera-videocal-client"
+                  - text: "sphera-morocco-client"
               repo_name:
                 any: text
     nkdomain_dev_changed:
