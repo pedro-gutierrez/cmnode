@@ -3,9 +3,9 @@
 // (c) 2018 Pedro Gutierrez
 // Released under the MIT License.
 //
-import {default as app} from "/js/demo/elementary.js";
-import {default as ui} from "/js/demo/elementary-ui.js";
-import {default as http} from "/js/demo/elementary-http.js";
+import {default as app} from "/js/elementary.js";
+import {default as ui} from "/js/elementary-ui.js";
+import {default as http} from "/js/elementary-http.js";
 
 app({
   settings: {
