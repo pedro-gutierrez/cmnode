@@ -110,6 +110,7 @@ spec:
                           pattern: "~w@mail.com"
                           params:
                             - key: user_id
+                      birth_date: "16/02/1991 0:00:00"
     invalid_access_token:
       object:
         status: 401

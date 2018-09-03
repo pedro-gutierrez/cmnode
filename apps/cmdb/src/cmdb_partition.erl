@@ -35,6 +35,12 @@ handle_call({put, Pairs, []}, _, #{ name := Name,
     Res = cmdb_util:put(Name, Tid, Pairs),
     {reply, Res, Bucket};
 
+handle_call({put, Pairs, [{replicas, 1}]}, _, #{ name := Name,
+                                                tid := Tid }=Bucket) ->
+
+    Res = cmdb_util:put(Name, Tid, Pairs),
+    {reply, Res, Bucket};
+
 handle_call({put, Pairs, [{replicas, N}]}, _, #{ name := Name,
                                                 tid := Tid }=Bucket) ->
 

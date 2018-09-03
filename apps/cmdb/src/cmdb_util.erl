@@ -37,8 +37,9 @@ current_partition(Bucket) ->
     M = cmdb_config:partitions_resolver(Bucket),
     M:current().
 
-find_partitions(#{ storage := memory }) -> 
-    [cmkit:to_atom(cmkit:uuid())];
+find_partitions(#{ name := Bucket,
+                   storage := memory }) -> 
+    [Bucket];
 
 find_partitions(#{ name := Bucket,
                    storage := disc }) ->
@@ -63,7 +64,11 @@ partition_name(Filename) when is_list(Filename) ->
 
 open_partition(#{ partition := Partition,
                   storage := memory }) ->
-    case ets:new(Partition, [protected, bag, named_table]) of
+    case ets:new(Partition, [public, 
+                             bag, 
+                             named_table, 
+                             {write_concurrency, true}, 
+                             {read_concurrency, true}]) of
         {error, E} -> {error, E};
         Tid -> {ok, Tid}
     end;
@@ -210,7 +215,8 @@ aggregate(Ctx, [Other|Rem], Out) ->
 put(Bucket, Tid, Pairs) when is_list(Pairs) ->
     Storage = cmdb_config:backend(Bucket),
     case Storage:insert(Tid, Pairs) of 
-        true -> ok;
+        true -> 
+            ok;
         Other -> 
             Other
     end.
@@ -227,5 +233,5 @@ replica_count(Bucket) ->
     replica_count(Bucket, cmcloud:is_clustered()).
 
 replica_count(_, true) -> 3;
-replica_count(_, false) -> 0.
+replica_count(_, false) -> 1.
 

@@ -6,6 +6,4 @@
 effect_info() -> terminate.
 
 effect_apply(_, SessionId) ->
-
-    cmkit:log({cmeffect, terminate, SessionId}),
     cmcore:terminate(SessionId).
