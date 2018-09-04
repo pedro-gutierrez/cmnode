@@ -16,9 +16,21 @@ info(Bucket) ->
 
 put(Bucket, Pairs) ->
     N = cmdb_util:replica_count(Bucket),
-    put(Bucket, Pairs, [{replicas, N}]).
+    Res = put(Bucket, Pairs, [{replicas, N}]),
+    Res.
 
 put(Bucket, Pairs, Opts) -> 
+    put(Bucket, Pairs, Opts, cmdb_config:backend(Bucket)).
+
+put(Bucket, Pairs, _, ets) -> 
+    case ets:insert(Bucket, Pairs) of
+        true ->
+            ok;
+        Other ->
+            Other
+    end;
+
+put(Bucket, Pairs, Opts, dets) ->
     cmdb_bucket:put(Bucket, Pairs, Opts).
 
 put_new(Bucket, Pairs) ->
@@ -29,7 +41,19 @@ put_new(Bucket, Pairs, Opts) ->
     cmdb_bucket:put_new(Bucket, Pairs, Opts).
 
 get(Bucket, K) -> 
-    cmdb_util:get(Bucket, K, cmcloud:current_nodes()).
+    get(Bucket, K, cmcloud:current_nodes(), cmdb_config:backend(Bucket)).
+
+get(Bucket, K, [_], ets) ->
+    case ets:lookup(Bucket, K) of 
+        [] -> not_found;
+        Items -> {ok, [V || {_, V} <- Items]}
+    end;
+
+get(Bucket, K, Nodes, ets) ->
+    cmdb_util:get(Bucket, K, Nodes);
+
+get(Bucket, K, Nodes, dets) ->
+    cmdb_util:get(Bucket, K, Nodes).
 
 find(Bucket, Type) ->
     cmdb_util:find(Bucket, Type, cmcloud:current_nodes()).

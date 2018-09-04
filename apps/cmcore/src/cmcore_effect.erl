@@ -14,7 +14,6 @@ start_link(SessionId) ->
     gen_server:start_link(?MODULE, [SessionId], []).
 
 init([SessionId]) ->
-    cmkit:log({cmcore, SessionId, effect, ok}), 
     {ok, SessionId}.
 
 handle_call(stop, _, SessionId) ->
@@ -31,14 +30,11 @@ handle_info(Msg, SessionId) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(Reason, SessionId) ->
-    cmkit:log({effect, SessionId, terminated, Reason}),
+terminate(_, _) ->
     ok.
 
 handle({apply, Mod, Data}, SessionId) ->
-    Start = cmkit:micros(),
-    Mod:effect_apply(Data, SessionId),
-    cmkit:log({effect, Mod, SessionId, cmkit:elapsed(Start)});
+    Mod:effect_apply(Data, SessionId);
 
 handle(Other, SessionId) ->
     cmkit:warning({cmeffect, SessionId, ignored, Other}),

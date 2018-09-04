@@ -1,0 +1,11 @@
+version: 1.0
+type: app
+category: api
+name: hello 
+spec:
+  debug: true 
+  modules:
+    - hello
+  config:
+    timeout:
+      number: 30

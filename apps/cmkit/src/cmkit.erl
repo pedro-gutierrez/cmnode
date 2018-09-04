@@ -134,7 +134,7 @@ fmt(Format, Args) when is_binary(Format) ->
     fmt(binary_to_list(Format), Args).
 
 elapsed(Since) ->
-    trunc((micros() - Since)/1000).
+    micros() - Since.
 
 micros() ->
     erlang:system_time(microsecond).

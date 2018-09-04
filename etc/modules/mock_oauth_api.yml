@@ -31,7 +31,7 @@ spec:
       object:
         headers:
           one_of:
-            - object_without:
+            - without_keys:
                 - client_id
             - object:
                 client_id: 
@@ -84,6 +84,42 @@ spec:
           pragma: "no-cache"
         body:
           object:
+            result: "OK"
+            returnValue:
+              object:
+                message: "success"
+                data:
+                  object:
+                    msad_id:
+                      key: msad_id
+                    bdu_id:
+                      key: user_id
+                    name:
+                      format: 
+                        pattern: "name ~w"
+                        params:
+                          - key: user_id
+                    surname:
+                      format: 
+                        pattern: "surname ~w"
+                        params:
+                          - key: user_id
+                    email: 
+                      format: 
+                        pattern: "~w@mail.com"
+                        params:
+                          - key: user_id
+                    birth_date: "1991-02-16 00:00:00Z"
+    authorized_deprecated:
+      object:
+        status: 200
+        headers:
+          content-type: "application/json; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          object:
             Resultado:
               object:
                 VALUE: "OK"
@@ -110,6 +146,7 @@ spec:
                           pattern: "~w@mail.com"
                           params:
                             - key: user_id
+                      birth_date: "16/02/1991 0:00:00"
     invalid_access_token:
       object:
         status: 401
