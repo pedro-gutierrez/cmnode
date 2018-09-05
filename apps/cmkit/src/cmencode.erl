@@ -13,6 +13,13 @@ encode(Spec, In) -> encode(Spec, In, #{}).
 encode(#{ literal := Value}, _, _) -> 
     {ok, Value};
 
+encode(#{ maybe := Spec}, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, V} -> {ok, V};
+        _ -> 
+            {ok, null}
+    end;
+
 encode(Map, _, _) when is_map(Map) andalso map_size(Map) =:= 0 -> 
     {ok, #{}};
 
@@ -760,7 +767,7 @@ encode(#{ type := match,
                      decoder := DecoderSpec } = MatchSpec }, In, Config) ->
     case cmencode:encode(ValueSpec, In, Config) of
         {ok, Value} ->
-            case cmdecode:decode(DecoderSpec, Value) of 
+            case cmdecode:decode(DecoderSpec, Value, In) of 
                 {ok, Decoded} -> 
                     case maps:get(map, MatchSpec, undef) of 
                         undef -> 

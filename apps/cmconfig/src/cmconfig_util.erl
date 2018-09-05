@@ -288,13 +288,15 @@ compile_bucket(#{ <<"name">> := Name,
 
 compile_bucket(#{ <<"name">> := Name,
                   <<"rank">> := Rank,
-                  <<"spec">> := #{ <<"storage">> := Storage
-                                 }}) ->
+                  <<"spec">> := #{ 
+                      <<"storage">> := Storage
+                     } = Spec}) ->
 
     #{ type => bucket,
        rank => Rank,
        name => cmkit:to_atom(Name),
-       storage =>  cmkit:to_atom(Storage)
+       storage =>  cmkit:to_atom(Storage),
+       debug =>  cmkit:to_atom(maps:get(<<"debug">>, Spec, <<"false">>))
      }.
 
 compile_test(#{ <<"name">> := Name,

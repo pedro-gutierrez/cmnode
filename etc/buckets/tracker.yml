@@ -3,3 +3,4 @@ type: bucket
 name: tracker
 spec:
   storage: disc
+  debug: true

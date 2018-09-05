@@ -28,16 +28,16 @@ scenarios_by_tag(Tag, Scenarios) ->
 
 steps(#{ steps := Steps,
          backgrounds := Backgrounds }, Test) ->
-    IndexedProcs = index_procedures(Test),
+    Procs = index_procedures(Test),
     IndexedReusableSteps = index_reusable_steps(Test),
-    case resolve_backgrounds(Backgrounds, Test, IndexedReusableSteps, IndexedProcs) of 
+    case resolve_backgrounds(Backgrounds, Test, IndexedReusableSteps, Procs) of 
         {ok, Resolved } ->
             Steps3 = lists:flatten(lists:map(fun(B) -> 
                                         maps:get(steps, B)
                                     end, Resolved)) ++ Steps,
-            case resolve_procedures(Steps3, IndexedProcs, []) of 
+            case resolve_procedures(Steps3, Procs, []) of 
                 {ok, Steps4} -> 
-                    resolve_steps(Steps4, IndexedReusableSteps);
+                    resolve_steps(Steps4, IndexedReusableSteps, Procs);
                 Other -> 
                     Other
             end;
@@ -65,26 +65,32 @@ index_procedures(#{ procedures := Procs }) ->
 index_procedures(_) -> #{}.
 
 resolve_procedures([], _, Steps) -> {ok, lists:reverse(Steps)};
-resolve_procedures([#{ type := procedure,
-                       name := ProcName }=S|Rem], Procs, Steps) ->
-    case maps:get(ProcName, Procs, undef) of 
+resolve_procedures([S|Rem], Procs, Steps) ->
+    case resolve_procedure(S, Procs) of 
+        {ok, S2} -> 
+            resolve_procedures(Rem, Procs, [S2|Steps]);
+        Other -> 
+            Other
+    end.
+
+resolve_procedure(#{ type := procedure,
+                       name := ProcName }=S, Procs) -> 
+    case maps:get(ProcName, Procs, undef) of
         undef ->
             {error, #{ error => missing_procedure,
                        name => ProcName }};
         #{ spec := Spec } = Spec0 ->
-            S1 = S#{ spec => Spec },
-            S2 = case maps:get(as, Spec0, undef) of 
-                     undef -> 
+            S1 = maps:without([name], S#{ spec => Spec }),
+            S2 = case maps:get(as, Spec0, undef) of
+                     undef ->
                          S1;
                      As ->
                          S1#{ as => As }
                  end,
-
-            resolve_procedures(Rem, Procs, [S2|Steps])
+            {ok, S2}
     end;
-            
-resolve_procedures([S|Rem], Procs, Steps) ->
-    resolve_procedures(Rem, Procs, [S|Steps]).
+
+resolve_procedure(S, _Procs) -> {ok, S}.
 
 resolve_backgrounds(Backgrounds, Test, ReusableSteps, Procs) ->
     resolve_backgrounds(Backgrounds, Test, ReusableSteps, Procs, []).
@@ -110,7 +116,7 @@ resolve_backgrounds([#{ id := BId, title := Title }=BRef|Rem], #{ backgrounds :=
         #{ steps := Steps } = Resolved ->
             case resolve_procedures(Steps, Procs, []) of
                 {ok, Steps2} ->
-                    case resolve_steps(Steps2, ReusableSteps) of 
+                    case resolve_steps(Steps2, ReusableSteps, Procs) of 
                         {ok, Steps3} -> 
                             resolve_backgrounds(Rem, Test, ReusableSteps, Procs, [Resolved#{ steps => Steps3 }|Out]);
                         Other2 -> 
@@ -121,21 +127,26 @@ resolve_backgrounds([#{ id := BId, title := Title }=BRef|Rem], #{ backgrounds :=
             end
     end.
 
-resolve_steps(Steps, ReusableSteps) -> 
-    resolve_steps(Steps, ReusableSteps, []).
+resolve_steps(Steps, ReusableSteps, Procs) -> 
+    resolve_steps(Steps, ReusableSteps, Procs, []).
 
-resolve_steps([], _, Out) -> {ok, lists:reverse(Out)};
-resolve_steps([#{ ref := Title}|Rem], ReusableSteps, Out)  ->
+resolve_steps([], _, _, Out) -> {ok, lists:reverse(Out)};
+resolve_steps([#{ ref := Title}|Rem], ReusableSteps, Procs, Out)  ->
     case maps:get(Title, ReusableSteps, undef) of 
         undef -> 
             {error, #{ error => missing_step,
                        name => Title }};
-        Resolved ->
-            resolve_steps(Rem, ReusableSteps, [Resolved|Out])
+        S ->
+            case resolve_procedure(S, Procs) of 
+                {ok, S2} ->
+                    resolve_steps(Rem, ReusableSteps, Procs, [S2|Out]);
+                Other -> 
+                    Other
+            end
     end;
 
-resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Out) ->
-    resolve_steps(Rem, ReusableSteps, [Spec|Out]).
+resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Procs, Out) ->
+    resolve_steps(Rem, ReusableSteps, Procs, [Spec|Out]).
 
 world_with_conn(App, Props, #{ conns := Conns }=World) ->
     Conns2 = Conns#{ App => maps:merge(Props, #{ name => App,
