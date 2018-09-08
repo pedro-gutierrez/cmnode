@@ -1,35 +1,25 @@
-%%%-------------------------------------------------------------------
-%% @doc cmdb2 top level supervisor.
-%% @end
-%%%-------------------------------------------------------------------
-
 -module(cmdb2_sup).
-
 -behaviour(supervisor).
-
-%% API
 -export([start_link/0]).
-
-%% Supervisor callbacks
 -export([init/1]).
-
 -define(SERVER, ?MODULE).
-
-%%====================================================================
-%% API functions
-%%====================================================================
 
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-%%====================================================================
-%% Supervisor callbacks
-%%====================================================================
-
-%% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+    
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+    Writers = [writer_spec(B) || #{ storage := disc }=B <- cmconfig:buckets()],
+    Specs = Writers,
+    
+    {ok, { {one_for_one, 0, 1}, Specs} }.
+
+writer_spec(#{ name := Name}=B) ->
+    Writer = cmdb_config:writer(Name),
+    cmkit:child_spec(Writer,
+                     cmdb2_writer,
+                     [B#{ writer => Writer }],
+                     permanent,
+                     worker).
+

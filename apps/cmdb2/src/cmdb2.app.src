@@ -8,8 +8,7 @@
     stdlib,
     cmkit,
     cmconfig,
-    cowdb,
-    elmdb
+    cowdb
    ]},
   {env,[]},
   {modules, []},

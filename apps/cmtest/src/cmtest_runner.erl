@@ -60,19 +60,18 @@ init([]) ->
                    failures => [] 
                  }}.
 
-ready({call, From}, {scenarios, #{ name := TestName }=Test, Scenarios, #{ name := SettingsName,
-                                                    spec := SettingsSpec }}, #{ log := Log }=Data) ->
+ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
+                                                    spec := SettingsSpec }}, Data) ->
     
     Data2 = Data#{ report_to => From, 
                    settings => #{ name => SettingsName },
                    query => test,
                    test => Test,
-                   total => 0,
+                   total => length(Scenarios),
                    success => 0,
                    fail => 0,
                    result => [] },
 
-    Log({cmtest, TestName, scenarios, length(Scenarios) }),
     case cmencode:encode(SettingsSpec) of 
         {ok, EncodedSettings} -> 
             
@@ -163,13 +162,12 @@ start_scenario(_, [], #{ tests := [] } = Data) ->
 start_scenario(_, [], #{ tests := Tests }=Data) ->
     start_test(Tests, Data);
 
-start_scenario(Test, [#{title := Title}=S|Rem], #{ total := Total, settings := #{ value := Settings } }=Data) ->
+start_scenario(Test, [#{title := Title}=S|Rem], #{ settings := #{ value := Settings } }=Data) ->
     case cmtest_util:start(Test, S, Settings, self() ) of 
         {ok, Pid} ->
             Data2 = Data#{ 
                       pid => Pid,
-                      scenarios => Rem,
-                      total => Total + 1
+                      scenarios => Rem
                      },
             cmtest_scenario:next(Pid),
             {ok, Data2};

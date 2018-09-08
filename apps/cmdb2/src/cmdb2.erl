@@ -1,43 +1,52 @@
 -module(cmdb2).
 -export([
         open/0,
-        add/5,
-        add_many/2,
-        put/5,
         put/2,
-        get/3,
-        get/4
+        all/3,
+        first/4,
+        stress/4
         ]).
 
 open() -> 
-    [cmdb2_util:open(B) || #{ name := B,
-                              storage := disc } <- cmconfig:buckets() ].
+    [cmdb2_util:open(cmdb_config:backend(Name), Name) 
+        || #{ name := Name, storage := disc } <- cmconfig:buckets()].
 
-put(Bucket, S, P, O, Meta) -> 
-    ?MODULE:put(Bucket, [
-                 {S, P, O, Meta}
-                ]).
+put(Name, Entries) -> 
+    cmdb2_util:put(cmdb_config:backend(Name), Name, Entries).
 
-add(Bucket, S, P, O, Meta) -> 
-    ?MODULE:put(Bucket, [
-                 {S, P, 0, cmkit:micros()}, 
-                 {S, P, O, Meta}
-                ]).
+all(Name, S, P) -> 
+    cmdb2_util:get(cmdb_config:backend(Name), Name, S, P).
 
-add_many(Bucket, [{S, P, _, _}|_]=Entries) -> 
-    ?MODULE:put(Bucket, [{S, P, 0, cmkit:micros()}|Entries]).
+first(Name, S, P, O) ->
+    cmdb2_util:get(cmdb_config:backend(Name), Name, S, P, O).
 
-put(Bucket, Entries) ->
-    cmdb2_util:tc(Bucket, fun(Pid) ->
-                                  cmdb2_util:put(Pid, Entries)
-                          end).
 
-get(Bucket, S, P) -> 
-    cmdb2_util:tc(Bucket, fun(Pid) ->
-                                  cmdb2_util:get(Pid, S, P)
-                          end).
+stress(Name, N, C, I) ->
+    Id = fun(P, It, K) ->
+                 PBin = cmkit:to_bin(P),
+                 KBin = cmkit:to_bin(K),
+                 ItBin = cmkit:to_bin(It),
+                 <<PBin/binary, "-", ItBin/binary, "-", KBin/binary>>
+         end,
 
-get(Bucket, S, P, O) ->
-    cmdb2_util:tc(Bucket, fun(Pid) ->
-                                  cmdb2_util:get(Pid, S, P, O)
-                          end).
+    lists:foreach(fun(P) -> 
+                          spawn(fun() ->
+                                        { T, Res } = timer:tc(fun() -> 
+                                                         lists:foreach(fun(It) ->
+                                                                               cmdb2:put(Name, [{ users, is, Id(P, It, K), <<"plop">>} || K <- lists:seq(1, N)])
+
+
+                                                                       end, lists:seq(1, I))
+
+
+
+
+                                                 end),
+                                        cmkit:log(Res),
+                                        cmkit:success({stress, P, I, T/I})
+                                end)
+
+
+
+                  end, lists:seq(1, C)).
+

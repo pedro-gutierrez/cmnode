@@ -4,12 +4,18 @@ name: cmdb_config
 spec:
   contents: |-
     -module(cmdb_config).
-    -export([backend/1, bucket/1, partitions_resolver/1, replicator/1, sup/1, partitions_sup/1]).
+    -export([backend/1, writer/1, bucket/1, partitions_resolver/1, replicator/1, sup/1, partitions_sup/1]).
+
 
     {% for b in buckets %}
     backend({{ b.name }}) -> ets_type({{ b.storage }});
     {% endfor %}
     backend(_) -> unknown.
+    
+    {% for b in buckets %}
+    writer({{ b.name }}) -> {{ b.name }}_writer;
+    {% endfor %}
+    writer(_) -> unknown.
     
     {% for b in buckets %}
     bucket({{ b.name }}) -> cmdb_{{ b.name }}_bucket;
