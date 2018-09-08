@@ -43,7 +43,7 @@ stress(Name, N, C, I) ->
 
                                                  end),
                                         cmkit:log(Res),
-                                        cmkit:success({stress, P, I, T/I})
+                                        cmkit:success({stress, P, I, N, T, (N*I)/T*1000000})
                                 end)
 
 
