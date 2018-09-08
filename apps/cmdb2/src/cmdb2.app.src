@@ -8,7 +8,8 @@
     stdlib,
     cmkit,
     cbt,
-    cmconfig
+    cmconfig,
+    cmdb
    ]},
   {env,[]},
   {modules, []},
