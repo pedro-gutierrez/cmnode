@@ -7,8 +7,8 @@
    [kernel,
     stdlib,
     cmkit,
-    cmconfig,
-    cowdb
+    cbt,
+    cmconfig
    ]},
   {env,[]},
   {modules, []},
