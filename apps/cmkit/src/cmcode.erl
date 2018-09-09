@@ -41,6 +41,7 @@
 -module(cmcode).
 
 %% API
+-export([compile/1]).
 -export([load_from_binary/1, load_from_string/1, load_from_string/2]).
 -export([from_string/1, from_string/2]).
 
@@ -54,6 +55,46 @@
 %% Description:
 %%   Compile module from string and load into VM
 %%--------------------------------------------------------------------
+compile(#{ module := Module,
+           functions := Functions }) ->
+
+    ModForm = erl_syntax:revert(
+                erl_syntax:attribute(
+                  erl_syntax:atom(module),[erl_syntax:atom(Module)])),
+
+
+    ExportForm = erl_syntax:revert(
+                   erl_syntax:attribute(
+                     erl_syntax:atom(export),
+                        [erl_syntax:list([ 
+                                          erl_syntax:arity_qualifier(
+                                            erl_syntax:atom(Fun),
+                                            erl_syntax:integer(maps:get(arity, maps:get(Fun, Functions)))) ||
+                                          Fun <- maps:keys(Functions) ])])),
+    
+    FunctionForms = [ erl_syntax:revert(
+                        erl_syntax:function(
+                          erl_syntax:atom(Fun), [ compile(C) || C <- maps:get(clauses, maps:get(Fun, Functions)) ])) 
+                      || Fun <- maps:keys(Functions) ],
+
+    {ok, Mod, Bin} = compile:forms([ModForm, ExportForm] ++ FunctionForms),
+    cmkit:log({compiling, Module}),
+    code:load_binary(Mod, [], Bin);
+
+compile(#{ vars := Vars,
+           body := Body }) ->
+    
+    erl_syntax:clause([ compile(V) || V <- Vars ], [], [compile(Body)]);
+
+compile(#{ var := V }) ->
+    erl_syntax:variable(cmkit:to_list(V));
+
+compile(#{ atom := A }) ->
+    erl_syntax:atom(A);
+    
+compile(#{ abstract := A}) ->
+    erl_syntax:abstract(A).
+
 load_from_binary(Bin) -> 
     load_from_string(cmkit:to_list(Bin)).
 
