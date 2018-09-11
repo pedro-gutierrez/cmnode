@@ -98,13 +98,11 @@ queue_job(T, S, Opts) ->
      }.
 
 report(Id) ->
-    case cmdb:get(tests, {report, Id}) of 
-        {ok, [R] } ->
+    case cmdb:first(tests, reports, has_id, Id) of 
+        {ok, R} ->
             {ok, sanitized_report(R)};
-        {ok, []} ->
+        not_found ->
             {error, not_found};
-        {ok, [_|_]} -> 
-            {error, too_many_reports};
         Other -> 
             {error, Other}
     end.
@@ -114,7 +112,7 @@ reports() -> reports(1).
 reports(Days) ->
     Ids = lists:foldl(fun(D, Set) ->
                               Key = cmcalendar:to_bin(D, date),
-                              case cmdb:get(tests, {report, Key}) of
+                              case cmdb:all(tests, reports, Key) of
                                   {ok, Ids} ->
                                       sets:union(Set, sets:from_list(Ids));
                                   _ -> 
@@ -123,8 +121,8 @@ reports(Days) ->
                       end, sets:new(), cmcalendar:last({Days, days})),
 
     Reports = lists:foldl(fun(Id, Reports) ->
-                                  case cmdb:get(tests, {report, Id}) of 
-                                      {ok, [R]} -> [R|Reports];
+                                  case cmdb:first(tests, reports, has_id,Id) of 
+                                      {ok, R} -> [R|Reports];
                                       _ -> Reports
                                   end                
                           end, [], sets:to_list(Ids)),

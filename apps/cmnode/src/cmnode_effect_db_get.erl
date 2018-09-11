@@ -10,16 +10,16 @@ effect_apply(#{ bucket := Db,
                 type := Type, 
                 id := Id } = Q, SessionId) ->
 
-    R = case cmdb:get(Db, {Type, Id}) of 
+    R = case cmdb:first(Db, Type, is, Id) of 
             not_found -> Q#{ error => not_found };
-            {ok, Items} -> Q#{ value => value(Items, maps:get(all, Q, false))};
+            {ok, Value} -> Q#{ value => Value};
             {error, E }-> Q#{ error => E }
         end,
     cmcore:update(SessionId, R);
 
 effect_apply(#{  bucket := Db, 
                  type := Type } = Q, SessionId) ->
-    cmcore:update(SessionId, case cmdb:find(Db, Type) of
+    cmcore:update(SessionId, case cmdb:all(Db, Type, is) of
                                  {ok, Values} -> Q#{ values => Values };
                                  {error, E }-> Q#{ error => E }
                              end);
@@ -30,7 +30,7 @@ effect_apply(#{ query := #{ bucket := Db,
                             id := Id } = Q,
                 join := J }, SessionId) ->
 
-    R = case cmdb:get(Db, {Type, Id}) of 
+    R = case cmdb:get(Db, Type, is, Id) of 
             not_found -> 
                 Q#{ error => not_found };
             {error, E }-> 
@@ -94,23 +94,20 @@ item_with_joined_prop(K, Join, Item) ->
     end.
 
 resolve(Bucket, Type, Id) -> 
-    case cmdb:get(Bucket, {Type, Id}) of 
+    case cmdb:first(Bucket, Type, is, Id) of 
         not_found -> 
             {error, #{ reason => not_found,
                        bucket => Bucket,
                        type => Type,
                        id => Id }};
 
-        {ok, [Value]} ->
+        {ok, Value} ->
             {ok, Value};
 
-        {ok, [Value|_]} ->
-            {ok, Value};
-
-        {ok, Other} -> 
-            {error, #{ reason => not_supported,
+        {error, E} ->
+            {error, #{ reason => error,
                        bucket => Bucket,
                        type => Type,
                        id => Id,
-                       value => Other}}
+                       info => E }}
     end.

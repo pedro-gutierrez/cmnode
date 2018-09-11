@@ -1,4 +1,4 @@
-cmstore
+cmdb
 =====
 
 An OTP application

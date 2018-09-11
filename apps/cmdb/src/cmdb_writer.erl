@@ -1,4 +1,4 @@
--module(cmdb2_writer).
+-module(cmdb_writer).
 -behaviour(gen_server).
 -export([
          start_link/1
@@ -16,10 +16,10 @@ start_link(#{ writer := Writer }=Bucket) ->
     gen_server:start_link({local, Writer}, ?MODULE, [Bucket], []).
 
 init([#{ name := Name }=Bucket]) ->
-    Storage = cmdb2_config:storage(Name),
-    {ok, Pid} = cmdb2_util:open(Storage, Name),
+    Storage = cmdb_config:storage(Name),
+    {ok, Pid} = cmdb_util:open(Storage, Name),
     Ref = erlang:monitor(process, Pid),
-    cmkit:log({cmdb, writer, Name, Storage, node()}),
+    cmkit:log({cmdb, writer, self(), Name, Storage, Pid, node()}),
     {ok, Bucket#{ fd => #{ pid => Pid, ref => Ref }}}.
 
 handle_call(close, _, #{ name := Name,
@@ -27,8 +27,8 @@ handle_call(close, _, #{ name := Name,
                                   ref := Ref }}=Data) ->
     erlang:demonitor(Ref),
     ok = cbt_file:close(Fd),
-    Storage = cmdb2_config:storage(Name),
-    cmdb2_util:delete(Storage, Name),
+    Storage = cmdb_config:storage(Name),
+    cmdb_util:delete(Storage, Name),
     {ok, Data2} = init([Data]),
     {reply, ok, Data2};
 

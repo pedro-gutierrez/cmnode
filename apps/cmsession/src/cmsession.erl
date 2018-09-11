@@ -5,9 +5,10 @@ new(App) ->
     Conn = self(),
     Id = cmkit:uuid(),
     Session = #{ id => Id, app => App },
-    Entries = [{{session, Id}, Session}, 
-               {{connections, Id}, Conn},
-               {{connection, Conn}, #{ pid => Conn, session => Id }}],
+    Entries = [{session, with_id, Id, Session}, 
+               {Id, has_connection, Conn, Conn},
+               {connection, with_pid, Conn, Conn },
+               {Conn, has_session, Id, Id}],
     case cmdb:put(sessions, Entries) of 
         ok -> {ok, Session};
         Other -> 
@@ -16,18 +17,18 @@ new(App) ->
     end.
 
 attach(Id, Type, Val) ->
-    cmdb:put(sessions, [{{Type, Id}, Val}]).
+    cmdb:put(sessions, [{Id, has, Type, Val}]).
 
 
 retrieve(Id, Type) ->
-    cmdb:get(sessions, {Type, Id}).
+    cmdb:first(sessions, Id, has, Type).
 
 delete(Id) ->
     cmkit:warning({cmsession, delete, Id, pending}),
     ok.
 
 conns(Id) ->
-    case cmdb:get(sessions, {connections, Id}) of 
+    case cmdb:all(sessions, Id, has_connection) of 
         not_found -> 
             cmkit:warning({cmsession, no_connections, Id}),
             {ok, []};
@@ -44,5 +45,5 @@ stream(Id, {Ev, Data}) ->
     [ C ! {stream, Ev, Data} || C <- Conns ].
 
 broadcast(Data) ->
-    {ok, Conns } = cmdb:find(sessions, connection), 
-    [ C ! Data || #{ pid := C } <- Conns ].
+    {ok, Conns } = cmdb:all(sessions, connection, with_pid), 
+    [ C ! Data || C <- Conns ].

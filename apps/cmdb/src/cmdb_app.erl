@@ -3,10 +3,8 @@
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    cmdb_util:reload_config(),
-    Pid = cmdb_sup:start_link(),
-    cmdb_util:start_buckets(),
-    Pid.
+    {ok, Buckets} = cmdb_util:reload(),
+    cmdb_sup:start_link(Buckets).
 
 stop(_State) ->
     ok.

@@ -1,237 +1,194 @@
 -module(cmdb_util).
--export([start_buckets/0,
-         bucket_info/1,
-         open_partition/1,
-         find_partitions/1,
-         load_partitions/1,
-         cache_partitions/1,
-         partitions/1,
-         current_partition/1,
-         partition_name/1,
-         partition_info/2,
-         reload_config/0,
+-export([
+         reload/0,
+         open/2,
          reset/2,
-         reset/1,
-         reset_partition/2,
-         find/2,
-         find/3,
-         get/2,
-         get/3,
+         delete/2,
          put/3,
-         put_new/3,
-         replica_count/1
+         get/4,
+         get/5,
+         stress/4
         ]).
+-define(ETS_OPTS, [
+                   public, 
+                   ordered_set, 
+                   named_table, 
+                   {write_concurrency, true}, 
+                   {read_concurrency, true}
+                  ]).
 
-start_buckets() -> 
-    [ start_bucket(B) || B <- cmconfig:buckets()].
 
-start_bucket(#{ name := Name}=B) -> 
-    Res = cmdb_buckets_sup:start_bucket(B),
-    Sev = case Res of 
-              ok -> log;
-              _ -> danger
-          end,
-    cmkit:Sev({cmdb, Name, bucket, Res}).
+reload() ->
+    Buckets = [ #{ name => cmkit:to_atom(Name),
+                   storage => cmkit:to_atom(Storage) } 
+                || {ok, #{ <<"name">> := Name,
+                           <<"spec">> := #{ <<"storage">> := Storage }}} 
+                   <- cmkit:yamls(bucket) ],
 
-current_partition(Bucket) ->
-    M = cmdb_config:partitions_resolver(Bucket),
-    M:current().
+    StorageClauses = [ #{ vars => [#{ atom => Name }],
+                          body => #{ abstract => Storage }
+                        } || #{ name := Name,
+                                storage := Storage } <- Buckets ],
+    
+    WriterClauses = [ #{ vars => [#{ atom => Name }],
+                         body => #{ abstract => 
+                                    cmkit:to_atom(cmkit:bin_join([ 
+                                                                  cmkit:to_bin(Name), 
+                                                                  <<"_writer">>])) 
+                                  }
+                       } || #{ name := Name} <- Buckets ],
 
-find_partitions(#{ name := Bucket,
-                   storage := memory }) -> 
-    [Bucket];
+    cmcode:compile(#{ module => cmdb_config,
+                      functions => #{ storage => #{ arity => 1,
+                                                    clauses => StorageClauses },
+                                      writer => #{ arity => 1,
+                                                   clauses => WriterClauses }}}),
 
-find_partitions(#{ name := Bucket,
-                   storage := disc }) ->
-    Data =  cmkit:data(),
-    Dir =  filename:join([Data, Bucket]),
-    cmkit:mkdirp(Dir),
-    case cmkit:files(Dir, "db") of 
-        [] -> [filename:join([Dir, cmkit:to_list(cmkit:uuid()) ++ ".db"])];
-        Files -> Files
+    [open(Storage, Name) ||
+        #{ name := Name, storage := Storage } <- Buckets ],
+    
+    {ok, Buckets}.
+
+open(memory, Name) ->
+    try 
+        case ets:new(Name, ?ETS_OPTS) of
+            {error, E} -> {error, E};
+            _ -> {ok, Name}
+        end
+    catch
+        _:_ -> 
+            {error, Name}
     end;
-
-find_partitions(#{ name := Bucket,
-                   storage := Other }) ->
-    cmkit:warning({cmdb, Bucket, storage, Other, not_supported}),
-    [].
-
-partition_name(N) when is_atom(N) -> N;
-partition_name(Filename) when is_list(Filename) -> 
-    cmkit:to_atom(filename:basename(Filename, ".db")).
-
-
-
-open_partition(#{ partition := Partition,
-                  storage := memory }) ->
-    case ets:new(Partition, [public, 
-                             bag, 
-                             named_table, 
-                             {write_concurrency, true}, 
-                             {read_concurrency, true}]) of
-        {error, E} -> {error, E};
-        Tid -> {ok, Tid}
-    end;
-
-open_partition(#{ partition := Filename,
-                  storage := disc }) ->
-    Partition = partition_name(Filename),
-    dets:open_file(Partition, [{access, read_write},
-                               {type, bag},
-                               {file, Filename}]).
         
-load_partitions(Name) -> 
-    Bucket = cmdb_config:bucket(Name),
-    ok = gen_server:call(Bucket, load),
+open(disc, Name) ->
+    Filename = filename:join([cmkit:data(), atom_to_list(Name) ++ ".cbt"]),
+    {ok, Fd} = cbt_file:open(Filename, [create_if_missing]),
+    ok = case cbt_file:read_header(Fd) of
+        {ok, _Header, _} ->
+                 cmkit:reregister(Name, Fd);
+        no_valid_header -> 
+            {ok, T} = cbt_btree:open(nil, Fd),
+            {ok, T2} = cbt_btree:add(T, [{{0, 0, 0}, cmkit:micros()}]),
+            Root = cbt_btree:get_state(T2),
+            Header = {1, Root},
+            cbt_file:write_header(Fd, Header),
+            cmkit:reregister(Name, Fd)
+    end,
+    {ok, Fd}.
+
+resolve(Name, Fun) ->
+    case erlang:whereis(Name) of
+        undefined ->
+            {error, no_such_bucket};
+        Pid ->
+            Fun(Pid)
+    end.
+
+delete(disc, Name) ->
+    Filename = filename:join([cmkit:data(), atom_to_list(Name) ++ ".cbt"]),
+    ok = file:delete(Filename),
     ok.
 
-
-bucket_info(Bucket) ->
-    lists:foldl(fun(Tid, Out) ->
-                        Out#{ Tid => partition_info(Bucket, Tid) }
-                end, #{}, partitions(Bucket)).
-
-partition_info(Bucket, Tid) -> 
-    Storage = cmdb_config:backend(Bucket),
-    storage_info(Storage, Tid).
-
-storage_info(ets, Tid) ->
-    #{ values => ets:info(Tid, size),
-       memory => ets:info(Tid, memory) * erlang:system_info(wordsize)};
-
-storage_info(dets, Tid) ->
-    #{ values => dets:info(Tid, no_objects),
-       memory => dets:info(Tid, memory)}.
-
-reload_config() ->
-    cmtemplate:reload(),
-    Buckets = cmconfig:buckets(),
-    {ok, Bin} = cmtemplate:render(cmdb_config, #{ buckets => Buckets }),
-    case cmcode:load_from_binary(<<Bin/binary, "\n">>) of 
-        {module, cmdb_config} -> ok;
+reset(memory, Name) -> 
+    case ets:delete_all_objects(Name) of 
+        true -> ok;
         Other -> 
             Other
-    end.
+    end;
 
-cache_partitions(B) ->
-    {ok, Bin} = cmtemplate:render(cmdb_partitions, B),
-    case cmcode:load_from_binary(<<Bin/binary, "\n">>) of 
-        {module, _M} -> 
+reset(disc, Name) -> 
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, close)
+               end).
+
+put(memory, Name, Entries) -> 
+    Entries2 = [{{S, P, O}, V}|| {S, P, O, V} <- Entries],
+    case ets:insert(Name, Entries2) of
+        true ->
             ok;
-        Other -> 
+        Other ->
             Other
-    end.
+    end;
+
+put(disc, Name, [{S0, P0, _, _}|_]=Entries) ->
+    Entries2 = [{{S, P, O}, V}|| {S, P, O, V} <- Entries],
+    Entries3 = [{{S0, P0, 0}, cmkit:micros()}|Entries2],
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {put, Entries3})
+               end).
 
 
+get(memory, Name, S, P) -> 
+    {ok, [V|| [_, V] <- ets:match(Name, {{S, P, '$1'}, '$2'})]}; 
 
-reset(Bucket, Nodes) -> 
-    { R1, _} = rpc:multicall(Nodes, cmdb_util, reset, [Bucket]),
-    case aggregate(#{ bucket => Bucket,
-                 empty => ok }, R1) of 
-        {ok, V} ->  V;
+get(disc, Name, S, P) ->
+    FoldFun = fun({{S0, P0, 0}, _}, Acc) when S0 =:= S andalso P0 =:= P ->
+                      {ok, Acc};
+                 ({{S0, P0, _}, V}, Acc) when S0 =:= S andalso P0 =:= P ->
+                      {ok, [V|Acc]};
+                 (_, Acc) ->
+                      {stop, Acc}
+              end,
+    resolve(Name, fun(Fd) ->
+                     {ok, Header, _} = cbt_file:read_header(Fd),
+                     {_, Root} = Header,
+                     {ok, Tree} = cbt_btree:open(Root, Fd),
+                     case cbt_btree:fold(Tree, FoldFun, [], [{start_key, {S, P, 0}}]) of
+                         {ok, _, Values} -> {ok, Values};
+                         Other ->
+                             Other
+                     end
+             end).
+
+get(memory, Name, S, P, O) -> 
+    case ets:lookup(Name, {S, P, O}) of 
+        [] -> not_found;
+        [{{S, P, O}, V}] -> 
+            {ok, V};
         Other -> 
             {error, Other}
-    end.
+    end;
 
-reset(Bucket) ->
-    Partitions = partitions(Bucket),
-    reset_partitions(Bucket, Partitions).
+get(disc, Name, S, P, O) ->
+    resolve(Name, fun(Fd) -> 
+                     {ok, Header, _} = cbt_file:read_header(Fd),
+                     {_, Root} = Header,
+                     {ok, Tree} = cbt_btree:open(Root, Fd),
+                     case cbt_btree:lookup(Tree, [{S, P, O}]) of 
+                         [not_found] -> not_found;
+                         [{ok, {{S, P, O}, V}}] -> {ok, V};
+                         Other -> 
+                             {error, Other}
+                     end
+             end).
 
-reset_partitions(_, []) -> ok;
-reset_partitions(Bucket, [P|Rem]) -> 
-    case cmdb_partition:reset(P) of 
-        ok -> 
-            reset_partitions(Bucket, Rem);
-        Other ->
-            cmkit:warning({cmdb, reset, Bucket, Other}),
-            reset_partitions(Bucket, Rem)
-    end.
+stress(Name, N, C, I) ->
+    Id = fun(P, It, K) ->
+                 PBin = cmkit:to_bin(P),
+                 KBin = cmkit:to_bin(K),
+                 ItBin = cmkit:to_bin(It),
+                 <<PBin/binary, "-", ItBin/binary, "-", KBin/binary>>
+         end,
 
-reset_partition(Bucket, Tid) ->
-    Storage = cmdb_config:backend(Bucket),
-    case Storage:delete_all_objects(Tid) of 
-        true -> ok;
-        Other -> 
-            Other
-    end.
+    lists:foreach(fun(P) -> 
+                          spawn(fun() ->
+                                        { T, Res } = timer:tc(fun() -> 
+                                                         lists:foreach(fun(It) ->
+                                                                               cmdb:put(Name, [{ users, is, Id(P, It, K), <<"plop">>} || K <- lists:seq(1, N)])
 
-partitions(Bucket) ->
-    M = cmdb_config:partitions_resolver(Bucket),
-    M:all().
 
-get(Bucket, K, Nodes) -> 
-    { R1, _} = rpc:multicall(Nodes, cmdb_util, get, [Bucket, K]),
-    aggregate(#{ bucket => Bucket,
-                 empty => not_found,
-                 key => K}, R1).
-get(Bucket, K) -> 
-    Storage = cmdb_config:backend(Bucket),
-    Results = lists:map(fun(Tid) -> Storage:lookup(Tid, K) end, partitions(Bucket)), 
-    aggregate(#{ bucket => Bucket,
-                 empty => not_found,
-                 key => K}, Results).
+                                                                       end, lists:seq(1, I))
 
-find(Bucket, Type, Nodes) -> 
-    { R1, _} = rpc:multicall(Nodes, cmdb_util, find, [Bucket, Type]),
-    aggregate(#{ bucket => Bucket,
-                 empty => [],
-                 type => Type}, R1).
 
-find(Bucket, Type) ->
-    Storage = cmdb_config:backend(Bucket),
-    Partitions = partitions(Bucket),
-    Results = lists:map(fun(Tid) -> 
-                                Storage:match(Tid, {{Type, '_'}, '$1'}) 
-                        end, Partitions), 
-    aggregate(#{ bucket => Bucket,
-                 empty => [],
-                 type => Type}, Results).
-    
-aggregate(Context, Results) ->
-    aggregate(Context, Results, []).
 
-aggregate(#{ empty := not_found }, [], []) -> not_found;
-aggregate(#{ empty := V}, [], []) -> {ok, V};
-aggregate(_, [], Out) -> {ok, lists:usort(lists:flatten(Out))};
-aggregate(Ctx, [not_found|Rem], Out) ->
-    aggregate(Ctx, Rem, Out);
-aggregate(Ctx, [[]|Rem], Out) -> 
-    aggregate(Ctx, Rem, Out);
 
-aggregate(Ctx, [ok|Rem], Out) -> 
-    aggregate(Ctx, Rem, Out);
-aggregate(Ctx, [{ok, Items}|Rem], Out) when is_list(Items) -> 
-    aggregate(Ctx, Rem, [lists:map(fun({_, V}) -> V;
-                                      (V) -> V 
-                                   end, Items)|Out]);
-aggregate(Ctx, [Items|Rem], Out) when is_list(Items) -> 
-    aggregate(Ctx, Rem, [lists:map(fun({_, V}) -> V;
-                                      (V) -> V 
-                                   end, Items)|Out]);
-aggregate(Ctx, [Other|Rem], Out) -> 
-    cmkit:danger({cmdb, aggregate, Ctx, unexpected, Other}),
-    aggregate(Ctx, Rem, Out).
+                                                 end),
+                                        cmkit:log(Res),
+                                        cmkit:success({stress, P, I, N, T, (N*I)/T*1000000})
+                                end)
 
-put(Bucket, Tid, Pairs) when is_list(Pairs) ->
-    Storage = cmdb_config:backend(Bucket),
-    case Storage:insert(Tid, Pairs) of 
-        true -> 
-            ok;
-        Other -> 
-            Other
-    end.
 
-put_new(Bucket, Tid, Pairs) when is_list(Pairs) ->
-    Storage = cmdb_config:backend(Bucket),
-    case Storage:insert_new(Tid, Pairs) of 
-        true -> ok;
-        Other -> 
-            Other
-    end.
 
-replica_count(Bucket) ->
-    replica_count(Bucket, cmcloud:is_clustered()).
-
-replica_count(_, true) -> 3;
-replica_count(_, false) -> 1.
-
+                  end, lists:seq(1, C)).

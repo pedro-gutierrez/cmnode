@@ -324,7 +324,7 @@ run_item(_, #{ type := db,
                         {ok, I} ->
                             case cmencode:encode(Value, In) of 
                                 {ok, V} ->
-                                    cmdb:put(B, {T, I}, V);
+                                    cmdb:put(B, [{T, has_id, I, V}]);
                                 Other -> 
                                     Other
                             end;
