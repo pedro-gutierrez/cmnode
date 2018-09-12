@@ -2,8 +2,8 @@
 -export([
          reset/1,
          put/2,
-         all/3,
-         first/4
+         get/3,
+         get/4
         ]).
 
 reset(Name) -> 
@@ -12,10 +12,10 @@ reset(Name) ->
 put(Name, Entries) -> 
     cmdb_util:put(cmdb_config:storage(Name), Name, Entries).
 
-all(Name, S, P) -> 
+get(Name, S, P) -> 
     cmdb_util:get(cmdb_config:storage(Name), Name, S, P).
 
-first(Name, S, P, O) ->
+get(Name, S, P, O) ->
     cmdb_util:get(cmdb_config:storage(Name), Name, S, P, O).
 
 

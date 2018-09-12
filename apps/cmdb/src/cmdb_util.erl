@@ -116,9 +116,10 @@ put(memory, Name, Entries) ->
             Other
     end;
 
-put(disc, Name, [{S0, P0, _, _}|_]=Entries) ->
-    Entries2 = [{{S, P, O}, V}|| {S, P, O, V} <- Entries],
-%    Entries3 = [{{S0, P0, 0}, cmkit:micros()}|Entries2],
+put(disc, Name, Entries) ->
+    Host = cmdb_config:host(),
+    Now = cmkit:micros(),
+    Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
     Writer = cmdb_config:writer(Name),
     resolve(Writer, fun(Pid) ->
                        gen_server:call(Pid, {put, Entries2})
@@ -128,28 +129,12 @@ get(memory, Name, S, P) ->
     {ok, [V|| [_, V] <- ets:match(Name, {{S, P, '$1'}, '$2'})]}; 
 
 get(disc, Name, S, P) ->
-    %FoldFun = fun({{S0, P0, 0}, _}, Acc) when S0 =:= S andalso P0 =:= P ->
-    %                  {ok, Acc};
-    %             ({{S0, P0, _}, V}, Acc) when S0 =:= S andalso P0 =:= P ->
-    %                  {ok, [V|Acc]};
-    %             (_, Acc) ->
-    %                  {stop, Acc}
-    %          end,
-    FoldFun = fun({{S0, P0, _}, V}, Acc) when S0 =:= S andalso P0 =:= P ->
-                      {ok, [V|Acc]};
-                 (_, Acc) ->
-                      {stop, Acc}
-              end,
-    resolve(Name, fun(Fd) ->
-                     {ok, Header, _} = cbt_file:read_header(Fd),
-                     {_, Root} = Header,
-                     {ok, Tree} = cbt_btree:open(Root, Fd),
-                     case cbt_btree:fold(Tree, FoldFun, [], [{start_key, {S, P, 0}}]) of
-                         {ok, _, Values} -> {ok, Values};
-                         Other ->
-                             Other
-                     end
-             end).
+    fold(Name, {S, P, 0, 0, 0}, fun({S0, P0, O, H, M}, V) 
+                                      when S0 =:= S andalso P0 =:= P ->
+                                        {ok, {S0, P0, O, H, M, V}};
+                                   (_, _) ->
+                                        stop
+                                end).
 
 get(memory, Name, S, P, O) -> 
     case ets:lookup(Name, {S, P, O}) of 
@@ -161,17 +146,35 @@ get(memory, Name, S, P, O) ->
     end;
 
 get(disc, Name, S, P, O) ->
-    resolve(Name, fun(Fd) -> 
-                     {ok, Header, _} = cbt_file:read_header(Fd),
-                     {_, Root} = Header,
-                     {ok, Tree} = cbt_btree:open(Root, Fd),
-                     case cbt_btree:lookup(Tree, [{S, P, O}]) of 
-                         [not_found] -> not_found;
-                         [{ok, {{S, P, O}, V}}] -> {ok, V};
-                         Other -> 
-                             {error, Other}
-                     end
-             end).
+    fold(Name, {S, P, O, 0, 0}, fun({S0, P0, O0, H, M}, V) 
+                                      when S0 =:= S andalso P0 =:= P andalso O0 =:= O->
+                                        {ok, {S0, P0, O, H, M, V}};
+                                   (_, _) ->
+                                        stop
+                                end).
+
+fold(Name, Start, Fun) ->
+    resolve(Name, fun(Fd) ->
+                          {ok, Header, _} = cbt_file:read_header(Fd),
+                          {_, Root} = Header,
+                          {ok, Tree} = cbt_btree:open(Root, Fd),
+                          case cbt_btree:fold(Tree, fun({K, V}, Acc) ->
+                                                            case Fun(K, V) of 
+                                                                {ok, V2} ->
+                                                                    {ok, [V2|Acc]};
+                                                                skip ->
+                                                                    {ok, Acc};
+                                                                stop ->
+                                                                    {stop, Acc}
+                                                            end
+                                                    end, [], [{start_key, Start}]) of
+                              {ok, _, Values} -> {ok, Values};
+                              Other ->
+                                  Other
+                          end
+                  end).
+    
+
 
 stress(Name, N, C, I) ->
     Id = fun(P, It, K) ->
