@@ -38,8 +38,13 @@ reload() ->
                                   }
                        } || #{ name := Name} <- Buckets ],
 
+    HostClauses = [ #{ vars => [],
+                       body => #{ abstract => cmkit:node_host_short(node()) }}],
+
     cmcode:compile(#{ module => cmdb_config,
-                      functions => #{ storage => #{ arity => 1,
+                      functions => #{ host => #{ arity => 0,
+                                                 clauses => HostClauses },
+                                      storage => #{ arity => 1,
                                                     clauses => StorageClauses },
                                       writer => #{ arity => 1,
                                                    clauses => WriterClauses }}}),
@@ -113,20 +118,24 @@ put(memory, Name, Entries) ->
 
 put(disc, Name, [{S0, P0, _, _}|_]=Entries) ->
     Entries2 = [{{S, P, O}, V}|| {S, P, O, V} <- Entries],
-    Entries3 = [{{S0, P0, 0}, cmkit:micros()}|Entries2],
+%    Entries3 = [{{S0, P0, 0}, cmkit:micros()}|Entries2],
     Writer = cmdb_config:writer(Name),
     resolve(Writer, fun(Pid) ->
-                       gen_server:call(Pid, {put, Entries3})
+                       gen_server:call(Pid, {put, Entries2})
                end).
-
 
 get(memory, Name, S, P) -> 
     {ok, [V|| [_, V] <- ets:match(Name, {{S, P, '$1'}, '$2'})]}; 
 
 get(disc, Name, S, P) ->
-    FoldFun = fun({{S0, P0, 0}, _}, Acc) when S0 =:= S andalso P0 =:= P ->
-                      {ok, Acc};
-                 ({{S0, P0, _}, V}, Acc) when S0 =:= S andalso P0 =:= P ->
+    %FoldFun = fun({{S0, P0, 0}, _}, Acc) when S0 =:= S andalso P0 =:= P ->
+    %                  {ok, Acc};
+    %             ({{S0, P0, _}, V}, Acc) when S0 =:= S andalso P0 =:= P ->
+    %                  {ok, [V|Acc]};
+    %             (_, Acc) ->
+    %                  {stop, Acc}
+    %          end,
+    FoldFun = fun({{S0, P0, _}, V}, Acc) when S0 =:= S andalso P0 =:= P ->
                       {ok, [V|Acc]};
                  (_, Acc) ->
                       {stop, Acc}
