@@ -5,10 +5,14 @@
          reset/2,
          delete/2,
          put/3,
+         get/3,
          get/4,
          get/5,
-         stress/4
+         stress/4,
+         test/0
         ]).
+-record(acc, {h, v, s, p, o, r}).
+
 -define(ETS_OPTS, [
                    public, 
                    ordered_set, 
@@ -109,12 +113,20 @@ reset(disc, Name) ->
 
 put(memory, Name, Entries) -> 
     Entries2 = [{{S, P, O}, V}|| {S, P, O, V} <- Entries],
-    case ets:insert(Name, Entries2) of
+    case ets:insert(Name, cmkit:distinct(Entries2)) of
         true ->
             ok;
         Other ->
             Other
     end;
+
+
+put(disc, Name, [{_, _, _, _, _, _}|_]=Entries) ->
+    Entries2 = [{{S, P, O, H, M}, V}|| {S, P, O, H, M, V} <- Entries],
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {put, cmkit:distinct(Entries2)})
+               end);
 
 put(disc, Name, Entries) ->
     Host = cmdb_config:host(),
@@ -122,8 +134,19 @@ put(disc, Name, Entries) ->
     Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
     Writer = cmdb_config:writer(Name),
     resolve(Writer, fun(Pid) ->
-                       gen_server:call(Pid, {put, Entries2})
+                       gen_server:call(Pid, {put, cmkit:distinct(Entries2)})
                end).
+
+get(memory, Name, S) -> 
+    {ok, [V|| [_, V] <- ets:match(Name, {{S, '$1', '$2'}, '$3'})]}; 
+
+get(disc, Name, S) ->
+    fold(Name, {S, 0, 0, 0, 0}, fun({S0, P, O, H, M}, V) 
+                                      when S0 =:= S ->
+                                        {ok, {S0, P, O, H, M, V}};
+                                   (_, _) ->
+                                        stop
+                                end).
 
 get(memory, Name, S, P) -> 
     {ok, [V|| [_, V] <- ets:match(Name, {{S, P, '$1'}, '$2'})]}; 
@@ -173,22 +196,179 @@ fold(Name, Start, Fun) ->
                                   Other
                           end
                   end).
+   
+
+
+
+
+
+test_cases() ->[
+                {[{a, a, a, <<"v1">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, a, a0, 2, <<"v1">>}
+                  ]},
+                {[{a, a, a, <<"v1">>}],
+                 [ {a, a, a, a0, 1, <<"v1">>},
+                   {a, a, a, a1, 1, <<"v1">>} 
+                 ]},
+                {[{a, a, a, <<"v1">>},
+                    {a, a, a, <<"v2">>}],
+                 [ {a, a, a, a0, 1, <<"v1">>},
+                   {a, a, a, a1, 1, <<"v1">>},
+                   {a, a, a, a2, 1, <<"v2">>}
+                 ]},
+                {[], []},
+                {[{a, a, a, <<"v1">>}, 
+                  {a, a, b, <<"v1">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, b, a0, 2, <<"v1">>}
+                  ]},
+                {[{a, a, a, <<"v1">>}, 
+                  {a, a, b, <<"v1">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, b, a0, 2, <<"v1">>},
+                    {a, a, b, a1, 1, <<"v1">>}
+                  ]},
+                {[{a, a, a, <<"v1">>}, 
+                  {a, a, b, <<"v1">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, b, a1, 1, <<"v1">>},
+                    {a, a, b, a1, 2, <<"v1">>}
+                  ]},
+                {[{a, a, a, <<"v1">>}, 
+                  {a, a, b, <<"v2">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, b, a1, 1, <<"v1">>},
+                    {a, a, b, a1, 2, <<"v2">>}
+                  ]},
+                {[{a, a, a, <<"v3">>},
+                  {a, a, b, <<"v2">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, a, a0, 1, <<"v3">>},
+                    {a, a, b, a1, 2, <<"v2">>}
+                  ]},
+                {[{a, a, a, <<"v1">>},
+                  {a, a, a, <<"v3">>},
+                  {a, a, b, <<"v2">>}],
+                  [ {a, a, a, a0, 1, <<"v1">>},
+                    {a, a, a, a1, 1, <<"v3">>},
+                    {a, a, b, a1, 2, <<"v2">>}
+                  ]},
+                {[{a, b, a, <<"v1">>},
+                  {a, c, a, <<"v2">>}],
+                  [ {a, b, a, a0, 1, <<"v1">>},
+                    {a, c, a, a0, 1, <<"v2">>}]},
+                {[{a, b, a, <<"v1">>},
+                  {a, c, a, <<"v2">>},
+                  {a, c, a, <<"v3">>}],
+                  [ {a, b, a, a0, 1, <<"v1">>},
+                    {a, c, a, a0, 1, <<"v2">>},
+                    {a, c, a, a1, 1, <<"v3">>}]},
+                {[{a, b, a, <<"v1">>},
+                  {a, c, a, <<"v2">>},
+                  {b, a, a, <<"v1">>}],
+                  [ {a, b, a, a0, 1, <<"v1">>},
+                    {a, c, a, a0, 1, <<"v2">>},
+                    {b, a, a, a0, 1, <<"v1">>}]}
+               ].
+
+fold(Entries) ->
+    #acc{ r = R } = lists:foldr(fun({S, P, O, H, _, V}, #acc{ h = undef, 
+                                              v = undef, 
+                                              s = undef, 
+                                              p = undef, 
+                                              o = undef, 
+                                              r = R} = Acc) ->
+                        Acc#acc{ h = H, 
+                                 v = [V], 
+                                 s = S, 
+                                 p = P, 
+                                 o = O,
+                                 r = [{S, P, O, V}|R]};
+
+                   ({S, P, O, H, _, _}, #acc{ s = S,
+                                              p = P,
+                                              o = O,
+                                              h = H}=Acc) -> 
+                        Acc;
+                   ({S, P, O, H, _, V}, #acc{ s = S,
+                                              p = P,
+                                              o = O,
+                                              h = H0,
+                                              v = Values,
+                                              r = R}=Acc) when H =/= H0 ->
+                        case lists:member(V, Values) of 
+                            true ->
+                                Acc#acc{ h = H };
+                            false ->
+                                Acc#acc{ h = H,
+                                         v = [V|Values],
+                                         r = [{ S, P, O, V}|R]}
+                        end;
+                   ({S, P, O, H, _, V}, #acc{ s = S,
+                                              p = P,
+                                              o = O0,
+                                              r = R}=Acc) when O =/= O0 ->
+                        Acc#acc{ h = H,
+                                 o = O,
+                                 v = [V],
+                                 r = [{ S, P, O, V}|R] };
+
+                   ({S, P, O, H, _, V}, #acc{ s = S,
+                                              p = P0,
+                                              r = R}=Acc) when P =/= P0 ->
+                        Acc#acc{ h = H,
+                                 o = O,
+                                 p = P,
+                                 v = [V],
+                                 r = [{ S, P, O, V}|R] };
+
+                   ({S, P, O, H, _, V}, #acc{ s = S0,
+                                              r = R}=Acc) when S =/= S0 ->
+                        Acc#acc{ h = H,
+                                 s = S,
+                                 o = O,
+                                 p = P,
+                                 v = [V],
+                                 r = [{S, P, O, V}|R] }
+
+                end, #acc{h = undef,
+                          v = [], 
+                          s = undef,
+                          p = undef,
+                          o = undef,
+                          r = []}, Entries),
+    R.
     
+ %%   Distinct = cmkit:distinct(maps:values(HostValues)),
+ %%   case Distinct of 
+ %%       [] -> not_found;
+ %%       [Single] -> {ok, Single};
+ %%       _ -> {ok, Distinct}
+ %%   end.
+
+test() ->
+    lists:map(fun({O, I}) ->
+                      O = fold(I)
+              end, test_cases()).
+
+
+
 
 
 stress(Name, N, C, I) ->
-    Id = fun(P, It, K) ->
+    Id = fun(P, K) ->
                  PBin = cmkit:to_bin(P),
                  KBin = cmkit:to_bin(K),
-                 ItBin = cmkit:to_bin(It),
-                 <<PBin/binary, "-", ItBin/binary, "-", KBin/binary>>
+                 <<PBin/binary, "-", KBin/binary>>
          end,
 
     lists:foreach(fun(P) -> 
                           spawn(fun() ->
                                         { T, Res } = timer:tc(fun() -> 
                                                          lists:foreach(fun(It) ->
-                                                                               cmdb:put(Name, [{ users, is, Id(P, It, K), <<"plop">>} || K <- lists:seq(1, N)])
+                                                                               cmdb:put(Name, 
+                                                                                        [{ users, is, Id(P, It), <<"plop">>} || _ <- lists:seq(1, N)])
 
 
                                                                        end, lists:seq(1, I))

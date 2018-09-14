@@ -332,9 +332,8 @@ to_number(B, Default) ->
             Default
     end.
 
-
-distinct(List) ->
-    sets:to_list(sets:from_list(List)).
+distinct([])    -> [];
+distinct([H|T]) -> [H | [X || X <- distinct(T), X /= H]].
 
 intersection(List1, List2) ->
     sets:to_list(sets:intersection(sets:from_list(List1),
