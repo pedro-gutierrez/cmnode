@@ -19,8 +19,11 @@ init([#{ name := Name }=Bucket]) ->
     Storage = cmdb_config:storage(Name),
     {ok, Pid} = cmdb_util:open(Storage, Name),
     Ref = erlang:monitor(process, Pid),
+    {ok, Header, _} = cbt_file:read_header(Pid),
+    {_, Root} = Header,
+    {ok, Tree} = cbt_btree:open(Root, Pid),
     cmkit:log({cmdb, writer, self(), Name, Storage, Pid, node()}),
-    {ok, Bucket#{ fd => #{ pid => Pid, ref => Ref }}}.
+    {ok, Bucket#{ tree => Tree, pid => Pid, ref => Ref }}.
 
 handle_call(close, _, #{ name := Name,
                          fd := #{ pid := Fd,
@@ -32,18 +35,18 @@ handle_call(close, _, #{ name := Name,
     {ok, Data2} = init([Data]),
     {reply, ok, Data2};
 
-handle_call({put, Entries}, _, #{ fd := #{ pid := Fd }}=Data) ->
-    {ok, Header, _} = cbt_file:read_header(Fd),
-    {_, Root} = Header,
-    {ok, Tree} = cbt_btree:open(Root, Fd),
+handle_call({put, Entries}, _, #{ pid := Pid, tree := Tree }=Data) ->
+    %{ok, Header, _} = cbt_file:read_header(Fd),
+    %{_, Root} = Header,
+    %{ok, Tree} = cbt_btree:open(Root, Fd),
     {ok, Tree2} = cbt_btree:add(Tree, Entries),
     Root2 = cbt_btree:get_state(Tree2),
     Header2 = {1, Root2},
-    cbt_file:write_header(Fd, Header2),
-    {reply, ok, Data};
+    cbt_file:write_header(Pid, Header2),
+    {reply, ok, Data#{ tree => Tree2}};
 
 handle_call(_, _, Data) ->
-    {reply, Data, Data}.
+    {reply, ignored, Data}.
 
 handle_cast(_, Data) ->
     {noreply, Data}.
