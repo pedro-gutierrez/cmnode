@@ -5,4 +5,4 @@
 
 effect_info() -> notify.
 effect_apply(Data, Id) ->
-    cmsession:tell(Id, Data).
+    cmcore:notify(Id, Data).

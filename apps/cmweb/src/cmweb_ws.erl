@@ -13,15 +13,11 @@ websocket_init(#{app := App, port := Port }=State) ->
     case cmconfig:app(App) of
         {ok, #{ debug := Debug }=Spec} -> 
             Log = cmkit:log_fun(Debug),
-            case cmsession:new(App) of 
-                {ok, #{ id := Id }=Session } ->
-                    ok = cmcore:init(Spec, Session),
-                    Log({ws, new_connection, App, Port, Id}),
-                    {ok, State#{ id => Id, log => Log} };
-                Other ->
-                    cmkit:danger({ws, aborting, App, Other}),
-                    {stop, Other}
-            end;
+            Id = cmkit:uuid(),
+            Session = #{ id => Id, app => App },
+            ok = cmcore:init(Spec, Session),
+            Log({ws, new_connection, App, Port, Id}),
+            {ok, State#{ id => Id, log => Log} };
        {error, E} -> 
             cmkit:log({ws, new_connection, invalid_app, App, Port, E}),
             {stop, E}

@@ -2,18 +2,11 @@
 -export([
          init/2,
          cmds/4,
-         context/1,
          update/5,
          update_spec/5,
          decode/3,
          apply_effect/3
         ]).
-
-context(SessionId) ->
-    case cmsession:retrieve(SessionId, context) of 
-        {ok, [Pid]} -> {ok, Pid};
-        Other -> Other
-    end.
 
 init(#{ init := Init }=App, Config) -> update(App, Init, Config);
 init(_, _) -> {ok, #{}, []}.

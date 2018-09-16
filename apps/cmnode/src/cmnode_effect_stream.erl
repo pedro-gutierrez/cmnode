@@ -6,4 +6,4 @@
 effect_info() -> stream.
 effect_apply(#{ event := Ev, 
                 data := Data }, Id) ->
-    cmsession:stream(Id, {Ev, Data}).
+    cmcore:stream(Id, {Ev, Data}).

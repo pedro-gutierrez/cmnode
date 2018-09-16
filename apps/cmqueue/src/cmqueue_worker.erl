@@ -173,7 +173,7 @@ subscribe(Topic, Id, #{ subscriptions := Subs }=Data) ->
 
 notify(Info, Subs) ->
     NotesSent = maps:fold( fun(Id, Topic, Sent) ->
-                cmsession:tell(Id, #{ Topic => Info }),
+                cmcore:notify(Id, #{ Topic => Info }),
                 Sent + 1
                end, 0, Subs),
     cmkit:log({cmqueue, notify, NotesSent}).

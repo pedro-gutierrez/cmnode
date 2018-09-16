@@ -13,27 +13,23 @@ init(Req, #{app := App}=State) ->
                     reply_and_ok(invalid, json, #{ error => json }, Req, State#{ start => Start });
                 {ok, Data, Req2} ->
                     BodyTime = cmkit:elapsed(Start),
-                    case cmsession:new(App) of 
-                        {ok, #{ id := Id}=Session} ->
-                            SessionTime = cmkit:elapsed(Start),
-                            ok = cmcore:init(Spec, Session),
-                            Data2 = #{ method => cowboy_req:method(Req),
-                                       body => Data, 
-                                       headers => cowboy_req:headers(Req),
-                                       query => maps:from_list(cowboy_req:parse_qs(Req2)) },
-                            InitTime = cmkit:elapsed(Start),
-                            cmcore:update(Id, Data2),
-                            UpdateTime = cmkit:elapsed(Start),
-                            {cowboy_loop, Req2, State#{ log => Log, 
-                                                        start => Start,
-                                                        body_time => BodyTime,
-                                                        session_time => SessionTime,
-                                                        init_time => InitTime,
-                                                        update_call_time => UpdateTime }};
-                        {error, E} ->
-                            cmkit:danger({http, error, App, session, E}),
-                            reply_and_ok(error, json, #{}, Req, State#{ start => Start })
-                    end
+                    Id = cmkit:uuid(),
+                    Session = #{ id => Id, app => App },
+                    SessionTime = cmkit:elapsed(Start),
+                    ok = cmcore:init(Spec, Session),
+                    Data2 = #{ method => cowboy_req:method(Req),
+                               body => Data, 
+                               headers => cowboy_req:headers(Req),
+                               query => maps:from_list(cowboy_req:parse_qs(Req2)) },
+                    InitTime = cmkit:elapsed(Start),
+                    cmcore:update(Id, Data2),
+                    UpdateTime = cmkit:elapsed(Start),
+                    {cowboy_loop, Req2, State#{ log => Log, 
+                                                start => Start,
+                                                body_time => BodyTime,
+                                                session_time => SessionTime,
+                                                init_time => InitTime,
+                                                update_call_time => UpdateTime }}
             end;
         {error, E} -> 
             cmkit:danger({http, new, no_such_app, App, E}),

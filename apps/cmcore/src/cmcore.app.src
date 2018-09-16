@@ -6,8 +6,7 @@
   {applications,
    [kernel,
     stdlib,
-    cmdb,
-    cmsession
+    cmdb
    ]},
   {env,[]},
   {modules, []},

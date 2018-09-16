@@ -1,22 +1,46 @@
 -module(cmcore).
--export([init/2, terminate/1, update/2]).
+-export([
+         init/2, 
+         terminate/1, 
+         update/2,
+         notify/2,
+         stream/2
+        ]).
 
 init(Spec, #{ app := _, id := _}=Session) ->
-    {ok, Context} = cmcore_context_sup:start_context(Spec, Session),
+    {ok, Context} = cmcore_context_sup:start_context(Spec, Session, self()),
     ok = gen_statem:call(Context, init). 
 
 update(Id, Data) when is_binary(Id) ->
-    case cmcore_util:context(Id) of 
-        {ok, Context} ->
-            gen_statem:cast(Context, {update, Data});
-        Other ->
-            cmkit:warning({cmcore, error, Id, no_such_context, Other})
+    case global:whereis_name(Id) of 
+        undefined ->
+            cmkit:warning({cmcore, update, Id, no_such_context});
+        Pid ->
+            gen_statem:cast(Pid, {update, Data})
     end.
 
 terminate(Id) when is_binary(Id) -> 
-    case cmcore_util:context(Id) of 
-        {ok, Pid} ->
-            gen_statem:cast(Pid, terminate);
-        Other ->
-            cmkit:warning({cmcore, error, Id, no_such_context, Other})
+    case global:whereis_name(Id) of 
+        undefined ->
+            cmkit:warning({cmcore, terminate, Id, no_such_context});
+        Pid ->
+            gen_statem:cast(Pid, terminate)
+    end.
+
+notify(Id, Data) ->
+    case global:whereis_name(Id) of 
+        undefined ->
+            cmkit:warning({cmcore, notify, Id, no_such_context});
+        Pid ->
+            Conns = gen_statem:call(Pid, connections),
+            [ C ! Data || C <- Conns ]
+    end.
+
+stream(Id, {Ev, Data}) ->
+    case global:whereis_name(Id) of 
+        undefined ->
+            cmkit:warning({cmcore, stream, Id, no_such_context});
+        Pid ->
+            Conns = gen_statem:call(Pid, connections),
+            [ C ! {stream, Ev, Data} || C <- Conns ]
     end.

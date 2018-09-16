@@ -1,7 +1,7 @@
 -module(cmcore_context).
 -behaviour(gen_statem).
 -export([
-         start_link/2,
+         start_link/3,
          init/1, 
          callback_mode/0, 
          terminate/3,
@@ -12,16 +12,17 @@
 callback_mode() ->
     state_functions.
 
-start_link(Spec, Session) ->
-    gen_statem:start_link(?MODULE, [Spec, Session], []).
+start_link(Spec, #{id := Id}=Session, Conn) ->
+    gen_statem:start_link({global, Id}, ?MODULE, [Spec, Session, Conn], []).
 
 init([#{ config := Config,
          debug := Debug,
-         spec := Spec }, Session]) ->
+         spec := Spec }, Session, Conn]) ->
     {ok, initializing, Session#{ start => cmkit:micros(),
                                  debug => Debug,
                                  spec => Spec, 
-                                 config => Config}}.
+                                 config => Config,
+                                 conns => [Conn]}}.
 
 initializing({call, From}, init,  #{app := App,
                                     config := Config,
@@ -30,7 +31,6 @@ initializing({call, From}, init,  #{app := App,
                                     spec := Spec}=Session) ->
     
     Log = cmkit:log_fun(Debug),
-    ok = cmsession:attach(Id, context, self()),
     Effects = cmconfig:effects(),
     {ok, Effect} = cmcore_effect_sup:start_effect(Id),
     case cmcore_util:init(Spec, Config) of 
@@ -74,12 +74,13 @@ ready(cast, {update, Data}, #{ app := App,
 
     end;
 
-ready(cast, terminate, #{ id := Id, 
-                          effect := Effect }) ->
+ready(cast, terminate, #{ effect := Effect }) ->
     
-    cmsession:delete(Id),
     ok = cmcore_effect:stop(Effect),
-    {stop, normal}.
+    {stop, normal};
+
+ready({call, From}, connections,  #{conns := Conns}=Data) ->
+    {keep_state, Data, reply(From, Conns)}.
 
 server_error(App, Session, Phase, Reason) ->
     Info = #{ status => error,
