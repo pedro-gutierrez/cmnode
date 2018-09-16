@@ -5,10 +5,9 @@ new(App) ->
     Conn = self(),
     Id = cmkit:uuid(),
     Session = #{ id => Id, app => App },
-    Entries = [{session, with_id, Id, Session}, 
+    Entries = [{sessions, has, Id, Session},
                {Id, has_connection, Conn, Conn},
-               {connection, with_pid, Conn, Conn },
-               {Conn, has_session, Id, Id}],
+               {connections, has, Conn, Conn }],
     case cmdb:put(sessions, Entries) of 
         ok -> {ok, Session};
         Other -> 
@@ -19,21 +18,34 @@ new(App) ->
 attach(Id, Type, Val) ->
     cmdb:put(sessions, [{Id, has, Type, Val}]).
 
-
 retrieve(Id, Type) ->
-    cmdb:first(sessions, Id, has, Type).
+    case cmdb:get(sessions, Id, has, Type) of 
+        {ok, []} -> 
+            not_found;
+        {ok, [{_, _, _, V}]} ->
+            {ok, V};
+        {ok, Other} ->
+            {error, Other}
+    end.
 
 delete(Id) ->
-    cmkit:warning({cmsession, delete, Id, pending}),
-    ok.
+    case conns(Id) of 
+        {ok, Pids} ->
+            Keys = lists:flatten(
+                        [[{Id, has_connection, Pid},
+                          {connections, has, Pid}]|| Pid <- Pids]),
+            Keys2 = [{sessions, has, Id}|Keys],
+            cmdb:del(sessions, Keys2);
+        Other ->
+            Other
+    end.
 
 conns(Id) ->
-    case cmdb:all(sessions, Id, has_connection) of 
-        not_found -> 
-            cmkit:warning({cmsession, no_connections, Id}),
-            {ok, []};
-        {ok, Conns} -> 
-            {ok, Conns}
+    case cmdb:get(sessions, Id, has_connection) of 
+        {ok, Conns} ->
+            {ok, [Pid || {_,_,_,Pid} <- Conns]};
+        Other ->
+            {error, Other}
     end.
     
 tell(Id, Data) ->
@@ -45,5 +57,9 @@ stream(Id, {Ev, Data}) ->
     [ C ! {stream, Ev, Data} || C <- Conns ].
 
 broadcast(Data) ->
-    {ok, Conns } = cmdb:all(sessions, connection, with_pid), 
-    [ C ! Data || C <- Conns ].
+    case cmdb:get(sessions, connections, has) of 
+        {ok, Conns} ->
+            [ Pid ! Data || {_, _, _, Pid} <- Conns ];
+        Other ->
+            {error, Other}
+    end.

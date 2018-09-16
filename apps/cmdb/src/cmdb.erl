@@ -1,6 +1,7 @@
 -module(cmdb).
 -export([
          reset/1,
+         del/2,
          put/2,
          get/2,
          get/3,
@@ -9,6 +10,9 @@
 
 reset(Name) -> 
     cmdb_util:reset(cmdb_config:storage(Name), Name).
+
+del(Name, Entries) ->
+    cmdb_util:del(cmdb_config:storage(Name), Name, Entries).
 
 put(Name, Entries) -> 
     cmdb_util:put(cmdb_config:storage(Name), Name, Entries).

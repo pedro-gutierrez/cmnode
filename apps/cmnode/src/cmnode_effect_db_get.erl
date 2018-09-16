@@ -10,18 +10,20 @@ effect_apply(#{ bucket := Db,
                 type := Type, 
                 id := Id } = Q, SessionId) ->
 
-    R = case cmdb:first(Db, Type, is, Id) of 
-            not_found -> Q#{ error => not_found };
-            {ok, Value} -> Q#{ value => Value};
+    R = case cmdb:get(Db, Type, has, Id) of 
+            {ok, []} -> Q#{ error => not_found };
+            {ok, [{_, _, _, Value}]} -> Q#{ value => Value};
+            {ok, Other}-> Q#{ error => Other };
             {error, E }-> Q#{ error => E }
         end,
     cmcore:update(SessionId, R);
 
 effect_apply(#{  bucket := Db, 
                  type := Type } = Q, SessionId) ->
-    cmcore:update(SessionId, case cmdb:all(Db, Type, is) of
-                                 {ok, Values} -> Q#{ values => Values };
-                                 {error, E }-> Q#{ error => E }
+    cmcore:update(SessionId, case cmdb:get(Db, Type, has) of
+                                 {ok, Entries} -> 
+                                     Q#{ values => [ V || {_, _, _, V} <- Entries] };
+                                 {error, E}-> Q#{ error => E }
                              end);
 
 
@@ -30,13 +32,13 @@ effect_apply(#{ query := #{ bucket := Db,
                             id := Id } = Q,
                 join := J }, SessionId) ->
 
-    R = case cmdb:get(Db, Type, is, Id) of 
-            not_found -> 
+    R = case cmdb:get(Db, Type, has, Id) of 
+            {ok, []} -> 
                 Q#{ error => not_found };
             {error, E }-> 
                 Q#{ error => E };
             {ok, Items} -> 
-                Items2 = lists:map(fun(I) ->
+                Items2 = lists:map(fun({_, _, _, I}) ->
                                            join(J, I)
                                    end, Items),
                 Q#{ value => value(Items2, maps:get(all, Q, false))}
@@ -94,16 +96,20 @@ item_with_joined_prop(K, Join, Item) ->
     end.
 
 resolve(Bucket, Type, Id) -> 
-    case cmdb:first(Bucket, Type, is, Id) of 
-        not_found -> 
+    case cmdb:get(Bucket, Type, has, Id) of 
+        {ok, []} -> 
             {error, #{ reason => not_found,
                        bucket => Bucket,
                        type => Type,
                        id => Id }};
 
-        {ok, Value} ->
+        {ok, [{_, _, _, Value}]} ->
             {ok, Value};
-
+        {ok, _} ->
+            {error, #{ reason => too_many_values,
+                       bucket => Bucket,
+                       type => Type,
+                       id => Id}};
         {error, E} ->
             {error, #{ reason => error,
                        bucket => Bucket,

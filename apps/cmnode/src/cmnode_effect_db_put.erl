@@ -38,7 +38,7 @@ strategy(_) -> put.
 pairs(Items) when is_list(Items) ->
     lists:map( fun(#{ id := Id,
                       type := Type,
-                      value := Value}) -> {{Type, Id}, Value} end, Items).
+                      value := Value}) -> {Type, has, Id, Value} end, Items).
 
 return(#{ echo := true,
           value := Value }, Res ) -> 

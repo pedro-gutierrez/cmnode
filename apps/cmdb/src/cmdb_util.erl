@@ -4,6 +4,7 @@
          open/2,
          reset/2,
          delete/2,
+         del/3,
          put/3,
          get/3,
          get/4,
@@ -112,15 +113,32 @@ reset(disc, Name) ->
                        gen_server:call(Pid, close)
                end).
 
+del(memory, Name, S, P, O) ->
+    case get(memory, Name, S, P, O) of 
+        {ok, Entries} ->
+            [ ets:delete(Name, {S0, P0, O0, H, T}) || {S0, P0, O0, H, T, _} <- Entries]; 
+        _ ->
+            ok
+    end.
+
+
+del(memory, Name, Entries) ->
+    [del(memory, Name, S, P, O)|| {S, P, O} <- Entries ],
+    ok;
+
+del(disc, _Name, _Entries) ->
+    not_supported.
+
 put(memory, Name, Entries) -> 
-    Entries2 = [{{S, P, O}, V}|| {S, P, O, V} <- Entries],
+    Host = cmdb_config:host(),
+    Now = cmkit:micros(),
+    Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
     case ets:insert(Name, cmkit:distinct(Entries2)) of
         true ->
             ok;
         Other ->
             Other
     end;
-
 
 put(disc, Name, [{_, _, _, _, _, _}|_]=Entries) ->
     Entries2 = [{{S, P, O, H, M}, V}|| {S, P, O, H, M, V} <- Entries],
@@ -139,7 +157,8 @@ put(disc, Name, Entries) ->
                end).
 
 get(memory, Name, S) -> 
-    {ok, [V|| [_, V] <- ets:match(Name, {{S, '$1', '$2'}, '$3'})]}; 
+    {ok, [ {S, P, O, H, T, V} 
+           || [P, O, H, T, V] <- ets:match(Name, {{S, '$1', '$2', '$3', '$4'}, '$5'})]}; 
 
 get(disc, Name, S) ->
     fold(Name, {S, 0, 0, 0, 0}, fun({S0, P, O, H, M}, V) 
@@ -150,7 +169,8 @@ get(disc, Name, S) ->
                                 end).
 
 get(memory, Name, S, P) -> 
-    {ok, [V|| [_, V] <- ets:match(Name, {{S, P, '$1'}, '$2'})]}; 
+    {ok, [ {S, P, O, H, T, V} 
+           || [O, H, T, V] <- ets:match(Name, {{S, P, '$1', '$2', '$3'}, '$4'})]}; 
 
 get(disc, Name, S, P) ->
     fold(Name, {S, P, 0, 0, 0}, fun({S0, P0, O, H, M}, V) 
@@ -161,14 +181,8 @@ get(disc, Name, S, P) ->
                                 end).
 
 get(memory, Name, S, P, O) -> 
-    case ets:lookup(Name, {S, P, O}) of 
-        [] -> not_found;
-        [{{S, P, O}, V}] -> 
-            {ok, V};
-        Other -> 
-            {error, Other}
-    end;
-
+    {ok, [ {S, P, O, H, T, V} 
+           || [H, T, V] <- ets:match(Name, {{S, P, O, '$1', '$2'}, '$3'})]}; 
 get(disc, Name, S, P, O) ->
     fold(Name, {S, P, O, 0, 0}, fun({S0, P0, O0, H, M}, V) 
                                       when S0 =:= S andalso P0 =:= P andalso O0 =:= O->
