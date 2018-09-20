@@ -14,6 +14,7 @@
          report/1, 
          status/0
         ]).
+-define(REL, is).
 
 subscribe(SessionId) ->
     cmqueue:subscribe(tests_queue, tests, SessionId).
@@ -98,10 +99,10 @@ queue_job(T, S, Opts) ->
      }.
 
 report(Id) ->
-    case cmdb:first(tests, reports, has_id, Id) of 
-        {ok, R} ->
+    case cmdb:get(tests, report, ?REL, Id) of 
+        {ok, [{_, _, _, R}]} ->
             {ok, sanitized_report(R)};
-        not_found ->
+        {ok, []}->
             {error, not_found};
         Other -> 
             {error, Other}
@@ -110,22 +111,23 @@ report(Id) ->
 reports() -> reports(1).
 
 reports(Days) ->
-    Ids = lists:foldl(fun(D, Set) ->
+    Ids0 = lists:foldl(fun(D, Acc) ->
                               Key = cmcalendar:to_bin(D, date),
-                              case cmdb:all(tests, reports, Key) of
-                                  {ok, Ids} ->
-                                      sets:union(Set, sets:from_list(Ids));
+                              case cmdb:get(tests, report, Key) of
+                                  {ok, Entries} ->
+                                      Acc ++ [Id||{_, _, _, Id}<-Entries];
                                   _ -> 
-                                      Set
+                                      Acc
                               end
-                      end, sets:new(), cmcalendar:last({Days, days})),
-
+                      end, [], cmcalendar:last({Days, days})),
+    Ids = cmkit:distinct(Ids0),
     Reports = lists:foldl(fun(Id, Reports) ->
-                                  case cmdb:first(tests, reports, has_id,Id) of 
-                                      {ok, R} -> [R|Reports];
+                                  case cmdb:get(tests, report, ?REL, Id) of 
+                                      {ok, [{_, _, _, R}]} ->
+                                          [R|Reports];
                                       _ -> Reports
                                   end                
-                          end, [], sets:to_list(Ids)),
+                          end, [], Ids),
     
     Reports2 = lists:sort(fun cmtest_util:report_sort_fun/2, Reports),
     Reports3 = cmkit:top(20, Reports2),

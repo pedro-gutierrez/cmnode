@@ -292,11 +292,11 @@ query(#{ query := test, test := #{ name := Name}}) -> Name.
 save_report(#{ query := Query} = Report) -> 
     Id = cmkit:uuid(),
     Now = calendar:local_time(), 
-    Pairs = [{reports, has_id, Id, Report#{ id => Id }},
-             {reports, Query, Id, Id},
-             {reports, cmcalendar:to_bin(Now, year), Id, Id},
-             {reports, cmcalendar:to_bin(Now, month), Id, Id},
-             {reports, cmcalendar:to_bin(Now, date), Id, Id}],
+    Pairs = [{report, is, Id, Report#{ id => Id }},
+             {report, Query, Id, Id},
+             {report, cmcalendar:to_bin(Now, year), Id, Id},
+             {report, cmcalendar:to_bin(Now, month), Id, Id},
+             {report, cmcalendar:to_bin(Now, date), Id, Id}],
 
     cmkit:log({cmtest, report, Id}),
     cmdb:put(tests, Pairs).

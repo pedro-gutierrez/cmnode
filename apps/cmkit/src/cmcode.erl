@@ -57,7 +57,7 @@
 %%--------------------------------------------------------------------
 compile(#{ module := Module,
            functions := Functions }) ->
-
+    
     ModForm = erl_syntax:revert(
                 erl_syntax:attribute(
                   erl_syntax:atom(module),[erl_syntax:atom(Module)])),
@@ -93,7 +93,28 @@ compile(#{ atom := A }) ->
     erl_syntax:atom(A);
     
 compile(#{ abstract := A}) ->
-    erl_syntax:abstract(A).
+    erl_syntax:abstract(A);
+
+compile(#{ tuple := A}) ->
+    erl_syntax:tuple(compile(A));
+
+compile(#{ application := #{ module := M,
+                             function := F,
+                             args := A}}) ->
+    erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(M), erl_syntax:atom(F)), compile(A));
+
+compile(#{ application := #{ function := F,
+                             args := A}}) ->
+    erl_syntax:application(erl_syntax:atom(F), compile(A));
+
+compile(underscore) ->
+    erl_syntax:underscore();
+
+compile(A) when is_atom(A) ->
+    erl_syntax:atom(A);
+
+compile(Items) when is_list(Items) ->
+    lists:map(fun compile/1, Items).
 
 load_from_binary(Bin) -> 
     load_from_string(cmkit:to_list(Bin)).

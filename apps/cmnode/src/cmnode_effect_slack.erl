@@ -8,20 +8,24 @@ effect_apply(#{ settings := Settings,
                 subject := Subject,
                 text := Text }, _) -> 
     
-    case cmconfig:settings(Settings, true) of 
-        {ok, #{ slack := 
-                #{ tests := #{
-                     enabled := Enabled } = Slack }}} -> 
+    case cmconfig_util:settings(Settings) of 
+        {ok, Spec} -> 
+            case cmencode:encode(Spec) of 
+                {ok, #{ slack := 
+                        #{ tests := #{
+                             enabled := Enabled } = Slack }}} -> 
 
-            case Enabled of 
-                true -> 
-                    cmslack:success(Slack#{ subject => Subject,
-                                            text => Text
-                                          });
-                false -> 
-                    cmkit:log({slack, Settings, disabled, Subject, Text})
+                    case Enabled of 
+                        true -> 
+                            cmslack:success(Slack#{ subject => Subject,
+                                                    text => Text
+                                                  });
+                        false -> 
+                            cmkit:log({slack, Settings, disabled, Subject, Text})
+                    end;
+                Other ->
+                    cmkit:warning({effect, slack, settings_error, Settings, Other})
             end;
-
-        Other -> 
-            cmkit:warning({effect, slack, invalid_settings, Settings, Other})
+        {error, not_found} -> 
+            cmkit:warning({effect, slack, no_such_settings, Settings})
     end.

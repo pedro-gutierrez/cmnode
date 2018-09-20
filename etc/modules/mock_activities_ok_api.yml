@@ -1,0 +1,64 @@
+version: 1.0
+type: module
+category: server
+name: mock_activities_ok_api
+spec:
+  decoders:
+    valid_activity:
+      object:
+        headers:
+          object:
+            client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+        body:
+          object:
+            type_activity:
+              any: text
+            date:
+              any: date
+              format: iso8601
+            location:
+              any: text
+            who:
+              any: text
+            for_who:
+              any: text
+            speciality:
+              any: text
+            description:
+              any: text
+            id_external:
+              any: text
+  update:
+    valid_activity:
+      model:
+        object:
+          activity_id:
+            hash:
+              key: id_external
+              in: body
+      cmds:
+        - effect: notify
+          encoder: new_activity
+        - effect: terminate
+  encoders:
+    new_activity:
+      object:
+        status: 200
+        headers:
+          content-type: "application/json; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          object:
+            result: "OK"
+            returnValue:
+              object:
+                message: "success"
+                data:
+                  object:
+                    activity:
+                      object:
+                        id: 
+                          key: activity_id
+                    type_activities: []

@@ -5,7 +5,8 @@
   {mod, { cmconfig_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cmkit
    ]},
   {env,[]},
   {modules, []},

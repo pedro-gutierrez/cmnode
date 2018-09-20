@@ -7,6 +7,8 @@ spec:
   apps:
     mock_oauth_api:
       http: "/oauth"
+    mock_activities_ok_api:
+      http: "/qcmas/health_diary/api/v1/3861626639653861356537343838623765356466393230313333323639623533/activities"
     nkpanel_api:
       ws: "/ws"
       http: "/api"

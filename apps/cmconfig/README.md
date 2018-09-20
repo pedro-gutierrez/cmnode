@@ -1,4 +1,4 @@
-cmetc
+cmconfig2
 =====
 
 An OTP application

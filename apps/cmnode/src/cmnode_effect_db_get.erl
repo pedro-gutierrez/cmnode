@@ -2,6 +2,7 @@
 -export([ effect_info/0,
           effect_apply/2
         ]).
+-define(REL, is).
 
 effect_info() -> db_get.
 
@@ -10,7 +11,7 @@ effect_apply(#{ bucket := Db,
                 type := Type, 
                 id := Id } = Q, SessionId) ->
 
-    R = case cmdb:get(Db, Type, has, Id) of 
+    R = case cmdb:get(Db, Type, ?REL, Id) of 
             {ok, []} -> Q#{ error => not_found };
             {ok, [{_, _, _, Value}]} -> Q#{ value => Value};
             {ok, Other}-> Q#{ error => Other };
@@ -20,7 +21,7 @@ effect_apply(#{ bucket := Db,
 
 effect_apply(#{  bucket := Db, 
                  type := Type } = Q, SessionId) ->
-    cmcore:update(SessionId, case cmdb:get(Db, Type, has) of
+    cmcore:update(SessionId, case cmdb:get(Db, Type, ?REL) of
                                  {ok, Entries} -> 
                                      Q#{ values => [ V || {_, _, _, V} <- Entries] };
                                  {error, E}-> Q#{ error => E }
@@ -32,7 +33,7 @@ effect_apply(#{ query := #{ bucket := Db,
                             id := Id } = Q,
                 join := J }, SessionId) ->
 
-    R = case cmdb:get(Db, Type, has, Id) of 
+    R = case cmdb:get(Db, Type, ?REL, Id) of 
             {ok, []} -> 
                 Q#{ error => not_found };
             {error, E }-> 
@@ -96,7 +97,7 @@ item_with_joined_prop(K, Join, Item) ->
     end.
 
 resolve(Bucket, Type, Id) -> 
-    case cmdb:get(Bucket, Type, has, Id) of 
+    case cmdb:get(Bucket, Type, ?REL, Id) of 
         {ok, []} -> 
             {error, #{ reason => not_found,
                        bucket => Bucket,

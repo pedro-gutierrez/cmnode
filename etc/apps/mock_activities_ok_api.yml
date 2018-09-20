@@ -1,0 +1,8 @@
+version: 1.0
+type: app
+category: api
+name: mock_activities_ok_api
+spec:
+  debug: true 
+  modules:
+    - mock_activities_ok_api

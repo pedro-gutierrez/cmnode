@@ -18,7 +18,7 @@ start_link() ->
 init([]) ->
     Dir = cmkit:etc(),
     {ok, Pid} = cmkit:watch(Dir),
-    cmkit:log({cmconfig_watcher, watching, Pid}),
+    cmkit:log({cmconfig, watching, Pid}),
     {ok, ready, #data{dir=Dir, watcher=Pid}}.
 
 ready(info, {_, {fs, file_event}, {File, Events}}, Data) ->
@@ -34,11 +34,13 @@ handle_file_event(File, ".yml", modified) ->
     case cmkit:yaml(File) of 
         {ok, #{ <<"type">> := Type, 
                 <<"name">> := Name, 
-                <<"version">> := Version } = Spec} ->
-            cmkit:log({cmconfig_watcher, modified, Type, Name, Version}),
-            cmconfig_loader:modified(Spec);
+                <<"version">> := Version }} ->
+            cmkit:log({cmconfig, modified, Type, Name, Version}),
+            cmconfig_compiler_sup:start();
         _ ->
-            cmkit:danger({cmconfig_watcher, error, File})
-    end;
+            cmkit:danger({cmconfig, error, File})
+    end,
+    erlang:garbage_collect(),
+    ok;
 
 handle_file_event(_, _, _) -> ok.

@@ -541,7 +541,8 @@ format_date(Date) ->
 
 parse_date(Date) -> 
     try
-        date_as_map(iso8601:parse(to_bin(Date)))
+        D2 = binary:replace(Date, <<" ">>, <<"T">>, [global]),
+        date_as_map(iso8601:parse(to_bin(D2)))
     catch
         error:badarg ->
             invalid
