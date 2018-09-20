@@ -47,10 +47,14 @@ merged([K|Rem], Index, Out) ->
                                                     ]},
                              K => #{ arity => 1,
                                      clauses => 
-                                        lists:map(fun(N) ->
-                                                          #{ vars => [#{ atom => N }], 
-                                                             body => #{ abstract => {ok, maps:get(N, I0)}}} 
-                                                  end, maps:keys(I0)) ++ [ #{ vars => [ underscore ],
+                                        lists:flatten(lists:map(fun(N) ->
+                                                          [
+                                                           #{ vars => [#{ atom => N }], 
+                                                              body => #{ abstract => {ok, maps:get(N, I0)}}},
+                                                           #{ vars => [#{ abstract => cmkit:to_bin(N) }], 
+                                                              body => #{ abstract => {ok, maps:get(N, I0)}}}
+                                                          ]
+                                                  end, maps:keys(I0))) ++ [ #{ vars => [ underscore ],
                                                                               body => #{ abstract =>
                                                                                          {error, not_found}}}
                                                                          ]}}).

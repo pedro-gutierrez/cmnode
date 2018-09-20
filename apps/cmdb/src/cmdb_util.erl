@@ -47,13 +47,15 @@ reload() ->
     HostClauses = [ #{ vars => [],
                        body => #{ abstract => cmkit:node_host_short(node()) }}],
 
-    cmcode:compile(#{ module => cmdb_config,
+    Res = cmcode:compile(#{ module => cmdb_config,
                       functions => #{ host => #{ arity => 0,
                                                  clauses => HostClauses },
                                       storage => #{ arity => 1,
                                                     clauses => StorageClauses },
                                       writer => #{ arity => 1,
                                                    clauses => WriterClauses }}}),
+
+    cmkit:log({cmdb, config, Res}),
 
     [open(Storage, Name) ||
         #{ name := Name, storage := Storage } <- Buckets ],

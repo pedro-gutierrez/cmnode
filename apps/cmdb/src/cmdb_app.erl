@@ -4,6 +4,7 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Buckets} = cmdb_util:reload(),
+    cmkit:log({cmdb, Buckets}),
     cmdb_sup:start_link(Buckets).
 
 stop(_State) ->
