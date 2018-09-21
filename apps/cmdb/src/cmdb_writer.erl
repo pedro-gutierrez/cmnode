@@ -12,7 +12,8 @@
          code_change/3
         ]).
 
-start_link(#{ writer := Writer }=Bucket) ->
+start_link(#{ name := Name }=Bucket) ->
+    Writer = cmdb_config:writer(Name),
     gen_server:start_link({local, Writer}, ?MODULE, [Bucket], []).
 
 init([#{ name := Name }=Bucket]) ->
@@ -36,9 +37,6 @@ handle_call(close, _, #{ name := Name,
     {reply, ok, Data2};
 
 handle_call({put, Entries}, _, #{ pid := Pid, tree := Tree }=Data) ->
-    %{ok, Header, _} = cbt_file:read_header(Fd),
-    %{_, Root} = Header,
-    %{ok, Tree} = cbt_btree:open(Root, Fd),
     {ok, Tree2} = cbt_btree:add(Tree, Entries),
     Root2 = cbt_btree:get_state(Tree2),
     Header2 = {1, Root2},

@@ -1,0 +1,56 @@
+version: 1.0
+type: module
+category: server
+name: mock_folder_ok_api
+spec:
+  decoders:
+    valid_doc:
+      object:
+        headers:
+          object:
+            client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+        body:
+          object:
+            description:
+              any: text
+            document_name:
+              any: text
+            document_extension:
+              any: text
+            document_type:
+              any: text
+            document_value_b64:
+              any: text
+  update:
+    valid_doc:
+      model:
+        object:
+          doc_id:
+            hash:
+              key: document_name
+              in: body
+      cmds:
+        - effect: notify
+          encoder: new_doc
+        - effect: terminate
+  encoders:
+    new_doc:
+      object:
+        status: 200
+        headers:
+          content-type: "application/json; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          object:
+            result: "OK"
+            returnValue:
+              object:
+                message: "success"
+                data:
+                  object:
+                    document:
+                      object:
+                        id: 
+                          key: doc_id

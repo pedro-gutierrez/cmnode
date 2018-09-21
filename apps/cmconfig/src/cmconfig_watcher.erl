@@ -31,16 +31,17 @@ terminate(Reason, _, _) ->
     ok.
 
 handle_file_event(File, ".yml", modified) ->
-    case cmkit:yaml(File) of 
-        {ok, #{ <<"type">> := Type, 
-                <<"name">> := Name, 
-                <<"version">> := Version }} ->
-            cmkit:log({cmconfig, modified, Type, Name, Version}),
-            cmconfig_compiler_sup:start();
-        _ ->
-            cmkit:danger({cmconfig, error, File})
-    end,
-    erlang:garbage_collect(),
+    spawn( fun() ->
+                   case cmkit:yaml(File) of 
+                       {ok, #{ <<"type">> := Type, 
+                               <<"name">> := Name, 
+                               <<"version">> := Version }} ->
+                           cmkit:log({cmconfig, modified, Type, Name, Version}),
+                           cmconfig_util:reload();
+                       _ ->
+                           cmkit:danger({cmconfig, error, File})
+                   end
+           end),
     ok;
 
 handle_file_event(_, _, _) -> ok.

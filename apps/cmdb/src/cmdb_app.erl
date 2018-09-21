@@ -3,9 +3,9 @@
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    {ok, Buckets} = cmdb_util:reload(),
-    cmkit:log({cmdb, Buckets}),
-    cmdb_sup:start_link(Buckets).
+    Pid = cmdb_sup:start_link(),
+    cmdb_compiler_sup:start(),
+    Pid.
 
 stop(_State) ->
     ok.

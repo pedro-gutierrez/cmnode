@@ -9,8 +9,10 @@ is_template(T) ->
             lists:member({render, 2}, T:module_info(exports))
     end.
 
-reload() ->    
-    reload(cmconfig:templates()).
+reload() ->   
+    spawn(fun() ->
+        reload(cmconfig:templates())
+          end).
 
 reload([]) -> ok;
 reload([#{ contents := Data, name := Name }|Rem]) ->

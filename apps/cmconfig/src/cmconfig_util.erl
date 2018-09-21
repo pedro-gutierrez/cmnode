@@ -21,19 +21,16 @@
                 task]).
 
 reload() -> 
-    {ok, Specs} = parse(),
-    Index = compiled(sorted(ranked(Specs))),
-    Funs = merged(Index),
-    Funs2 = Funs#{ effects => #{ arity => 0,
-                         clauses => [#{ vars => [],
-                                        body => #{ abstract => effects() }}]}},
+                  {ok, Specs} = parse(),
+                  Index = compiled(sorted(ranked(Specs))),
+                  Funs = merged(Index),
+                  Funs2 = Funs#{ effects => #{ arity => 0,
+                                               clauses => [#{ vars => [],
+                                                              body => #{ abstract => effects() }}]}},
 
-    cmcode:compile(#{ module => ?GENERATED_MOD,
-                      functions => Funs2
-                    }),
-
-    erlang:garbage_collect(self()),
-    ok.
+                  cmcode:compile(#{ module => ?GENERATED_MOD,
+                                    functions => Funs2
+                                  }).
 
 merged(Index) -> merged(maps:keys(Index), Index, #{}).
 merged([], _Index, Out) -> Out;

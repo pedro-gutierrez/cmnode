@@ -2109,8 +2109,6 @@ spec:
         object:
           settings:
             keyword: preprod
-          name: 
-            text: "sphera-rwanda"
           docker_image:
             object:
               name: 
@@ -2132,7 +2130,9 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: netcomp_deploy_task
+          encoder: sphera_rwanda_deploy_task
+        - effect: task
+          encoder: sphera_morocco_deploy_task
         - effect: notify
           encoder: ok
   encoders:
@@ -2614,6 +2614,40 @@ spec:
           object:
             name:
               key: name
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    sphera_rwanda_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "sphera-rwanda"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    sphera_morocco_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "sphera-morocco"
             repo:
               key: repo
               in: docker_image
