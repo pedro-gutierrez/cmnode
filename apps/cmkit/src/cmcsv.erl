@@ -1,5 +1,32 @@
 -module(cmcsv).
--export([parse/3, now/0]).
+-export([fold/3, parse/3, now/0]).
+
+fold(File, Acc, Fun) ->
+    case file:open(File, [raw, read_ahead, binary]) of
+        {ok, IoDevice} ->
+            case without_header(IoDevice) of
+                {ok, _} ->
+                    Acc2 = fold_line(IoDevice, Acc, Fun),
+                    file:close(IoDevice),
+                    Acc2;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end.
+
+fold_line(IoDevice, Acc, Fun) ->
+    case file:read_line(IoDevice) of
+        {ok, Data} ->
+            Unicode = uniconvert(binary_to_list(Data)), 
+            Data2 = binary:part(Unicode, {0, size(Unicode)-1}),
+            Fields = binary:split(Data2, <<",">>, [global]),
+            Acc2 = Fun(Fields, Acc),
+            fold_line(IoDevice, Acc2, Fun);
+        eof ->
+            Acc
+    end.
 
 parse(File, BatchSize, Fun) ->
     Stats = #{ start => cmcsv:now(), 
@@ -58,7 +85,7 @@ read_batch(IoDevice, Current, BatchSize, #{ start := Start,
 
                                  stop => Stop }};
                 Error -> 
-                    {err, Error}
+                    {error, Error}
             end;
         Other -> 
             Other

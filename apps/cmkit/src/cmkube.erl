@@ -133,6 +133,89 @@ do(#{ name := Name,
             Other
     end;
 
+
+do(#{ name := Name,
+      namespace := Ns,
+      resource := statefulset,
+      server := #{ api := Url,
+                   token := Token },
+      state := absent,
+      props := Props }) -> 
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    cmkit:log({cmkube, statefulset, Name, deleting}),
+    case kuberl_apps_v1_api:delete_namespaced_stateful_set(Ctx, Name, Ns, #{}, Opts) of 
+        {error, Reason, #{ status := 404 }} ->
+            {ok, Reason};
+        {error, E, _} -> {error, E};
+        {ok, Data, _ } -> 
+            cmkit:log({cmkube, statefulset, Name, deleted}),
+            case await(#{ namespace => Ns,
+                          resource => pod,
+                          server => #{ api => Url,
+                                       token => Token },
+                          state => <<"Running">>,
+                          props => Props,
+                          retries => 60,
+                          sleep => 1000,
+                          exact => 0 }) of 
+                ok ->
+                    {ok, Data};
+                {error, E} ->
+                    {error, E}
+            end
+    end;
+
+do(#{ name := Name,
+      namespace := Ns,
+      resource := statefulset,
+      server := #{ api := Url,
+                   token := Token },
+      state := present,
+      props := #{ labels := Labels,
+                  replicas := Replicas,
+                  serviceName := ServiceName,
+                  spec := Spec } = Props} = Params) ->
+
+    case do(Params#{ state => absent }) of 
+        {ok, _ } ->
+            Dep = #{ apiVersion => <<"apps/v1">>,
+                     kind => <<"StatefulSet">>,
+                     metadata => #{ name => Name,
+                                    namespace => Ns,
+                                    labels => Labels },
+                     spec => #{ replicas => Replicas,
+                                serviceName => ServiceName,
+                                selector => #{ matchLabels => Labels },
+                                template =>
+                                #{ metadata => #{ labels => Labels },
+                                   spec => Spec } }},
+
+            Ctx = ctx:background(),
+            Opts = opts(Url, Token),
+            case kuberl_apps_v1_api:create_namespaced_stateful_set(Ctx, Ns, Dep, Opts) of 
+                {error, E, _} -> {error, E};
+                {ok, Data, _} -> 
+                    case await(#{ namespace => Ns,
+                                  resource => pod,
+                                  server => #{ api => Url,
+                                               token => Token },
+                                  state => <<"Running">>,
+                                  props => Props,
+                                  retries => 60,
+                                  sleep => 1000,
+                                  exact => Replicas }) of 
+                        ok -> 
+                            {ok, Data};
+                        Other ->
+                            Other
+                    end
+            end;
+        Other ->
+            Other
+    end;
+
 do(#{ namespace := Ns,
       resource := pod,
       server := #{ api := Url,

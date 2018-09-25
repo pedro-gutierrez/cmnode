@@ -126,9 +126,17 @@ encode(#{ type := condition,
             Other
     end;
 
+encode(#{ type := text,
+          spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, V} -> 
+            {ok, cmkit:to_bin(V)};
+        Other -> 
+            Other
+    end;
+
 encode(#{ type := text, value := Value }, _, _) ->
     {ok, cmkit:to_bin(Value) };
-
 
 encode(#{ type := number, value:= V }, _, _) when is_number(V) ->
     {ok, V};
@@ -173,14 +181,6 @@ encode(#{ type := member,
             }
     end;
 
-encode(#{ type := text,
-          spec := Spec }, In, Config) ->
-    case encode(Spec, In, Config) of 
-        {ok, V} -> 
-            {ok, cmkit:to_bin(V)};
-        Other -> 
-            Other
-    end;
 
 encode(#{ type := keyword, value := no }, _, _) -> 
     {ok, false};

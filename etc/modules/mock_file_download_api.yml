@@ -1,36 +1,19 @@
 version: 1.0
 type: module
 category: server
-name: mock_activities_ok_api
+name: mock_file_download_api
 spec:
   decoders:
-    valid_activity:
+    valid_doc:
       object:
         headers:
           object:
             client_id: "3434323666396432626437353336363735616464386335343930636332313237"
         params:
           object:
-            encrypted_bdu_id:
+            msad_id:
               any: text
-        body:
-          object:
-            type_activity:
-              any: text
-            date:
-              any: date
-              format: iso8601
-            location:
-              any: text
-            who:
-              any: text
-            for_who:
-              any: text
-            speciality:
-              any: text
-            description:
-              any: text
-            id_external:
+            doc_id:
               any: text
     invalid_client_id:
       object:
@@ -39,16 +22,27 @@ spec:
             client_id: 
               other_than: "3434323666396432626437353336363735616464386335343930636332313237"
   update:
-    valid_activity:
+    valid_doc:
       model:
         object:
-          activity_id:
-            hash:
-              key: id_external
-              in: body
+          doc_id:
+            key: doc_id
+            in: params
+          insert_date:
+            format:
+              pattern:
+                keyword: iso8601
+              date:
+                calendar:
+                  days:
+                    in: 0
+          description: "Mock description"
+          document_name: "Mock name"
+          document_extension: "png"
+          document_type: 13
       cmds:
         - effect: notify
-          encoder: new_activity
+          encoder: new_doc
         - effect: terminate
     invalid_client_id:
       cmds:
@@ -69,7 +63,7 @@ spec:
           returnValue:
             object:
               message: "6000"
-    new_activity:
+    new_doc:
       object:
         status: 200
         headers:
@@ -85,8 +79,17 @@ spec:
                 message: "success"
                 data:
                   object:
-                    activity:
-                      object:
-                        id: 
-                          key: activity_id
-                    type_activities: []
+                    id: 
+                      text:
+                        key: doc_id
+                    insert_date:
+                      key: insert_date
+                    description:
+                      key: description
+                    document_extension:
+                      key: document_extension
+                    document_name:
+                      key: document_name
+                    document_type:
+                      key: document_type
+                    document_value_b64: "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8Dzn4EIwDiqkL4KAc5IFG/Tmt37AAAAAElFTkSuQmCC"

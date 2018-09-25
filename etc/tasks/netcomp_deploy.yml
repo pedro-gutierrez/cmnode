@@ -3,7 +3,7 @@ type: task
 name: netcomp_deploy
 spec:
   - kube:
-      kind: deployment
+      kind: statefulset
       name:
         join:
           terms:
@@ -28,6 +28,12 @@ spec:
                     - key: name
                       in: params
                     - text: "-09"
+          serviceName:
+            join:
+              terms:
+                - key: name
+                  in: params
+                - text: "-09"
           replicas: 1
           spec:
             object:

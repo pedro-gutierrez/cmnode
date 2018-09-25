@@ -8,9 +8,11 @@ spec:
     mock_oauth_api:
       http: "/oauth"
     mock_activities_ok_api:
-      http: "/qcmas/health_diary/api/v1/3861626639653861356537343838623765356466393230313333323639623533/activities"
+      http: "/qcmas/health_diary/api/v1/:encrypted_bdu_id/activities"
     mock_folder_ok_api:
-      http: "/qcmas/health_folder/api/v1/documents/3861626639653861356537343838623765356466393230313333323639623533/document"
+      http: "/qcmas/health_folder/api/v1/documents/:msad_id/documentNotToken"
+    mock_file_download_api:
+      http: "/qcmas/health_folder/api/v1/documents/:msad_id/document/:doc_id/download"
     nkpanel_api:
       ws: "/ws"
       http: "/api"
