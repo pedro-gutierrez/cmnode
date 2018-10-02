@@ -5,7 +5,8 @@
          put/2,
          get/2,
          get/3,
-         get/4
+         get/4,
+         map/4
         ]).
 
 reset(Name) -> 
@@ -25,6 +26,9 @@ get(Name, S) ->
 
 get(Name, S, P, O) ->
     merge(cmdb_util:get(cmdb_config:storage(Name), Name, S, P, O)).
+
+map(Name, S, Match, Merge) ->
+    cmdb_util:map(cmdb_config:storage(Name), S, Match, Merge).
 
 merge({ok, Entries}) -> {ok, cmdb_util:merge(Entries)};
 merge(Other) -> Other.

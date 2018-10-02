@@ -1282,6 +1282,17 @@ compile_term(#{ <<"expect">> := Spec }, Index) ->
        spec => compile_term(Spec, Index)
      };
 
+compile_term(#{ <<"parallel">> := #{ 
+                    <<"count">> := Count,
+                    <<"spec">> := Spec }}, Index) ->
+    #{ type => parallel,
+       count => compile_term(Count, Index),
+       spec => compile_term(Spec, Index)
+     };
+
+compile_term(#{ <<"ref">> := Ref }, _) when is_binary(Ref) ->
+    #{ ref => Ref };
+
 compile_term(#{ <<"request">> := Spec,
                 <<"as">> := As }, Index) ->
     #{ type => request,

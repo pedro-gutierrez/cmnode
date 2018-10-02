@@ -5,10 +5,12 @@
          reset/2,
          delete/2,
          del/3,
+         del/4,
          put/3,
          get/3,
          get/4,
          get/5,
+         map/5,
          merge/1,
          stress/4,
          test/0
@@ -57,7 +59,7 @@ reload() ->
 
     cmkit:log({cmdb, config, Res}),
 
-    [open(Storage, Name) ||
+    _Res2 = [open(Storage, Name) ||
         #{ name := Name, storage := Storage } <- Buckets ],
     
     {ok, Buckets}.
@@ -115,21 +117,47 @@ reset(disc, Name) ->
                        gen_server:call(Pid, close)
                end).
 
+del(memory, Name, S, P) ->
+    case get(memory, Name, S, P) of 
+        {ok, Entries} ->
+            [ ets:delete(Name, {S0, P0, O0, H, T}) || {S0, P0, O0, H, T, _} <- Entries]; 
+        _ ->
+            ok
+    end;
+
+
+del(disc, Name, S, P) -> 
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {delete, S, P})
+               end).
+
+
 del(memory, Name, S, P, O) ->
     case get(memory, Name, S, P, O) of 
         {ok, Entries} ->
             [ ets:delete(Name, {S0, P0, O0, H, T}) || {S0, P0, O0, H, T, _} <- Entries]; 
         _ ->
             ok
-    end.
+    end;
+
+
+del(disc, Name, S, P, O) -> 
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {delete, S, P, O})
+               end).
 
 
 del(memory, Name, Entries) ->
-    [del(memory, Name, S, P, O)|| {S, P, O} <- Entries ],
+    [del(memory, Name, S, P, O)|| {S, P, O} <- Entries],
     ok;
 
-del(disc, _Name, _Entries) ->
-    not_supported.
+del(disc, Name, Entries) ->
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {delete, Entries})
+               end).
 
 put(memory, Name, Entries) -> 
     Host = cmdb_config:host(),
@@ -193,6 +221,15 @@ get(disc, Name, S, P, O) ->
                                         stop
                                 end).
 
+map(memory, _Name, _S, _Match, _Merge) ->
+    {error, not_implemented};
+
+map(disc, Name, S, Match, Merge) ->
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {put, S, Match, Merge})
+               end).
+    
 fold(Name, Start, Fun) ->
     resolve(Name, fun(Fd) ->
                           {ok, Header, _} = cbt_file:read_header(Fd),

@@ -9,18 +9,50 @@ spec:
         headers:
           object:
             client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+            authorization:
+              text:
+                regexp: "Bearer "
         params:
           object:
             msad_id:
               any: text
             doc_id:
+              text:
+                other_than: "unknown"
+    unknown_doc:
+      object:
+        headers:
+          object:
+            client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+            authorization:
+              text:
+                regexp: "Bearer "
+        params:
+          object:
+            msad_id:
               any: text
+            doc_id: "unknown"
     invalid_client_id:
       object:
         headers:
           object:
             client_id: 
               other_than: "3434323666396432626437353336363735616464386335343930636332313237"
+    invalid_authorization:
+      object:
+        headers:
+          object:
+            authorization:
+              text:
+                other_than:
+                  text:
+                    regexp: "Bearer "
+            client_id: "3434323666396432626437353336363735616464386335343930636332313237"
+    missing_authorization:
+      object:
+        headers:
+          without_keys:
+            - authorization
   update:
     valid_doc:
       model:
@@ -44,10 +76,26 @@ spec:
         - effect: notify
           encoder: new_doc
         - effect: terminate
+    unknown_doc:
+      cmds:
+        - effect: notify
+          encoder: unknown_doc
+        - effect: terminate
+
     invalid_client_id:
       cmds:
         - effect: notify
           encoder: invalid_client_id
+        - effect: terminate
+    invalid_authorization:
+      cmds:
+        - effect: notify
+          encoder: invalid_access_token 
+        - effect: terminate
+    missing_authorization:
+      cmds:
+        - effect: notify
+          encoder: missing_access_token 
         - effect: terminate
   encoders:
     invalid_client_id:
@@ -63,6 +111,20 @@ spec:
           returnValue:
             object:
               message: "6000"
+    unknown_doc:
+      object:
+        status: 200
+        headers:
+          content-type: "application/json; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          object:
+            result: "KO"
+            returnValue:
+              object:
+                message: "7103"
     new_doc:
       object:
         status: 200
@@ -93,3 +155,23 @@ spec:
                     document_type:
                       key: document_type
                     document_value_b64: "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8Dzn4EIwDiqkL4KAc5IFG/Tmt37AAAAAElFTkSuQmCC"
+    invalid_access_token:
+      object:
+        status: 401
+        headers:
+          content-type: "text/plain; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          text: "User Unauthorized. Procotol Fault exception. Invalid access token."
+    missing_access_token:
+      object:
+        status: 401
+        headers:
+          content-type: "text/plain; charset=utf-8"
+          expires: "-1"
+          cache-control: "no-cache"
+          pragma: "no-cache"
+        body:
+          text: "User not authorized: Authorization Bearer Header missing."

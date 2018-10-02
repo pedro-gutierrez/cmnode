@@ -17,6 +17,18 @@ effect_apply(#{ context := Context,
 
     cmcore:update(SessionId, Res);
 
+effect_apply(#{ context := Context, 
+                bucket := Db, 
+                subject := S,
+                match := Match,
+                merge := Merge }, SessionId) ->
+    
+    Res = #{ context => Context,
+             bucket => Db,
+             status => cmdb:map(Db, S, Match, Merge) },
+
+    cmcore:update(SessionId, Res);
+
 effect_apply(#{ context := Context,
                 bucket := Db, 
                 type := Type,
@@ -38,7 +50,12 @@ strategy(_) -> put.
 pairs(Items) when is_list(Items) ->
     lists:map( fun(#{ id := Id,
                       type := Type,
-                      value := Value}) -> {Type, has, Id, Value} end, Items).
+                      value := Value}) -> {Type, has, Id, Value};
+                  (#{ subject := S,
+                      predicate := P,
+                      object := O,
+                      value := V }) -> {S, P, O, V}
+               end, Items).
 
 return(#{ echo := true,
           value := Value }, Res ) -> 

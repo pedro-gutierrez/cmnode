@@ -43,6 +43,10 @@ handle_call({put, Entries}, _, #{ pid := Pid, tree := Tree }=Data) ->
     cbt_file:write_header(Pid, Header2),
     {reply, ok, Data#{ tree => Tree2}};
 
+handle_call({put, _S, _Match, _Merge}, _, #{ pid := _Pid, tree := Tree }=Data) ->
+    Tree2 = Tree,
+    {reply, ok, Data#{ tree => Tree2}};
+
 handle_call(_, _, Data) ->
     {reply, ignored, Data}.
 

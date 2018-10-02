@@ -132,21 +132,35 @@ resolve_steps(Steps, ReusableSteps, Procs) ->
 
 resolve_steps([], _, _, Out) -> {ok, lists:reverse(Out)};
 resolve_steps([#{ ref := Title}|Rem], ReusableSteps, Procs, Out)  ->
+    case resolve_step(Title, ReusableSteps, Procs) of 
+        {ok, S} ->
+            resolve_steps(Rem, ReusableSteps, Procs, [S|Out]);
+        Other ->
+            Other
+    end;
+
+resolve_steps([#{ type := parallel, 
+                  spec := #{ ref := Title } }=Spec|Rem], ReusableSteps, Procs, Out) ->
+    case resolve_step(Title, ReusableSteps, Procs) of 
+        {ok, S} ->
+            resolve_steps(Rem, ReusableSteps, Procs, [Spec#{ spec => S }|Out]);
+        Other ->
+            Other
+    end;
+
+resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Procs, Out) ->
+    cmkit:warning({resolve_steps, Spec}),
+    resolve_steps(Rem, ReusableSteps, Procs, [Spec|Out]).
+
+
+resolve_step(Title, ReusableSteps, Procs) ->
     case maps:get(Title, ReusableSteps, undef) of 
         undef -> 
             {error, #{ error => missing_step,
                        name => Title }};
         S ->
-            case resolve_procedure(S, Procs) of 
-                {ok, S2} ->
-                    resolve_steps(Rem, ReusableSteps, Procs, [S2|Out]);
-                Other -> 
-                    Other
-            end
-    end;
-
-resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Procs, Out) ->
-    resolve_steps(Rem, ReusableSteps, Procs, [Spec|Out]).
+            resolve_procedure(S, Procs)
+    end.
 
 world_with_conn(App, Props, #{ conns := Conns }=World) ->
     Conns2 = Conns#{ App => maps:merge(Props, #{ name => App,
@@ -341,6 +355,21 @@ run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
                 Other -> 
                     Other
             end;
+        Other ->
+            Other
+    end;
+
+
+run(#{ type := parallel,
+       count := CountSpec,
+       spec := Spec0 }, Settings, #{ data := _Data }=World) ->
+    In = World#{ settings => Settings },
+    case cmencode:encode(CountSpec, In) of
+        {ok, Count} ->
+            lists:foreach(fun(_) ->
+                                 spawn(fun() -> run(Spec0, Settings, World) end)
+                 end, lists:seq(1, Count)),
+            {ok, World};
         Other ->
             Other
     end;

@@ -8,7 +8,7 @@ effect_apply(#{ settings := Settings,
                 subject := Subject,
                 text := Text }, _) -> 
     
-    case cmconfig_util:settings(Settings) of 
+    case cmconfig:settings(Settings) of 
         {ok, Spec} -> 
             case cmencode:encode(Spec) of 
                 {ok, #{ slack := 

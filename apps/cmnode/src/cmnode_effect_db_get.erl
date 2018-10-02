@@ -7,6 +7,43 @@
 effect_info() -> db_get.
 
 
+effect_apply(#{ context := C,
+                bucket := B,
+                subject := S, 
+                predicate := P,
+                labels := #{ object := OLabel,
+                             value := VLabel }}, SessionId) ->
+
+    R = case cmdb:get(B, S, P) of 
+            {ok, Entries} -> 
+                #{ context => C,
+                   value => [ #{ OLabel => O, 
+                                 VLabel => V }  || {_, _, O, V} <- Entries] };
+            {error, E }-> 
+                #{ context => C,
+                   error => E }
+        end,
+    cmcore:update(SessionId, R);
+
+effect_apply(#{ context := C,
+                bucket := B,
+                subject := S, 
+                labels := #{ predicate := PLabel,
+                             object := OLabel,
+                             value := VLabel }}, SessionId) ->
+
+    R = case cmdb:get(B, S) of 
+            {ok, Entries} -> 
+                #{ context => C,
+                   value => [ #{ PLabel => P,
+                                 OLabel => O, 
+                                 VLabel => V }  || {_, P, O, V} <- Entries] };
+            {error, E }-> 
+                #{ context => C,
+                   error => E }
+        end,
+    cmcore:update(SessionId, R);
+
 effect_apply(#{ bucket := Db, 
                 type := Type, 
                 id := Id } = Q, SessionId) ->

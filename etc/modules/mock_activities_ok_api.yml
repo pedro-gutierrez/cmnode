@@ -16,7 +16,7 @@ spec:
         body:
           object:
             type_activity:
-              any: text
+              any: number
             date:
               any: date
               format: iso8601

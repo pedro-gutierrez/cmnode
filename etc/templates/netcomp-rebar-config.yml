@@ -16,7 +16,7 @@ spec:
       {nkdomain, {git, "https://github.com/netcomposer/nkdomain", {branch, "v09"}}},
       {nkchat, {git, "https://github.com/netcomposer/nkchat", {branch, "v09"}}}, 
       {nkswarm, {git, "https://github.com/pedro-gutierrez/nkswarm", {tag, "v1.0.2"}}},
-      {nkstats, {git, "https://github.com/pedro-gutierrez/nkstats", {tag, "v1.1.0"}}},
+      {nkstats, {git, "https://github.com/pedro-gutierrez/nkstats", {tag, "v1.1.1"}}},
       {nkkafka, {git, "https://github.com/netcomposer/nkkafka", {branch, "v09"}}},
       {nkcassandra, {git, "https://github.com/netcomposer/nkcassandra", {branch, "v09"}}},
     
