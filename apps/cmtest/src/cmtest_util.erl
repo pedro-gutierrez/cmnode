@@ -366,9 +366,9 @@ run(#{ type := parallel,
     In = World#{ settings => Settings },
     case cmencode:encode(CountSpec, In) of
         {ok, Count} ->
-            lists:foreach(fun(_) ->
-                                 spawn(fun() -> run(Spec0, Settings, World) end)
-                 end, lists:seq(1, Count)),
+            FuncCall = {?MODULE, run, [Spec0, Settings, World]},
+            FuncCalls = lists:map(fun(_) -> FuncCall end, lists:seq(1, Count)),
+            _Res = rpc:parallel_eval(FuncCalls),
             {ok, World};
         Other ->
             Other
