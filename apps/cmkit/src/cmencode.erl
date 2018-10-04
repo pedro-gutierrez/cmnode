@@ -32,8 +32,54 @@ encode(#{ type := object }, _, _) ->
 encode(#{ type := data, from := Key}, In, Config) when is_atom(Key) ->
     encode(Key, In, Config);
 
-encode(Key, In, _) when ( is_atom(Key) or is_binary(Key)) ->
-    
+
+encode(#{ type := size_of, spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, M} when is_map(M) ->
+            {ok, map_size(M)};
+        {ok, L} when is_list(L) ->
+            {ok, length(L)};
+        {ok, Other} ->
+            {error, #{ reason => not_supported,
+                       spec => Spec,
+                       type => size_of,
+                       value => Other }};
+        Other -> 
+            Other
+    end;
+
+encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(At) or is_map(At)) ->
+    case encode(#{ key => At }, In, Config) of 
+        {ok, In2} ->
+            case is_list(In2) of 
+                false ->
+                    {error, #{ status => not_a_list, 
+                               at => At }};
+                true ->
+                    case Num =< length(In2) of 
+                        false -> 
+                            {error, #{ status => list_too_small,
+                                       size => length(In2),
+                                       looking_for => Num }};
+                        true ->
+                            {ok, lists:nth(Num, In2)}
+                    end
+            end;
+        Other -> 
+            Other
+    end;
+
+
+encode(#{ key := Key, in := At }=Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
+    case encode(#{ key => At }, In, Config) of 
+        {ok, In2} ->
+            encode(#{ key => Key }, In2, Config);
+        Other -> 
+            cmkit:danger({cmencode, error, Spec, Other}),
+            Other
+    end;
+
+encode(#{ key := Key}, In, _) when is_binary(Key) or is_atom(Key) ->
     case is_map(In) of 
         true ->
             case cmkit:value_at(Key, In) of
@@ -56,51 +102,22 @@ encode(Key, In, _) when ( is_atom(Key) or is_binary(Key)) ->
                     {error, E}
     end;
 
-encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(At) or is_map(At)) ->
-    case encode(At, In, Config) of 
-        {ok, In2} ->
-            case is_list(In2) of 
-                false ->
-                    {error, #{ status => not_a_list, 
-                               at => At }};
-                true ->
-                    case Num =< length(In2) of 
-                        false -> 
-                            {error, #{ status => list_too_small,
-                                       size => length(In2),
-                                       looking_for => Num }};
-                        true ->
-                            {ok, lists:nth(Num, In2)}
-                    end
-            end;
-        Other -> 
-            Other
-    end;
-
-
-encode(#{ key := Key, in := At }=Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
-    case encode(At, In, Config) of 
-        {ok, In2} ->
-            encode(Key, In2, Config);
-        Other -> 
-            cmkit:danger({cmencode, error, Spec, Other}),
-            Other
-    end;
-
-encode(#{ key := KeySpec, in := _ }=Spec, In, Config) when is_map(KeySpec) -> 
+encode(#{ key := KeySpec }=Spec, In, Config) when is_map(KeySpec) -> 
     case encode(KeySpec, In, Config) of 
-        {ok, Key} ->
+        {ok, Key} when is_binary(Key) or is_atom(Key)  ->
             encode(Spec#{ key => Key }, In, Config);
+        {ok, Map} when is_map(Map) ->
+            {ok, Map};
         Other -> 
             cmkit:danger({cmencode, error, Spec, Other}),
             Other
     end;
 
-encode(#{ key := Key}, In, Config) -> 
-    encode(Key, In, Config);
+
+
 
 encode(#{ type := either, options := Opts}, In, Config) -> 
-    encode_options(Opts, In, Config);
+    encode_options(Opts, Opts, In, Config);
 
 encode(#{ type := condition, 
           condition := #{ type := true },
@@ -197,18 +214,18 @@ encode(#{ type := list,
     encode_list(List, In, Config);
 
 
+
+
 encode(#{ type := config,
-          spec := Key } = Spec, _, Config) ->
-    case maps:get(Key, Config, undef) of 
-        undef -> 
-            {error, #{ status => encode_error,
+          spec := Spec}, _, Config) when is_map(Spec) ->
+    case encode(Spec, Config) of 
+        {ok, V} -> {ok, V};
+        Other ->
+            {error, #{ status => config_error,
                        spec => Spec,
                        data => Config,
-                       reason => missing_key }};
-        V -> 
-            {ok, V}
+                       reason => Other }}
     end;
-
 
 encode(#{ type := url,
           host := Host,
@@ -800,6 +817,7 @@ encode(#{ type := find,
 encode(#{ type := iterate, 
           source := SourceSpec,
           filter := FilterSpec,
+          as := AsSpec,
           dest := DestSpec }, In, Config) -> 
 
     case cmencode:encode(SourceSpec, In, Config) of 
@@ -814,10 +832,15 @@ encode(#{ type := iterate,
                                                     end
                                            end, Source)
                         end,
-            map(DestSpec, In, Config, Source2);
+            map(DestSpec, In, Config, Source2, AsSpec);
         Other -> 
             Other
     end;
+
+encode(#{ type := iterate, 
+          source := _,
+          dest := _ } = Spec, In, Config) ->
+    encode(Spec#{ filter => none }, In, Config);
 
 
 encode(#{ type := merge,
@@ -981,13 +1004,29 @@ encode(#{ type := hash,
             Other
     end;
 
+encode(#{ encoder := NameSpec } = Spec, In, #{ encoders := Encs }=Config) ->
+    case encode(NameSpec, In, Config) of 
+        {ok, Name} ->
+            case maps:get(Name, Encs, undef) of 
+                undef -> 
+                    {error, #{ reason => encode,
+                               spec => Spec,
+                               encoder => Name,
+                               status => not_such_encoder,
+                               encoders => Encs }};
+                Enc ->
+                    encode(Enc, In, Config)
+            end;
+        Other ->
+            Other
+    end;
+
 encode(#{ value := V}, _, _) -> {ok, V};
 
 encode(#{ spec := Spec }, _, _) -> {ok, Spec};
 
-encode(Other, In, Config) when is_map(Other) ->
-    encode(#{ type => object,
-              spec => Other }, In, Config).
+encode(Value, _, _) ->
+    {ok, Value}.
 
 encode_object(Spec, In, Config) ->
     encode_object(maps:keys(Spec), Spec, In, Config, #{}).
@@ -1012,18 +1051,33 @@ encode_list([Spec|Rem], In, Config, Out) ->
             fail(Spec, In, E)
     end.
 
-map(Dest, In, Config, Source) -> 
-    map(Dest, In, Config, Source, []).
+map(Dest, In, Config, Source, AsSpec) ->
+    case AsSpec of 
+        none ->
+            map(Dest, In, Config, Source, none, []);
+        S0 -> 
+            case encode(S0, In, Config) of 
+                {ok, As} ->
+                    map(Dest, In, Config, Source, As, []);
+                Other ->
+                    Other
+            end
+    end.
 
-map(_, _, _, [], Out) ->  {ok, lists:reverse(Out)};
-map(DestSpec, In, Config, [Item|Rem], Out) -> 
-    case cmencode:encode(DestSpec, In#{ item =>  Item}, Config) of 
+
+map(_, _, _, [], _, Out) ->  {ok, lists:reverse(Out)};
+map(DestSpec, In, Config, [Item|Rem], As, Out) -> 
+    In2 = case As of 
+             none -> Item;
+             _ -> 
+                 In#{ As => Item }
+         end,
+    case cmencode:encode(DestSpec, In2, Config) of 
         {ok, Encoded} ->
-            map(DestSpec, In, Config, Rem, [Encoded|Out]);
+            map(DestSpec, In, Config, Rem, As, [Encoded|Out]);
         Other -> 
             Other
     end.
-
 
 fail(Spec, In, Out) ->
     {error, #{ status => encode_error,
@@ -1048,13 +1102,15 @@ encode_all([Spec|Rem], In, Config, Out) ->
             Other
     end.
 
-encode_options([], _, _) -> {error, #{ status => encode_error,
-                                       reason => no_condition_did_verify }};
-encode_options([C|Rem], In, Config) ->
+encode_options([], All,  In, _) -> {error, #{ status => encode_error,
+                                             reason => no_condition_did_verify,
+                                             in => In,
+                                             options => All}};
+encode_options([C|Rem], All, In, Config) ->
     case encode(C, In, Config) of 
         {ok, V} -> {ok, V};
         {error, condition_not_satisfied} -> 
-            encode_options(Rem, In, Config);
+            encode_options(Rem, All, In, Config);
         Other -> 
             Other
     end.

@@ -25,7 +25,7 @@ init([#{ config := Config,
                                  conns => [Conn]}}.
 
 initializing({call, From}, init,  #{app := App,
-                                    config := Config,
+                                    config := Config0,
                                     debug := Debug,
                                     id := Id,
                                     spec := Spec}=Session) ->
@@ -33,10 +33,15 @@ initializing({call, From}, init,  #{app := App,
     Log = cmkit:log_fun(Debug),
     Effects = cmconfig:effects(),
     {ok, Effect} = cmcore_effect_sup:start_effect(Id),
+    Config = case maps:get(encoders, Spec, undef) of 
+                  undef -> Config0;
+                  Encs -> Config0#{ encoders => Encs }
+              end,
     case cmcore_util:init(Spec, Config) of 
         {ok, Model, Cmds} -> 
             cmcore_util:cmds(Cmds, Model, Config, Session),
             {next_state, ready, Session#{ 
+                                  config => Config,
                                   log => Log,
                                   effect => Effect,
                                   effects => Effects,
@@ -62,7 +67,7 @@ ready(cast, {update, Data}, #{ app := App,
                             {keep_state, Session#{ model => Model2 }};
                         {error, E} ->
                             server_error(App, Session, update, E),
-                            {stop, normal}
+                            {keep_state, Session}
                     end;
                 {error, E} ->
                     server_error(App, Session, update, E),
@@ -75,20 +80,19 @@ ready(cast, {update, Data}, #{ app := App,
     end;
 
 ready(cast, terminate, #{ effect := Effect }) ->
-    
     ok = cmcore_effect:stop(Effect),
     {stop, normal};
 
 ready({call, From}, connections,  #{conns := Conns}=Data) ->
     {keep_state, Data, reply(From, Conns)}.
 
-server_error(App, Session, Phase, Reason) ->
+server_error(App, _Session, Phase, Reason) ->
     Info = #{ status => error,
               app => App,
               phase => Phase,
               reason => Reason },
     cmkit:danger({cmcore, server_error, Info}),
-    cmcore_util:apply_effect(notify, Info, Session),
+    %cmcore_util:apply_effect(notify, Info, Session),
     gen_statem:cast(self(), terminate),
     Info.
 

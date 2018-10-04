@@ -39,6 +39,12 @@ spec:
               name: "dkv-pet-proxy"
               instance: "default"
           - object:
+              title: "DKV Notifications"
+              description: "DKV Notifications microservice"
+              platform: "erlang"
+              name: "dkv-notifications"
+              instance: "default"
+          - object:
               title: "Sphera Brazil backend"
               description: "Netcomposer v09 Collab API for Sphera"
               platform: "netcomp v09"

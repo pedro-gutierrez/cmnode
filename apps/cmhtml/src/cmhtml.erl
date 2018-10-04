@@ -43,7 +43,6 @@ compiled_view(#{ tag := Tag,
         {ok, CompiledAttrs} ->
             case compiled_views(Children, Views, Context, Settings) of 
                 {ok, CompiledChildren} ->
-                    cmkit:warning({cmhtml, children, CompiledChildren}),
                     {ok, [Tag, CompiledAttrs, CompiledChildren]};
                 Other ->
                     Other

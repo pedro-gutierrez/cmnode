@@ -121,11 +121,14 @@ decoded_headers([{K, V}|Rem], Out) ->
     BinValue = cmkit:to_bin(V),
     decoded_headers(Rem, Out#{ BinKey => BinValue }).
 
-encodedQs(Map) ->
+encodedQs(Map) when is_map(Map) ->
     Params = cmkit:bin_join(maps:fold(fun(K, V, Acc) ->
                                         KBin = cmkit:to_bin(K),
                                         VBin = cmkit:to_bin(V),
                                         [<<KBin/binary, "=", VBin/binary>>|Acc]
                                        end, [], Map), <<"&">>),
-    <<"?", Params/binary>>.
+    <<"?", Params/binary>>;
+
+encodedQs(Bin) when is_binary(Bin) ->
+    Bin.
 

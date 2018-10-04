@@ -195,9 +195,7 @@ spec:
                               object:
                                 containerPort: 
                                   key: port
-                                  in: item
                                 name:
                                   key: name
-                                  in: item
                                 protocol:
                                   text: "TCP"

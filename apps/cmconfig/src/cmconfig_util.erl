@@ -328,11 +328,27 @@ compile_app(#{ <<"name">> := Name,
                <<"spec">> := #{
                    <<"modules">> := Modules 
                   } = Spec
-             }, #{ module := Mods}=Index) ->
+             }, #{ settings := Settings,
+                   module := Mods}=Index) ->
 
+    AppName = cmkit:to_atom(Name),
     ResolvedModules = resolve_modules(Modules, Mods),
+    
+    AppConfig0 = compile_config(maps:get(<<"config">>, Spec, #{}), Index),
+    AppConfig = case maps:get(AppName, Settings, undef) of 
+                    undef -> 
+                        AppConfig0;
+                    #{ spec := SettingsSpec } ->
+                        case cmencode:encode(SettingsSpec) of 
+                            {ok, AppSettings} ->
+                                maps:merge(AppConfig0, AppSettings);
+                            Other ->
+                                cmkit:warning({compile_app, AppName, invalid_settings, Other}),
+                                AppConfig0
+                        end
+                end,
 
-    #{ name => cmkit:to_atom(Name),
+    #{ name => AppName,
        type => app,
        rank => Rank,
        modules => lists:map(fun(#{ status := unknown }=M) ->
@@ -342,7 +358,7 @@ compile_app(#{ <<"name">> := Name,
                                        status => resolved
                                      }
                             end, ResolvedModules),
-       config => compile_config(maps:get(<<"config">>, Spec, #{}), Index),
+       config => AppConfig,
        debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
        category => compile_keyword(Cat),
        spec => compile_modules(ResolvedModules, #{})
@@ -797,10 +813,13 @@ compile_term(#{<<"empty">> := <<"list">> }, _) ->
 compile_term(#{<<"empty">> := _}, _) ->
     #{ type => empty };
 
-compile_term(#{ <<"config">> := Key }, _) ->
+compile_term(#{ <<"config">> := Spec}, Index) when is_map(Spec) ->
     #{ type => config,
-       spec => compile_keyword(Key) 
+       spec => compile_term(Spec, Index)
      };
+
+compile_term(#{ <<"config">> := Key} = Spec, Index) when is_binary(Key) ->
+    compile_term(Spec#{ <<"config">> := #{ <<"key">> => Key }}, Index);
 
 compile_term(#{ <<"maybe">> := Spec }, Index) ->
     #{ maybe => compile_term(Spec, Index) };
@@ -1519,20 +1538,26 @@ compile_term(#{ <<"find">> := TargetSpec,
        target => compile_term(TargetSpec, Index) };
 
 compile_term(#{ <<"iterate">> := SourceSpec,
-                <<"filter">> := FilterSpec, 
-                <<"with">> := DestSpec }, Index) ->
+                <<"with">> := DestSpec } = Spec, Index) ->
+    
+    AsSpec = case maps:get(<<"as">>, Spec, none) of 
+                none ->
+                    none;
+                S0 ->
+                    compile_term(S0, Index)
+             end,
+    
+    FilterSpec = case maps:get(<<"filter">>, Spec, none) of 
+                none ->
+                    none;
+                S1 ->
+                    compile_term(S1, Index)
+             end,
 
     #{ type => iterate,
        source => compile_term(SourceSpec, Index),
-       filter => compile_term(FilterSpec, Index),
-       dest => compile_term(DestSpec, Index) };
-
-compile_term(#{ <<"iterate">> := SourceSpec,
-                <<"with">> := DestSpec }, Index) ->
-
-    #{ type => iterate,
-       source => compile_term(SourceSpec, Index),
-       filter => none,
+       filter => FilterSpec,
+       as => AsSpec,
        dest => compile_term(DestSpec, Index) };
 
 compile_term(#{ <<"attempt">> := #{ <<"spec">> := Spec,

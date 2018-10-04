@@ -27,6 +27,35 @@ effect_apply(#{ context := C,
 
 effect_apply(#{ context := C,
                 bucket := B,
+                subject := S,
+                value := V,
+                labels := #{ predicate := PLabel,
+                             object := OLabel,
+                             value := VLabel }}, SessionId) ->
+
+    R = case cmdb:get(B, S) of 
+            {ok, Entries} -> 
+                ValueSpec = #{ type => object,
+                               spec => V },
+                #{ context => C,
+                   value => lists:foldr(fun({_, P, O, V0}, Acc) when is_map(V0) ->
+                                                case cmdecode:decode(ValueSpec, V0) of 
+                                                    {ok, _} ->
+                                                        [#{ PLabel => P,
+                                                            OLabel => O,
+                                                            VLabel => V0 }|Acc];
+                                                    _ -> Acc
+                                                end;
+                                         (_, Acc) -> Acc
+                                        end, [], Entries)};
+            {error, E }-> 
+                #{ context => C,
+                   error => E }
+        end,
+    cmcore:update(SessionId, R);
+
+effect_apply(#{ context := C,
+                bucket := B,
                 subject := S, 
                 labels := #{ predicate := PLabel,
                              object := OLabel,
@@ -43,6 +72,7 @@ effect_apply(#{ context := C,
                    error => E }
         end,
     cmcore:update(SessionId, R);
+
 
 effect_apply(#{ bucket := Db, 
                 type := Type, 

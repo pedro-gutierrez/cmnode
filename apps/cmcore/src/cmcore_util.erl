@@ -102,7 +102,7 @@ unknown_encoder(Enc) ->
 
 
 update_model(Spec, In, Config, Prev) ->
-    case cmencode:encode(Spec, In, Config) of 
+    case cmencode:encode(Spec, maps:merge(Prev, In), Config) of 
         {ok, New} ->
             {ok, maps:merge(Prev, New)};
         Other -> Other

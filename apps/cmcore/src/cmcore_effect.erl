@@ -4,8 +4,13 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
-stop(Pid) -> 
-    gen_server:call(Pid, stop).
+stop(Pid) ->
+    case erlang:is_process_alive(Pid) of 
+        true -> 
+            gen_server:call(Pid, stop);
+        false ->
+            ok
+    end.
 
 apply(Pid, Mod, Data) ->
     gen_server:cast(Pid, {apply, Mod, Data}).

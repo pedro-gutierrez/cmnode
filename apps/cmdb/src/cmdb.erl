@@ -28,7 +28,7 @@ get(Name, S, P, O) ->
     merge(cmdb_util:get(cmdb_config:storage(Name), Name, S, P, O)).
 
 map(Name, S, Match, Merge) ->
-    cmdb_util:map(cmdb_config:storage(Name), S, Match, Merge).
+    cmdb_util:map(cmdb_config:storage(Name), Name, S, Match, Merge).
 
 merge({ok, Entries}) -> {ok, cmdb_util:merge(Entries)};
 merge(Other) -> Other.

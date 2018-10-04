@@ -14,8 +14,6 @@ spec:
     ws:
       type: elementary-ws
       settings:
-        path:
-          text:
-            literal: "/ws"
+        path: "/ws"
         persistent: 
           keyword: true

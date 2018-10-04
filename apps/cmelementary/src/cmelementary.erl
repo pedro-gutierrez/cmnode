@@ -73,7 +73,8 @@ compile_effects([K|Rem], Effects, Settings, Out) ->
     #{ class := Class, 
        name := Name, 
        settings := EffSettingsSpec } = maps:get(K, Effects),
-    case cmencode:encode(EffSettingsSpec, #{}, Settings) of 
+    case cmencode:encode(#{ type => object,
+                            spec => EffSettingsSpec }, #{}, Settings) of 
         {ok, EffSettings} -> 
             compile_effects(Rem, Effects, Settings, Out#{ K => #{ class => Class,
                                                                   name => Name,

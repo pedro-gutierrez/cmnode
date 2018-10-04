@@ -216,6 +216,50 @@ do(#{ name := Name,
             Other
     end;
 
+do(#{ name := Name,
+      namespace := Ns,
+      resource := statefulset,
+      server := #{ api := Url,
+                   token := Token },
+      state := patched,
+      props := #{ labels := Labels,
+                  replicas := Replicas,
+                  serviceName := ServiceName,
+                  spec := Spec } = Props} = _Params) ->
+    
+    Dep = #{ apiVersion => <<"apps/v1">>,
+             kind => <<"StatefulSet">>,
+             metadata => #{ name => Name,
+                            namespace => Ns,
+                            labels => Labels },
+             spec => #{ replicas => Replicas,
+                        serviceName => ServiceName,
+                        selector => #{ matchLabels => Labels },
+                        template =>
+                        #{ metadata => #{ labels => Labels },
+                           spec => Spec } }},
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    case kuberl_apps_v1_api:patch_namespaced_stateful_set(Ctx, Ns, Dep, Opts) of 
+        {error, E, _} -> {error, E};
+        {ok, Data, _} -> 
+            case await(#{ namespace => Ns,
+                          resource => pod,
+                          server => #{ api => Url,
+                                       token => Token },
+                          state => <<"Running">>,
+                          props => Props,
+                          retries => 60,
+                          sleep => 1000,
+                          exact => Replicas }) of 
+                ok -> 
+                    {ok, Data};
+                Other ->
+                    Other
+            end
+    end;
+
 do(#{ namespace := Ns,
       resource := pod,
       server := #{ api := Url,
@@ -325,7 +369,7 @@ do(#{ namespace := Ns,
 
 do(Q) ->
     {error, #{ status => not_supported_yet,
-               query => Q#{ token => <<"NOT SHOWN">> }}}.
+               query => Q}}.
 
 await(#{ state := State,
          retries := Retries,

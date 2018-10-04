@@ -27,10 +27,12 @@ effect_apply(#{ settings := SettingsName,
                             err(ThemeNames, E)
                     end;
                 {error, E} -> 
-                    err(ThemeNames, E)
+                    err(ThemeNames, #{ status => E,
+                                       settings => SettingsName })
             end;
         {error, E} -> 
-                  err(ThemeNames, E) 
+                  err(ThemeNames, #{ status => E,
+                                     settings => SettingsName }) 
     end,
     cmcore:update(Id, Res).
 

@@ -11,9 +11,7 @@
          get/4,
          get/5,
          map/5,
-         merge/1,
-         stress/4,
-         test/0
+         merge/1
         ]).
 -record(acc, {h, v, s, p, o, r}).
 
@@ -230,102 +228,31 @@ map(disc, Name, S, Match, Merge) ->
                        gen_server:call(Pid, {put, S, Match, Merge})
                end).
     
+
+fold(Fd, Start, Fun) when is_pid(Fd) ->
+    {ok, Header, _} = cbt_file:read_header(Fd),
+    {_, Root} = Header,
+    {ok, Tree} = cbt_btree:open(Root, Fd),
+    case cbt_btree:fold(Tree, fun({K, V}, Acc) ->
+                                      case Fun(K, V) of 
+                                          {ok, V2} ->
+                                              {ok, [V2|Acc]};
+                                          skip ->
+                                              {ok, Acc};
+                                          stop ->
+                                              {stop, Acc}
+                                      end
+                              end, [], [{start_key, Start}]) of
+        {ok, _, Values} -> {ok, Values};
+        Other ->
+            Other
+    end;
+
 fold(Name, Start, Fun) ->
     resolve(Name, fun(Fd) ->
-                          {ok, Header, _} = cbt_file:read_header(Fd),
-                          {_, Root} = Header,
-                          {ok, Tree} = cbt_btree:open(Root, Fd),
-                          case cbt_btree:fold(Tree, fun({K, V}, Acc) ->
-                                                            case Fun(K, V) of 
-                                                                {ok, V2} ->
-                                                                    {ok, [V2|Acc]};
-                                                                skip ->
-                                                                    {ok, Acc};
-                                                                stop ->
-                                                                    {stop, Acc}
-                                                            end
-                                                    end, [], [{start_key, Start}]) of
-                              {ok, _, Values} -> {ok, Values};
-                              Other ->
-                                  Other
-                          end
+                          fold(Fd, Start, Fun)
                   end).
-   
-
-
-
-
-
-test_cases() ->[
-                {[{a, a, a, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, a, a0, 2, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}],
-                 [ {a, a, a, a0, 1, <<"v1">>},
-                   {a, a, a, a1, 1, <<"v1">>} 
-                 ]},
-                {[{a, a, a, <<"v1">>},
-                    {a, a, a, <<"v2">>}],
-                 [ {a, a, a, a0, 1, <<"v1">>},
-                   {a, a, a, a1, 1, <<"v1">>},
-                   {a, a, a, a2, 1, <<"v2">>}
-                 ]},
-                {[], []},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a0, 2, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a0, 2, <<"v1">>},
-                    {a, a, b, a1, 1, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a1, 1, <<"v1">>},
-                    {a, a, b, a1, 2, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v2">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a1, 1, <<"v1">>},
-                    {a, a, b, a1, 2, <<"v2">>}
-                  ]},
-                {[{a, a, a, <<"v3">>},
-                  {a, a, b, <<"v2">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, a, a0, 1, <<"v3">>},
-                    {a, a, b, a1, 2, <<"v2">>}
-                  ]},
-                {[{a, a, a, <<"v1">>},
-                  {a, a, a, <<"v3">>},
-                  {a, a, b, <<"v2">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, a, a1, 1, <<"v3">>},
-                    {a, a, b, a1, 2, <<"v2">>}
-                  ]},
-                {[{a, b, a, <<"v1">>},
-                  {a, c, a, <<"v2">>}],
-                  [ {a, b, a, a0, 1, <<"v1">>},
-                    {a, c, a, a0, 1, <<"v2">>}]},
-                {[{a, b, a, <<"v1">>},
-                  {a, c, a, <<"v2">>},
-                  {a, c, a, <<"v3">>}],
-                  [ {a, b, a, a0, 1, <<"v1">>},
-                    {a, c, a, a0, 1, <<"v2">>},
-                    {a, c, a, a1, 1, <<"v3">>}]},
-                {[{a, b, a, <<"v1">>},
-                  {a, c, a, <<"v2">>},
-                  {b, a, a, <<"v1">>}],
-                  [ {a, b, a, a0, 1, <<"v1">>},
-                    {a, c, a, a0, 1, <<"v2">>},
-                    {b, a, a, a0, 1, <<"v1">>}]}
-               ].
-
+  
 merge(Entries) ->
     #acc{ r = R } = lists:foldl(fun({S, P, O, H, _, V}, #acc{ h = undef, 
                                               v = undef, 
@@ -393,58 +320,3 @@ merge(Entries) ->
                           o = undef,
                           r = []}, Entries),
     R.
-    
-test() ->
-    lists:map(fun({O, I}) ->
-                      O = merge(I)
-              end, test_cases()).
-
-
-
-
-% 100M entries
-% 4 threads = 25 M entries/thread
-% Batches of 100 =
-% Sleep 1s
-% Time to write 1M = 100s * time to write 10K
-%
-%
-stress(Name, N, C, I) ->
-    Id = fun(P, K) ->
-                 PBin = cmkit:to_bin(P),
-                 KBin = cmkit:to_bin(K),
-                 <<PBin/binary, "-", KBin/binary>>
-         end,
-    Collector = spawn(fun() ->
-                    loop(0, 0, C, cmkit:micros())
-                 end),
-    lists:foreach(fun(P) -> 
-                          spawn(fun() ->
-                                        cmkit:log({writer, starting}),
-                                        lists:foreach(fun(It) ->
-                                                              {T, _} = timer:tc(fun() ->
-                                                                               cmdb:put(Name, 
-                                                                       [{ N0, P, It, <<"plop">>} || N0 <- lists:seq(1, N)])
-                                                                       end),
-                                                              Collector ! {N, T},
-                                                              erlang:garbage_collect()
-                                                      end, lists:seq(1, I)),
-
-                                        Collector ! finished,
-                                        cmkit:log({writer, finished})
-                                end)
-
-                  end, lists:seq(1, C)).
-
-loop(SoFar, Writers, Writers, Since) ->
-    cmkit:success({finished, SoFar, cmkit:elapsed(Since)/1000000});
-
-loop(SoFar, Finished, Writers, Since) ->
-    receive
-        finished ->
-            loop(SoFar, Finished+1, Writers, Since);
-
-        {Count, T} ->
-            cmkit:log({written, SoFar+Count, trunc(1000000*Count/T)}),
-            loop(SoFar+Count, Finished, Writers, Since)
-    end.

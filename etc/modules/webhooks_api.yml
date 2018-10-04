@@ -763,6 +763,103 @@ spec:
               one_of:
                 - text: "danger"
                 - text: "warning"
+    dkv_notifications_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "dkv-notifications"
+    dkv_notifications_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "dkv-notifications"
+              repo_name:
+                any: text
+    dkv_notifications_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                regexp: "v"
+          repository:
+            object:
+              name:
+                text: "dkv-notifications"
+              repo_name:
+                any: text
+    dkv_notifications_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-notifications"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    dkv_notifications_release_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-notifications"
+            settings:
+              text: "dev"
+            tag:
+              regexp: "v"
+    dkv_notifications_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-notifications"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    dkv_notifications_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-notifications"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
     dkv_docker_release_ready:
       object:
         body:
@@ -1752,6 +1849,115 @@ spec:
           encoder: dkv_pet_proxy_deploy_task
         - effect: notify
           encoder: ok
+    dkv_notifications_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_notifications_build_task 
+        - effect: notify
+          encoder: ok
+    dkv_notifications_docker_dev_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "dkv-notifications"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_notifications_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: dkv_notifications_test
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_tests_passed:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/dkv-notifications"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    dkv_notifications_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "dkv-notifications"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_notifications_deploy_task
+        - effect: notify
+          encoder: ok
     nkdomain_dev_changed:
       model:
         object:
@@ -2598,6 +2804,47 @@ spec:
       object:
         schedule:
           keyword: dkv_pet
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    dkv_notifications_build_task:
+      object:
+        task:
+          keyword: dkv_notifications_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_notifications_deploy_task:
+      object:
+        task:
+          keyword: dkv_notifications_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    dkv_notifications_test:
+      object:
+        schedule:
+          keyword: dkv_notifications
         settings:
           keyword: dev
         opts:

@@ -1,0 +1,168 @@
+version: 1.0
+type: task
+name: dkv_notifications_deploy 
+spec:
+  - kube:
+      kind: statefulset
+      name:
+        key: name
+        in: params
+      state: 
+        keyword: present
+      server:
+        key: kubernetes
+        in: settings
+      namespace: nc
+      props:
+        object:
+          retries: 120
+          serviceName:
+            format:
+              pattern: "~s-headless"
+              params:
+                - key: name
+                  in: params
+          replicas: 1
+          labels:
+            object:
+              app:
+                key: name
+                in: params
+          spec:
+            object:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                      - matchExpressions:
+                        - object:
+                            key: kubernetes.io/hostname
+                            operator: In
+                            values:
+                              - key: placement
+                                in:
+                                  key: notifications
+                                  in:
+                                    key: dkv
+                                    in: settings
+              volumes:
+                list:
+                  - object:
+                      name: data
+                      persistentVolumeClaim:
+                        claimName:
+                          key: name
+                          in: params
+                  - object:
+                      name: config
+                      configMap:
+                        name:
+                          key: name
+                          in: params
+              containers:
+                list:
+                  - object:
+                      name:
+                        key: name
+                        in: params
+                      image:
+                        text:
+                          format:
+                            pattern: "~s:~s"
+                            params:
+                              - key: repo
+                                in: params
+                              - key: tag
+                                in: params
+                      imagePullPolicy: 
+                        text: "Always"
+                      sdin:
+                        keyword: yes
+                      tty:
+                        keyword: yes
+                      ports:
+                        list:
+                          - object:
+                              containerPort: 8090
+                              name: http
+                              protocol: TCP
+                      volumeMounts:
+                        list:
+                          - object:
+                              name: config
+                              mountPath: /opt/dkv-notifications/etc/settings/user_notifications.yml
+                              subPath: user_notifications.yml
+                              readOnly: 
+                                keyword: true
+                          - object:
+                              name: config
+                              mountPath: /root/.hosts.erlang
+                              subPath: .hosts.erlang
+                              readOnly: 
+                                keyword: true
+                          - object:
+                              name: data
+                              mountPath: /opt/dkv-notifications/data
+                              readOnly: 
+                                keyword: true
+                              
+  - wait:
+      condition:
+        eq:
+          - number: 200
+          - key: status
+            in:
+              http:
+                method: get
+                url:
+                  host:
+                    key: host
+                    in: settings
+                  port:
+                    key: port 
+                    in:
+                      key: notifications
+                      in:
+                        key: dkv
+                        in: settings
+                  path:
+                    key: path
+                    in:
+                      key: notifications
+                      in:
+                        key: dkv
+                        in: settings
+                  transport:
+                    key: transport
+                    in:
+                      key: notifications
+                      in:
+                        key: dkv
+                        in: settings
+
+      sleep: 1000
+      retries: 60
+  - http:
+      method: post 
+      url:
+        object:
+          url:
+            key: default
+            in:
+              key: webhooks
+              in: settings
+      headers:
+        object:
+          x-cm-event:
+            text: "deploy-summary"
+      body:
+        object:
+          settings:
+            key: settings
+            in: params
+          repo:
+            key: repo
+            in: params
+          tag:
+            key: tag
+            in: params

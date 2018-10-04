@@ -56,7 +56,8 @@ spec:
         value:
           list:
             with:
-              config: role
+              config: 
+                key: role
     roles_invalid:
       priority: lowest 
       object:
@@ -67,7 +68,8 @@ spec:
         value:
           list: 
             without:
-              config: role
+              config: 
+                key: role
     roles_not_found:
       object:
         bucket:

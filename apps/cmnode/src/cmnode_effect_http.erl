@@ -21,6 +21,27 @@ effect_apply(#{ method := get,
     
     cmcore:update(SessionId, Data#{ context => Context});
 
+effect_apply(#{ method := Method, 
+                url := Url, 
+                context := Context,
+                headers := Headers, 
+                body := Body }, SessionId) ->
+
+    Data = case cmencode:encode(#{ type => exec,
+                                   spec => #{ type => http,
+                                              method => Method,
+                                              url => Url#{ type => url },
+                                              body => Body,
+                                              headers => #{ type => object,
+                                                            spec => Headers }}}) of 
+               {ok, Res} -> Res;
+               {error, E} -> #{ error => E }
+           end,
+
+    cmcore:update(SessionId, Data#{ context => Context});
+
+
+
 effect_apply(#{ stream := Stream } = Q, SessionId) ->
     cmkit:log({cmeffect, http, Q}),
     cmhttp:stream(Q#{ context => #{ data => #{ id => SessionId, 

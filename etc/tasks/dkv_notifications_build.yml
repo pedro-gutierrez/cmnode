@@ -1,0 +1,21 @@
+version: 1.0
+type: task
+name: dkv_notifications_build
+spec:
+  - git:
+      credentials:
+        key: github
+        in: settings
+      clone: 
+        repo: "github.com/netscale-technologies/dkv-notifications.git"
+        branch: "master"
+        dir: "/tmp/dkv-notifications"
+  - docker:
+      credentials:
+        key: docker
+        in: settings
+      build:
+        dir: "/tmp/dkv-notifications"
+        repo: "netcomposer/dkv-notifications"
+        tag: "latest"
+

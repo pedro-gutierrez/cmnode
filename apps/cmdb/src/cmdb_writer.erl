@@ -37,15 +37,38 @@ handle_call(close, _, #{ name := Name,
     {reply, ok, Data2};
 
 handle_call({put, Entries}, _, #{ pid := Pid, tree := Tree }=Data) ->
-    {ok, Tree2} = cbt_btree:add(Tree, Entries),
-    Root2 = cbt_btree:get_state(Tree2),
-    Header2 = {1, Root2},
-    cbt_file:write_header(Pid, Header2),
+    {ok, Tree2} = write_entries(Pid, Tree, Entries),
     {reply, ok, Data#{ tree => Tree2}};
 
-handle_call({put, _S, _Match, _Merge}, _, #{ pid := _Pid, tree := Tree }=Data) ->
-    Tree2 = Tree,
-    {reply, ok, Data#{ tree => Tree2}};
+handle_call({put, S, Match, Merge}, _, #{ pid := Pid, tree := Tree }=Data) ->
+    case cmdb_util:get(disc, Pid, S) of 
+        {ok, Entries} ->
+            ValueSpec = #{ type => object,
+                           spec => Match },
+
+            Now = cmkit:micros(),
+            Host = cmdb_config:host(),
+            ToUpdate = lists:foldr(fun({S0, P0, O0, V}, Acc) when is_map(V) ->
+                                           case cmdecode:decode(ValueSpec, V) of 
+                                               {ok, _} ->
+                                                   [{{S0, P0, O0, Host, Now},
+                                                     maps:merge(V, Merge)}|Acc];
+                                               _ -> 
+                                                   Acc
+                                           end;
+                                      (_, Acc) ->
+                                           Acc
+                                   end, [], cmdb_util:merge(Entries)),
+            case ToUpdate of 
+                [] -> 
+                    {reply, ok, Data};
+                _ -> 
+                    {ok, Tree2} = write_entries(Pid, Tree, ToUpdate),
+                    {reply, ok, Data#{ tree => Tree2}}
+            end;
+        Other ->
+            {reply, Other, Data}
+    end;
 
 handle_call(_, _, Data) ->
     {reply, ignored, Data}.
@@ -62,3 +85,10 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(Reason, Bucket) ->
     cmkit:warning({cmdb, writer, node(), Bucket, terminated, Reason}),
     ok.
+
+write_entries(Pid, Tree, Entries) -> 
+    {ok, Tree2} = cbt_btree:add(Tree, Entries),
+    Root2 = cbt_btree:get_state(Tree2),
+    Header2 = {1, Root2},
+    cbt_file:write_header(Pid, Header2),
+    {ok, Tree2}.

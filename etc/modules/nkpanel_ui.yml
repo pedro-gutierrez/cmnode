@@ -7,14 +7,16 @@ spec:
     styles:
       object:
         settings:
-          config: settings
+          config: 
+            key: settings
         themes:
           - keyword: luna
           - keyword: admin 
     app:
       object:
         settings:
-          config: settings
+          config: 
+            key: settings
         app:
           spec: 
             modules:

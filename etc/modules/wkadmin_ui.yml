@@ -35,7 +35,8 @@ spec:
     app:
       object:
         settings:
-          config: settings
+          config: 
+            key: settings
         app:
           spec: 
             modules:

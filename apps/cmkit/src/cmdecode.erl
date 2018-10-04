@@ -43,13 +43,13 @@ decode_object([Key|Rem], Spec, Data, Context, Out) when is_map(Data) ->
         undef -> 
             no_match;
         _ -> 
-            DecodeSpec = case maps:get(relates_to, KeySpec, undef) of 
-                             undef -> 
-                                 KeySpec;
-                             OtherKey ->
-                                 KeySpec#{ value => cmkit:value_at(OtherKey, Data) }
-                         end,
-            case decode_term(DecodeSpec, Value, Context) of 
+            %DecodeSpec = case maps:get(relates_to, KeySpec, undef) of 
+            %                 undef -> 
+            %                     KeySpec;
+            %                 OtherKey ->
+            %                     KeySpec#{ value => cmkit:value_at(OtherKey, Data) }
+            %             end,
+            case decode_term(KeySpec, Value, Context) of 
                 {ok, Decoded} ->
                     decode_object(Rem, Spec, Data, Context, Out#{ Key => Decoded});
                 no_match -> no_match
