@@ -204,6 +204,29 @@ run_item(_, #{ type := docker, spec := #{ action := build,
             Other
     end;
 
+run_item(_, #{ type := docker, spec := #{ action := pull,
+                                          credentials := CredsSpec,
+                                          repo := RepoSpec,
+                                          tag := TagSpec }}, In) ->
+    case cmencode:encode(RepoSpec, In) of 
+        {ok, Repo} -> 
+            case cmencode:encode(TagSpec, In) of 
+                {ok, Tag} -> 
+                    case cmencode:encode(CredsSpec, In) of 
+                        {ok, Creds} -> 
+                            cmdocker:pull(#{ credentials => Creds,
+                                             repo => Repo,
+                                             tag => Tag });
+                        Other -> 
+                            Other
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
 run_item(_, #{ type := wait }=Spec, In) ->
     case cmencode:encode(Spec, In) of 
         {ok, true} -> ok;

@@ -59,20 +59,9 @@ ready(cast, {update, Data}, #{ app := App,
     
     case cmcore_util:decode(Spec, Data, Config) of 
         {ok, Msg, Decoded} ->
-            case cmcore_util:update_spec(Spec, Msg, Decoded, Model, Config) of 
-                {ok, UpdateSpec} ->
-                    case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
-                        {ok, Model2, Cmds } ->
-                            cmcore_util:cmds(Cmds, Model2, Config, Session),
-                            {keep_state, Session#{ model => Model2 }};
-                        {error, E} ->
-                            server_error(App, Session, update, E),
-                            {keep_state, Session}
-                    end;
-                {error, E} ->
-                    server_error(App, Session, update, E),
-                    {keep_state, Session}
-            end;
+            update(Spec, Msg, Decoded, Model, Config, Session);
+        {error, no_match} ->
+            update(Spec, no_match, Data, Model, Config, Session);
         {error, E} -> 
             server_error(App, Session, update, #{ data => Data, reason => E}),
             {keep_state, Session}
@@ -85,6 +74,27 @@ ready(cast, terminate, #{ effect := Effect }) ->
 
 ready({call, From}, connections,  #{conns := Conns}=Data) ->
     {keep_state, Data, reply(From, Conns)}.
+
+
+update(Spec, Msg, Decoded, Model, Config, #{ app := App,
+                                             spec := Spec,
+                                             config := Config,
+                                             model := Model
+                                           }=Session) ->
+    case cmcore_util:update_spec(Spec, Msg, Decoded, Model, Config) of 
+        {ok, UpdateSpec} ->
+            case cmcore_util:update(Spec, UpdateSpec, Config, Decoded, {Model, []}) of
+                {ok, Model2, Cmds } ->
+                    cmcore_util:cmds(Cmds, Model2, Config, Session),
+                    {keep_state, Session#{ model => Model2 }};
+                {error, E} ->
+                    server_error(App, Session, update, E),
+                    {keep_state, Session}
+            end;
+        {error, E} ->
+            server_error(App, Session, update, E),
+            {keep_state, Session}
+    end.
 
 server_error(App, _Session, Phase, Reason) ->
     Info = #{ status => error,

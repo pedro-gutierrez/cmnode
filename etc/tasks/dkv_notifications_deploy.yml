@@ -90,8 +90,26 @@ spec:
                         list:
                           - object:
                               name: config
-                              mountPath: /opt/dkv-notifications/etc/settings/user_notifications.yml
-                              subPath: user_notifications.yml
+                              mountPath: /opt/dkv-notifications/etc/settings/admin.yml
+                              subPath: admin.yml
+                              readOnly: 
+                                keyword: true
+                          - object:
+                              name: config
+                              mountPath: /opt/dkv-notifications/etc/settings/qcp.yml
+                              subPath: qcp.yml
+                              readOnly: 
+                                keyword: true
+                          - object:
+                              name: config
+                              mountPath: /opt/dkv-notifications/etc/settings/misc.yml
+                              subPath: misc.yml
+                              readOnly: 
+                                keyword: true
+                          - object:
+                              name: config
+                              mountPath: /opt/dkv-notifications/etc/settings/gorush.yml
+                              subPath: gorush.yml
                               readOnly: 
                                 keyword: true
                           - object:
@@ -104,7 +122,7 @@ spec:
                               name: data
                               mountPath: /opt/dkv-notifications/data
                               readOnly: 
-                                keyword: true
+                                keyword: false
                               
   - wait:
       condition:

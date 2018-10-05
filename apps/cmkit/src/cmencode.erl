@@ -299,42 +299,7 @@ encode(#{ type := http,
           headers := Headers }, In, Config) ->
     case encode(Headers, In, Config) of 
         {ok, H} ->
-            case encode(Url, In, Config) of 
-                {ok, #{ url := U }} ->
-                    case encode(Body, In, Config) of 
-                        {ok, multipart, B, Boundary} ->
-                            {ok, #{ url => U,
-                                    method => Method,
-                                    headers => H#{ 'content-type' => 
-                                        "multipart/form-data; boundary=" 
-                                            ++ binary_to_list(Boundary) },
-                                    body => B }}; 
-                        {ok, B} ->
-                            {ok, #{ url => U,
-                                    method => Method,
-                                    headers => H,
-                                    body => B }}; 
-                        Other -> Other
-                    end;
-                U when is_binary(U) -> 
-                    case encode(Body, In, Config) of 
-                        {ok, multipart, B, Boundary} ->
-                            {ok, #{ url => U,
-                                    method => Method,
-                                    headers => H#{ 'content-type' => 
-                                        "multipart/form-data; boundary=" 
-                                            ++ binary_to_list(Boundary) },
-                                    body => B }}; 
-                        {ok, B} ->
-                            {ok, #{ url => U,
-                                    method => Method,
-                                    headers => H,
-                                    body => B }}; 
-                        Other -> Other
-                    end;
-
-                Other -> Other
-            end;
+            encode_http(Method, Url, H, Body, In, Config);
         Other -> Other
     end;
 
@@ -344,32 +309,15 @@ encode(#{ type := http,
           headers := Headers }, In, Config) ->
     case encode(Headers, In, Config) of 
         {ok, H} ->
-            case encode(Url, In, Config) of 
-                {ok, #{ url := U }} ->
-                            {ok, #{ url => U,
-                                    method => Method,
-                                        headers => H }}; 
-                Url when is_binary(Url) ->
-                    {ok, #{ url => Url,
-                            method => Method }};
-                Other -> 
-                    Other
-            end;
+            encode_http(Method, Url, H, In, Config);
         Other -> Other
     end;
 
 encode(#{ type := http,
-          method := Method,
-          url := Url }, In, Config) ->
-    case encode(Url, In, Config) of 
-        {ok, #{ url := U }} ->
-            {ok, #{ url => U,
-                    method => Method }}; 
-        Url when is_binary(Url) ->
-            {ok, #{ url => Url,
-                    method => Method }};
-        Other -> Other
-    end;
+          method := _,
+          url := _ }=Spec, In, Config) ->
+    encode(Spec#{ headers => #{}}, In, Config);
+
 
 encode( #{ type := exec,
            spec := #{ type := http } = Spec}, In, Config) ->
@@ -393,11 +341,28 @@ encode( #{ type := exec,
             cmkit:log({cmencode, http, in, Res}),
             Res;
         
+        {ok, #{ method := delete, 
+                url := Url,
+                headers := Headers }} ->
+            
+            cmkit:log({cmencode, http, out, delete, Url, Headers}),
+            Res = cmhttp:delete(Url, Headers),
+            cmkit:log({cmencode, http, in, Res}),
+            Res;
+        
         {ok, #{ method := get, 
                 url := Url }} ->
             
             cmkit:log({cmencode, http, out, get, Url}),
             Res = cmhttp:get(Url),
+            cmkit:log({cmencode, http, in, Res}),
+            Res;
+        
+        {ok, #{ method := delete, 
+                url := Url }} ->
+            
+            cmkit:log({cmencode, http, out, delete, Url}),
+            Res = cmhttp:delete(Url),
             cmkit:log({cmencode, http, in, Res}),
             Res;
         
@@ -1132,6 +1097,75 @@ encode_retry(Retries, Millis, Condition, In, Config) ->
         _ -> 
             encode_retry(Retries-1, Millis, Condition, In, Config)
     end.
+
+encode_http(Method, Url, H, Body, In, Config) ->
+    case encode(Url, In, Config) of 
+        {ok, #{ url := U }} ->
+            case encode(Body, In, Config) of 
+                {ok, multipart, B, Boundary} ->
+                    {ok, #{ url => U,
+                            method => Method,
+                            headers => H#{ 'content-type' => 
+                                           "multipart/form-data; boundary=" 
+                                           ++ binary_to_list(Boundary) },
+                            body => B }}; 
+                {ok, B} ->
+                    {ok, #{ url => U,
+                            method => Method,
+                            headers => H,
+                            body => B }}; 
+                Other -> Other
+            end;
+        U when is_binary(U) -> 
+            case encode(Body, In, Config) of 
+                {ok, multipart, B, Boundary} ->
+                    {ok, #{ url => U,
+                            method => Method,
+                            headers => H#{ 'content-type' => 
+                                           "multipart/form-data; boundary=" 
+                                           ++ binary_to_list(Boundary) },
+                            body => B }}; 
+                {ok, B} ->
+                    {ok, #{ url => U,
+                            method => Method,
+                            headers => H,
+                            body => B }}; 
+                Other -> Other
+            end;
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _ } = Spec} ->
+            encode_http(Method, Spec#{ type => url }, H, Body, In, Config);
+
+        Other -> 
+            {error, #{ error => encode_url,
+                       url => Url,
+                       reason => Other }}
+    end.
+
+encode_http(Method, Url, H, In, Config) ->
+    case encode(Url, In, Config) of 
+        {ok, #{ url := U }} ->
+            {ok, #{ url => U,
+                    method => Method,
+                    headers => H }}; 
+        Url when is_binary(Url) ->
+            {ok, #{ url => Url,
+                    method => Method }};
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _ } = Spec} ->
+            encode_http(Method, Spec#{ type => url }, H, In, Config);
+
+        Other -> 
+            {error, #{ error => encode_url,
+                       url => Url,
+                       reason => Other }}
+    end.
+
+
 
 all_equal([V|Rem]) -> all_equal(Rem, V).
 all_equal([], _) -> true;

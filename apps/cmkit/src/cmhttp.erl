@@ -1,5 +1,11 @@
 -module(cmhttp).
--export([stream/1, get/1, get/2, post/3, encodedQs/1]).
+-export([stream/1, 
+         get/1, 
+         get/2,
+         delete/1,
+         delete/2,
+         post/3, 
+         encodedQs/1]).
 
 stream(#{ method := Method,
           url := Url,
@@ -57,6 +63,14 @@ get(Url, Headers) ->
     Headers2 = encoded_headers(Headers),
     handle(httpc:request(get, {Url2, Headers2},[],[])).
 
+delete(Url) ->
+    delete(Url, #{}).
+
+delete(Url, Headers) ->
+    Url2 = encoded_url(Url),
+    Headers2 = encoded_headers(Headers),
+    handle(httpc:request(delete, {Url2, Headers2},[],[])).
+
 
 post(Url, #{ 'content-type' := CT }=Headers, Data) ->
     Url2 = encoded_url(Url),
@@ -105,11 +119,13 @@ decoded_mime(Headers) ->
 encoded_body(Mime, Data) when is_list(Mime) ->
     encoded_body(cmkit:to_bin(Mime), Data);
 
-encoded_body(<<"application/json">>, Data) ->
-    cmkit:jsone(Data);
-
-encoded_body(_, Data) ->
-    Data.
+encoded_body(Mime, Data) when is_binary(Mime) ->
+    case cmkit:is_json(Mime) of 
+        true ->
+            cmkit:jsone(Data);
+        false ->
+            Data
+    end.
 
 encoded_url(Url) -> cmkit:to_list(Url).
 encoded_headers(H) when is_map(H) ->

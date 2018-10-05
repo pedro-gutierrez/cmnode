@@ -149,10 +149,13 @@ request_body(Req) ->
             end
     end.
 
-request_body(<<"application/json">>, Raw) ->
-    cmkit:jsond(Raw);
-
-request_body(_, Raw) -> {ok, Raw}.
+request_body(Mime, Raw) ->
+    case cmkit:is_json(Mime) of 
+        true ->
+            cmkit:jsond(Raw);
+        false ->
+            {ok, Raw}
+    end.
 
 binary_headers(Map) when is_map(Map) -> 
     maps:fold(fun(K, V, Out) ->

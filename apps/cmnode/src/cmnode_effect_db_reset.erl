@@ -4,10 +4,17 @@
         ]).
 
 effect_info() -> db_reset.
-effect_apply(#{ buckets := Buckets }, SessionId) ->
-    Deleted = [ cmdb:reset(B) || B <- Buckets],
-    DeletedOk = lists:filter(fun(ok) -> true; 
-                                (_) -> false end, Deleted),
-    Res = #{ all_deleted => length(DeletedOk) =:= length(Deleted)},
-    cmkit:log({db_reset, Buckets, Res}), 
-    cmcore:update(SessionId, Res).
+
+
+effect_apply(#{ bucket := B } = Q, SessionId) ->
+    cmcore:update(SessionId, Q#{ status => cmdb:reset(B) });
+
+effect_apply(#{ buckets := Buckets } = Q, SessionId) ->
+    Requested = [ cmdb:reset(B) || B <- Buckets],
+    Deleted = lists:filter(fun(ok) -> true; 
+                                (_) -> false end, Requested),
+    Status = case length(Requested) =:= length(Deleted) of 
+                 true -> ok;
+                 false -> partial
+             end,
+    cmcore:update(SessionId, Q#{ status => Status }).

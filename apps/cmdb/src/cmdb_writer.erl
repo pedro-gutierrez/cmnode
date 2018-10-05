@@ -26,9 +26,9 @@ init([#{ name := Name }=Bucket]) ->
     cmkit:log({cmdb, writer, self(), Name, Storage, Pid, node()}),
     {ok, Bucket#{ tree => Tree, pid => Pid, ref => Ref }}.
 
-handle_call(close, _, #{ name := Name,
-                         fd := #{ pid := Fd,
-                                  ref := Ref }}=Data) ->
+handle_call(reset, _, #{ name := Name,
+                         pid := Fd,
+                         ref := Ref }=Data) ->
     erlang:demonitor(Ref),
     ok = cbt_file:close(Fd),
     Storage = cmdb_config:storage(Name),

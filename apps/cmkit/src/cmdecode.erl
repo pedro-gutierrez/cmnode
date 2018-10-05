@@ -107,10 +107,16 @@ decode_term(#{ type := text} = Spec, Text, _) when is_list(Text) ->
 decode_term(#{ type := text}, _, _) -> no_match;
 
 decode_term(#{ type := other_than, spec := Spec }, Data, Config) -> 
-    case decode_term(Spec, Data, Config) of 
-        no_match -> 
-            {ok, Data};
-        {ok, _} -> 
+    case cmencode:encode(Spec, Data, Config) of 
+        {ok, Value} ->
+            case decode_term(Value, Data, Config) of 
+                no_match -> 
+                    {ok, Data};
+                {ok, _} -> 
+                    no_match
+            end;
+        Other ->
+            cmkit:danger({cmdecode, other_than, Spec, Other}),
             no_match
     end;
 
@@ -184,9 +190,27 @@ decode_term(#{ type := greater_than, spec := Spec }, Num, Config) when is_map(Sp
     
 decode_term(#{ type := greater_than }, _, _) -> no_match;
 
+decode_term(#{ type := empty }, <<>>, _) -> {ok, <<>>};
+decode_term(#{ type := empty }, [], _) -> {ok, []};
+decode_term(#{ type := empty }, Map, _) when is_map(Map) and map_size(Map) =:= 0 -> {ok, Map};
 decode_term(#{ type := empty}, empty, _) -> {ok, empty};
 decode_term(#{ type := empty}, _, _) -> no_match;
 
+decode_term(#{ type := non_empty, spec := Spec }, Data, Config) -> 
+    case decode_term(Spec, Data, Config) of 
+        {ok, Decoded} when is_binary(Decoded) ->
+            case size(Decoded) of 
+                0 ->
+                    no_match;
+                _ -> 
+                    {ok, Data}
+            end;
+        {ok, Other} ->
+            cmkit:warning({decode, non_empty, not_implemented, Other}),
+            no_match;
+        _ ->
+            no_match
+    end;
 
 decode_term(#{ type := list, spec := #{ size := Size }}, Data, _) when is_number(Size) and is_list(Data) -> 
     case length(Data) of 
@@ -202,40 +226,52 @@ decode_term(#{ type := list,
         _ -> no_match
     end;
 
+decode_term(#{ type := list, 
+               size := Size }, Data, _) when is_list(Data) -> 
+    case length(Data) of 
+        Size -> {ok, Data};
+        _ -> no_match
+    end;
+
 decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) -> 
     decode_list(Spec, Data, Config);
 
 
-decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data) and is_map(Spec) ->
+decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data)  ->
     case cmencode:encode(Spec, Data, Config) of 
+        {ok, Member} when is_map(Member) ->
+            case decode_first_item(#{ type => object,
+                                      spec => Member }, Data, Config) of 
+                {ok, _} ->
+                    {ok, Data};
+                no_match ->
+                    no_match
+            end;
+        {ok, Member} when is_list(Member) ->
+            case decode_first_item(#{ type => list,
+                                      value => Member }, Data, Config) of 
+                {ok, _} ->
+                    {ok, Data};
+                no_match ->
+                    no_match
+            end;
         {ok, Member} ->
             case lists:member(Member, Data) of
                 true -> {ok, Data};
                 false -> no_match
             end;
-        Other -> Other
+        Other -> 
+            cmkit:danger({cmdecode, spec_encoding, Spec, Other}),
+            no_match
     end;
 
-decode_term(#{ type := list, with := Member}, Data, _) when is_list(Data) ->
-    case lists:member(Member, Data) of
-        true -> {ok, Data};
-        false -> no_match
-    end;
-
-decode_term(#{ type := list, without := Spec }, Data, Config) when is_list(Data) and is_map(Spec) ->
-    case cmencode:encode(Spec, Data, Config) of 
-        {ok, Member} ->
-            case lists:member(Member, Data) of
-                false -> {ok, Data};
-                true -> no_match
-            end;
-        Other -> Other
-    end;
-
-decode_term(#{ type := list, without := Member}, Data, _) when is_list(Data) ->
-    case lists:member(Member, Data) of
-        false -> {ok, Data};
-        true -> no_match
+decode_term(#{ type := list, without := Spec}, Data, Config) when is_list(Data) ->
+    case decode_term(Spec#{ type => list,
+                            with => Spec }, Data, Config) of 
+        no_match ->
+            {ok, Data};
+        {ok, _} ->
+            no_match
     end;
 
 decode_term(#{ type := first, spec := Spec }, Data, Config) when is_list(Data) ->
@@ -246,6 +282,7 @@ decode_term(#{ type := first, spec := _}, _, _) ->
 
 decode_term(#{ type := list, value := Specs }, Data, Config) ->
     decode_all_items(Specs, Data, Config, []);
+
 
 decode_term(#{ type := list}, List, _) when is_list(List) -> {ok, List}; 
 
@@ -272,12 +309,13 @@ decode_term(#{ type := object }, In, _) when is_map(In) ->
 
 decode_term(#{ type := object }, _, _) -> no_match;
 
-decode_term(#{ type := config, spec := Key}, _, Config)  ->
-    case maps:get(Key, Config, undef) of 
-        undef -> 
-            cmkit:log({cmdecode, missing_config, Key, Config}),
-            no_match;
-        V -> {ok, V}
+decode_term(#{ type := config, spec := Spec}, Data, Config)  ->
+    case cmencode:encode(Spec, Config) of 
+        {ok, Expected} -> 
+           decode_term(Expected, Data, Config); 
+        Other -> 
+            cmkit:danger({cmdecode, spec_encoding, Spec, Other}),
+            no_match
     end;
 
 decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
@@ -285,7 +323,9 @@ decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
 
 decode_term(Spec, Data, Context) when is_map(Spec) -> 
     case cmencode:encode(Spec, Context) of 
-        {ok, Expected} -> 
+        {ok, Expected} when is_map(Expected) -> 
+           decode_term(#{ type => object, spec => Expected }, Data, Context); 
+        {ok, Expected} ->
            decode_term(Expected, Data, Context); 
         Other -> 
             cmkit:danger({cmdecode, spec_encoding, Spec, Other}),

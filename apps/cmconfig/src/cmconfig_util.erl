@@ -322,31 +322,52 @@ compile_module(#{ <<"name">> := Name,
                  rank => Rank
                 }).
 
+
+app_settings_ref(Name) when is_binary(Name) ->
+    SettingsName = cmkit:to_atom(Name),
+    {SettingsName, SettingsName};
+
+app_settings_ref(#{ <<"as">> := Alias, <<"name">> := Name}) ->
+    {cmkit:to_atom(Alias), cmkit:to_atom(Name)}.
+
+
+app_config_with_settings([], _,  _, Out) -> Out;
+app_config_with_settings([N|Rem], App, Settings, Out) ->
+    {Alias, SettingsName} = app_settings_ref(N),
+    case maps:get(SettingsName, Settings, undef) of 
+        undef -> 
+            cmkit:warning({app, App, config, no_such_settings, SettingsName}),
+            app_config_with_settings(Rem, App, Settings, Out);
+        #{ spec := Spec } ->
+            case cmencode:encode(Spec) of 
+                {ok, Encoded} ->
+                    app_config_with_settings(Rem, App, Settings, Out#{ Alias => Encoded});
+                Other ->
+                    cmkit:warning({app, App, config, invalid_settings, SettingsName, Other}),
+                    app_config_with_settings(Rem, App, Settings, Out)
+            end
+    end.
+
+compile_app_config(App, #{ <<"settings">> := Names }=Spec, 
+                   #{ settings := Settings }=Index) when is_list(Names)  ->
+    BaseConfig = compile_app_config(App, maps:without([<<"settings">>], Spec), Index),
+    app_config_with_settings(Names, App, Settings, BaseConfig);
+
+compile_app_config(_, Other, Index) ->
+     compile_config(Other, Index).
+
 compile_app(#{ <<"name">> := Name,
                <<"rank">> := Rank,
                <<"category">> := Cat,
                <<"spec">> := #{
                    <<"modules">> := Modules 
                   } = Spec
-             }, #{ settings := Settings,
-                   module := Mods}=Index) ->
+             }, #{ module := Mods}=Index) ->
 
     AppName = cmkit:to_atom(Name),
     ResolvedModules = resolve_modules(Modules, Mods),
     
-    AppConfig0 = compile_config(maps:get(<<"config">>, Spec, #{}), Index),
-    AppConfig = case maps:get(AppName, Settings, undef) of 
-                    undef -> 
-                        AppConfig0;
-                    #{ spec := SettingsSpec } ->
-                        case cmencode:encode(SettingsSpec) of 
-                            {ok, AppSettings} ->
-                                maps:merge(AppConfig0, AppSettings);
-                            Other ->
-                                cmkit:warning({compile_app, AppName, invalid_settings, Other}),
-                                AppConfig0
-                        end
-                end,
+    AppConfig = compile_app_config(AppName, maps:get(<<"config">>, Spec, #{}), Index),
 
     #{ name => AppName,
        type => app,
@@ -994,6 +1015,9 @@ compile_term(#{ <<"any">> := <<"object">> }, _) ->
 compile_term(#{ <<"text">> := <<"any">> }, _) ->
     #{ type => text };
 
+compile_term(#{ <<"non_empty">> := <<"text">> }, _) ->
+    #{ type => non_empty, spec => #{ type => text } };
+
 compile_term(#{ <<"any">> := <<"text">> }, _) ->
     #{ type => text };
 
@@ -1361,6 +1385,10 @@ compile_term(#{ <<"url">> := Url,
             end,
     Expr3;
 
+compile_term(#{ <<"url">> := _}=Spec, Index) ->
+    compile_term(Spec#{ method => <<"get">> }, Index);
+    
+
 compile_term(#{ <<"host">> := Host,
                 <<"port">> := Port,
                 <<"transport">> := Transport,
@@ -1490,6 +1518,16 @@ compile_term(#{ <<"docker">> := #{
                   repo => compile_term(Repo, Index),
                   tag => compile_term(Tag, Index),
                   dir => compile_term(Dir, Index) }};
+
+compile_term(#{ <<"docker">> := #{ 
+                    <<"credentials">> := CredsSpec,
+                    <<"pull">> := #{ <<"repo">> := Repo,
+                                      <<"tag">> := Tag  }}}, Index) -> 
+    #{ type => docker,
+       spec => #{ action => pull,
+                  credentials => compile_term(CredsSpec, Index),
+                  repo => compile_term(Repo, Index),
+                  tag => compile_term(Tag, Index) }};
 
 compile_term(#{ <<"test">> := #{ 
                     <<"name">> := Test,

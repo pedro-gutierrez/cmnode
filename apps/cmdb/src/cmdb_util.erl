@@ -112,7 +112,7 @@ reset(memory, Name) ->
 reset(disc, Name) -> 
     Writer = cmdb_config:writer(Name),
     resolve(Writer, fun(Pid) ->
-                       gen_server:call(Pid, close)
+                       gen_server:call(Pid, reset)
                end).
 
 del(memory, Name, S, P) ->

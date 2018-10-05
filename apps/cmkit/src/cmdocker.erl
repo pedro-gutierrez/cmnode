@@ -1,5 +1,13 @@
 -module(cmdocker).
--export([build/1]).
+-export([build/1, pull/1]).
+
+
+pull(#{ repo := _Repo,
+        tag := _Version,
+        credentials := _Creds }) -> 
+    {error, not_implemented_yet}.
+
+
 
 build(#{ dir := Dir,
          repo := Repo,
@@ -15,7 +23,7 @@ build(#{ dir := Dir,
                 {ok, Data} -> 
                     BaseUrl = <<"http://localhost:1234">>,
                     Tag = cmkit:to_bin(cmkit:fmt("~s:~s", [Repo, Version])),
-                    Url = <<BaseUrl/binary, "/build?t=", Tag/binary>>,
+                    Url = <<BaseUrl/binary, "/build?nocache=true&t=", Tag/binary>>,
                     Headers = #{ 'content-type' => <<"application/x-tar">> },
                     cmkit:log({cmdocker, building, Tag}),
                     case cmhttp:post(Url, Headers, Data) of 

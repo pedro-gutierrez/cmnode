@@ -149,7 +149,6 @@ resolve_steps([#{ type := parallel,
     end;
 
 resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Procs, Out) ->
-    cmkit:warning({resolve_steps, Spec}),
     resolve_steps(Rem, ReusableSteps, Procs, [Spec|Out]).
 
 
