@@ -12,15 +12,25 @@ effect_apply(#{ context := C,
                 subject := S, 
                 predicate := P,
                 labels := #{ object := OLabel,
-                             value := VLabel }}, SessionId) ->
+                             value := VLabel } = Labels}, SessionId) ->
 
     R = case cmdb:get(B, S, P) of 
             {ok, Entries} -> 
                 #{ context => C,
-                   value => [ #{ OLabel => O, 
-                                 VLabel => V }  || {_, _, O, V} <- Entries] };
+                   bucket => B,
+                   value => case maps:get(predicate, Labels, undef) of 
+                                undef -> 
+                                    [ #{ OLabel => O, 
+                                        VLabel => V }  || {_, _, O, V} <- Entries];
+                                PLabel ->
+                                    [ #{ PLabel => Pi,
+                                         OLabel => O, 
+                                         VLabel => V }  || {_, Pi, O, V} <- Entries]
+                            end };
+
             {error, E }-> 
                 #{ context => C,
+                   bucket => B,
                    error => E }
         end,
     cmcore:update(SessionId, R);
@@ -38,6 +48,7 @@ effect_apply(#{ context := C,
                 ValueSpec = #{ type => object,
                                spec => V },
                 #{ context => C,
+                   bucket => B,
                    value => lists:foldr(fun({_, P, O, V0}, Acc) when is_map(V0) ->
                                                 case cmdecode:decode(ValueSpec, V0) of 
                                                     {ok, _} ->
@@ -50,6 +61,7 @@ effect_apply(#{ context := C,
                                         end, [], Entries)};
             {error, E }-> 
                 #{ context => C,
+                   bucket => B,
                    error => E }
         end,
     cmcore:update(SessionId, R);
@@ -64,16 +76,41 @@ effect_apply(#{ context := C,
     R = case cmdb:get(B, S) of 
             {ok, Entries} -> 
                 #{ context => C,
+                   bucket => B,
                    value => [ #{ PLabel => P,
                                  OLabel => O, 
                                  VLabel => V }  || {_, P, O, V} <- Entries] };
-            {error, E }-> 
+            {error, E}-> 
                 #{ context => C,
+                   bucket => B,
                    error => E }
         end,
     cmcore:update(SessionId, R);
 
 
+effect_apply(#{ context := C,
+                bucket := B,
+                subjects := Subjects,
+                labels := #{ predicate := PLabel,
+                             object := OLabel,
+                             value := VLabel }}, SessionId) ->
+              
+    R = lists:flatten(lists:map(fun(S) ->
+                                        case cmdb:get(B, S) of 
+                                            {ok, Entries} -> 
+                                                [#{ PLabel => P,
+                                                    OLabel => O,
+                                                    VLabel => V }  || {_, P, O, V} <- Entries];
+                                            (Other) ->
+                                                cmkit:warning({cmdb, B, S, Other}),
+                                                []
+                                        end
+                                end, Subjects)),
+
+    cmcore:update(SessionId, #{ value => R,
+                                context => C,
+                                bucket => B });
+                    
 effect_apply(#{ bucket := Db, 
                 type := Type, 
                 id := Id } = Q, SessionId) ->

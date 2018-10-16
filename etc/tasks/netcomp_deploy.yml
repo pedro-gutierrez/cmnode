@@ -22,18 +22,14 @@ spec:
           namespace: "nc"
           labels:
             object:
+              category: netcomps
               app:
                 join:
                   terms:
                     - key: name
                       in: params
                     - text: "-09"
-          serviceName:
-            join:
-              terms:
-                - key: name
-                  in: params
-                - text: "-09"
+          serviceName: netcomps
           replicas: 1
           spec:
             object:

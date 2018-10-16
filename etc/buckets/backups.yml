@@ -1,0 +1,5 @@
+version: 1.0
+type: bucket
+name: backups 
+spec:
+  storage: disc

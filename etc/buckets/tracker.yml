@@ -3,4 +3,6 @@ type: bucket
 name: tracker
 spec:
   storage: disc
+  consistency: strong
+  replication: none
   debug: true

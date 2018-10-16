@@ -5,6 +5,7 @@
          delete/1,
          delete/2,
          post/3, 
+         put/3, 
          encodedQs/1]).
 
 stream(#{ method := Method,
@@ -72,15 +73,25 @@ delete(Url, Headers) ->
     handle(httpc:request(delete, {Url2, Headers2},[],[])).
 
 
-post(Url, #{ 'content-type' := CT }=Headers, Data) ->
+put(Url, #{ 'content-type' := _}=Headers, Data) ->
+    send_body(put, Url, Headers, Data);
+
+put(Url, Headers, Data) ->
+    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
+
+post(Url, #{ 'content-type' := _}=Headers, Data) ->
+    send_body(post, Url, Headers, Data);
+
+post(Url, Headers, Data) ->
+    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
+
+
+send_body(Method, Url, #{ 'content-type' := CT }=Headers, Data) ->
     Url2 = encoded_url(Url),
     Headers2 = encoded_headers(Headers),
     Mime = cmkit:to_list(CT),
     Encoded = encoded_body(Mime, Data),
-    handle(httpc:request(post,{ Url2, Headers2, Mime, Encoded},[],[]));
-
-post(Url, Headers, Data) ->
-    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
+    handle(httpc:request(Method, { Url2, Headers2, Mime, Encoded},[],[])).
 
 handle({error,socket_closed_remotely}) ->
     {error, closed};

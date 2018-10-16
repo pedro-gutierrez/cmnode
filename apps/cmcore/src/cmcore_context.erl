@@ -17,9 +17,11 @@ start_link(Spec, #{id := Id}=Session, Conn) ->
 
 init([#{ config := Config,
          debug := Debug,
-         spec := Spec }, Session, Conn]) ->
+         spec := Spec } = AppSpec, Session, Conn]) ->
+    Timeout = maps:get(timeout, AppSpec, 10000),
     {ok, initializing, Session#{ start => cmkit:micros(),
                                  debug => Debug,
+                                 timeout => Timeout,
                                  spec => Spec, 
                                  config => Config,
                                  conns => [Conn]}}.
@@ -27,6 +29,7 @@ init([#{ config := Config,
 initializing({call, From}, init,  #{app := App,
                                     config := Config0,
                                     debug := Debug,
+                                    timeout := Timeout, 
                                     id := Id,
                                     spec := Spec}=Session) ->
     
@@ -45,7 +48,8 @@ initializing({call, From}, init,  #{app := App,
                                   log => Log,
                                   effect => Effect,
                                   effects => Effects,
-                                  model => Model }, reply(From, ok)};
+                                  model => Model }, [{reply, From, ok},
+                                                     {state_timeout, Timeout, terminate}]};
         {error, E} -> 
             server_error(App, Session, init, E),
             {stop_and_reply, normal, reply(From, error)}
@@ -54,9 +58,11 @@ initializing({call, From}, init,  #{app := App,
 ready(cast, {update, Data}, #{ app := App, 
                                spec := Spec, 
                                config := Config,
-                               model := Model
+                               model := Model,
+                               log := Log
                              }=Session) ->
     
+    Log({App, in, Data}),
     case cmcore_util:decode(Spec, Data, Config) of 
         {ok, Msg, Decoded} ->
             update(Spec, Msg, Decoded, Model, Config, Session);
@@ -68,12 +74,21 @@ ready(cast, {update, Data}, #{ app := App,
 
     end;
 
-ready(cast, terminate, #{ effect := Effect }) ->
+ready(cast, terminate, #{ app := App, id := Id, log := Log, effect := Effect }) ->
+    Log({App, self(), Id, terminating}),
     ok = cmcore_effect:stop(Effect),
     {stop, normal};
 
+ready(state_timeout, terminate, #{ app := App, id := Id, effect := Effect }) ->
+    cmkit:warning({App, self(), Id, timeout }),
+    ok = cmcore_effect:stop(Effect),
+    {stop, normal};
+
+
 ready({call, From}, connections,  #{conns := Conns}=Data) ->
     {keep_state, Data, reply(From, Conns)}.
+
+
 
 
 update(Spec, Msg, Decoded, Model, Config, #{ app := App,
@@ -106,7 +121,8 @@ server_error(App, _Session, Phase, Reason) ->
     gen_statem:cast(self(), terminate),
     Info.
 
-terminate(_, _, _)->
+terminate(_, _, #{ start := Start, app := App, id := Id, log := Log})->
+    Log({App, self(), Id, terminated, cmkit:elapsed(Start)}),
     ok.
 
 reply(From, Msg) -> [{reply, From, Msg}].

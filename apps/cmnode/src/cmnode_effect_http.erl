@@ -26,11 +26,11 @@ effect_apply(#{ method := Method,
                 context := Context,
                 headers := Headers, 
                 body := Body }, SessionId) ->
-
+    
     Data = case cmencode:encode(#{ type => exec,
                                    spec => #{ type => http,
                                               method => Method,
-                                              url => Url#{ type => url },
+                                              url => url_spec(Url),
                                               body => Body,
                                               headers => #{ type => object,
                                                             spec => Headers }}}) of 
@@ -40,7 +40,12 @@ effect_apply(#{ method := Method,
 
     cmcore:update(SessionId, Data#{ context => Context});
 
+effect_apply(#{ method := _, 
+                url := _, 
+                context := _,
+                body := _ } = Spec, SessionId) ->
 
+    effect_apply(Spec#{ headers => #{}}, SessionId);
 
 effect_apply(#{ stream := Stream } = Q, SessionId) ->
     cmkit:log({cmeffect, http, Q}),
@@ -55,4 +60,8 @@ effect_stream(#{ stream := Stream,
     cmkit:log({cmeffect, http, Info}),
     cmcore:update(SessionId, #{ stream => Stream,
                                 event => Ev,
-                                data => Data }). 
+                                data => Data }).
+
+
+url_spec(Url) when is_binary(Url) -> Url;
+url_spec(Url) when is_map(Url) -> Url#{ type => url}.

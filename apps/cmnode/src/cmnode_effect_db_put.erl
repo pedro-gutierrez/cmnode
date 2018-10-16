@@ -6,6 +6,20 @@
 effect_info() -> db_put.
 
 effect_apply(#{ context := Context, 
+                bucket := Db,
+                subject := S,
+                predicate := P,
+                object := O,
+                value := V }=Spec, SessionId) ->
+    
+    Strategy = strategy(Spec),
+    Res = #{ context => Context,
+             bucket => Db,
+             status => cmdb:Strategy(Db, [{S, P, O, V}]) },
+
+    cmcore:update(SessionId, Res);
+
+effect_apply(#{ context := Context, 
                 bucket := Db, 
                 items := Items }=Spec, SessionId) ->
     
@@ -20,12 +34,35 @@ effect_apply(#{ context := Context,
 effect_apply(#{ context := Context, 
                 bucket := Db, 
                 subject := S,
+                predicate := P,
+                match := Match,
+                merge := Merge }, SessionId) ->
+    
+    Res = #{ context => Context,
+             bucket => Db,
+             status => cmdb:map(Db, S, P, Match, Merge) },
+
+    cmcore:update(SessionId, Res);
+
+effect_apply(#{ context := Context, 
+                bucket := Db, 
+                subject := S,
                 match := Match,
                 merge := Merge }, SessionId) ->
     
     Res = #{ context => Context,
              bucket => Db,
              status => cmdb:map(Db, S, Match, Merge) },
+
+    cmcore:update(SessionId, Res);
+
+effect_apply(#{ context := Context, 
+                bucket := Db, 
+                pipeline := P }, SessionId) ->
+    
+    Res = #{ context => Context,
+             bucket => Db,
+             status => cmdb:pipeline(Db, P) },
 
     cmcore:update(SessionId, Res);
 

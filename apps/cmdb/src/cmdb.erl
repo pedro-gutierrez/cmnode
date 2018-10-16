@@ -6,7 +6,9 @@
          get/2,
          get/3,
          get/4,
-         map/4
+         map/4,
+         map/5,
+         pipeline/2
         ]).
 
 reset(Name) -> 
@@ -19,16 +21,22 @@ put(Name, Entries) ->
     cmdb_util:put(cmdb_config:storage(Name), Name, Entries).
 
 get(Name, S, P) -> 
-    merge(cmdb_util:get(cmdb_config:storage(Name), Name, S, P)).
+    merge(cmdb_util:inspect(Name, S, P)).
 
 get(Name, S) -> 
-    merge(cmdb_util:get(cmdb_config:storage(Name), Name, S)).
+    merge(cmdb_util:inspect(Name, S)).
 
 get(Name, S, P, O) ->
-    merge(cmdb_util:get(cmdb_config:storage(Name), Name, S, P, O)).
+    merge(cmdb_util:inspect(Name, S, P, O)).
 
 map(Name, S, Match, Merge) ->
     cmdb_util:map(cmdb_config:storage(Name), Name, S, Match, Merge).
+
+map(Name, S, P, Match, Merge) ->
+    cmdb_util:map(cmdb_config:storage(Name), Name, S, P, Match, Merge).
+
+pipeline(Name, P) ->
+    cmdb_util:pipeline(cmdb_config:storage(Name), Name, P).
 
 merge({ok, Entries}) -> {ok, cmdb_util:merge(Entries)};
 merge(Other) -> Other.

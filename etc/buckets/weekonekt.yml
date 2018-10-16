@@ -3,3 +3,5 @@ type: bucket
 name: weekonekt 
 spec:
   storage: disc
+  replication: full
+  debug: true

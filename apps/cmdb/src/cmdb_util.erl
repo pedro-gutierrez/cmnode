@@ -11,6 +11,11 @@
          get/4,
          get/5,
          map/5,
+         map/6,
+         inspect/2,
+         inspect/3,
+         inspect/4,
+         pipeline/3,
          merge/1
         ]).
 -record(acc, {h, v, s, p, o, r}).
@@ -25,12 +30,13 @@
 
 
 reload() ->
-    Buckets = [ #{ name => cmkit:to_atom(Name),
-                   storage => cmkit:to_atom(Storage) } 
-                || {ok, #{ <<"name">> := Name,
-                           <<"spec">> := #{ <<"storage">> := Storage }}} 
-                   <- cmkit:yamls(bucket) ],
+    Buckets = [ compiled(Spec) || {ok, Spec} <- cmkit:yamls(bucket)] ,
+    reload(Buckets).
 
+
+reload([]) -> {ok, []};
+reload(Buckets) ->
+    
     StorageClauses = [ #{ vars => [#{ atom => Name }],
                           body => #{ abstract => Storage }
                         } || #{ name := Name,
@@ -61,6 +67,19 @@ reload() ->
         #{ name := Name, storage := Storage } <- Buckets ],
     
     {ok, Buckets}.
+
+
+
+
+compiled(#{ <<"name">> := Name,
+           <<"spec">> := #{ <<"storage">> := Storage } = Spec}) ->
+
+    #{ name => cmkit:to_atom(Name),
+       storage => cmkit:to_atom(Storage),
+       consistency => cmkit:to_atom(maps:get(<<"consistency">>, Spec, <<"strong">>)),
+       replication => cmkit:to_atom(maps:get(<<"replication">>, Spec, <<"none">>)),
+       debug => cmkit:to_atom(maps:get(<<"debug">>, Spec, <<"false">>))}.
+    
 
 open(memory, Name) ->
     try 
@@ -168,20 +187,27 @@ put(memory, Name, Entries) ->
             Other
     end;
 
-put(disc, Name, [{_, _, _, _, _, _}|_]=Entries) ->
-    Entries2 = [{{S, P, O, H, M}, V}|| {S, P, O, H, M, V} <- Entries],
-    Writer = cmdb_config:writer(Name),
-    resolve(Writer, fun(Pid) ->
-                       gen_server:call(Pid, {put, cmkit:distinct(Entries2)})
-               end);
+%put(disc, Name, [{_, _, _, _, _, _}|_]=Entries) ->
+%    Entries2 = [{{S, P, O, H, M}, V}|| {S, P, O, H, M, V} <- Entries],
+%    Writer = cmdb_config:writer(Name),
+%    resolve(Writer, fun(Pid) ->
+%                       gen_server:call(Pid, {put, cmkit:distinct(Entries2)})
+%               end);
+%
+%put(disc, Name, Entries) ->
+%    Host = cmdb_config:host(),
+%    Now = cmkit:micros(),
+%    Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
+%    Writer = cmdb_config:writer(Name),
+%    resolve(Writer, fun(Pid) ->
+%                       gen_server:call(Pid, {put, cmkit:distinct(Entries2)})
+%               end).
+%
 
 put(disc, Name, Entries) ->
-    Host = cmdb_config:host(),
-    Now = cmkit:micros(),
-    Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
     Writer = cmdb_config:writer(Name),
     resolve(Writer, fun(Pid) ->
-                       gen_server:call(Pid, {put, cmkit:distinct(Entries2)})
+                       gen_server:call(Pid, {put, Entries})
                end).
 
 get(memory, Name, S) -> 
@@ -211,6 +237,7 @@ get(disc, Name, S, P) ->
 get(memory, Name, S, P, O) -> 
     {ok, [ {S, P, O, H, T, V} 
            || [H, T, V] <- ets:match(Name, {{S, P, O, '$1', '$2'}, '$3'})]}; 
+
 get(disc, Name, S, P, O) ->
     fold(Name, {S, P, O, 0, 0}, fun({S0, P0, O0, H, M}, V) 
                                       when S0 =:= S andalso P0 =:= P andalso O0 =:= O->
@@ -228,11 +255,39 @@ map(disc, Name, S, Match, Merge) ->
                        gen_server:call(Pid, {put, S, Match, Merge})
                end).
     
+map(memory, _Name, _S, _P, _Match, _Merge) ->
+    {error, not_implemented};
+
+map(disc, Name, S, P, Match, Merge) ->
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {put, S, P, Match, Merge})
+               end).
+
+
+
+pipeline(memory, _Name, _P) ->
+    {error, not_implemented};
+
+pipeline(disc, Name, P) ->
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                       gen_server:call(Pid, {pipeline, P})
+               end).
 
 fold(Fd, Start, Fun) when is_pid(Fd) ->
     {ok, Header, _} = cbt_file:read_header(Fd),
     {_, Root} = Header,
     {ok, Tree} = cbt_btree:open(Root, Fd),
+    fold(Tree, Start, Fun);
+
+
+fold(Name, Start, Fun) when is_atom(Name) ->
+    resolve(Name, fun(Fd) ->
+                          fold(Fd, Start, Fun)
+                  end);
+  
+fold(Tree, Start, Fun) ->
     case cbt_btree:fold(Tree, fun({K, V}, Acc) ->
                                       case Fun(K, V) of 
                                           {ok, V2} ->
@@ -246,13 +301,10 @@ fold(Fd, Start, Fun) when is_pid(Fd) ->
         {ok, _, Values} -> {ok, Values};
         Other ->
             Other
-    end;
+    end.
 
-fold(Name, Start, Fun) ->
-    resolve(Name, fun(Fd) ->
-                          fold(Fd, Start, Fun)
-                  end).
-  
+
+
 merge(Entries) ->
     #acc{ r = R } = lists:foldl(fun({S, P, O, H, _, V}, #acc{ h = undef, 
                                               v = undef, 
@@ -320,3 +372,13 @@ merge(Entries) ->
                           o = undef,
                           r = []}, Entries),
     R.
+
+
+inspect(Name, S) ->
+    get(cmdb_config:storage(Name), Name, S).
+
+inspect(Name, S, P) ->
+    get(cmdb_config:storage(Name), Name, S, P).
+
+inspect(Name, S, P, O) ->
+    get(cmdb_config:storage(Name), Name, S, P, O).

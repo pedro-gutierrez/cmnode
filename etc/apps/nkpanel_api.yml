@@ -4,6 +4,7 @@ category: api
 name: nkpanel_api
 spec:
   debug: true 
+  timeout: 600000
   modules:
     - common_api
     - login_api
@@ -12,7 +13,10 @@ spec:
     - webhooks_api
     - tests_api
     - release_api
+    - backups_api
   config:
+    settings:
+      - snapshots
     role:
       keyword: admin
     sessions:

@@ -261,6 +261,10 @@ compile_cron(#{ <<"name">> := Name,
        jobs => compile_cron_jobs(Jobs, Index) 
      }.
 
+compile_cron_schedule(#{ <<"once">> := Secs}) ->
+    #{ type => once,
+       secs => Secs };
+
 compile_cron_schedule(#{ <<"pm">> := #{ <<"hour">> := Hour,
                                         <<"min">> := Min }}) ->
     #{ type => daily,
@@ -286,7 +290,12 @@ compile_cron_jobs(Specs, Index) ->
                       #{ module => cmkit:to_atom(Mod),
                          function => cmkit:to_atom(Fun),
                          args => EncodedArgs
-                       }
+                       };
+
+                 (#{ <<"task">> := Name,
+                     <<"settings">> := Settings }) ->
+                      #{ task => cmkit:to_atom(Name),
+                         settings => Settings }
               end, Specs).
 
 compile_task(#{ <<"name">> := Name,
@@ -381,22 +390,11 @@ compile_app(#{ <<"name">> := Name,
                             end, ResolvedModules),
        config => AppConfig,
        debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
+       timeout => cmkit:to_number(maps:get(<<"timeout">>, Spec, <<"10000">>)),
        category => compile_keyword(Cat),
        spec => compile_modules(ResolvedModules, #{})
      }.
 
-
-compile_bucket(#{ <<"name">> := Name,
-                  <<"rank">> := Rank,
-                  <<"spec">> := #{ <<"hosts">> := Hosts,
-                                   <<"storage">> := Storage
-                                 }}, _) ->
-
-    #{ type => bucket,
-       rank => Rank,
-       name => cmkit:to_atom(Name),
-       storage =>  cmkit:to_atom(Storage),
-       hosts => Hosts };
 
 compile_bucket(#{ <<"name">> := Name,
                   <<"rank">> := Rank,
@@ -655,6 +653,15 @@ compile_option(Spec, Index) ->
 compile_terms(Specs, Index) -> 
     lists:map(fun(S) -> compile_term(S, Index) end, Specs).
 
+
+compile_term(#{ <<"dump">> := Spec } = Map, _Index) when is_binary(Spec) and map_size(Map) =:= 1 ->
+    #{ type => dump,
+       spec => compile_keyword(Spec) };
+
+compile_term(#{ <<"dump">> := Spec } = Map, Index) when map_size(Map) =:= 1 ->
+    #{ type => dump,
+       spec => compile_term(Spec, Index) };
+
 compile_term(#{ <<"decoders">> := Decs }, Index) ->
     compile_decoders(Decs, Index);
 
@@ -713,6 +720,14 @@ compile_term(#{ <<"date">> := <<"any">>,
                 <<"format">> := Format }, _) ->
     #{ type => date,
        format => cmkit:to_atom(Format) };
+
+
+compile_term(#{ <<"calendar">> := <<"now">> }, _Index) ->
+
+    #{ type => utc,
+       amount => 0,
+       factor => 0,
+       tense => past };
 
 
 compile_term(#{ <<"calendar">> := #{ 
@@ -997,8 +1012,11 @@ compile_term(#{ <<"at_least">> := Spec }, Index) ->
     #{ type => greater_than,
        spec => compile_term(Spec, Index) };
 
-compile_term(#{ <<"literal">> := Text }, _) ->
-    #{ value => Text };
+compile_term(#{ <<"literal">> := V }, _) when is_binary(V) or is_number(V) or is_atom(V) ->
+    #{ value => V };
+
+compile_term(#{ <<"literal">> := Spec }, Index) when is_list(Spec) or is_map(Spec) ->
+    #{ literal => compile_term(Spec, Index) };
 
 compile_term(#{ <<"object">> := <<"any">> }, _) ->
     #{ type => object };
@@ -1455,6 +1473,21 @@ compile_term(#{ <<"slack">> := #{ <<"settings">> := SettingsSpec,
                   subject => compile_term(SubjectSpec, Index),
                   body => compile_term(BodySpec, Index) }};
 
+
+compile_term(#{ <<"slack">> := #{ <<"enabled">> := EnabledSpec,
+                                  <<"token">> := TokenSpec,
+                                  <<"channel">> := ChannelSpec,
+                                  <<"severity">> := SeveritySpec,
+                                  <<"subject">> := SubjectSpec,
+                                  <<"body">> := BodySpec }}, Index) ->
+    #{ type => slack,
+       spec => #{ enabled => compile_term(EnabledSpec, Index),
+                  token => compile_term(TokenSpec, Index),
+                  channel => compile_term(ChannelSpec, Index),
+                  severity => compile_term(SeveritySpec, Index),
+                  subject => compile_term(SubjectSpec, Index),
+                  body => compile_term(BodySpec, Index) }};
+
 compile_term(#{ <<"git">> := #{ 
                     <<"credentials">> := CredsSpec,
                     <<"clone">> := #{ <<"repo">> := Repo,
@@ -1598,12 +1631,28 @@ compile_term(#{ <<"iterate">> := SourceSpec,
        as => AsSpec,
        dest => compile_term(DestSpec, Index) };
 
+compile_term(#{ <<"attempt">> := Spec,
+                <<"onerror">> := OnError }, Index) -> 
+
+    #{ type => attempt,
+       spec  => compile_term(Spec, Index),
+       onerror => compile_term(OnError, Index)
+     };
+
 compile_term(#{ <<"attempt">> := #{ <<"spec">> := Spec,
                                     <<"onerror">> := OnError } }, Index) -> 
 
     #{ type => attempt,
        spec  => compile_term(Spec, Index),
        onerror => compile_term(OnError, Index)
+     };
+
+compile_term(#{ <<"attempt">> := Spec }, Index) -> 
+    
+    #{ type => attempt,
+       spec  => compile_term(Spec, Index),
+       onerror => compile_term(#{ type => keyword,
+                                  value => ok }, Index)
      };
 
 compile_term(#{ <<"erlang">> := #{ <<"mod">> := Mod,
@@ -1670,6 +1719,19 @@ compile_term(Text, _) when is_binary(Text) ->
 
     #{ type => text, value => Text };
 
+compile_term(#{ <<"sequence">> := #{ <<"from">> := From,
+                                     <<"to">> := To }}, Index) ->
+    #{ type => sequence,
+       from => compile_term(From, Index),
+       to => compile_term(To, Index) };
+
+compile_term(#{ <<"pipe">> := Specs,
+                <<"as">> := As }, Index) ->
+
+    #{ type => pipe,
+       specs => compile_terms(Specs, Index),
+       as => compile_keyword(As) };
+
 compile_term(Term, Index) when is_map(Term) ->
     #{ type => object,
        spec => maps:fold(fun(K, V, Out) ->
@@ -1697,6 +1759,7 @@ compile_term(<<"no">>, _) ->
 compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }, _) ->
     #{ lat => Lat, 
        lon => Lon };
+
 
 compile_term(#{}=Map, _) when map_size(Map) == 0 ->
     #{ type => object };

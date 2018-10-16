@@ -126,6 +126,7 @@ cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
 apply_effect(Effect, Data, #{ effects := Effects, effect := Pid, id := Id }) ->
     case maps:get(Effect, Effects, undef) of 
         undef ->
+            cmkit:danger({cmcore, not_such_effect, Effect, Data}),
             cmcore:update(Id, #{ error => no_such_effect,
                                  effect => Effect,
                                  data => Data });

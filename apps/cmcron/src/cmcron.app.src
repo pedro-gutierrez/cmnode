@@ -5,9 +5,11 @@
   {mod, { cmcron_app, []}},
   {applications,
    [kernel,
+    stdlib,
+    cmkit,
     cmconfig,
     erlcron,
-    stdlib
+    cmtask
    ]},
   {env,[]},
   {modules, []},

@@ -120,6 +120,9 @@ spec:
       object:
         action: test_reports
         days: 7 
+    test_activity_query:
+      object:
+        action: "test_activity"
     run_test_query:
       object:
         action:  "schedule"

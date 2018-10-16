@@ -51,10 +51,25 @@ load_cron(#{ name := Name,
              schedule := Schedule,
              jobs := Jobs}, Data) -> 
     Data#{ Name => 
-           [ load_cron({ map_schedule(Schedule), {M, F, Args}})
-             || #{ module := M,
-                   function := F,
-                    args := Args } <- Jobs ]}.
+           [ load_cron({ map_schedule(Schedule), map_cron_mfa(J) })
+             || J<- Jobs ]}.
+
+
+map_cron_mfa(#{ module := M,
+                function := F,
+                args := Args }) ->
+    
+    {M, F, Args};
+
+map_cron_mfa(#{ task := Task,
+                settings := Settings }) ->
+    
+    {cmtask, schedule, [Task, #{ settings => Settings }]}.
+
+map_schedule(#{ type := once,
+                secs := Secs }) ->
+
+    {once, Secs};
 
 map_schedule(#{ type := daily, 
                 hour := H,

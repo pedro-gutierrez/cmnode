@@ -76,7 +76,7 @@ spec:
                                 in: params
                       imagePullPolicy: 
                         text: "Always"
-                      sdin:
+                      stdin:
                         keyword: yes
                       tty:
                         keyword: yes

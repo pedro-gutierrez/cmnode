@@ -5,7 +5,7 @@
 
 effect_info() -> task.
 effect_apply(#{ task := Task,
-                params := Params }, _) ->
+                params := Params }, SessionId) ->
 
-    cmtask:schedule(Task, Params).
+    cmtask:schedule(Task, Params#{ session => SessionId }).
 

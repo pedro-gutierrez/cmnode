@@ -1,5 +1,6 @@
 -module(cmkube).
 -export([ do/1, await/1 ]).
+-define(RETRIES, 120).
 
 do(#{ name := Name,
       namespace := Ns,
@@ -76,7 +77,7 @@ do(#{ name := Name,
                                        token => Token },
                           state => <<"Running">>,
                           props => Props,
-                          retries => 60,
+                          retries => ?RETRIES,
                           sleep => 1000,
                           exact => 0 }) of 
                 ok ->
@@ -120,7 +121,7 @@ do(#{ name := Name,
                                                token => Token },
                                   state => <<"Running">>,
                                   props => Props,
-                                  retries => 60,
+                                  retries => ?RETRIES,
                                   sleep => 1000,
                                   exact => Replicas }) of 
                         ok -> 
@@ -157,7 +158,7 @@ do(#{ name := Name,
                                        token => Token },
                           state => <<"Running">>,
                           props => Props,
-                          retries => 60,
+                          retries => ?RETRIES,
                           sleep => 1000,
                           exact => 0 }) of 
                 ok ->
@@ -203,7 +204,7 @@ do(#{ name := Name,
                                                token => Token },
                                   state => <<"Running">>,
                                   props => Props,
-                                  retries => 60,
+                                  retries => ?RETRIES,
                                   sleep => 1000,
                                   exact => Replicas }) of 
                         ok -> 
@@ -250,7 +251,7 @@ do(#{ name := Name,
                                        token => Token },
                           state => <<"Running">>,
                           props => Props,
-                          retries => 60,
+                          retries => ?RETRIES,
                           sleep => 1000,
                           exact => Replicas }) of 
                 ok -> 

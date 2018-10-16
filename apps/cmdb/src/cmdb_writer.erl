@@ -16,17 +16,26 @@ start_link(#{ name := Name }=Bucket) ->
     Writer = cmdb_config:writer(Name),
     gen_server:start_link({local, Writer}, ?MODULE, [Bucket], []).
 
-init([#{ name := Name }=Bucket]) ->
+init([#{ name := Name,
+         debug := Debug }=Bucket]) ->
+
+    Log = cmkit:log_fun(Debug),
     Storage = cmdb_config:storage(Name),
     {ok, Pid} = cmdb_util:open(Storage, Name),
     Ref = erlang:monitor(process, Pid),
     {ok, Header, _} = cbt_file:read_header(Pid),
     {_, Root} = Header,
     {ok, Tree} = cbt_btree:open(Root, Pid),
-    cmkit:log({cmdb, writer, self(), Name, Storage, Pid, node()}),
-    {ok, Bucket#{ tree => Tree, pid => Pid, ref => Ref }}.
+    Log({cmdb, writer, self(), Name, Storage, Pid, node()}),
+    {ok, Bucket#{ host => cmdb_config:host(),
+                  timestamp_fun => timestamp_fun(Bucket),
+                  log => Log, 
+                  tree => Tree, 
+                  pid => Pid, 
+                  ref => Ref }}.
 
-handle_call(reset, _, #{ name := Name,
+handle_call(reset, _, #{ log := Log,
+                         name := Name,
                          pid := Fd,
                          ref := Ref }=Data) ->
     erlang:demonitor(Ref),
@@ -34,41 +43,69 @@ handle_call(reset, _, #{ name := Name,
     Storage = cmdb_config:storage(Name),
     cmdb_util:delete(Storage, Name),
     {ok, Data2} = init([Data]),
+    Log({Name, resetted}),
     {reply, ok, Data2};
 
-handle_call({put, Entries}, _, #{ pid := Pid, tree := Tree }=Data) ->
-    {ok, Tree2} = write_entries(Pid, Tree, Entries),
-    {reply, ok, Data#{ tree => Tree2}};
+handle_call({put, Entries}, _, #{ host := Host, 
+                                  pid := Pid, 
+                                  tree := Tree,
+                                  timestamp_fun := TFun }=Data) ->
+    Now = TFun(),
+    Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
+    case write_entries(Pid, Tree, cmkit:distinct(Entries2), Data) of 
+        {ok, Tree2} -> 
+            {reply, ok, Data#{ tree => Tree2}};
+        Other ->
+            {reply, Other, Data}
+    end;
 
-handle_call({put, S, Match, Merge}, _, #{ pid := Pid, tree := Tree }=Data) ->
-    case cmdb_util:get(disc, Pid, S) of 
+
+handle_call({put, S, Match, Merge}, _, #{ pid := Pid, 
+                                          tree := Tree }=Data) ->
+    case cmdb_util:get(disc, Tree, S) of 
         {ok, Entries} ->
-            ValueSpec = #{ type => object,
-                           spec => Match },
-
-            Now = cmkit:micros(),
-            Host = cmdb_config:host(),
-            ToUpdate = lists:foldr(fun({S0, P0, O0, V}, Acc) when is_map(V) ->
-                                           case cmdecode:decode(ValueSpec, V) of 
-                                               {ok, _} ->
-                                                   [{{S0, P0, O0, Host, Now},
-                                                     maps:merge(V, Merge)}|Acc];
-                                               _ -> 
-                                                   Acc
-                                           end;
-                                      (_, Acc) ->
-                                           Acc
-                                   end, [], cmdb_util:merge(Entries)),
-            case ToUpdate of 
-                [] -> 
-                    {reply, ok, Data};
-                _ -> 
-                    {ok, Tree2} = write_entries(Pid, Tree, ToUpdate),
-                    {reply, ok, Data#{ tree => Tree2}}
+            case map_entries(Pid, Tree, Entries, Match, Merge, Data) of 
+                {ok, Tree2} ->
+                    {reply, ok, Data#{ tree => Tree2}};
+                Other ->
+                    {reply, Other, Data}
             end;
         Other ->
             {reply, Other, Data}
     end;
+
+handle_call({put, S, P, Match, Merge}, _, #{ pid := Pid, 
+                                             tree := Tree }=Data) ->
+    case cmdb_util:get(disc, Tree, S, P) of 
+        {ok, Entries} ->
+            case map_entries(Pid, Tree, Entries, Match, Merge, Data) of 
+                {ok, Tree2} ->
+                    {reply, ok, Data#{ tree => Tree2}};
+                Other ->
+                    {reply, Other, Data}
+            end;
+        Other ->
+            {reply, Other, Data}
+    end;
+
+
+handle_call({pipeline, #{ context := Context,
+                          items := #{ type := list,
+                                      value := Items}}}, _, #{ pid := Pid, 
+                                                               tree := Tree }=Data) ->
+    
+    case pipeline(Tree, Context, Items, Data, []) of 
+        {ok, Entries} ->
+            case write_entries(Pid, Tree, Entries, Data) of 
+                {ok, Tree2} ->
+                    {reply, ok, Data#{ tree => Tree2}};
+                Other ->
+                    {reply, Other, Data}
+            end;
+        Other ->
+            {reply, Other, Data}
+    end;
+
 
 handle_call(_, _, Data) ->
     {reply, ignored, Data}.
@@ -86,9 +123,96 @@ terminate(Reason, Bucket) ->
     cmkit:warning({cmdb, writer, node(), Bucket, terminated, Reason}),
     ok.
 
-write_entries(Pid, Tree, Entries) -> 
+map_entries(Pid, Tree, Entries, Match, Merge, #{ name := Name,
+                                                 log := Log,
+                                                 host := Host,
+                                                 timestamp_fun := TFun } = Data) ->
+
+    Merged = cmdb_util:merge(Entries),
+    ValueSpec = #{ type => object,
+                   spec => Match },
+
+    Now = TFun(),
+    ToUpdate = lists:foldr(fun({S0, P0, O0, V}, Acc) when is_map(V) ->
+                                   case cmdecode:decode(ValueSpec, V) of 
+                                       {ok, _} ->
+                                           [{{S0, P0, O0, Host, Now},
+                                             maps:merge(V, Merge)}|Acc];
+                                       _ -> 
+                                           Acc
+                                   end;
+                              (_, Acc) ->
+                                   Acc
+                           end, [], Merged),
+    Log({Name, map, Match, Merge, Merged, ToUpdate}),
+    case ToUpdate of 
+        [] -> 
+            {ok, Tree};
+        _ -> 
+            write_entries(Pid, Tree, ToUpdate, Data)
+    end.
+
+
+timestamp_fun(#{ replication := none }) ->
+    fun() -> 0 end;
+
+timestamp_fun(_) -> 
+    fun() -> cmkit:micros() end.
+
+
+write_entries(Pid, Tree, Entries, #{ name := Name, 
+                                     log := Log }) -> 
+    T0 = cmkit:micros(),
     {ok, Tree2} = cbt_btree:add(Tree, Entries),
     Root2 = cbt_btree:get_state(Tree2),
     Header2 = {1, Root2},
     cbt_file:write_header(Pid, Header2),
+    Log({Name, written, length(Entries), Entries, cmkit:elapsed(T0)}),
     {ok, Tree2}.
+
+
+pipeline( _, _, [], _, Entries) -> {ok, lists:reverse(Entries)};
+pipeline(Tree, Context, [I|Rem], #{ name := Name }=Data, Entries) ->
+    case cmencode:encode(I, Context) of 
+        {ok, skip} ->
+            pipeline(Tree, Context, Rem, Data, Entries);
+
+        {ok, Encoded} ->
+            case pipeline_item(Tree, Context, Encoded, Data) of 
+                {ok, Context2, Entry} ->
+                    pipeline(Tree, Context2, Rem, Data, [Entry|Entries]);
+                {ok, Context2} ->
+                    pipeline(Tree, Context2, Rem, Data, Entries)
+            end;
+        Other ->
+            cmkit:warning({Name, pipeline, I, skipped, Other}),
+            pipeline(Tree, Context, Rem, Data, Entries)
+    end.
+
+pipeline_item(Tree, Context, #{ subject := S,
+                                predicate := P,
+                                object := O,
+                                as := As }, _) ->
+    
+    case cmdb_util:get(disc, Tree, S, P, O) of
+        {ok, []} -> {ok, Context};
+        {ok, Entries} ->
+            case cmdb_util:merge(Entries) of 
+                [{S, P, O, V}] ->
+                    {ok, Context#{ As => V }};
+                _Other ->
+                    {ok, Context}
+            end;
+        _Other ->
+            {ok, Context}
+    end;
+
+pipeline_item(_, Context, #{ subject := S,
+                             predicate := P,
+                             object := O,
+                             value := V }, #{ host := H,
+                                              timestamp_fun := TFun }) ->
+
+    {ok, Context, {{S, P, O, H, TFun()}, V}}.        
+
+

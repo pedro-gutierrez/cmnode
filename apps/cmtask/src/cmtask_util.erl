@@ -1,21 +1,48 @@
 -module(cmtask_util).
--export([run/3]).
+-export([settings/1, run/3]).
 
-run(#{ name := Name,
-       items := Items }, #{ name := SettingsName,
-                            spec := SettingsSpec }, Params) ->
-    case cmencode:encode(SettingsSpec) of 
-        {ok, Settings} ->
-            Input = #{ settings => Settings,
-                       params => Params,
-                       context => #{} },
-            case resolve_items(Items) of 
-                {ok, Items2} -> 
-                    run_items(Name, SettingsName, Items2, Input);
-                Other -> 
+settings(Names) when is_list(Names) ->
+    settings(Names, [], #{});
+
+settings(Name) ->
+    case cmconfig:settings(Name) of 
+        {ok, #{ name := N,
+                spec := Spec }} ->
+            case cmencode:encode(Spec) of 
+                {ok, Encoded} ->
+                    {ok, N, Encoded};
+                Other ->
                     Other
             end;
-        Other -> Other
+        {error, E} ->
+            {error, #{ settings => Name,
+                       error => E }}
+    end.
+
+settings([], Names, Spec) ->
+    {ok, lists:reverse(Names), Spec};
+
+settings([Name|Rem], Names, Spec) ->
+    case settings(Name) of 
+        {ok, N, Spec0} ->
+            settings(Rem, [Name|Names], Spec#{ N => Spec0 });
+        Other ->
+            Other
+    end.
+
+run(#{ name := Name,
+       items := Items }, Settings, Params) ->
+    
+    Input = #{ params => Params,
+               context => #{},
+               settings => maps:get(spec, Settings, #{})},
+    
+    case resolve_items(Items) of 
+        {ok, Items2} -> 
+            cmkit:log({task, Name, starting}),
+            run_items(Name, Items2, Input);
+        Other -> 
+            Other
     end.
 
 resolve_items(Items) -> 
@@ -33,67 +60,65 @@ resolve_items([#{ type := task, name := Name }|Rem], Out) ->
 resolve_items([Item|Rem], Out) ->
     resolve_items(Rem, [Item|Out]).
 
-run_items(Name, SettingsName, [], In) ->
-    cmkit:success({task, Name, SettingsName, finished}),
+run_items(Name, [], In) ->
+    cmkit:success({task, Name, finished}),
     {ok, In};
 
-run_items(Name, Settings, [Item|Rem], In) -> 
+run_items(Name, [Item|Rem], In) -> 
     case run_item(Name, Item, #{ context := Ctx } = In) of 
         ok -> 
-            run_items(Name, Settings, Rem, In);
+            run_items(Name, Rem, In);
         {ok, Extra } when is_map(Extra) ->
-            run_items(Name, Settings, Rem, In#{ context => maps:merge(Ctx, Extra)}); 
+            run_items(Name, Rem, In#{ context => maps:merge(Ctx, Extra)}); 
         {ok, Extra } -> 
-            run_items(Name, Settings, Rem, In#{ context => Ctx#{ last => Extra }}); 
+            run_items(Name, Rem, In#{ context => Ctx#{ last => Extra }}); 
         Other -> 
-            cmkit:danger({task, Name, Settings, Item, Other}),
+            cmkit:danger({task, Name, Item, Other}),
             Other
     end.
 
+run_item(Name, #{ type := dump, spec := Spec}, In) ->
+    cmkit:log({Name, dump, Spec, In, maps:get(Spec, In, undefined)}),
+    ok;
+
 run_item(Name, #{ type := slack,
-            spec := #{ settings := SettingsSpec, 
-                       severity := SeveritySpec,
-                       subject := SubjectSpec,
-                       body := BodySpec }}, #{ settings := Settings} = In) ->
+               spec := #{ settings := SettingsSpec, 
+                          severity := SeveritySpec,
+                          subject := SubjectSpec,
+                          body := BodySpec }}, #{ settings := Settings} = In) ->
     case maps:get(slack, Settings, undef) of 
         undef -> 
-            {error, missing_slack_settings};
+            {error, #{ task => Name,
+                       error => missing_slack_settings,
+                       reason => missing_key,
+                       key => slack,
+                       settings => Settings }};
         Slack ->
             case cmencode:encode(SettingsSpec, In) of 
                 {ok, SlackSettingsKey} ->
                     case maps:get(SlackSettingsKey, Slack, undef) of 
                         undef ->
-                            {error, unknown_slack_settings};
+                            {error, #{ task => Name,
+                                       error => unknown_slack_settings,
+                                       reason => missing_key,
+                                       key => SlackSettingsKey, 
+                                       settings => Slack }};
                         #{ enabled := Enabled,
                            channel := Ch,
                            token := T } -> 
-                            
-                            case cmencode:encode(SeveritySpec, In) of 
-                                {ok, S} ->
-                                    case cmencode:encode(SubjectSpec, In) of 
-                                        {ok, Sub} ->
-                                            case cmencode:encode(BodySpec, In) of 
-                                                {ok, Body} ->
-                                                    case Enabled of 
-                                                        false ->
-                                                            cmkit:log({cmtask, Name, slack, disabled,
-                                                                S, Sub, Body}),
-                                                            ok;
 
-                                                        true -> 
-                                                            cmslack:S(#{ token => T,
-                                                                         channel => Ch,
-                                                                         subject => Sub,
-                                                                         text => Body }),
-                                                            ok
-                                                    end;
-                                                Other -> Other
-                                            end;
-                                        Other -> Other
-                                    end;
-                                Other -> Other
+                            case cmencode:encode(#{ type => slack,
+                                                    spec => #{ enabled => Enabled,
+                                                               token => T,
+                                                               channel => Ch,
+                                                               subject => SubjectSpec,
+                                                               severity => SeveritySpec,
+                                                               body => BodySpec }}, In) of 
+                                {ok, _} ->
+                                    ok;
+                                Other ->
+                                    Other
                             end;
-
                         Other -> Other
                     end;
                 Other -> Other
@@ -322,15 +347,15 @@ run_item(Name, #{ type := shell,
     end;
 
 run_item(Name, #{ type := attempt, 
-            spec := Spec, 
-            onerror := OnError }, In) -> 
+                  spec := Spec, 
+                  onerror := OnError }, In) -> 
     case run_item(Name, Spec, In) of 
         ok -> 
             ok;
         {ok, Data} -> 
             {ok, Data};
         Other  ->
-            cmkit:warning({cmtask, attempt, Spec, Other}),
+            cmkit:warning({task, Name, attempted, Spec, Other}),
             cmencode:encode(OnError, In)
     end;
 

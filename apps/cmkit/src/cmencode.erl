@@ -322,13 +322,13 @@ encode(#{ type := http,
 encode( #{ type := exec,
            spec := #{ type := http } = Spec}, In, Config) ->
     case encode(Spec, In, Config) of 
-        {ok, #{ method := post,
+        {ok, #{ method := M,
                 url := Url,
                 headers := Headers,
                 body := Body }} ->
                 
-            cmkit:log({cmencode, http, out, post, Url, Headers, Body}),
-            Res = cmhttp:post(Url, Headers, Body),
+            cmkit:log({cmencode, http, out, M, Url, Headers, Body}),
+            Res = cmhttp:M(Url, Headers, Body),
             cmkit:log({cmencode, http, in, Res}),
             Res;
         
@@ -445,6 +445,58 @@ encode(#{ type := basic_auth,
                        reason => Other
                      }
             }
+    end;
+
+
+encode(#{ type := slack,
+          spec := #{ enabled := Enabled,
+                     token := Token,
+                     channel := Channel,
+                     subject := Subject,
+                     severity := Severity,
+                     body := Body }}, In, Config) ->
+    
+    case encode(Enabled, In, Config) of 
+        {ok, E} ->
+            case encode(Token, In, Config) of 
+                {ok, T} ->
+                    case encode(Channel, In, Config) of 
+                        {ok, Ch0} ->
+                            Ch = <<"#", Ch0/binary>>,
+                            case encode(Subject, In, Config) of 
+                                {ok, S} ->
+                                    case encode(Body, In, Config) of
+                                        {ok, B} ->
+                                            case encode(Severity, In, Config) of 
+                                                {ok, Sev} ->
+                                                    case E of 
+                                                        false ->
+                                                            cmkit:log({slack, disabled, Ch, Sev, S, B});
+                                                        true ->
+                                                            cmkit:log({slack, enabled, Ch, Sev, S, B}),
+                                                            cmslack:Sev(#{ token => T,
+                                                                           channel => Ch,
+                                                                           subject => S,
+                                                                           text => B })
+                                                    end,
+                                                    {ok, E};
+                                                Other ->
+                                                    Other
+                                            end;
+                                        Other ->
+                                            Other
+                                    end;
+                                Other ->
+                                    Other
+                            end;
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
     end;
 
 
@@ -696,17 +748,22 @@ encode(#{ type := format,
     end;
 
 encode(#{ type := format, 
-          pattern := _,
+          pattern := PatternSpec,
           date := DateSpec }, In, Config) -> 
 
     case encode(DateSpec, In, Config) of 
         {ok, Date} ->
-            case cmkit:format_date(Date) of 
-                invalid -> {error, #{ date => Date,
-                                    spec => DateSpec,
-                                    error => cannot_format_date }};
-                Bin -> 
-                    {ok, Bin}
+            case encode(PatternSpec, In, Config) of 
+                {ok, Pattern} -> 
+                    case cmkit:format_date(Date, Pattern) of 
+                        invalid -> {error, #{ date => Date,
+                                              pattern => Pattern,
+                                              error => cannot_format_date }};
+                        Bin -> 
+                            {ok, Bin}
+                    end;
+                Other ->
+                    Other
             end;
         Other -> Other
     end;
@@ -777,6 +834,17 @@ encode(#{ type := find,
             end;
         Other ->
             Other
+    end;
+
+encode(#{ type := attempt, 
+          spec := Spec, 
+          onerror := OnError }, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, Encoded} ->
+            {ok, Encoded};
+        Other ->
+            cmkit:warning({encode, attempted, Spec, Other}),
+            cmencode:encode(OnError, In, Config)
     end;
 
 encode(#{ type := iterate, 
@@ -990,6 +1058,27 @@ encode(#{ value := V}, _, _) -> {ok, V};
 
 encode(#{ spec := Spec }, _, _) -> {ok, Spec};
 
+encode(#{ type := sequence,
+          from := From,
+          to := To }, In, Config) ->
+    case encode(From, In, Config) of 
+        {ok, F} ->
+            case encode(To, In, Config) of 
+                {ok, T} ->
+                    {ok, lists:seq(F, T)};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := pipe,
+          specs := Specs,
+          as := As }, In, Config) ->
+
+    pipe(Specs, As, In, Config);
+
 encode(Value, _, _) ->
     {ok, Value}.
 
@@ -1067,6 +1156,26 @@ encode_all([Spec|Rem], In, Config, Out) ->
             Other
     end.
 
+pipe([], As, In, _) -> 
+    case maps:get(As, In, undef) of 
+        undef ->
+            {error, #{ status => encode_error,
+                        spec => pipe,
+                        data => In,
+                        as => As,
+                        reason => no_data }};
+        Encoded ->
+            {ok, Encoded}
+    end;
+
+pipe([Spec|Rem], As, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, Encoded} ->
+            pipe(Rem, As, In#{ As => Encoded}, Config);
+        Other ->
+            Other
+    end.
+
 encode_options([], All,  In, _) -> {error, #{ status => encode_error,
                                              reason => no_condition_did_verify,
                                              in => In,
@@ -1116,7 +1225,7 @@ encode_http(Method, Url, H, Body, In, Config) ->
                             body => B }}; 
                 Other -> Other
             end;
-        U when is_binary(U) -> 
+        {ok, U} when is_binary(U) -> 
             case encode(Body, In, Config) of 
                 {ok, multipart, B, Boundary} ->
                     {ok, #{ url => U,

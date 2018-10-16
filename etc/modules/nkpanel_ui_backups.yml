@@ -1,0 +1,242 @@
+version: 1.0
+type: module
+category: ui
+name: nkpanel_ui_backups
+spec:
+  init:
+    model:
+      backups: []
+  decoders:
+    show_backups:
+      object:
+        effect: "ui"
+        event: "show_backups"
+    backups:
+      object:
+        effect: ws
+        data:
+          object:
+            backups:
+              list:
+                object:
+                  backup:
+                    any: text
+                  database:
+                    any: text
+                  elapsed:
+                    any: number
+                  kind:
+                    any: text
+                  status:
+                    any: text
+                  started:
+                    any: text
+
+  update:
+    show_backups:
+      cmds:
+        - effect: ws
+          encoder: backups_query
+        - effect: ui
+          encoder: backups_view
+    backups:
+      model:
+        backups:
+          key: backups
+          in: data
+      cmds:
+        - effect: ui
+          encoder: backups_view
+  encoders:
+    backups_query:
+      object:
+        action: "backups"
+    backup_kind_label:
+      view:
+        view: status-label
+        params:
+          object:
+            style: "default"
+            title:
+              key: title 
+    backup_table_item:
+      view:
+        tag: div
+        attrs:
+          class: "row"
+          key: 
+            key: backup
+            in: item
+        children:
+          - tag: div
+            attrs:
+              class: "status wide"
+            children:
+              - view: status-label
+                params:
+                  object:
+                    style:
+                      either:
+                        - when: 
+                            eq:
+                              - text: "success"
+                              - key: status
+                                in: item
+                          text: "success"
+                        - text: "danger"
+                    title:
+                      either:
+                        - when: 
+                            eq:
+                              - text: "success"
+                              - key: status
+                                in: item
+                          text: "Success"
+                        - text: "Error"
+          - tag: div
+            attrs:
+              class: "status wide"
+            children:
+              - view: backup_kind_label
+                params:
+                  object:
+                    title:
+                      key: kind
+                      in: item
+          - tag: div
+            attrs: 
+              class: "content with-status"
+            children:
+              - tag: div
+                attrs:
+                  class: "info"
+                children:
+                  - view: row_select_control
+                    params:
+                      object:
+                        onclick:
+                          object:
+                            name: "select-backup"
+                            component:
+                              object:
+                                database:
+                                  key: database
+                                  in: item
+                                backup:
+                                  key: backup
+                                  in: item
+                                started:
+                                  key: started
+                                  in: item
+                                kind:
+                                  key: kind
+                                  in: item
+              - tag: h6
+                children:
+                  - text:
+                      key: database
+                      in: item
+              - tag: span
+                children:
+                  - timestamp:
+                      format: human
+                      value:
+                        key: started 
+                        in: item
+    backups_table:
+      view:
+        tag: div
+        attrs:
+          class: "table"
+        children:
+          - tag: div
+            attrs:
+              class: "title"
+            children:
+              - tag: h6 
+                children:
+                  - text: "Backups"
+              - tag: span 
+                children:
+                  - text: "List of backups made in the last week"
+          - tag: div
+            attrs:
+              class: "body"
+            children:
+              loop:
+                key: backups 
+              with: backup_table_item
+    backups_table_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-6"
+        children:
+          - view: panel
+            params:
+              object:
+                style: ""
+                view: backups_table
+                content:
+                  object:
+                    backups:
+                      key: backups
+    backup_selection_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-6"
+          style: "max-height: 8rem; height: 8rem"
+        children: []
+    backups_dashboard:
+      view:
+        view: main
+        params:
+          object:
+            title: "Backups"
+            subtitle: "Available database backups"
+            icon: "fas fa-archive"
+            views:
+              list:
+                - object:
+                    name: backups_table_view
+                    content:
+                      object: 
+                        backups:
+                          key: backups
+                - object:
+                    name: backup_selection_view
+                    content:
+                      object:
+                        backup:
+                          maybe:
+                            key: backup
+    backups_view:
+      view:
+        view: nkpanel_view
+        params:
+          object:
+            inspector:
+              object:
+                view: activity
+                visibility: 
+                  key: inspector
+                content:
+                  current:
+                    key: active
+                    in: test_activity
+                  waiting:
+                    key: pending
+                    in: test_activity
+            feature:
+              object:
+                name: "backups"
+                view: "backups_dashboard"
+                content:
+                  object:
+                    backups:
+                      key: backups
+                    backup:
+                      maybe:
+                        key: backup
+

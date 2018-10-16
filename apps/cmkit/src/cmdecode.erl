@@ -106,6 +106,15 @@ decode_term(#{ type := text} = Spec, Text, _) when is_list(Text) ->
 
 decode_term(#{ type := text}, _, _) -> no_match;
 
+
+decode_term(#{ type := other_than, spec := #{ type := regexp, value := _ } = Spec}, Data, Config) -> 
+    case decode_term(Spec, Data, Config) of 
+        {ok, Data} -> 
+            no_match;
+        no_match -> 
+            {ok, Data}
+    end;
+
 decode_term(#{ type := other_than, spec := Spec }, Data, Config) -> 
     case cmencode:encode(Spec, Data, Config) of 
         {ok, Value} ->
@@ -233,7 +242,10 @@ decode_term(#{ type := list,
         _ -> no_match
     end;
 
-decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) -> 
+decode_term(#{ type := list, spec := _ }, [], _)  ->
+    no_match;
+
+decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) ->
     decode_list(Spec, Data, Config);
 
 
@@ -333,9 +345,7 @@ decode_term(Spec, Data, Context) when is_map(Spec) ->
     end;
 
 decode_term(V, V, _) -> {ok, V};
-decode_term(Spec, V, _) ->
-    cmkit:warning({cmdecode, no_match, Spec, V}),
-    no_match.
+decode_term(_, _, _) -> no_match.
 
 
 decode_first_spec([], _, _) -> no_match;

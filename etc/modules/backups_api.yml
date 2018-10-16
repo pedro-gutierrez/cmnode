@@ -1,0 +1,207 @@
+version: 1.0
+type: module
+category: server
+name: backups_api 
+spec:
+  decoders:
+    backup_summary:
+      object:
+        method: "POST"
+        headers:
+          object:
+            content-type: "application/json"
+            app-id: "nk"
+            app-secret: "nk"
+        body:
+          object:
+            backup:
+              any: text
+            kind:
+              one_of:
+                - elastic
+                - cockroach
+            name:
+              any: text
+            db:
+              any: text
+            elapsed:
+              any: number
+            status:
+              one_of:
+                - error
+                - success
+            started:
+              object:
+                year:
+                  any: number
+                month:
+                  any: number
+                day:
+                  any: number
+                hour:
+                  any: number
+                minute:
+                  any: number
+                second:
+                  any: number
+    backup_summary_written:
+      object:
+        context:
+          keyword: write
+        bucket:
+          keyword: backups
+        status:
+          keyword: ok
+    recent_backups:
+      object:
+        action: "backups"
+    recent_backups_found:
+      object:
+        context:
+          keyword: read
+        bucket:
+          keyword: backups
+        value:
+          any: list
+  update:
+    backup_summary:
+      model:
+        backup:
+          key: body
+      cmds:
+        - effect: db_put
+          encoder: backup_summary_entry
+    backup_summary_written:
+      cmds:
+        - effect: notify
+          encoder: backup_summary_ack
+        - effect: terminate
+    recent_backups:
+      model:
+        days:
+          iterate:
+            sequence:
+              from: 0
+              to: 4
+          as: day
+          with:
+            pipe:
+              - calendar:
+                  days:
+                    ago:
+                      key: day
+              - format:
+                  pattern: "~4..0B~2..0B~2..0B"
+                  params:
+                    - key: year
+                      in: date
+                    - key: month
+                      in: date
+                    - key: day
+                      in: date
+            as: date
+      cmds:
+        - effect: db_get
+          encoder: recent_backups_query
+    recent_backups_found:
+      model:
+        backups:
+          iterate:
+            key: value
+          as: backup
+          with:
+            object:
+              elapsed:
+                key: elapsed 
+                in:
+                  key: info
+                  in: backup
+              kind:
+                key: kind 
+                in:
+                  key: info
+                  in: backup
+              status:
+                key: status 
+                in:
+                  key: info
+                  in: backup
+              database:
+                key: db
+                in:
+                  key: info
+                  in: backup
+              backup:
+                key: backup
+                in:
+                  key: info
+                  in: backup
+              started:
+                format:
+                  pattern: "iso8601"
+                  date:
+                    key: started
+                    in:
+                      key: info
+                      in: backup
+      cmds:
+        - effect: notify
+          encoder: recent_backups
+  encoders:
+    backup_summary_entry:
+      object:
+        context:
+          keyword: write
+        bucket:
+          keyword: backups
+        items:
+          - object:
+              subject:
+                format:
+                  pattern: "~4..0B~2..0B~2..0B"
+                  params:
+                    - key: year
+                      in: 
+                        key: started
+                        in: backup
+                    - key: month 
+                      in: 
+                        key: started
+                        in: backup
+                    - key: day
+                      in: 
+                        key: started
+                        in: backup
+              predicate:
+                key: db
+                in: backup
+              object:
+                key: backup
+                in: backup
+              value:
+                key: backup
+    recent_backups_query:
+      object:
+        context:
+          keyword: read
+        bucket:
+          keyword: backups
+        subjects:
+          key: days
+        labels:
+          object:
+            predicate: "database"
+            object: "backup"
+            value: "info"
+    recent_backups:
+      object:
+        backups:
+          key: backups
+    backup_summary_ack:
+      object:
+        status: 200
+        headers:
+          content-type: "application/json"
+        body:
+          object:
+            acknowledged: true

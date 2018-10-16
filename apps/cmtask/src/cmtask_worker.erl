@@ -10,19 +10,32 @@ run(Pid) ->
 start_link(Name, Params) ->
     gen_server:start_link(?MODULE, [Name, Params], []).
 
-init([Name, #{ settings := Settings }=Params]) ->
+init([Name, #{ settings := SettingsNames }=Params]) ->
     case cmconfig:task(Name) of 
         {ok, Spec} ->
-            case cmconfig:settings(Settings) of 
-                {ok, SettingsSpec} ->
+            case cmtask_util:settings(SettingsNames) of 
+                {ok, SNames, SSpec} ->
                     {ok, #{ name => Name,
                             spec => Spec,
-                            settings => SettingsSpec,
+                            settings => #{ name => SNames,
+                                           spec => SSpec },
                             params => Params }};
                 Other -> 
-                    cmkit:danger({cmtask, Name, Settings, settings_error, Other}),
+                    cmkit:danger({cmtask, Name, SettingsNames, error, Other}),
                     {stop, normal}
             end;
+        Other ->
+            cmkit:danger({cmtask, Name, task_error, Other}),
+            {stop, normal}
+    end;
+
+init([Name, Params]) ->
+    case cmconfig:task(Name) of 
+        {ok, Spec} ->
+            {ok, #{ name => Name,
+                    spec => Spec,
+                    settings => #{},
+                    params => Params }};
         Other ->
             cmkit:danger({cmtask, Name, task_error, Other}),
             {stop, normal}
