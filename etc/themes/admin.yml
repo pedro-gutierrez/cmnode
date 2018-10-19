@@ -650,7 +650,7 @@ spec:
                       selectors:
                         - elem: span
                           style:
-                            width: 70px
+                            width: 90px
                     - elem: span
                       style:
                         width: 50px

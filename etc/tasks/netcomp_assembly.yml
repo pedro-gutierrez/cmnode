@@ -51,11 +51,29 @@ spec:
           params:
             - key: name
               in: params
-  - shell:
-      chwd: 
-        format:
-          pattern: "/tmp/~s"
-          params:
-            - key: name
-              in: params
-      cmd: "rebar3 compile"
+  - attempt:
+      shell:
+        chwd: 
+          format:
+            pattern: "/tmp/~s"
+            params:
+              - key: name
+                in: params
+        cmd: "rebar3 compile"
+    onerror:
+      - slack:
+          settings:
+            key: slack
+            in: params
+          severity:
+            keyword: "danger"
+          subject:
+            text: "Build failed"
+          body:
+            format:
+              pattern: "Failed to compile ~s"
+              params:
+                - key: name
+                  in: params
+      - error:
+          keyword: build_failed

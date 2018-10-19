@@ -55,54 +55,21 @@ spec:
                       env:
                         list:
                           - name: DKV_PET_HOST
-                            value: "dkv-09-shp"
+                            value:
+                              key: service
+                              in:
+                                key: pet
+                                in:
+                                  key:
+                                    key: dkv_settings
+                                    in: params
+                                  in: settings
                           - name: DKV_PET_PORT
                             value: "9003"
                           - name: DKV_PET_PATH
                             value: "/_api"
                           - name: DKV_PET_SCHEME
                             value: "http"
-                          - name: DKV_OAUTH_HOST
-                            value:
-                              key: host
-                              in:
-                                key: oauth
-                                in:
-                                  key: dkv
-                                  in: settings
-                          - name: DKV_OAUTH_PORT
-                            value:
-                              text:
-                                key: port
-                                in:
-                                  key: oauth
-                                  in:
-                                    key: dkv
-                                    in: settings
-                          - name: DKV_OAUTH_PATH
-                            value:
-                              key: path
-                              in:
-                                key: oauth
-                                in:
-                                  key: dkv
-                                  in: settings
-                          - name: DKV_OAUTH_SCHEME
-                            value:
-                              key: transport
-                              in:
-                                key: oauth
-                                in:
-                                  key: dkv
-                                  in: settings
-                          - name: DKV_OAUTH_CLIENT_ID
-                            value:
-                              key: client_id
-                              in:
-                                key: oauth
-                                in:
-                                  key: dkv
-                                  in: settings
                       ports:
                         list:
                           - object:
@@ -128,21 +95,27 @@ spec:
                     in:
                       key: pet
                       in:
-                        key: dkv
+                        key:
+                          key: dkv_settings
+                          in: params
                         in: settings
                   path:
                     key: path
                     in:
                       key: pet
                       in:
-                        key: dkv
+                        key:
+                          key: dkv_settings
+                          in: params
                         in: settings
                   transport:
                     key: transport
                     in:
                       key: pet
                       in:
-                        key: dkv
+                        key:
+                          key: dkv_settings
+                          in: params
                         in: settings
 
       sleep: 1000

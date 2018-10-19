@@ -43,7 +43,9 @@ spec:
                                 in:
                                   key: notifications
                                   in:
-                                    key: dkv
+                                    key:
+                                      key: dkv_settings
+                                      in: params
                                     in: settings
               volumes:
                 list:
@@ -114,6 +116,12 @@ spec:
                                 keyword: true
                           - object:
                               name: config
+                              mountPath: /opt/dkv-notifications/etc/settings/i18n.yml
+                              subPath: i18n.yml
+                              readOnly: 
+                                keyword: true
+                          - object:
+                              name: config
                               mountPath: /root/.hosts.erlang
                               subPath: .hosts.erlang
                               readOnly: 
@@ -141,21 +149,27 @@ spec:
                     in:
                       key: notifications
                       in:
-                        key: dkv
+                        key:
+                          key: dkv_settings
+                          in: params
                         in: settings
                   path:
                     key: path
                     in:
                       key: notifications
                       in:
-                        key: dkv
+                        key:
+                          key: dkv_settings
+                          in: params
                         in: settings
                   transport:
                     key: transport
                     in:
                       key: notifications
                       in:
-                        key: dkv
+                        key:
+                          key: dkv_settings
+                          in: params
                         in: settings
 
       sleep: 1000

@@ -21,16 +21,25 @@
                 task]).
 
 reload() -> 
-                  {ok, Specs} = parse(),
-                  Index = compiled(sorted(ranked(Specs))),
-                  Funs = merged(Index),
-                  Funs2 = Funs#{ effects => #{ arity => 0,
-                                               clauses => [#{ vars => [],
-                                                              body => #{ abstract => effects() }}]}},
+    {ok, Specs} = parse(),
+    Index = compiled(sorted(ranked(Specs))),
+    Funs = merged(Index),
+    Funs2 = Funs#{ effects => #{ arity => 0,
+                                 clauses => [#{ vars => [],
+                                                body => #{ abstract => effects() }}]}},
 
-                  cmcode:compile(#{ module => ?GENERATED_MOD,
-                                    functions => Funs2
-                                  }).
+    Res = cmcode:compile(#{ module => ?GENERATED_MOD,
+                            functions => Funs2
+                          }),
+
+    cmkit:log({cmconfig, stats(Index)}),
+    Res.
+
+
+stats(Index) ->
+    maps:fold(fun(Type, SubIndex, Acc) ->
+                      Acc#{ Type => map_size(SubIndex) } 
+              end, #{}, Index).
 
 merged(Index) -> merged(maps:keys(Index), Index, #{}).
 merged([], _Index, Out) -> Out;
@@ -1149,6 +1158,11 @@ compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
                               compile_term(S, Index)     
                            end, Specs) }; 
 
+compile_term(#{ <<"all">> := Specs }, Index) when is_list(Specs) ->
+    #{ all => lists:map(fun(S) ->
+                              compile_term(S, Index)     
+                           end, Specs) }; 
+
 
 compile_term(#{ <<"loop">> := From,
                 <<"context">> := Context,
@@ -1630,6 +1644,10 @@ compile_term(#{ <<"iterate">> := SourceSpec,
        filter => FilterSpec,
        as => AsSpec,
        dest => compile_term(DestSpec, Index) };
+
+compile_term(#{ <<"error">> := Spec }, Index) ->
+    #{ type => error,
+       spec => compile_term(Spec, Index) };
 
 compile_term(#{ <<"attempt">> := Spec,
                 <<"onerror">> := OnError }, Index) -> 

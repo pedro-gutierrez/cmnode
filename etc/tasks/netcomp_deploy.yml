@@ -163,7 +163,7 @@ spec:
                         in: settings
 
       sleep: 1000
-      retries: 60
+      retries: 90
   - http:
       method: post 
       url:
@@ -179,6 +179,9 @@ spec:
             text: "deploy-summary"
       body:
         object:
+          name:
+            key: name
+            in: params
           settings:
             key: settings
             in: params

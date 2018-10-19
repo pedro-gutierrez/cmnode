@@ -14,6 +14,8 @@ spec:
             app-secret: "nk"
         body:
           object:
+            env:
+              any: text
             backup:
               any: text
             kind:
@@ -111,6 +113,11 @@ spec:
           as: backup
           with:
             object:
+              env:
+                key: env
+                in:
+                  key: info
+                  in: backup
               elapsed:
                 key: elapsed 
                 in:
@@ -138,7 +145,8 @@ spec:
                   in: backup
               started:
                 format:
-                  pattern: "iso8601"
+                  pattern: 
+                    keyword: "iso8601"
                   date:
                     key: started
                     in:

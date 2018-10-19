@@ -316,7 +316,7 @@ spec:
               one_of:
                 - text: "danger"
                 - text: "warning"
-    docker_preprod_deployed:
+    docker_release_deployed:
       object:
         headers:
           object:
@@ -327,7 +327,9 @@ spec:
             repo:
               any: text
             settings:
-              text: "preprod"
+              one_of:
+                - text: "preprod"
+                - text: "preview"
             tag:
               any: text
     webclient_dev_docker_ready:
@@ -361,12 +363,24 @@ spec:
             object:
               name:
                 one_of:
-                  - text: "dkv-client"
                   - text: "c4-client"
                   - text: "sphera-brazil-client"
                   - text: "sphera-rwanda-client"
                   - text: "sphera-videocal-client"
                   - text: "sphera-morocco-client"
+              repo_name:
+                any: text
+    dkv_webclient_release_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                other_than:
+                  text: "latest" 
+          repository:
+            object:
+              name: "dkv-client"
               repo_name:
                 any: text
     nkdomain_dev_changed:
@@ -1354,7 +1368,7 @@ spec:
           encoder: transcoder_deploy_task
         - effect: notify
           encoder: ok
-    docker_preprod_deployed:
+    docker_release_deployed:
       model:
         object:
           deployment:
@@ -1420,6 +1434,30 @@ spec:
           encoder: docker_ready_task
         - effect: task
           encoder: webclient_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_webclient_release_docker_ready:
+      model:
+        object:
+          docker_image:
+            object:
+              repo:
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_webclient_preprod_deploy_task
+        - effect: task
+          encoder: dkv_webclient_preview_deploy_task
         - effect: notify
           encoder: ok
     sipstorm_dev_changed:
@@ -1714,8 +1752,6 @@ spec:
         object:
           settings:
             keyword: preprod
-          name: 
-            text: "dkv"
           docker_image:
             object:
               name: 
@@ -1737,7 +1773,9 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: netcomp_deploy_task
+          encoder: dkv_preprod_deploy_task
+        - effect: task
+          encoder: dkv_preview_deploy_task
         - effect: notify
           encoder: ok
     dkv_pet_proxy_dev_changed:
@@ -1758,10 +1796,6 @@ spec:
     dkv_pet_proxy_docker_dev_ready:
       model:
         object:
-          settings:
-            keyword: dev
-          name: 
-            text: "dkv-pet-proxy"
           docker_image:
             object:
               name: 
@@ -1783,7 +1817,7 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: dkv_pet_proxy_deploy_task
+          encoder: dkv_pet_proxy_dev_deploy_task
         - effect: notify
           encoder: ok
     dkv_pet_proxy_dev_deployed:
@@ -1821,10 +1855,6 @@ spec:
     dkv_pet_proxy_docker_release_ready:
       model:
         object:
-          settings:
-            keyword: preprod
-          name: 
-            text: "dkv-pet-proxy"
           docker_image:
             object:
               name: 
@@ -1846,7 +1876,9 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: dkv_pet_proxy_deploy_task
+          encoder: dkv_pet_proxy_preprod_deploy_task
+        - effect: task
+          encoder: dkv_pet_proxy_preview_deploy_task
         - effect: notify
           encoder: ok
     dkv_notifications_dev_changed:
@@ -1867,10 +1899,6 @@ spec:
     dkv_notifications_docker_dev_ready:
       model:
         object:
-          settings:
-            keyword: dev
-          name: 
-            text: "dkv-notifications"
           docker_image:
             object:
               name: 
@@ -1892,7 +1920,7 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: dkv_notifications_deploy_task
+          encoder: dkv_notifications_dev_deploy_task
         - effect: notify
           encoder: ok
     dkv_notifications_dev_deployed:
@@ -1930,10 +1958,6 @@ spec:
     dkv_notifications_docker_release_ready:
       model:
         object:
-          settings:
-            keyword: preprod
-          name: 
-            text: "dkv-notifications"
           docker_image:
             object:
               name: 
@@ -1955,7 +1979,9 @@ spec:
         - effect: task
           encoder: docker_ready_task
         - effect: task
-          encoder: dkv_notifications_deploy_task
+          encoder: dkv_notifications_preprod_deploy_task
+        - effect: task
+          encoder: dkv_notifications_preview_deploy_task
         - effect: notify
           encoder: ok
     nkdomain_dev_changed:
@@ -2603,6 +2629,40 @@ spec:
               keyword: tests
             settings:
               key: settings
+    dkv_webclient_preprod_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name: "dkv-client"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_webclient_preview_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name: "dkv-preview-client"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preview
     sipstorm_build_task:
       object:
         task:
@@ -2781,15 +2841,15 @@ spec:
               keyword: tests
             settings:
               keyword: dev
-    dkv_pet_proxy_deploy_task:
+    dkv_pet_proxy_dev_deploy_task:
       object:
         task:
           keyword: pet_proxy_deploy
         params:
           object:
-            name:
-              key: name
-              in: docker_image
+            name: "dkv-pet-proxy"
+            dkv_settings:
+              keyword: dkv
             repo:
               key: repo
               in: docker_image
@@ -2799,7 +2859,45 @@ spec:
             slack:
               keyword: tests
             settings:
-              key: settings
+              keyword: dev
+    dkv_pet_proxy_preprod_deploy_task:
+      object:
+        task:
+          keyword: pet_proxy_deploy
+        params:
+          object:
+            name: "dkv-pet-proxy-preprod"
+            dkv_settings:
+              keyword: dkv
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_pet_proxy_preview_deploy_task:
+      object:
+        task:
+          keyword: pet_proxy_deploy
+        params:
+          object:
+            name: "dkv-pet-proxy-preview"
+            dkv_settings:
+              keyword: dkv-preview
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preview
     dkv_pet_test:
       object:
         schedule:
@@ -2822,15 +2920,15 @@ spec:
               keyword: tests
             settings:
               keyword: dev
-    dkv_notifications_deploy_task:
+    dkv_notifications_dev_deploy_task:
       object:
         task:
           keyword: dkv_notifications_deploy
         params:
           object:
-            name:
-              key: name
-              in: docker_image
+            name: "dkv-notifications"
+            dkv_settings:
+              keyword: dkv
             repo:
               key: repo
               in: docker_image
@@ -2840,7 +2938,45 @@ spec:
             slack:
               keyword: tests
             settings:
-              key: settings
+              keyword: dev
+    dkv_notifications_preprod_deploy_task:
+      object:
+        task:
+          keyword: dkv_notifications_deploy
+        params:
+          object:
+            name: "dkv-notifications-preprod"
+            dkv_settings:
+              keyword: dkv
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_notifications_preview_deploy_task:
+      object:
+        task:
+          keyword: dkv_notifications_deploy
+        params:
+          object:
+            name: "dkv-notifications-preview"
+            dkv_settings:
+              keyword: dkv-preview
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preview
     dkv_notifications_test:
       object:
         schedule:
@@ -2871,6 +3007,40 @@ spec:
               keyword: tests
             settings:
               key: settings
+    dkv_preprod_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "dkv"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_preview_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "dkv-preview"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings: 
+              keyword: preview
     sphera_rwanda_deploy_task:
       object:
         task:

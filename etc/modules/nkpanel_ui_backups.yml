@@ -9,7 +9,7 @@ spec:
   decoders:
     show_backups:
       object:
-        effect: "ui"
+        effect: ui
         event: "show_backups"
     backups:
       object:
@@ -19,6 +19,8 @@ spec:
             backups:
               list:
                 object:
+                  env:
+                    any: text
                   backup:
                     any: text
                   database:
@@ -31,7 +33,24 @@ spec:
                     any: text
                   started:
                     any: text
-
+    backup_selected:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "select_backup"
+            backup:
+              object:
+                database:
+                  any: text
+                id:
+                  any: text
+                kind:
+                  any: text
+                started:
+                  any: text
+                status:
+                  any: text
   update:
     show_backups:
       cmds:
@@ -47,6 +66,14 @@ spec:
       cmds:
         - effect: ui
           encoder: backups_view
+    backup_selected:
+      model:
+        backup:
+          key: backup
+          in: event
+      cmds:
+        - effect: ui
+          encoder: backups_view
   encoders:
     backups_query:
       object:
@@ -59,6 +86,35 @@ spec:
             style: "default"
             title:
               key: title 
+    backup_env_label:
+      view:
+        view: status-label
+        params:
+          object:
+            style: "default"
+            title:
+              key: env 
+    backup_status_label:
+      view:
+        view: status-label
+        params:
+          object:
+            style:
+              either:
+                - when: 
+                    eq:
+                      - text: "success"
+                      - key: status
+                  text: "success"
+                - text: "danger"
+            title:
+              either:
+                - when: 
+                    eq:
+                      - text: "success"
+                      - key: status
+                  text: "Success"
+                - text: "Error"
     backup_table_item:
       view:
         tag: div
@@ -67,70 +123,58 @@ spec:
           key: 
             key: backup
             in: item
+          onclick:
+            object:
+              name: "select_backup"
+              backup:
+                object:
+                  database:
+                    key: database
+                    in: item
+                  id:
+                    key: backup
+                    in: item
+                  started:
+                    key: started
+                    in: item
+                  kind:
+                    key: kind
+                    in: item
+                  status:
+                    key: status
+                    in: item
         children:
           - tag: div
-            attrs:
-              class: "status wide"
-            children:
-              - view: status-label
-                params:
-                  object:
-                    style:
-                      either:
-                        - when: 
-                            eq:
-                              - text: "success"
-                              - key: status
-                                in: item
-                          text: "success"
-                        - text: "danger"
-                    title:
-                      either:
-                        - when: 
-                            eq:
-                              - text: "success"
-                              - key: status
-                                in: item
-                          text: "Success"
-                        - text: "Error"
-          - tag: div
-            attrs:
-              class: "status wide"
-            children:
-              - view: backup_kind_label
-                params:
-                  object:
-                    title:
-                      key: kind
-                      in: item
-          - tag: div
             attrs: 
-              class: "content with-status"
+              class: "content"
             children:
               - tag: div
                 attrs:
                   class: "info"
                 children:
-                  - view: row_select_control
-                    params:
-                      object:
-                        onclick:
+                  - tag: div
+                    attrs:
+                      class: "status wide"
+                    children:
+                      - view: backup_kind_label
+                        params:
                           object:
-                            name: "select-backup"
-                            component:
-                              object:
-                                database:
-                                  key: database
-                                  in: item
-                                backup:
-                                  key: backup
-                                  in: item
-                                started:
-                                  key: started
-                                  in: item
-                                kind:
-                                  key: kind
-                                  in: item
+                            title:
+                              key: kind
+                              in: item
+                      - view: backup_env_label
+                        params:
+                          object:
+                            env:
+                              key: env
+                              in: item
+                      - view: backup_status_label
+                        params:
+                          object:
+                            status:
+                              key: status
+                              in: item
+
               - tag: h6
                 children:
                   - text:
@@ -181,13 +225,22 @@ spec:
                   object:
                     backups:
                       key: backups
-    backup_selection_view:
+    selected_backup_view:
       view:
         tag: div
         attrs:
           class: "column col-6"
           style: "max-height: 8rem; height: 8rem"
-        children: []
+        children:
+          - text: "Backup selected"
+    no_backup_selection_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-6"
+          style: "max-height: 8rem; height: 8rem"
+        children:
+          - text: "No backup selected"
     backups_dashboard:
       view:
         view: main
@@ -204,13 +257,19 @@ spec:
                       object: 
                         backups:
                           key: backups
-                - object:
-                    name: backup_selection_view
-                    content:
+                - either:
+                    - when:
+                        is_set: "backup"
                       object:
-                        backup:
-                          maybe:
-                            key: backup
+                        name: selected_backup_view
+                        content:
+                          object:
+                            backup:
+                              maybe:
+                                key: backup
+                    - object:
+                        name: no_backup_selection_view
+                        content: {}
     backups_view:
       view:
         view: nkpanel_view

@@ -333,6 +333,9 @@ decode_term(#{ type := config, spec := Spec}, Data, Config)  ->
 decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
     decode_first_spec(Specs, In, Config);
 
+decode_term(#{ all := Specs }, In, Config) when is_list(Specs) ->
+    decode_all_specs(Specs, In, Config);
+
 decode_term(Spec, Data, Context) when is_map(Spec) -> 
     case cmencode:encode(Spec, Context) of 
         {ok, Expected} when is_map(Expected) -> 
@@ -354,6 +357,15 @@ decode_first_spec([Spec|Rem], In, Config) ->
         {ok, Decoded} -> {ok, Decoded};
         no_match ->
             decode_first_spec(Rem, In, Config)
+    end.
+
+decode_all_specs([], In, _) -> {ok, In};
+decode_all_specs([Spec|Rem], In, Config) ->
+    case decode_term(Spec, In, Config) of 
+        {ok, _} -> 
+            decode_all_specs(Rem, In, Config);
+        no_match ->
+            no_match
     end.
 
 decode_first_item(_, [], _) -> no_match;

@@ -40,7 +40,12 @@ run(#{ name := Name,
     case resolve_items(Items) of 
         {ok, Items2} -> 
             cmkit:log({task, Name, starting}),
-            run_items(Name, Items2, Input);
+            case run_items(Name, Items2, Input) of 
+                {error, E} ->
+                    cmkit:danger({task, Name, error, E});
+                _Other ->
+                    cmkit:success({task, Name, Params, success})
+            end;
         Other -> 
             Other
     end.
@@ -60,8 +65,7 @@ resolve_items([#{ type := task, name := Name }|Rem], Out) ->
 resolve_items([Item|Rem], Out) ->
     resolve_items(Rem, [Item|Out]).
 
-run_items(Name, [], In) ->
-    cmkit:success({task, Name, finished}),
+run_items(_, [], In) ->
     {ok, In};
 
 run_items(Name, [Item|Rem], In) -> 
@@ -73,7 +77,6 @@ run_items(Name, [Item|Rem], In) ->
         {ok, Extra } -> 
             run_items(Name, Rem, In#{ context => Ctx#{ last => Extra }}); 
         Other -> 
-            cmkit:danger({task, Name, Item, Other}),
             Other
     end.
 
@@ -346,6 +349,11 @@ run_item(Name, #{ type := shell,
             Other
     end;
 
+
+run_item(Name, #{ type := list,
+                  value := Specs }, In) ->
+    run_items(Name, Specs, In);
+
 run_item(Name, #{ type := attempt, 
                   spec := Spec, 
                   onerror := OnError }, In) -> 
@@ -356,7 +364,7 @@ run_item(Name, #{ type := attempt,
             {ok, Data};
         Other  ->
             cmkit:warning({task, Name, attempted, Spec, Other}),
-            cmencode:encode(OnError, In)
+            run_item(Name, OnError, In)
     end;
 
 run_item(_, #{ type := db,
