@@ -35,6 +35,14 @@ spec:
         children:
           - text: 
               key: title
+    default-status-label:
+      view:
+        view: status-label
+        params:
+          object:
+            style: "default"
+            title:
+              key: title 
     label:
       view:
         tag: label

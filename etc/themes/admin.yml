@@ -81,6 +81,13 @@ spec:
             letter-spacing: 10px
             font-weight: bold
             float: left
+        - s-class: "switch-project"
+          style:
+            text-transform: uppercase
+            font-weight: bold
+            font-size: 1.6em
+            top: "1px !important"
+            letter-spacing: 3px
         - s-class: "navigation"
           style:
             height: 100%
@@ -369,7 +376,7 @@ spec:
                         line-height: 0
                     - s-class: "title"
                       style:
-                        margin-left: 64px
+                        margin-left: 75px
                         top: -.5rem
                         position: relative
                       selectors:
@@ -592,6 +599,21 @@ spec:
                 - elem: p
                   style:
                     margin-left: 50px
+    - s-class: "form"
+      selectors:
+        - s-class: "info"
+          style:
+            float: right
+          selectors:
+            - s-class: "status"
+              style:
+                text-align: center
+              selectors:
+                - class: "wide"
+                  selectors:
+                    - elem: span
+                      style:
+                        width: 90px
     - class: "table"
       selectors:
         - s-class: "title"
@@ -620,6 +642,7 @@ spec:
                 color:
                   key: default
                   in: colors
+        
         - s-class: "body"
           style:
             margin-top: 10px
@@ -628,7 +651,7 @@ spec:
               style:
                 cursor: pointer
                 padding: .4rem .4rem .6rem .4rem
-                line-height: 1rem
+                line-height: 1.2rem
                 vertical-align: top
                 border-top: 1px solid
                 margin-bottom: 0
@@ -653,7 +676,7 @@ spec:
                             width: 90px
                     - elem: span
                       style:
-                        width: 50px
+                        width: 70px
                 - s-class: "content"
                   selectors:
                     - class: "with-status"

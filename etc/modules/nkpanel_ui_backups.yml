@@ -43,13 +43,15 @@ spec:
               object:
                 database:
                   any: text
-                id:
+                backup:
                   any: text
                 kind:
                   any: text
                 started:
                   any: text
                 status:
+                  any: text
+                env:
                   any: text
   update:
     show_backups:
@@ -78,22 +80,6 @@ spec:
     backups_query:
       object:
         action: "backups"
-    backup_kind_label:
-      view:
-        view: status-label
-        params:
-          object:
-            style: "default"
-            title:
-              key: title 
-    backup_env_label:
-      view:
-        view: status-label
-        params:
-          object:
-            style: "default"
-            title:
-              key: env 
     backup_status_label:
       view:
         view: status-label
@@ -115,7 +101,7 @@ spec:
                       - key: status
                   text: "Success"
                 - text: "Error"
-    backup_table_item:
+    backup_item_view:
       view:
         tag: div
         attrs:
@@ -127,67 +113,55 @@ spec:
             object:
               name: "select_backup"
               backup:
-                object:
-                  database:
-                    key: database
-                    in: item
-                  id:
-                    key: backup
-                    in: item
-                  started:
-                    key: started
-                    in: item
-                  kind:
-                    key: kind
-                    in: item
-                  status:
-                    key: status
-                    in: item
+                key: item
         children:
           - tag: div
-            attrs: 
+            attrs:
+              class: "status"
+            children:
+              - view: backup_status_label
+                params:
+                  object:
+                    status:
+                      key: status
+                      in: item
+          - tag: div
+            attrs:
               class: "content"
             children:
               - tag: div
                 attrs:
                   class: "info"
                 children:
-                  - tag: div
-                    attrs:
-                      class: "status wide"
-                    children:
-                      - view: backup_kind_label
-                        params:
-                          object:
-                            title:
-                              key: kind
-                              in: item
-                      - view: backup_env_label
-                        params:
-                          object:
-                            env:
-                              key: env
-                              in: item
-                      - view: backup_status_label
-                        params:
-                          object:
-                            status:
-                              key: status
-                              in: item
-
-              - tag: h6
-                children:
-                  - text:
-                      key: database
-                      in: item
-              - tag: span
-                children:
                   - timestamp:
                       format: human
                       value:
                         key: started 
                         in: item
-    backups_table:
+              - tag: h6
+                children:
+                  - text:
+                      key: database
+                      in: item
+              - tag: div
+                children:
+                  - tag: div
+                    attrs:
+                      class: "wide"
+                    children:
+                      - view: default-status-label 
+                        params:
+                          object:
+                            title:
+                              key: kind
+                              in: item
+                      - view: default-status-label
+                        params:
+                          object:
+                            title:
+                              key: env
+                              in: item
+    backups_table_view:
       view:
         tag: div
         attrs:
@@ -209,22 +183,117 @@ spec:
             children:
               loop:
                 key: backups 
-              with: backup_table_item
-    backups_table_view:
+              with: backup_item_view
+    backups_panel_view:
       view:
         tag: div
         attrs:
-          class: "column col-6"
+          class: "column col-xl-8 col-lg-8 col-md-8 col-sm-12 col-xs-12"
         children:
           - view: panel
             params:
               object:
-                style: ""
-                view: backups_table
+                style: "reports filled"
+                view: backups_table_view
                 content:
                   object:
                     backups:
                       key: backups
+    restore_button_view:
+      view:
+        tag: div
+        attrs:
+          class: "row"
+        children:
+          - tag: div
+            attrs:
+              class: "info"
+            children:
+              - view: button
+                params:
+                  object:
+                    style: "btn-sm primary"
+                    title: "Restore"
+                    onclick:
+                      object:
+                        event: "restore"
+          - tag: div
+            children:
+              - tag: div
+                attrs:
+                  class: "title"
+                children:
+                  - text:
+                      key: title
+              - tag: div
+                attrs:
+                  class: "description"
+                children:
+                  - text:
+                      key: description
+    backup_detail_view:
+      view:
+        tag: div
+        attrs:
+          class: "form"
+        children:
+          - tag: div
+            attrs:
+              class: "info"
+            children:
+              - tag: div
+                attrs:
+                  class: "status wide"
+                children:
+                  - view: backup_kind_label
+                    params:
+                      object:
+                        title:
+                          key: kind
+                          in: backup 
+                  - view: backup_env_label
+                    params:
+                      object:
+                        env:
+                          key: env
+                          in: backup
+                  - view: backup_status_label
+                    params:
+                      object:
+                        status:
+                          key: status
+                          in: backup
+          - tag: div
+            attrs:
+              class: "title"
+            children:
+              - text:
+                  key: database 
+                  in: backup
+          - tag: div
+            attrs:
+              class: "subtitle"
+            children:
+              - timestamp:
+                  format: human
+                  value:
+                    key: started 
+                    in: backup
+          - tag: div
+            attrs:
+              class: "actions"
+            children:
+              - view: restore_button_view 
+                params:
+                  object:
+                    title: "Restore in Dev"
+                    description: "Restore this backup in a development environment"
+              - view: restore_button_view
+                params:
+                  object:
+                    title: "Restore in Preprod"
+                    description: "Restore this backup in a preprod environment"
+
     selected_backup_view:
       view:
         tag: div
@@ -232,7 +301,14 @@ spec:
           class: "column col-6"
           style: "max-height: 8rem; height: 8rem"
         children:
-          - text: "Backup selected"
+          - view: panel
+            params:
+              object:
+                view: backup_detail_view
+                style: "filled"
+                content:
+                  backup:
+                    key: backup
     no_backup_selection_view:
       view:
         tag: div
@@ -240,7 +316,11 @@ spec:
           class: "column col-6"
           style: "max-height: 8rem; height: 8rem"
         children:
-          - text: "No backup selected"
+          - view: dialog
+            params:
+              object:
+                title: "No backup selected"
+                subtitle: "Please select a backup from the list on the left"
     backups_dashboard:
       view:
         view: main
@@ -248,51 +328,47 @@ spec:
           object:
             title: "Backups"
             subtitle: "Available database backups"
-            icon: "fas fa-archive"
+            icon: "fas fa-cloud-upload-alt"
             views:
               list:
                 - object:
-                    name: backups_table_view
+                    name: databases_panel_view
                     content:
                       object: 
+                        databases:
+                          key: databases
+                - object:
+                    name: backups_panel_view
+                    content:
+                      object:
                         backups:
                           key: backups
-                - either:
-                    - when:
-                        is_set: "backup"
-                      object:
-                        name: selected_backup_view
-                        content:
-                          object:
-                            backup:
-                              maybe:
-                                key: backup
-                    - object:
-                        name: no_backup_selection_view
-                        content: {}
     backups_view:
       view:
         view: nkpanel_view
         params:
           object:
+            prefs:
+              key: prefs
             inspector:
               object:
-                view: activity
-                visibility: 
+                status:
                   key: inspector
                 content:
-                  current:
-                    key: active
-                    in: test_activity
-                  waiting:
-                    key: pending
-                    in: test_activity
+                  object:
+                    empty: {}
+                    activity:
+                      key: test_activity
+                    filters:
+                      key: filters
             feature:
               object:
                 name: "backups"
                 view: "backups_dashboard"
                 content:
                   object:
+                    databases:
+                      key: databases
                     backups:
                       key: backups
                     backup:

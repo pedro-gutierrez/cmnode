@@ -1,0 +1,50 @@
+version: 1.0
+type: module
+category: server
+name: filter_api
+spec:
+  init:
+    model:
+      filters:
+        list:
+          - object:
+              name: "sipstorm"
+              description: "Tests, releases and backups for Sipstorm" 
+          - object:
+              name: "dkv"
+              description: "Tests, releases and backups for DKV"
+          - object:
+              name: "sphera"
+              description: "Tests, releases and backups for Sphera" 
+  decoders:
+    filters_query:
+      object:
+        action: "filters"
+    use_filter:
+      object:
+        action: "filter"
+        filter:
+          one_of:
+            - text: "dkv"
+            - text: "sipstorm"
+            - text: "sphera"
+  update:
+    filters_query:
+      cmds:
+        - effect: notify
+          encoder: filters 
+    use_filter:
+      model:
+        prefs:
+          object:
+            lang: "en"
+            filter:
+              key: filter
+      cmds:
+        - effect: notify
+          encoder: prefs
+  encoders:
+    filters:
+      object:
+        filters:
+          key: filters

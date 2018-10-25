@@ -6,67 +6,19 @@ spec:
   init:
     model:
       release_ack: false
-      components:
-        list: 
-          - object:
-              title: "Sipstorm backend"
-              description: "Netcomposer v09 API for Sipstorm"
-              platform: "netcomp v09"
-              name: "netcomp"
-              instance: "sipstorm"
-          - object:
-              title: "Email Reports"
-              description: "Email reporting microservice"
-              platform: "golang"
-              name: "email-reports"
-              instance: "default"
-          - object:
-              title: "Nimg"
-              description: "Image processor microservice"
-              platform: "nodejs"
-              name: "nimg"
-              instance: "default"
-          - object:
-              title: "DKV Backend"
-              description: "Netcomposer v09 SHP, PET and Collab APIs for DKV"
-              platform: "netcomp v09"
-              name: "netcomp"
-              instance: "dkv"
-          - object:
-              title: "DKV PET Proxy"
-              description: "Restful proxy façade API for the PET"
-              platform: "nodejs"
-              name: "dkv-pet-proxy"
-              instance: "default"
-          - object:
-              title: "DKV Notifications"
-              description: "DKV Notifications microservice"
-              platform: "erlang"
-              name: "dkv-notifications"
-              instance: "default"
-          - object:
-              title: "Sphera Brazil backend"
-              description: "Netcomposer v09 Collab API for Sphera"
-              platform: "netcomp v09"
-              name: "netcomp"
-              instance: "sphera-brazil"
-          - object:
-              title: "Sphera Rwanda backend"
-              description: "Netcomposer v09 SHP and Collab APIs for Sphera"
-              platform: "netcomp v09"
-              name: "netcomp"
-              instance: "sphera-rwanda"
-          - object:
-              title: "Sphera Videocal backend"
-              description: "Netcomposer v09 Videocal API for Sphera"
-              platform: "netcomp v09"
-              name: "netcomp"
-              instance: "sphera-general"
+      components: []
   decoders:
     show_release:
       object:
         effect: "ui"
         event: "show_release"
+    components:
+      object:
+        effect: "ws"
+        data:
+          object:
+            components:
+              any: list
     component_selected:
       object:
         effect: "ui"
@@ -100,6 +52,16 @@ spec:
   update:
     show_release:
       cmds:
+        - effect: ws
+          encoder: components_query
+        - effect: ui
+          encoder: release_view
+    components:
+      model:
+        components:
+          key: components
+          in: data
+      cmds:
         - effect: ui
           encoder: release_view
     component_selected:
@@ -125,6 +87,9 @@ spec:
       cmds:
         - effect: ui
   encoders:
+    components_query:
+      object:
+        action: "components"
     release_query:
       object:
         release:
@@ -415,18 +380,19 @@ spec:
         view: nkpanel_view
         params:
           object:
+            prefs:
+              key: prefs
             inspector:
               object:
-                view: activity
-                visibility: 
+                status:
                   key: inspector
                 content:
-                  current:
-                    key: active
-                    in: test_activity
-                  waiting:
-                    key: pending
-                    in: test_activity
+                  object:
+                    empty: {}
+                    activity:
+                      key: test_activity
+                    filters:
+                      key: filters
             feature:
               object:
                 name: "release"

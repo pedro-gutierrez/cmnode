@@ -156,8 +156,15 @@ term(#{ type := expression, spec := Spec}, Settings) ->
         Other -> 
             Other
     end;
-    
 
+term(#{ type := encoded, spec := Spec}, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ encoded => Compiled}};
+        Other -> 
+            Other
+    end;
+    
 term(#{ type := list, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
@@ -581,6 +588,14 @@ term(#{ type := 'and', spec := Spec}, Settings) ->
     case terms(Spec, Settings) of 
         {ok, Exprs} -> 
             {ok, #{ 'and' => Exprs }};
+        Other -> 
+            Other
+    end;
+
+term(#{ type := 'or', spec := Spec}, Settings) -> 
+    case terms(Spec, Settings) of 
+        {ok, Exprs} -> 
+            {ok, #{ 'or' => Exprs }};
         Other -> 
             Other
     end;

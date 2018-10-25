@@ -1,0 +1,143 @@
+version: 1.0
+type: module
+category: client
+name: nkpanel_ui_databases
+spec:
+  init:
+    model:
+      selected_database: {}
+      databases: []
+  decoders:
+    databases:
+      object:
+        effect: ws
+        data:
+          object:
+            databases:
+              any: list
+    backup_database:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "start-backup"
+            database:
+              any: object
+  update:
+    databases:
+      model:
+        databases:
+          key: databases
+          in: data
+    backup_database:
+      model:
+        selected_database:
+          key: database
+          in: event
+      cmds:
+        - effect: ws
+          encoder: new_backup_query
+        - effect: ui
+  encoders:
+    databases:
+      object:
+        action: databases
+    new_backup_query:
+      object:
+        action: "backup"
+        database:
+          key: database
+          in: selected_database
+        env:
+          key: env
+          in: selected_database
+        kind:
+          key: kind
+          in: selected_database
+    database_item_view:
+      view:
+        tag: div
+        attrs:
+          class: "row"
+          key:
+            format:
+              pattern: "~a-~a"
+              params:
+                - key: database
+                  in: item
+                - key: env
+                  in: item
+        children:
+          - tag: div
+            attrs: 
+              class: "content"
+            children:
+              - view: button
+                params:
+                  object:
+                    style: "btn-sm primary"
+                    title: "Backup"
+                    onclick:
+                      object:
+                        name: "start-backup"
+                        database: 
+                          key: item
+              - tag: div
+                children:
+                  - tag: h6
+                    children:
+                      - text:
+                          key: database
+                          in: item
+              - tag: div
+                children:
+                  - view: default-status-label
+                    params:
+                      object:
+                        title:
+                          key: kind
+                          in: item
+                  - view: default-status-label
+                    params:
+                      object:
+                        title:
+                          key: env
+                          in: item
+    databases_table_view:
+      view:
+        tag: div
+        attrs:
+          class: "table"
+        children:
+          - tag: div
+            attrs:
+              class: "title"
+            children:
+              - tag: h6 
+                children:
+                  - text: "Databases"
+              - tag: span 
+                children:
+                  - text: "List of available databases"
+          - tag: div
+            attrs:
+              class: "body"
+            children:
+              loop:
+                key: databases 
+              with: database_item_view
+    databases_panel_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-xl-4 col-lg-4 col-md-4 col-sm-12 col-xs-12"
+        children:
+          - view: panel
+            params:
+              object:
+                style: ""
+                view: databases_table_view
+                content:
+                  object:
+                    databases:
+                      key: databases

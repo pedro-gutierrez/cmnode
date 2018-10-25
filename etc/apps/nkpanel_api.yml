@@ -9,14 +9,19 @@ spec:
     - common_api
     - login_api
     - register_api
+    - prefs_api
     - settings_api
     - webhooks_api
+    - filter_api
+    - databases_api
     - tests_api
     - release_api
     - backups_api
   config:
     settings:
+      - repository
       - snapshots
+      - filters 
     role:
       keyword: admin
     sessions:

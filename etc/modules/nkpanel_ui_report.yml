@@ -571,18 +571,19 @@ spec:
         view: nkpanel_view
         params:
           object:
+            prefs:
+              key: prefs
             inspector:
               object:
-                view: activity
-                visibility: 
+                status:
                   key: inspector
                 content:
-                  current:
-                    key: active
-                    in: test_activity
-                  waiting:
-                    key: pending
-                    in: test_activity
+                  object:
+                    empty: {}
+                    activity:
+                      key: test_activity
+                    filters:
+                      key: filters
             feature:
               object:
                 name: "test"

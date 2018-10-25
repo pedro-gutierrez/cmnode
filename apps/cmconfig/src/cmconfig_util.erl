@@ -21,6 +21,7 @@
                 task]).
 
 reload() -> 
+    cmkit:log({cmconfig, 'compiling...'}),
     {ok, Specs} = parse(),
     Index = compiled(sorted(ranked(Specs))),
     Funs = merged(Index),
@@ -32,7 +33,7 @@ reload() ->
                             functions => Funs2
                           }),
 
-    cmkit:log({cmconfig, stats(Index)}),
+    cmkit:log({cmconfig, compiled, stats(Index)}),
     Res.
 
 
@@ -730,11 +731,20 @@ compile_term(#{ <<"date">> := <<"any">>,
     #{ type => date,
        format => cmkit:to_atom(Format) };
 
+compile_term(#{ <<"now">> := <<"microseconds">> }, _Index) ->
+
+    #{ type => now,
+       resolution => micros };
+
+compile_term(#{ <<"now">> := <<"milliseconds">> }, _Index) ->
+
+    #{ type => now,
+       resolution => millis };
 
 compile_term(#{ <<"calendar">> := <<"now">> }, _Index) ->
 
     #{ type => utc,
-       amount => 0,
+       amount => 0, 
        factor => 0,
        tense => past };
 
@@ -992,6 +1002,10 @@ compile_term(#{ <<"expression">> := Spec }, Index) ->
     #{ type => expression, 
        spec => compile_term(Spec, Index) }; 
 
+compile_term(#{ <<"encoded">> := Spec }, Index) ->
+    #{ type => encoded, 
+       spec => compile_term(Spec, Index) }; 
+
 compile_term(#{ <<"type">> := Type}, _) ->
     compile_keyword(Type);
 
@@ -1233,6 +1247,12 @@ compile_term(#{ <<"sum">> := Specs }, Index) when is_list(Specs) ->
 
 compile_term(#{ <<"and">> := Specs }, Index) when is_list(Specs) ->
     #{ type => 'and',
+       spec => lists:map(fun(S) ->
+                            compile_term(S, Index)     
+                         end, Specs)};
+
+compile_term(#{ <<"or">> := Specs }, Index) when is_list(Specs) ->
+    #{ type => 'or',
        spec => lists:map(fun(S) ->
                             compile_term(S, Index)     
                          end, Specs)};
@@ -1644,6 +1664,13 @@ compile_term(#{ <<"iterate">> := SourceSpec,
        filter => FilterSpec,
        as => AsSpec,
        dest => compile_term(DestSpec, Index) };
+
+compile_term(#{ <<"filter">> := SourceSpec,
+                <<"with">> := FilterSpec }, Index) ->
+    
+    #{ type => filter,
+       source => compile_term(SourceSpec, Index),
+       filter => compile_term(FilterSpec, Index) };
 
 compile_term(#{ <<"error">> := Spec }, Index) ->
     #{ type => error,

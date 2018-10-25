@@ -4,6 +4,9 @@ category: server
 name: release_api 
 spec:
   decoders:
+    components_query:
+      object:
+        action: "components"
     dkv_pet_proxy_release_triggered:
       object:
         release:
@@ -62,6 +65,24 @@ spec:
                 - text: "patch"
                 - text: "major"
   update:
+    components_query:
+      model:
+        components:
+          filter:
+            config:
+              key: components
+              in: repository
+          with:
+            config:
+              key:
+                key: filter
+                in: prefs
+              in:
+                key: components 
+                in: filters
+      cmds:
+        - effect: notify
+          encoder: components
     nimg_release_triggered:
       model:
         object:
@@ -113,6 +134,10 @@ spec:
         - effect: notify
           encoder: release_ack
   encoders:
+    components:
+      object:
+        components:
+          key: components
     release_ack:
       object:
         release:

@@ -346,21 +346,12 @@ encode( #{ type := exec,
             cmkit:log({cmencode, http, in, Res}),
             Res;
         
-        {ok, #{ method := get, 
+        {ok, #{ method := M, 
                 url := Url,
                 headers := Headers }} ->
             
-            cmkit:log({cmencode, http, out, get, Url, Headers}),
-            Res = cmhttp:get(Url, Headers),
-            cmkit:log({cmencode, http, in, Res}),
-            Res;
-        
-        {ok, #{ method := delete, 
-                url := Url,
-                headers := Headers }} ->
-            
-            cmkit:log({cmencode, http, out, delete, Url, Headers}),
-            Res = cmhttp:delete(Url, Headers),
+            cmkit:log({cmencode, http, out, M, Url, Headers}),
+            Res = cmhttp:M(Url, Headers),
             cmkit:log({cmencode, http, in, Res}),
             Res;
         
@@ -800,6 +791,14 @@ encode(#{ type := utc,
             Other
     end;
 
+encode(#{ type := now,
+          resolution := millis }, _, _) ->
+    {ok, cmkit:now()};
+
+encode(#{ type := now,
+          resolution := micros }, _, _) ->
+    {ok, cmkit:micros()};
+
 encode(#{ type := wait,
           spec := #{ retries := Retries,
                      sleep := Sleep,
@@ -878,19 +877,41 @@ encode(#{ type := iterate,
 
     case cmencode:encode(SourceSpec, In, Config) of 
         {ok, Source} when is_list(Source) -> 
-            Source2 = case FilterSpec of 
-                          none -> Source;
+            EncodedSource = case FilterSpec of 
+                          none -> {ok, Source};
                           _ -> 
-                              lists:filter(fun(Item) -> 
-                                                   case cmdecode:decode(FilterSpec, Item) of
+                              
+                              EncodedFilterSpec = case FilterSpec of 
+                                                      #{ type := object } -> 
+                                                          {ok, FilterSpec};
+                                                      _ ->
+                                                          case encode(FilterSpec, In, Config) of 
+                                                              {ok, Encoded} ->
+                                                                  {ok, Encoded};
+                                                              Other ->
+                                                                  Other
+                                                          end
+                                                  end,
+                              case EncodedFilterSpec of 
+                                  {ok, FilterSpec2} ->
+                                      {ok, lists:filter(fun(Item) -> 
+                                                   case cmdecode:decode(FilterSpec2, Item) of
                                                        {ok, _} -> true;
                                                        _ -> false
                                                     end
-                                           end, Source)
+                                           end, Source)};
+                                  Other2 ->
+                                      Other2
+                              end
                         end,
-            map(DestSpec, In, Config, Source2, AsSpec);
-        Other -> 
-            Other
+            case EncodedSource of 
+                {ok, Source2} ->
+                    map(DestSpec, In, Config, Source2, AsSpec);
+                Other3 ->
+                    Other3
+            end;
+        Other4 -> 
+            Other4
     end;
 
 encode(#{ type := iterate, 
@@ -898,6 +919,41 @@ encode(#{ type := iterate,
           dest := _ } = Spec, In, Config) ->
     encode(Spec#{ filter => none }, In, Config);
 
+encode(#{ type := filter,
+          source := SourceSpec,
+          filter := FilterSpec }, In, Config) ->
+    
+    EncodedFilterSpec = case FilterSpec of 
+                      #{ type := object } -> 
+                          {ok, FilterSpec};
+                      _ ->
+                          case encode(FilterSpec, In, Config) of 
+                              {ok, Encoded} ->
+                                  {ok, Encoded};
+                              Other ->
+                                  Other
+                          end
+                  end,
+
+    case EncodedFilterSpec of 
+        {ok, FilterSpec2} ->
+            cmkit:log({cmencode, filter, FilterSpec}),
+            case cmencode:encode(SourceSpec, In, Config) of 
+                {ok, Source} when is_list(Source) ->
+                    Source2 = lists:filter(fun(Item) -> 
+                                                   case cmdecode:decode(FilterSpec2, Item) of
+                                                       {ok, _} -> true;
+                                                       _ -> false
+                                                   end
+                                           end, Source),
+                    cmkit:log({cmencode, filter, Source, FilterSpec, Source2}),
+                    {ok, Source2};
+                Other2 -> 
+                    Other2
+            end;
+        Other3 ->
+            Other3
+    end;
 
 encode(#{ type := merge,
           spec := Specs } = Spec, In, Config) -> 
@@ -1310,6 +1366,9 @@ encode_http(Method, Url, H, In, Config) ->
                 path := _ } = Spec} ->
             encode_http(Method, Spec#{ type => url }, H, In, Config);
 
+        {ok, U} when is_binary(U) ->
+            {ok, #{ url => U,
+                    method => Method }};
         Other -> 
             {error, #{ error => encode_url,
                        url => Url,

@@ -320,7 +320,17 @@ spec:
       model:
         object:
           tests:
-            key: tests
+            filter:
+              key: tests
+            with:
+              config:
+                key:
+                  key: filter
+                  in:
+                    key: prefs
+                in:
+                  key: tests
+                  in: filters
       cmds:
         - effect: notify
           encoder: tests
@@ -368,7 +378,17 @@ spec:
       model:
         object:
           test_reports:
-            key: test_reports
+            filter:
+              key: test_reports
+            with:
+              config:
+                key:
+                  key: filter
+                  in:
+                    key: prefs
+                in:
+                  key: reports
+                  in: filters
       cmds:
         - effect: notify
           encoder: test_reports

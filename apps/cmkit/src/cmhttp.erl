@@ -4,9 +4,13 @@
          get/2,
          delete/1,
          delete/2,
-         post/3, 
+         post/2,
+         post/3,
+         put/2,
          put/3, 
          encodedQs/1]).
+-define(EMPTY_BODY, <<>>).
+
 
 stream(#{ method := Method,
           url := Url,
@@ -73,11 +77,18 @@ delete(Url, Headers) ->
     handle(httpc:request(delete, {Url2, Headers2},[],[])).
 
 
+put(Url, #{ 'content-type' := _}=Headers) ->
+    post(Url, Headers, ?EMPTY_BODY).
+
 put(Url, #{ 'content-type' := _}=Headers, Data) ->
     send_body(put, Url, Headers, Data);
 
 put(Url, Headers, Data) ->
     post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
+
+
+post(Url, #{ 'content-type' := _}=Headers) ->
+    post(Url, Headers, ?EMPTY_BODY).
 
 post(Url, #{ 'content-type' := _}=Headers, Data) ->
     send_body(post, Url, Headers, Data);

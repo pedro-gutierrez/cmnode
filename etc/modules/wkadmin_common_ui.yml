@@ -4,122 +4,12 @@ category: ui
 name: wkadmin_common_ui
 spec:
   encoders:
-    carousel_locator_view:
-      view:
-        tag: input
-        attrs:
-          class: "carousel-locator"
-          id:
-            key: id
-            in: item
-          type: "radio"
-          name: "carousel-radio"
-          hidden: ""
-    carousel_checked_locator_view:
-      view:
-        tag: input
-        attrs:
-          class: "carousel-locator"
-          id:
-            key: id
-            in: item
-          type: "radio"
-          name: "carousel-radio"
-          hidden: ""
-          checked: ""
-    carousel_nav_item_view:
-      view:
-        tag: label
-        attrs:
-          class: "nav-item text-hide c-hand"
-          for:
-            key: id
-            in: item
-    carousel_nav_view:
-      view:
-        tag: div
-        attrs:
-          class: "carousel-nav"
-        children:
-          loop:
-            key: items
-          with: carousel_nav_item_view
-    carousel_item_view:
-      view:
-        tag: figure
-        attrs:
-          class: "carousel-item"
-        children: 
-          - tag: label
-            attrs:
-              class: "item-prev btn btn-action btn-lg"
-              for:
-                key: id
-                in: item
-            children:
-              - tag: i
-                attrs:
-                  class: "icon icon-arrow-left"
-          - tag: label
-            attrs:
-              class: "item-next btn btn-action btn-lg"
-              for:
-                key: id
-                in: item
-            children:
-              - tag: i
-                attrs:
-                  class: "icon icon-arrow-right"
-          - tag: img
-            attrs:
-              class: "img-responsive rounded"
-              src:
-                format:
-                  pattern: "~a/?id=~a"
-                  params:
-                    - key: assets
-                    - key: id
-                      in: item
-              alt:
-                key: title
-                in: item
-    carousel_container_view:
-      view:
-        tag: div
-        attrs:
-          class: "carousel-container"
-        children:
-          loop:
-            key: items
-          with: carousel_item_view
     carousel_view:
       view:
         tag: figure
         attrs:
           class: "carousel"
-        children:
-          merged_list:
-            - loop:
-                 key: images
-              with: 
-                either:
-                  - when:
-                      eq:
-                        - number: 0
-                        - number: 0 
-                    keyword: carousel_checked_locator_view
-                  - keyword: carousel_locator_view
-            - list:
-                - view: carousel_container_view
-                  params:
-                    object:
-                      items:
-                        key: images
-                - view: carousel_nav_view
-                  params:
-                    object:
-                      items:
-                        key: images
+        children: []
     review_map_view:
       view:
         view: location_map_view

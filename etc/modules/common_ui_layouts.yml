@@ -6,29 +6,63 @@ spec:
   init:
     model:
       object:
-        inspector: "inactive"
+        inspector:
+          object:
+            visibility: "hidden"
+            view: "empty_view"
+            content_key: "empty" 
   decoders:
     toggle_inspector:
       object:
         effect: ui
-        event: "toggle-inspector"
+        event:
+          object:
+            name: "toggle-inspector"
+            view:
+              any: text 
+            content: 
+              any: text
   update:
     toggle_inspector:
       - when:
-          eq: 
-            - key: inspector
-            - text: "active"
+          or:
+            - eq: 
+              - key: visibility 
+                in: inspector
+              - text: "hidden"
+            - not:
+                eq:
+                  - key: view
+                    in: inspector
+                  - key: view
+                    in: event
         model:
           object:
-            inspector: "inactive"
+            inspector: 
+              object:
+                visibility: "visible"
+                view:
+                  key: view
+                  in: event
+                content_key:
+                  key: content
+                  in: event
         cmds:
           - effect: ui
       - model:
           object:
-            inspector: "active"
+            inspector:
+              object:
+                visibility: "hidden"
+                view: "empty_view"
+                content_key: "empty" 
         cmds:
           - effect: ui
   encoders:
+    empty_view:
+      view:
+        tag: div
+        children: []
     dialog:
       view:
         tag: div
@@ -247,18 +281,19 @@ spec:
       view:
         tag: aside
         attrs:
-          class: 
-            format: 
-              pattern: "right inspector ~a"
-              params:
-                - key: visibility
+          class:
+            either:
+              - when:
+                  eq:
+                    - text: "hidden"
+                    - key: status
+                text: "right inspector inactive"
+              - text: "right inspector active"
         children:
           - view:
               key: view
             params:
-              object:
-                content:
-                  key: content
+              key: content
     brand:
       view:
         tag: div
@@ -277,11 +312,27 @@ spec:
         children:
           - tag: button
             attrs:
-              onclick: "toggle-inspector"
+              onclick: 
+                object:
+                  name: "toggle-inspector"
+                  view: "activity_view"
+                  content: "activity"
             children:
               - tag: i
                 attrs:
                   class: "fas fa-bars"
+          - tag: button
+            attrs:
+              class: "switch-project"
+              onclick: 
+                object:
+                  name: "toggle-inspector"
+                  view: "filters_view"
+                  content: "filters"
+            children:
+              - text: 
+                  key: filter
+                  in: prefs
 #          - view: avatar
 #            params:
 #              object:
@@ -381,7 +432,10 @@ spec:
                     in: header
               - view: nav
                 params:
-                  initials: "PG"
+                  object:
+                    prefs:
+                      key: prefs
+                    initials: "PG"
           - tag: div
             attrs:
               class: "wrap"
@@ -401,9 +455,11 @@ spec:
                     either:
                       - when:
                           eq:
-                            - text: "active"
-                            - key: visibility
-                              in: inspector
+                            - text: "visible"
+                            - key: visibility 
+                              in:
+                                key: status
+                                in: inspector
                         text: "content with-inspector"
                       - text: "content"
                 children:
@@ -414,12 +470,22 @@ spec:
               - view: inspector
                 params:
                   object:
-                    visibility:
-                      key: visibility 
-                      in: inspector
+                    status:
+                      key: visibility
+                      in:
+                        key: status
+                        in: inspector
                     content:
-                      key: content
-                      in: inspector
+                      key:
+                        key: content_key
+                        in:
+                          key: status
+                          in: inspector
+                      in:
+                        key: content
+                        in: inspector
                     view:
                       key: view
-                      in: inspector
+                      in:
+                        key: status
+                        in: inspector

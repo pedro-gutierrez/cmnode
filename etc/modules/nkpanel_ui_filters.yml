@@ -1,0 +1,117 @@
+version: 1.0
+type: module
+category: client
+name: nkpanel_ui_filters
+spec:
+  init:
+    model:
+      selected_filter: "none"
+      filters: []
+  decoders:
+    filters:
+      object:
+        effect: ws
+        data:
+          object:
+            filters:
+              any: list
+    use_filter:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "use-filter"
+            filter:
+              any: text
+
+  update:
+    filters:
+      model:
+        filters:
+          object:
+            items:
+              key: filters
+              in: data
+    use_filter:
+      model:
+        selected_filter:
+          key: filter
+          in: event
+      cmds:
+        - effect: ws
+          encoder: new_filter
+  encoders:
+    filters:
+      object:
+        action: filters
+    new_filter:
+      object:
+        action: filter
+        filter:
+          key: selected_filter
+    filter_detail_view:
+      view:
+        tag: div
+        attrs:
+          key: 
+            key: name
+        children:
+          - view: button
+            params:
+              object:
+                style: "btn-sm danger"
+                title: "Switch to"
+                onclick:
+                  object:
+                    name: "use-filter"
+                    filter:
+                      key: name
+          - tag: div
+            children:
+              - tag: h6
+                children:
+                  - text:
+                      key: name
+              - tag: p
+                children:
+                  - text:
+                      key: description
+    filter_item_view: 
+      view:
+        view: panel
+        params:
+          object:
+            style: "activity-item filled"
+            view: filter_detail_view
+            content:
+              key: item
+    filters_view:
+      view:
+        tag: div
+        attrs:
+          class: "activity"
+        children:
+          - tag: div
+            children:
+              - tag: div
+                attrs:
+                  class: "icon"
+                children:
+                  - tag: i
+                    attrs:
+                      class: "fas fa-box"
+              - tag: div
+                attrs:
+                  class: "title"
+                children:
+                  - tag: h3
+                    children:
+                      - text: "Datasets"
+                  - tag: span
+                    children:
+                      - text: "Available datasets"
+              - tag: section
+                children:
+                  loop:
+                    key: items
+                  with: filter_item_view

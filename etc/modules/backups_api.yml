@@ -65,6 +65,15 @@ spec:
           keyword: backups
         value:
           any: list
+    start_backup:
+      object:
+        action: "backup"
+        database:
+          any: text
+        env:
+          any: text
+        kind:
+          any: text
   update:
     backup_summary:
       model:
@@ -111,6 +120,14 @@ spec:
           iterate:
             key: value
           as: backup
+          filter:
+            config:
+              key:
+                key: filter
+                in: prefs
+              in:
+                key: databases 
+                in: filters
           with:
             object:
               env:

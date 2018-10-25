@@ -58,7 +58,20 @@
                 if (spec.in) {
                     var {err, value} = encodeKey(spec.in, data, ctx);
                     if (err) return error(spec, data, err);
-                    return encodeKey({ key: spec.key}, value, ctx);
+                    var inCtx = value;
+                    switch (typeof(spec.key)) {
+                        case 'object':
+                            var {err, value} = encode(spec.key, data, ctx);
+                            if (err) return error(spec, data, err);
+                            var keySpec = value;
+                            return encodeKey({ key: keySpec}, inCtx, ctx);
+                        case 'string':
+                            if (!inCtx.hasOwnProperty(spec.key)) return error(spec, inCtx, "missing_key");
+                            return { value: inCtx[spec.key]};
+                        default:
+                            return error(spec, data, "key_spec_not_supported");
+
+                    }
                 } else {
                     switch (typeof(spec.key)) {
                         case 'object' :
@@ -186,6 +199,17 @@
         }
         return {value: true};
     }
+    
+    function encodeOr(spec, data, ctx) {
+        if (!spec.or) return {value: false};
+        for (var i=0; i<spec.or.length; i++) {
+            var s = spec.or[i];
+            var {err, value}= encode(s, data, ctx);
+            if (err) return error(spec, data, err);
+            if (value) return {value: true}
+        }
+        return {value: false};
+    }
 
     function encodeIsSet(spec, data, ctx) {
         var {err, value} = encode(spec.is_set, data, ctx);
@@ -277,6 +301,12 @@
     function encodeExpression(spec, data, ctx) {
         return {value: spec.expression};
     }
+    
+    function encodeEncoded(spec, data, ctx) {
+        var {err, value} = encode(spec.encoded, data, ctx);
+        if (err) return error(spec, data, err);
+        return encode(value, data, ctx);
+    }
 
     function encodePrettify(spec, data, ctx) {
         var {err, value} = encode(spec.prettify, data, ctx);
@@ -345,8 +375,10 @@
                 if (spec.is_set) return encodeIsSet(spec, data, ctx);
                 if (spec.not) return encodeNot(spec, data, ctx);
                 if (spec.and) return encodeAnd(spec, data, ctx);
+                if (spec.or) return encodeOr(spec, data, ctx);
                 if (spec.any) return encodeAny(spec, data, ctx);
                 if (spec.expression) return encodeExpression(spec, data, ctx);
+                if (spec.encoded) return encodeEncoded(spec, data, ctx);
                 if (spec.prettify) return encodePrettify(spec, data, ctx);
                 if (spec.percent) return encodePercent(spec, data, ctx);
                 if (spec.sum) return encodeSum(spec, data, ctx);
@@ -491,17 +523,6 @@
         return error(null, data, "all_decoders_failed");
     }
 
-    function selectUpdate(msg, update, data, model) {
-        var clauses = update[msg];
-        if (!clauses || !clauses.length) return error(msg, data, "no_update_implemented");
-        for (var i=0; i<clauses.length; i++) {
-            var c = clauses[i];
-            const { err, value } = encode(c.condition, model);
-            if (err) return error(c.condition, model, err);
-            if (value) return {spec: c};
-        }
-        return error(clauses, data, "all_conditions_failed");
-    }
 
 
     function app(next) {
@@ -569,11 +590,31 @@
         if (!spec) return;
         var {err, value} = encode(spec, data, state.model);
         if (err) return err;
+        log("[core] merging into model", value);
         Object.assign(state.model, value);
+        log("[core] new model", state.model);
     }
 
     function log(msg, data) {
         if (state.app.settings.debug) console.log(msg, data);
+    }
+    
+    function selectUpdate(msg, update, ctx) {
+        var clauses = update[msg];
+        if (!clauses || !clauses.length) return error(msg, ctx, "no_update_implemented");
+        for (var i=0; i<clauses.length; i++) {
+            var c = clauses[i];
+            const { err, value } = encode(c.condition, ctx);
+            log("[core] condition", { 
+                condition: c.condition,
+                context: ctx, 
+                error: err, 
+                value: value
+            });
+            if (err) return error(c.condition, model, err);
+            if (value) return {spec: c};
+        }
+        return error(clauses, ctx, "all_conditions_failed");
     }
 
     function _update(ev) {
@@ -587,20 +628,20 @@
         const { msg, data } = decoded;
         log("[core] decoded", decoded);
         const t1= new Date();
-        var {err, spec} = selectUpdate(msg, update, data, state.model);
+        var ctx = Object.assign({}, state.model, data);
+        var {err, spec} = selectUpdate(msg, update, ctx);
         if (err) {
             console.error("Update error", err);
             return;
         } 
         
         log("[core] update spec", spec);
-        var err = updateModel(spec.model, data);
+        var err = updateModel(spec.model, ctx);
         if (err) {
             console.error("Update error", err);
             return;
         }
         const t2 = new Date();
-        log("[core] new model", state.model);
         applyCmds(encoders, state.effects, spec.cmds, state.model);
         const t3 = new Date();
         if (state.app.settings.telemetry) {

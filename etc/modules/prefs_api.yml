@@ -1,0 +1,25 @@
+version: 1.0
+type: module
+category: server
+name: prefs_api
+spec:
+  init:
+    model:
+      prefs:
+        object:
+          lang: "en"
+          filter: "sipstorm"
+  decoders:
+    prefs_query:
+      object:
+        action: "prefs"
+  update:
+    prefs_query:
+      cmds:
+        - effect: notify
+          encoder: prefs 
+  encoders:
+    prefs:
+      object:
+        prefs:
+          key: prefs

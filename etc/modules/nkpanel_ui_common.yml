@@ -83,7 +83,7 @@ spec:
                 date:
                   key: timestamp
                   in: item
-    activity:
+    activity_view:
       view:
         tag: div
         attrs:
@@ -117,45 +117,35 @@ spec:
                       sum:
                         - size_of:
                             key: items 
-                            in:
-                              key: current
-                              in: content
+                            in: active
                         - size_of:
                             key: items
-                            in:
-                              key: waiting
-                              in: content
+                            in: pending
                     max:
                       sum:
                         - key: max
-                          in: 
-                            key: current
-                            in: content
+                          in: active 
                         - key: max
-                          in: 
-                            key: waiting
-                            in: content
+                          in: pending
               - tag: section
                 children:
                   loop:
                     key: items
-                    in:
-                      key: current
-                      in: content
+                    in: active
                   with: activity_item
               - tag: section
                 children:
                   loop:
                     key: items
-                    in:
-                      key: waiting
-                      in: content
+                    in: pending 
                   with: activity_item
     nkpanel_view:
       view:
         view: admin
         params:
           object:
+            prefs:
+              key: prefs
             header:
               brand: "Netscale CI"
               content_view: admin_header

@@ -4,8 +4,12 @@ category: ui
 name: nkpanel_ui_events
 spec:
   update:
-    ready:
+    new_prefs:
       cmds:
+        - effect: ws
+          encoder: filters 
+        - effect: ws
+          encoder: databases 
         - effect: ui
           encoder: test_view
         - effect: ws
@@ -14,7 +18,15 @@ spec:
           encoder: tests
         - effect: ws
           encoder: subscribe_to_tests
+    ready:
+      cmds:
+        - effect: ws
+          encoder: prefs
   decoders:
+    new_prefs:
+      object:
+        effect: events
+        event: prefs
     ready:
       object:
         effect:

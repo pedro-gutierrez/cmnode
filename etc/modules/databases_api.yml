@@ -1,0 +1,33 @@
+version: 1.0
+type: module
+category: server
+name: databases_api
+spec:
+  decoders:
+    databases_query:
+      object:
+        action: "databases"
+  update:
+    databases_query:
+      model:
+        databases:
+          filter:
+            config:
+              key: databases
+              in: repository
+          with:
+            config:
+              key:
+                key: filter
+                in: prefs
+              in:
+                key: databases
+                in: filters
+      cmds:
+        - effect: notify
+          encoder: databases 
+  encoders:
+    databases:
+      object:
+        databases:
+          key: databases
