@@ -183,7 +183,9 @@ cancel_jobs(Jobs) ->
     [ cancel_job(J) || J <- Jobs].
 
 cancel_job(#{ spec := #{ stop :=  {M, F, Args} }}) ->
-    apply(M, F, Args).
+    apply(M, F, Args);
+
+cancel_job(_) -> ok.
 
 start_job(#{ id := Id,
          timestamp := _,

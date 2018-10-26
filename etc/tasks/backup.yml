@@ -1,0 +1,21 @@
+version: 1.0
+type: task
+name: backup 
+spec:
+  - queue: backups_queue
+    job:
+      key: id
+      in: params
+    info:
+      object:
+        database:
+          key: database
+          in: params
+        env:
+          key: settings
+          in: params
+        kind:
+          key: kind
+          in: params
+        status: "In progress"
+      

@@ -51,6 +51,32 @@ spec:
         children:
           - text: 
               key: title
+    icon-right:
+      view:
+        tag: i
+        attrs:
+          style: "float: right"
+          class:
+            format:
+              pattern: "fas fa-~a ~a"
+              params:
+                - key: size 
+                - key: icon
+    link-button-wide:
+      view:
+        tag: a
+        attrs:
+          class:
+            format:
+              pattern: "mt-2 d-block btn btn-~a ~a "
+              params:
+                - key: size 
+                - key: style
+          onclick:
+            key: onclick
+        children:
+          - text:
+              key: title
     text:
       view:
         tag: div

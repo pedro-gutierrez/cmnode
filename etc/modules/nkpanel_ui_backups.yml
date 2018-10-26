@@ -6,6 +6,18 @@ spec:
   init:
     model:
       backups: []
+      backups_activity:
+        object:
+          active:
+            object:
+              items: []
+              max: 10
+              current: 0
+          pending:
+            object:
+              items: []
+              max: 10
+              current: 0
   decoders:
     show_backups:
       object:
@@ -53,6 +65,30 @@ spec:
                   any: text
                 env:
                   any: text
+    backup_acknowledged:
+      object:
+        effect: ws
+        data:
+          backup: "ack"
+    backups_activity:
+      object:
+        effect: ws
+        data:
+          object:
+            backups:
+              object:
+                active:
+                  any: object
+                pending:
+                  any: object
+    cancel_backup:
+      object:
+        effect: "ui"
+        event:
+          object:
+            name: "cancel-backup"
+            id:
+              any: number
   update:
     show_backups:
       cmds:
@@ -76,10 +112,57 @@ spec:
       cmds:
         - effect: ui
           encoder: backups_view
+    backup_acknowledged:
+      model:
+        inspector: 
+          object:
+            visibility: "visible"
+            view: "activity_view"
+            content_key: "activity"
+      cmds:
+        - effect: ui
+    backups_activity:
+      model:
+        backups_activity:
+          key: backups
+          in: data
+      cmds:
+        - effect: ui
+    cancel_backup:
+      model:
+        object:
+          backup_job_id:
+            key: id 
+            in: event
+      cmds:
+        - effect: ws
+          encoder: cancel_backup
+        - effect: ui
   encoders:
     backups_query:
       object:
         action: "backups"
+    cancel_backup:
+      object:
+        action: "cancel"
+        backup:
+          key: backup_job_id
+    subscribe_to_backups:
+      object:
+        action: subscribe
+        topic: backups 
+    backup_activity_item_view:
+      object:
+        action: "cancel-backup"
+        icon: "fas fa-cloud-upload-alt"
+        id:
+          key: id
+        title:
+          key: database
+        subtitle:
+          key: env
+        date:
+          key: timestamp
     backup_status_label:
       view:
         view: status-label
@@ -355,12 +438,7 @@ spec:
                 status:
                   key: inspector
                 content:
-                  object:
-                    empty: {}
-                    activity:
-                      key: test_activity
-                    filters:
-                      key: filters
+                  encoder: inspector_content
             feature:
               object:
                 name: "backups"

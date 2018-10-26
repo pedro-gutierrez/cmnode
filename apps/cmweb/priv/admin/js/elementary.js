@@ -32,6 +32,9 @@
         });
     };
 
+    function flatten(arr) {
+        return [].concat(...arr)
+    }
 
     function encodeObject(spec, data, ctx, out) {
         for (var k in spec.object) {
@@ -307,6 +310,52 @@
         if (err) return error(spec, data, err);
         return encode(value, data, ctx);
     }
+        
+    function encodeIterate(spec, data, ctx) {
+        var {err, value} = encode(spec.iterate.source, data, ctx);
+        if (err) return error(spec, data, err);
+        var source = value;
+        var out = [];
+        var filterFn = spec.iterate.filter === 'none' ? 
+            function(i, ctx) {
+                return {value: true};
+            } 
+            :
+            function(i, ctx) {
+                return decode(spec.iterate.filter, i, ctx);
+            };
+        var itemFn = spec.iterate.as === 'none' ?
+            function(i) {
+                return i;
+            } 
+            :
+            function(i) {
+                var obj = {};
+                obj[spec.iterate.as] = i;
+                return obj;
+            }
+
+        for (var i=0; i<source.length; i++) {
+            var {err, value} = filterFn(source[i], ctx);
+            if (!err) {
+                var item = itemFn(source[i]);
+                var {err, value} = encode(spec.iterate.dest, item, ctx);
+                if (err) return error(spec, data, err);
+                out[i] = value;
+            }
+        }
+        return {value: out};
+    }
+
+    function encodeMergedList(spec, data, ctx) {
+        var lists = [];
+        for (var i=0; i<spec.merged_list.length; i++) {
+            var {err, value} = encode(spec.merged_list[i], data, ctx);
+            if (err) return error(spec, data, err);
+            lists[i] = value;
+        }
+        return {value: flatten(lists)}
+    }
 
     function encodePrettify(spec, data, ctx) {
         var {err, value} = encode(spec.prettify, data, ctx);
@@ -356,6 +405,7 @@
     }
 
     function encode(spec, data, ctx) {
+        //if (!spec) return error({}, data, "missing_encoder_spec");
         switch(typeof(spec)) {
             case "object":
                 if (Array.isArray(spec)) return encodeList(spec, data, ctx);
@@ -377,6 +427,8 @@
                 if (spec.and) return encodeAnd(spec, data, ctx);
                 if (spec.or) return encodeOr(spec, data, ctx);
                 if (spec.any) return encodeAny(spec, data, ctx);
+                if (spec.merged_list) return encodeMergedList(spec, data, ctx);
+                if (spec.iterate) return encodeIterate(spec, data, ctx);
                 if (spec.expression) return encodeExpression(spec, data, ctx);
                 if (spec.encoded) return encodeEncoded(spec, data, ctx);
                 if (spec.prettify) return encodePrettify(spec, data, ctx);

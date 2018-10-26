@@ -11,12 +11,8 @@ spec:
             literal: "tests"
     subscribe_to_tests:
       object:
-        action: 
-          text: 
-            literal: "subscribe"
-        topic:
-          text:
-            literal: "tests"
+        action: "subscribe"
+        topic: "tests"
     single_test:
       object:
         action: 
@@ -89,21 +85,7 @@ spec:
     tests_status:
       object:
         tests:
-          object:
-            active:
-              max:
-                any: number
-              current:
-                any: number
-              items:
-                any: list
-            pending:
-              max:
-                any: number
-              current:
-                any: number
-              items:
-                any: list
+          any: object
     test:
       object:
         test:
@@ -186,8 +168,8 @@ spec:
       - when:
           encoder: is_admin
         cmds:
-          - effect: test
-            encoder: subscribe_to_tests
+          - effect: queue
+            encoder: tests_subscription
       - cmds:
           - effect: notify
             encoder: forbidden
@@ -369,7 +351,7 @@ spec:
     tests_status:
       model:
         object:
-          status:
+          tests_status:
             key: tests
       cmds:
         - effect: notify
@@ -401,10 +383,14 @@ spec:
         - effect: notify
           encoder: test_report
   encoders:
-    subscribe_to_tests:
+    tests_subscription:
       object:
-        query:
+        context:
           keyword: subscribe
+        queue:
+          keyword: tests_queue
+        topic:
+          keyword: tests
     tests:
       object:
         tests:
@@ -468,7 +454,7 @@ spec:
     tests_status:
       object:
         tests:
-          key: status
+          key: tests_status
     clear_queue_request:
       object:
         query: 

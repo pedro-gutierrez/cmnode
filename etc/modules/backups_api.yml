@@ -74,6 +74,38 @@ spec:
           any: text
         kind:
           any: text
+    backup_error:
+      object:
+        status:
+          keyword: error
+        context:
+          one_of:
+            - keyword: new_backup
+    backup_ack:
+      object:
+        status: 
+          keyword: ok
+        context:
+          keyword: new_backup
+    backups_subscription:
+      object:
+        action: "subscribe"
+        topic: "backups"
+    backups_notification:
+      object:
+        backups:
+          any: object
+    cancel_backup:
+      object:
+        action: cancel
+        backup:
+          any: number
+    backup_cancelled:
+      object:
+        context:
+          keyword: cancel_backup
+        status:
+          keyword: ok
   update:
     backup_summary:
       model:
@@ -172,6 +204,65 @@ spec:
       cmds:
         - effect: notify
           encoder: recent_backups
+    backup_error:
+      cmds:
+        - effect: notify
+          encoder: backup_error
+        - effect: terminate
+    start_backup:
+      - when:
+          encoder: is_admin
+        model:
+          new_backup:
+            object:
+              database:
+                key: database
+              env:
+                key: env
+              kind:
+                key: kind
+        cmds:
+          - effect: queue
+            encoder: backup_job
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    backup_ack:
+      cmds:
+        - effect: notify
+          encoder: backup_ack
+    backups_subscription:
+      - when:
+          encoder: is_admin
+        cmds:
+          - effect: queue
+            encoder: backups_subscription
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    backups_notification:
+      model:
+        backups_status:
+          key: backups
+      cmds:
+        - effect: notify
+          encoder: backups_status
+    cancel_backup:
+      - when:
+          encoder: is_admin
+        model:
+          backup_job:
+            key: backup
+        cmds:
+          - effect: queue
+            encoder: backup_job_cancellation
+      - cmds:
+          - effect: notify
+            encoder: forbidden
+    backup_cancelled:
+      cmds:
+        - effect: notify
+          encoder: backup_ack
   encoders:
     backup_summary_entry:
       object:
@@ -222,6 +313,63 @@ spec:
       object:
         backups:
           key: backups
+    backups_status:
+      object:
+        backups:
+          key: backups_status
+    backup_ack:
+      object:
+        backup: "ack"
+    backup_job:
+      object:
+        queue:
+          keyword: backups_queue
+        context:
+          keyword: new_backup
+        info:
+          object:
+            status: "Not started"
+            database:
+              key: database
+              in: new_backup
+            env:
+              key: env
+              in: new_backup
+            kind:
+              key: kind
+              in: new_backup
+        task:
+          keyword: backup
+        params:
+          object:
+            database:
+              key: database
+              in: new_backup
+            kind:
+              key: kind
+              in: new_backup
+            settings:
+              key: env
+              in: new_backup
+    backup_job_cancellation:
+      object:
+        queue:
+          keyword: backups_queue
+        context:
+          keyword: cancel_backup
+        cancel:
+          key: backup_job
+    backup_error:
+      object:
+        backup: "error"
+    backups_subscription:
+      object:
+        context: 
+          keyword: subscribe
+        queue: 
+          keyword: backups_queue
+        topic: 
+          keyword: backups
     backup_summary_ack:
       object:
         status: 200

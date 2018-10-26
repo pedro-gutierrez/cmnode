@@ -57,6 +57,14 @@ spec:
             name: "run-test"
             test:
               any: text
+    cancel_test:
+      object:
+        effect: "ui"
+        event:
+          object:
+            name: "cancel-test"
+            id:
+              any: number
   update:
     reports:
       model:
@@ -112,6 +120,16 @@ spec:
         - effect: ws
           encoder: test_reports
         - effect: ui
+    cancel_test:
+      model:
+        object:
+          test_job_id:
+            key: id 
+            in: event
+      cmds:
+        - effect: ws
+          encoder: cancel_test_query
+        - effect: ui
   encoders:
     tests:
       object:
@@ -133,6 +151,23 @@ spec:
         settings: "dev"
         test:
           key: test_name
+    cancel_test_query:
+      object:
+        action: "cancel"
+        test:
+          key: test_job_id
+    test_activity_item_view:
+      object:
+        action: "cancel-test"
+        icon: "fas fa-stethoscope"
+        id:
+          key: id
+        title:
+          key: test
+        subtitle:
+          key: info
+        date:
+          key: timestamp
     report_status_badge:
       view:
         view: status-label
@@ -361,12 +396,7 @@ spec:
                 status:
                   key: inspector
                 content:
-                  object:
-                    empty: {}
-                    activity:
-                      key: test_activity
-                    filters:
-                      key: filters
+                  encoder: inspector_content
             feature:
               object:
                 name: "test"

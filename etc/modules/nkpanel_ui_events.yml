@@ -18,6 +18,8 @@ spec:
           encoder: tests
         - effect: ws
           encoder: subscribe_to_tests
+        - effect: ws
+          encoder: subscribe_to_backups
     ready:
       cmds:
         - effect: ws

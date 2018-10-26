@@ -578,12 +578,7 @@ spec:
                 status:
                   key: inspector
                 content:
-                  object:
-                    empty: {}
-                    activity:
-                      key: test_activity
-                    filters:
-                      key: filters
+                  encoder: inspector_content 
             feature:
               object:
                 name: "test"

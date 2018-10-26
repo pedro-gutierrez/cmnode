@@ -56,16 +56,6 @@ spec:
           key: 
             key: name
         children:
-          - view: button
-            params:
-              object:
-                style: "btn-sm danger"
-                title: "Switch to"
-                onclick:
-                  object:
-                    name: "use-filter"
-                    filter:
-                      key: name
           - tag: div
             children:
               - tag: h6
@@ -76,6 +66,17 @@ spec:
                 children:
                   - text:
                       key: description
+              - view: link-button-wide
+                params:
+                  object:
+                    style: "danger"
+                    size: "sm"
+                    title: "Switch"
+                    onclick:
+                      object:
+                        name: "use-filter"
+                        filter:
+                          key: name
     filter_item_view: 
       view:
         view: panel

@@ -17,7 +17,62 @@ effect_apply(#{ query := queue,
         Other -> Other
     end,
 
-    cmcore:update(SessionId, #{ queue => Res}).
+    cmcore:update(SessionId, #{ queue => Res});
+
+effect_apply(#{ context := Context,
+                queue := Name,
+                topic := Topic }, SessionId) ->
+    
+    Res = case cmqueue:subscribe(Name, Topic, SessionId) of 
+              {ok, QueueInfo} ->
+                  #{ status => ok,
+                     Topic => QueueInfo };
+              {error, E} ->
+                  #{ status => error,
+                     queue => Name,
+                     reason => E }
+          end,
+
+    cmcore:update(SessionId, Res#{ context => Context });
+
+effect_apply(#{ context := Context,
+                queue := Name,
+                info := I,
+                task := Task,
+                params := P}, SessionId) ->
+
+    Id = cmkit:micros(),
+    Params = P#{ id => Id }, 
+    Res = case cmqueue:schedule(Name, #{ id => Id, 
+                                         timestamp => cmkit:now(),
+                                         info => I,
+                                         spec => #{ start => {cmtask, schedule, [Task, Params]}} }) of 
+              {ok, _} ->
+                  #{ status => ok };
+              {error, E} ->
+                  #{ status => error,
+                     queue => Name,
+                     reason => E }
+          end,
+
+    cmcore:update(SessionId, Res#{ context => Context });
+
+
+effect_apply(#{ context := Context,
+                queue := Name,
+                cancel := Job }, SessionId) ->
+
+    Res = case cmqueue:cancel(Name, Job) of 
+              {ok, _} ->
+                  #{ status => ok };
+              {error, E} ->
+                  #{ status => error,
+                     queue => Name,
+                     job => Job,
+                     reason => E }
+          end,
+
+    cmcore:update(SessionId, Res#{ context => Context }).
 
 with_status(#{ worker := Name }=Spec) ->
     case cmqueue:status(Name) of 

@@ -257,6 +257,23 @@ spec:
             color:
               key: warning 
               in: colors
+        - s-class: "items"
+          selectors:
+            - elem: "h4"
+              style:
+                text-align: center
+                margin-top: 15px
+                margin-bottom: 2px
+                text-transform: uppercase
+                letter-spacing: 3px
+                font-size:
+                  key: size 
+                  in:
+                    key: small
+                    in: fonts
+                color:
+                  key: dark-2
+                  in: colors
 
     - class: "activity-item"
       selectors:
@@ -270,7 +287,6 @@ spec:
                     in: colors
         - elem: button
           style:
-            float: right
             margin-left: .3rem
           selectors:
             - class: "btn-sm"

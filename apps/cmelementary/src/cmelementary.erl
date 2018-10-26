@@ -429,6 +429,37 @@ term(#{ type := merged_list, spec := Spec}, Settings) ->
             Other
     end;
 
+
+term(#{ type := iterate,
+        source := Source,
+        filter := Filter,
+        dest := Dest,
+        as := As }, Settings) -> 
+    case term(Source, Settings) of 
+        {ok, S} ->
+            case term(Filter, Settings) of 
+                {ok, F} -> 
+                    case term(Dest, Settings) of 
+                        {ok, D} ->
+                            case term(As, Settings) of 
+                                {ok, A} ->
+                                    {ok, #{ iterate => #{ source => S,
+                                                          dest => D,
+                                                          filter => F,
+                                                          as => A }}};
+                                Other -> 
+                                    Other
+                            end;
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 term(List, Settings) when is_list(List) -> 
     terms(List, Settings);
 
