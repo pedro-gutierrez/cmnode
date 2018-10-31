@@ -64,6 +64,9 @@ decode_object_without_keys([K|Rem], In) ->
         _ -> no_match
     end.
 
+decode_term(In, In, _) ->
+    {ok, In};
+
 decode_term(#{ type := without_keys, spec := KeySpecs}, In, _) when is_map(In) -> 
     case cmencode:encode_all(KeySpecs, In) of 
         {ok, Keys} -> 
@@ -83,29 +86,19 @@ decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) 
 decode_term(#{ type := keyword, value := _}, _, _) -> no_match;
 decode_term(#{ type := keyword }, Data, _) when is_atom(Data) -> {ok, Data}; 
 decode_term(#{ type := keyword }, _, _) -> no_match; 
-decode_term(#{ type := text, value := Text}, Text, _) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text, value := _}, Text, _) when is_binary(Text) -> no_match;
-decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
-decode_term(#{ type := text} = Spec, Text, _) when is_list(Text) -> 
-    case cmkit:is_string(Text) of 
-        true -> 
-            case maps:get(value, Spec, undef) of 
-                undef -> 
-                    {ok, cmkit:to_bin(Text)};
-                Expected -> 
-                    case cmkit:to_bin(Text) of 
-                        Expected -> 
-                            {ok, Expected};
-                        _ -> 
-                            no_match
-                    end
-            end;
-        false -> 
-            no_match
+decode_term(#{ type := text, value := ValueSpec }, Text, Config) ->
+    decode_term(#{ type => text,
+                   spec => ValueSpec }, Text, Config);
+decode_term(#{ type := text, spec := ValueSpec }, Text, Config) ->
+    case decode(ValueSpec, Text, Config) of 
+        {ok, Data} when is_binary(Data) ->
+            {ok, Data};
+        Other ->
+            Other
     end;
 
+decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
 decode_term(#{ type := text}, _, _) -> no_match;
-
 
 decode_term(#{ type := other_than, spec := #{ type := regexp, value := _ } = Spec}, Data, Config) -> 
     case decode_term(Spec, Data, Config) of 

@@ -73,9 +73,16 @@ run_items(Name, [Item|Rem], In) ->
         ok -> 
             run_items(Name, Rem, In);
         {ok, Extra } when is_map(Extra) ->
-            run_items(Name, Rem, In#{ context => maps:merge(Ctx, Extra)}); 
+            Ctx2 = maps:merge(Ctx, Extra),
+            Ctx3 = Ctx2#{ last => Extra },
+            run_items(Name, Rem, In#{ context => Ctx3 }); 
         {ok, Extra } -> 
             run_items(Name, Rem, In#{ context => Ctx#{ last => Extra }}); 
+        {alias, Extra} ->
+            In2 = In#{ context => Ctx },
+            In3 = maps:merge(In2, Extra),
+            cmkit:log({Name, alias, Extra}),
+            run_items(Name, Rem, In3); 
         Other -> 
             Other
     end.
@@ -407,6 +414,60 @@ run_item(_, #{ type := queue,
             Other
     end;
 
+run_item(_, #{ type := queue,
+               name := NameSpec,
+               notify := JobSpec,
+               info := InfoSpec }, In) ->
+    
+    case cmencode:encode(NameSpec, In) of 
+        {ok, Name} ->
+            case cmencode:encode(JobSpec, In) of 
+                {ok, Job} ->
+                    case cmencode:encode(InfoSpec, In) of 
+                        {ok, Info} ->
+                            cmqueue:notify(Name, Job, Info); 
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+run_item(_, #{ type := queue,
+               name := NameSpec,
+               finish := JobSpec }, In) ->
+    
+    case cmencode:encode(NameSpec, In) of 
+        {ok, Name} ->
+            case cmencode:encode(JobSpec, In) of 
+                {ok, Job} ->
+                    cmqueue:finish(Name, Job); 
+                Other ->
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
+
+run_item(_, #{ type := alias,
+               target := TargetSpec,
+               as := AliasSpec } = Spec, In) ->
+    case cmencode:encode(TargetSpec, In) of 
+        {ok, Value} ->
+            case cmencode:encode(AliasSpec, In) of 
+                {ok, As} ->
+                    {alias, #{ As => Value }};
+                Other ->
+                    Other
+            end;
+        Other ->
+            {error, #{ reason => Other,
+                       spec => Spec,
+                       context => In }}
+    end;
 
 run_item(_, Spec, In) -> 
     cmencode:encode(Spec, In).

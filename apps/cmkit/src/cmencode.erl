@@ -10,6 +10,9 @@
 encode(Spec) -> encode(Spec, #{}).
 encode(Spec, In) -> encode(Spec, In, #{}).
 
+encode(Data, _, _) when is_binary(Data) or is_number(Data) ->
+    {ok, Data};
+
 encode(#{ literal := Value}, _, _) -> 
     {ok, Value};
 
@@ -155,7 +158,34 @@ encode(#{ type := condition,
     end;
 
 encode(#{ type := text,
-          spec := Spec }, In, Config) ->
+          spec := Spec } = Spec0, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, V} when is_list(V) or is_number(V) -> 
+            {ok, cmkit:to_bin(V)};
+        {ok, V} when is_binary(V) ->
+            {ok, V};
+        {ok, Spec2} when is_map(Spec2) ->
+            encode(Spec2, In, Config); 
+        {ok, Other} ->
+            {error, #{ error => encode_error,
+                       reason => not_supported,
+                       spec => Spec0,
+                       info => Other }};
+        Other -> 
+            Other
+    end;
+
+encode(#{ type := text, 
+          value := Value }, _, _) when is_binary(Value) ->
+    {ok, Value};
+
+encode(#{ type := text, 
+          value := Value }, _, _) when is_number(Value) ->
+    {ok, cmkit:to_bin(Value)};
+
+
+encode(#{ type := text,
+          value := Spec }, In, Config) ->
     case encode(Spec, In, Config) of 
         {ok, V} -> 
             {ok, cmkit:to_bin(V)};
@@ -163,8 +193,6 @@ encode(#{ type := text,
             Other
     end;
 
-encode(#{ type := text, value := Value }, _, _) ->
-    {ok, cmkit:to_bin(Value) };
 
 encode(#{ type := number, value:= V }, _, _) when is_number(V) ->
     {ok, V};
@@ -182,6 +210,37 @@ encode(#{ type := number, spec := Spec }, In, Config) ->
                     {ok, Num}
             end;
         Other -> Other
+    end;
+
+encode(#{ type := os,
+          name := VarSpec,
+          default := DefaultSpec }, In, Config) -> 
+    case encode(VarSpec, In, Config) of 
+        {ok, V} ->
+            case encode(DefaultSpec, In, Config) of 
+                {ok, D} ->
+                    {ok, cmkit:to_bin(os:getenv(cmkit:to_list(V), cmkit:to_list(D)))};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := os,
+          name := VarSpec} = Spec, In, Config) -> 
+    case encode(VarSpec, In, Config) of 
+        {ok, V} ->
+            case os:getenv(cmkit:to_list(V)) of 
+                false ->
+                    {error, #{ status => encode_error,
+                               spec => Spec,
+                               reason => no_such_env_var }};
+                Value ->
+                    {ok, cmkit:to_bin(Value)}
+            end;
+        Other ->
+            Other
     end;
 
 encode(#{ type := member,
@@ -219,6 +278,15 @@ encode(#{ type := keyword, value := yes }, _, _) ->
 encode(#{ type := keyword,
           value := Value }, _, _) when is_atom(Value) ->
     {ok, Value};
+
+encode(#{ type := keyword,
+          spec :=  Other}, In, Config) ->
+    case encode(Other, In, Config) of 
+        {ok, V} ->
+            {ok, cmkit:to_atom(V)};
+        Other ->
+            Other
+    end;
 
 encode(#{ type := list,
           value := List }, In, Config) when is_list(List)->
@@ -773,6 +841,27 @@ encode(#{ type := format,
         Other -> Other
     end;
 
+encode(#{ type := replace,
+          source := SourceSpec,
+          text := SearchSpec,
+          with := ReplaceSpec }, In, Config) ->
+
+    case encode(SourceSpec, In, Config) of 
+        {ok, Source} ->
+            case encode(SearchSpec, In, Config) of 
+                {ok, Search} ->
+                    case encode(ReplaceSpec, In, Config) of 
+                        {ok, Replace} ->
+                            {ok, cmkit:replace(Source, Search, Replace)};
+                        Other -> 
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other -> Other
+    end;
+
 encode(#{ type := utc,
           amount := AmountSpec,
           factor := Factor,
@@ -869,6 +958,38 @@ encode(#{ type := attempt,
             cmencode:encode(OnError, In, Config)
     end;
 
+encode(#{ type := sort,
+          items := ItemsSpec,
+          by := PropSpec,
+          mode := ModeSpec }, In, Config) ->
+
+    case cmencode:encode(ItemsSpec, In, Config) of 
+        {ok, Items} when is_list(Items) ->
+            case cmencode:encode(PropSpec, In, Config) of
+                {ok, SimpleProp} when is_binary(SimpleProp) or is_atom(SimpleProp) ->
+                    case cmencode:encode(ModeSpec, In, Config) of
+                        {ok, Mode} ->
+                            SortFun = case Mode of 
+                                          asc -> 
+                                              fun(A, B) ->
+                                                cmkit:value_at(SimpleProp, A) < cmkit:value_at(SimpleProp, B)     
+                                              end;
+                                            desc ->
+                                              fun(A, B) ->
+                                                cmkit:value_at(SimpleProp, A) > cmkit:value_at(SimpleProp, B)     
+                                              end
+                                      end,
+                            {ok, lists:sort(SortFun, Items)};
+                        Other -> 
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 encode(#{ type := iterate, 
           source := SourceSpec,
           filter := FilterSpec,
@@ -937,7 +1058,6 @@ encode(#{ type := filter,
 
     case EncodedFilterSpec of 
         {ok, FilterSpec2} ->
-            cmkit:log({cmencode, filter, FilterSpec}),
             case cmencode:encode(SourceSpec, In, Config) of 
                 {ok, Source} when is_list(Source) ->
                     Source2 = lists:filter(fun(Item) -> 
@@ -946,7 +1066,6 @@ encode(#{ type := filter,
                                                        _ -> false
                                                    end
                                            end, Source),
-                    cmkit:log({cmencode, filter, Source, FilterSpec, Source2}),
                     {ok, Source2};
                 Other2 -> 
                     Other2

@@ -149,6 +149,9 @@ terms([Spec|Rem], Settings, Out) ->
             Other
     end.
 
+term(V, _) when is_atom(V) or is_number(V) or is_binary(V) -> 
+    {ok, V};
+
 term(#{ type := expression, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
@@ -584,6 +587,16 @@ term(#{ type := number }, _) ->
 term(#{ type := text, value := V }, _) -> 
     {ok, #{ text => V }};
 
+term(#{ type := text, spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, V} when is_binary(V) ->
+            {ok, V};
+        {ok, Spec2} ->
+            {ok, #{ text => Spec2}};
+        Other ->
+            Other
+    end;
+
 term(#{ type := text }, _) -> 
     {ok, #{ any => text }};
 
@@ -690,8 +703,6 @@ term(#{ code := #{ lang := LangSpec,
             Other
     end;
 
-term(V, _) when is_atom(V) or is_number(V) -> 
-    {ok, V};
 
 term(Map, _) when is_map(Map) andalso map_size(Map) =:= 0 ->
     {ok, #{}};

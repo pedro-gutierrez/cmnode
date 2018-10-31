@@ -50,31 +50,59 @@ load_crons([Cron|Rem], Data) ->
 load_cron(#{ name := Name,
              schedule := Schedule,
              jobs := Jobs}, Data) -> 
-    Data#{ Name => 
-           [ load_cron({ map_schedule(Schedule), map_cron_mfa(J) })
-             || J<- Jobs ]}.
-
-
-map_cron_mfa(#{ module := M,
-                function := F,
-                args := Args }) ->
     
-    {M, F, Args};
+    S = schedule(Schedule),
+    Status = succeeded(attempted(Name, S, Jobs)),
+    Data#{ Name => Status }.
 
-map_cron_mfa(#{ task := Task,
-                settings := Settings }) ->
-    
-    {cmtask, schedule, [Task, #{ settings => Settings }]}.
+succeeded(Results) ->
+    lists:foldr(fun({ok, Ref}, Acc) ->
+                        [Ref|Acc];
+                   (_, Acc) ->
+                        Acc
+                end, [], Results).
 
-map_schedule(#{ type := once,
-                secs := Secs }) ->
+attempted(Name, Schedule, Jobs) ->
+    lists:map(fun(J) ->
+                      case mfa(J) of 
+                          {ok, MFA} ->
+                              schedule_job({Schedule, MFA});        
+                          Other ->
+                              cmkit:error({cron, Name, job, J, mfa_error, Other}),
+                              {error, Other}
+                      end
+              end, Jobs).
+
+mfa(#{ module := M,
+       function := F,
+       args := Args }) ->
+
+    {ok, {M, F, Args}};
+
+mfa(#{ task := Task,
+       settings := Settings }) ->
+
+    case cmencode:encode(Task) of 
+        {ok, T} ->
+            case cmencode:encode(Settings) of 
+                {ok, S} ->
+                    {ok, {cmtask, schedule, [T, #{ settings => S}]}};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
+schedule(#{ type := once,
+            secs := Secs }) ->
 
     {once, Secs};
 
-map_schedule(#{ type := daily, 
-                hour := H,
-                min := Min,
-                period := P}) ->
+schedule(#{ type := daily, 
+            hour := H,
+            min := Min,
+            period := P}) ->
     {daily, {H, Min, P}}.
 
 status(Data) ->
@@ -82,12 +110,7 @@ status(Data) ->
                 Out#{ K => length(V) }
               end, #{}, Data).
 
-
-load_cron(Spec) ->
-    erlcron:cron(Spec),
-    cmkit:log({cron, loaded, Spec}).
-
-
-
-
-
+schedule_job(Spec) ->
+    Ref = erlcron:cron(Spec),
+    cmkit:log({cron, loaded, Spec, Ref}),
+    {ok, Ref}.

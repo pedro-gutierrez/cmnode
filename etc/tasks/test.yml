@@ -2,6 +2,7 @@ version: 1.0
 type: task
 name: test 
 spec:
+  - wait: 5
   - attempt:
       error:
         keyword: simulated_error

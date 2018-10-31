@@ -1,0 +1,20 @@
+version: 1.0
+type: cron
+name: backups
+spec:
+  schedule:
+    once: 5
+  jobs:
+    - task:
+        keyword:
+          os:
+            name: "BACKUP_TASK"
+            default: "backups"
+      settings:
+        - os:
+            name: "BACKUP_TASK"
+            default: "backups"
+        - slack
+        - erlang
+        - cluster
+        - webhook

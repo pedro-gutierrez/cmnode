@@ -103,7 +103,6 @@ spec:
           in: data
       cmds:
         - effect: ui
-          encoder: backups_view
     backup_selected:
       model:
         backup:
@@ -127,6 +126,8 @@ spec:
           key: backups
           in: data
       cmds:
+        - effect: ws
+          encoder: backups_query
         - effect: ui
     cancel_backup:
       model:
@@ -158,9 +159,13 @@ spec:
         id:
           key: id
         title:
-          key: database
+          format:
+            pattern: "~a in ~a"
+            params:
+              - key: database
+              - key: env
         subtitle:
-          key: env
+          key: status
         date:
           key: timestamp
     backup_status_label:

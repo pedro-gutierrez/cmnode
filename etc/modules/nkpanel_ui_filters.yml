@@ -37,6 +37,11 @@ spec:
         selected_filter:
           key: filter
           in: event
+        inspector:
+          object:
+            visibility: "hidden"
+            view: "empty_view"
+            content_key: "empty" 
       cmds:
         - effect: ws
           encoder: new_filter

@@ -54,6 +54,9 @@ spec:
         kind:
           key: kind
           in: selected_database
+        name:
+          key: name
+          in: selected_database
     database_item_view:
       view:
         tag: div

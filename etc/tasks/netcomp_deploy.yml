@@ -164,6 +164,7 @@ spec:
 
       sleep: 1000
       retries: 90
+  - wait: 5
   - http:
       method: post 
       url:

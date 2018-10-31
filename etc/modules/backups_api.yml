@@ -46,6 +46,8 @@ spec:
                   any: number
                 second:
                   any: number
+            job:
+              any: number
     backup_summary_written:
       object:
         context:
@@ -68,6 +70,8 @@ spec:
     start_backup:
       object:
         action: "backup"
+        name:
+          any: text
         database:
           any: text
         env:
@@ -106,12 +110,18 @@ spec:
           keyword: cancel_backup
         status:
           keyword: ok
+    backup_finished:
+      object:
+        context:
+          keyword: finish_backup
   update:
     backup_summary:
       model:
         backup:
           key: body
       cmds:
+        - effect: queue
+          encoder: backup_job_finished
         - effect: db_put
           encoder: backup_summary_entry
     backup_summary_written:
@@ -149,58 +159,62 @@ spec:
     recent_backups_found:
       model:
         backups:
-          iterate:
-            key: value
-          as: backup
-          filter:
-            config:
-              key:
-                key: filter
-                in: prefs
-              in:
-                key: databases 
-                in: filters
-          with:
-            object:
-              env:
-                key: env
+          sort:
+            iterate:
+              key: value
+            as: backup
+            filter:
+              config:
+                key:
+                  key: filter
+                  in: prefs
                 in:
-                  key: info
-                  in: backup
-              elapsed:
-                key: elapsed 
-                in:
-                  key: info
-                  in: backup
-              kind:
-                key: kind 
-                in:
-                  key: info
-                  in: backup
-              status:
-                key: status 
-                in:
-                  key: info
-                  in: backup
-              database:
-                key: db
-                in:
-                  key: info
-                  in: backup
-              backup:
-                key: backup
-                in:
-                  key: info
-                  in: backup
-              started:
-                format:
-                  pattern: 
-                    keyword: "iso8601"
-                  date:
-                    key: started
-                    in:
-                      key: info
-                      in: backup
+                  key: databases 
+                  in: filters
+            with:
+              object:
+                env:
+                  key: env
+                  in:
+                    key: info
+                    in: backup
+                elapsed:
+                  key: elapsed 
+                  in:
+                    key: info
+                    in: backup
+                kind:
+                  key: kind 
+                  in:
+                    key: info
+                    in: backup
+                status:
+                  key: status 
+                  in:
+                    key: info
+                    in: backup
+                database:
+                  key: db
+                  in:
+                    key: info
+                    in: backup
+                backup:
+                  key: backup
+                  in:
+                    key: info
+                    in: backup
+                started:
+                  format:
+                    pattern: 
+                      keyword: "iso8601"
+                    date:
+                      key: started
+                      in:
+                        key: info
+                        in: backup
+          by: started
+          mode: 
+            keyword: desc
       cmds:
         - effect: notify
           encoder: recent_backups
@@ -215,6 +229,8 @@ spec:
         model:
           new_backup:
             object:
+              name:
+                key: name
               database:
                 key: database
               env:
@@ -263,6 +279,9 @@ spec:
       cmds:
         - effect: notify
           encoder: backup_ack
+    backup_finished:
+      model:
+        backup_job: "finished"
   encoders:
     backup_summary_entry:
       object:
@@ -329,6 +348,9 @@ spec:
         info:
           object:
             status: "Not started"
+            name:
+              key: name
+              in: new_backup
             database:
               key: database
               in: new_backup
@@ -342,6 +364,9 @@ spec:
           keyword: backup
         params:
           object:
+            name:
+              key: name
+              in: new_backup
             database:
               key: database
               in: new_backup
@@ -359,6 +384,15 @@ spec:
           keyword: cancel_backup
         cancel:
           key: backup_job
+    backup_job_finished:
+      object:
+        queue:
+          keyword: backups_queue
+        context:
+          keyword: finish_backup
+        finish:
+          key: job
+          in: backup
     backup_error:
       object:
         backup: "error"

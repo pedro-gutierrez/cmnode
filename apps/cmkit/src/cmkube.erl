@@ -298,6 +298,79 @@ do(#{ namespace := Ns,
             Other
     end;
 
+
+do(#{ namespace := Ns,
+      name := Name,
+      resource := job,
+      namespace := Ns,
+      server := #{ api := Url,
+                   token := Token },
+      state := absent }) ->
+    
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+
+    case kuberl_batch_v1_api:delete_namespaced_job(Ctx, Name, Ns, #{}, Opts) of
+        {error, E, _} -> {error, E};
+        {ok, _, _} -> ok
+    end;
+
+do(#{ namespace := Ns,
+      name := Name,
+      resource := job,
+      namespace := Ns,
+      server := #{ api := Url,
+                   token := Token },
+      state := present,
+      props := #{ labels := Labels,
+                  spec := Spec} = Props} = Params) ->
+    
+    Yaml = #{ apiVersion => <<"batch/v1">>,
+              kind => <<"Job">>,
+              metadata => #{ name => Name,
+                             namespace => Ns,
+                             labels => Labels },
+              spec => #{ template => #{ metadata => #{ labels => Labels },
+                                        spec => Spec } }},
+    
+    cmkit:log({cmkube, Yaml}),
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    
+    do(Params#{ state => absent }), 
+    case await(#{ namespace => Ns,
+                  resource => job,
+                  server => #{ api => Url,
+                               token => Token },
+                  props => Props,
+                  retries => ?RETRIES,
+                  sleep => 1000,
+                  exact => 0 }) of 
+        ok ->
+            case kuberl_batch_v1_api:create_namespaced_job(Ctx, Ns, Yaml, Opts) of 
+                {error, E, _} -> {error, E};
+                {ok, _, _} -> ok
+            end;
+        {error, E} ->
+            {error, E}
+    end; 
+
+do(#{ namespace := Ns,
+      resource := job,
+      server := #{ api := Url,
+                   token := Token },
+      props := #{ labels := Labels }}) ->
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    Opts2 =  Opts#{ params => #{ labelSelector => to_query_params(Labels)}},
+    case kuberl_batch_v1_api:list_namespaced_job(Ctx, Ns, Opts2) of 
+        {ok, #{ items := Items }, _} -> 
+            {ok, Items};
+        Other -> 
+            Other
+    end;
+
 do(#{ host := Host,
       token := Token,
       namespace := Ns,
@@ -372,10 +445,18 @@ do(Q) ->
     {error, #{ status => not_supported_yet,
                query => Q}}.
 
-await(#{ state := State,
-         retries := Retries,
+await(#{ retries := Retries,
          sleep := Millis, 
          exact := Exact }=Params) ->
+    
+    FilterFun = case maps:get(state, Params, undef) of 
+                    undef -> 
+                        fun(_) -> true end;
+                    State ->
+                        fun(#{ status := #{ phase := Phase }}) ->
+                            Phase =:= State
+                        end
+                end,
 
     case Retries of 
         0 -> 
@@ -384,23 +465,17 @@ await(#{ state := State,
             timer:sleep(Millis),
             case do(Params) of 
                 {ok, Items} ->
-                    case length(filter_by_status(State, Items)) of 
+                    case length(lists:filter(FilterFun, Items)) of 
                         Exact -> 
                             ok;
                         Other -> 
-                            cmkit:log({cmkube, await, Params, State, Other, Exact, sleeping}),
+                            cmkit:log({cmkube, await, Params, Other, Exact, sleeping}),
                             await(Params#{ retries => Retries -1 })
                     end;
                 _ -> 
                     await(Params#{ retries => Retries -1 })
             end
     end.
-
-filter_by_status(Status, Items) ->
-    lists:filter(fun(#{ status := #{ phase := Phase }}) ->
-                    Phase =:= Status
-                 end, Items).
-
 
 opts(Host, Token) ->    
     Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),

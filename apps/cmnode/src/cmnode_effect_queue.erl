@@ -72,6 +72,22 @@ effect_apply(#{ context := Context,
                      reason => E }
           end,
 
+    cmcore:update(SessionId, Res#{ context => Context });
+
+effect_apply(#{ context := Context,
+                queue := Name,
+                finish := Job }, SessionId) ->
+
+    Res = case cmqueue:finish(Name, Job) of 
+              ok ->
+                  #{ status => ok };
+              {error, E} ->
+                  #{ status => error,
+                     queue => Name,
+                     job => Job,
+                     reason => E }
+          end,
+
     cmcore:update(SessionId, Res#{ context => Context }).
 
 with_status(#{ worker := Name }=Spec) ->

@@ -87,9 +87,11 @@ ready({call, From}, {cancel, Id}, #{ name := Name,
     end;
 
 
-ready(cast, {finished, Id}, #{ subscriptions := Subs,
-                                status := #{ pending := 0 } }=Data) -> 
+ready(cast, {finished, Id}, #{ name := Name,
+                               subscriptions := Subs,
+                               status := #{ pending := 0 } }=Data) -> 
     
+    cmkit:log({cmqueue, Name, finishing, Id}),
     Data2 = active_job_finished(Id, Data),
     Info = status_info(Data2),
     notify(Info, Subs),

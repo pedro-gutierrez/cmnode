@@ -290,23 +290,29 @@ compile_cron_schedule(#{ <<"am">> := #{ <<"hour">> := Hour,
        period => am }.
 
 compile_cron_jobs(Specs, Index) ->
-    lists:map(fun(#{ <<"module">> := Mod,
-                     <<"fun">> := Fun,
-                     <<"args">> := Args }) ->
-
-                      {ok, EncodedArgs } = cmencode:encode(#{ type => list,
-                                                              value => compile_terms(Args, Index) }),
-
-                      #{ module => cmkit:to_atom(Mod),
-                         function => cmkit:to_atom(Fun),
-                         args => EncodedArgs
-                       };
-
-                 (#{ <<"task">> := Name,
-                     <<"settings">> := Settings }) ->
-                      #{ task => cmkit:to_atom(Name),
-                         settings => Settings }
+    lists:map(fun(Spec) ->
+                compile_cron_job(Spec, Index)
               end, Specs).
+
+
+compile_cron_job(#{ <<"module">> := Mod,
+                     <<"fun">> := Fun,
+                     <<"args">> := Args }, Index) ->
+    
+    {ok, EncodedArgs } = cmencode:encode(#{ type => list,
+                                            value => compile_terms(Args, Index) }),
+
+    #{ module => cmkit:to_atom(Mod),
+       function => cmkit:to_atom(Fun),
+       args => EncodedArgs
+     };
+
+compile_cron_job(#{ <<"task">> := Name,
+                     <<"settings">> := Settings }, Index) ->
+    
+    #{ task=> compile_term(Name, Index),
+       settings => compile_term(Settings, Index)
+     }.
 
 compile_task(#{ <<"name">> := Name,
                 <<"rank">> := Rank,
@@ -879,6 +885,29 @@ compile_term(#{ <<"config">> := Key} = Spec, Index) when is_binary(Key) ->
 compile_term(#{ <<"maybe">> := Spec }, Index) ->
     #{ maybe => compile_term(Spec, Index) };
 
+
+compile_term(#{ <<"alias">> := Target,
+                <<"as" >> := As }, Index) ->
+    #{ type => alias,
+       target => compile_term(Target, Index),
+       as => compile_term(As, Index) };
+
+compile_term(#{ <<"os">> := #{ <<"name">> := Var,
+                               <<"default">> := Default }}, Index) ->
+    #{ type => os,
+       name => compile_term(Var, Index),
+       default => compile_term(Default, Index) };
+
+compile_term(#{ <<"os">> := Var,
+                <<"default">> := Default }, Index) ->
+    #{ type => os,
+       name => compile_term(Var, Index),
+       default => compile_term(Default, Index) };
+
+compile_term(#{ <<"os">> := Var }, Index) ->
+    #{ type => os,
+       name => compile_term(Var, Index) };
+
 compile_term(#{ <<"object">> := Object}, Index) ->
     compile_object(Object, Index);
 
@@ -1090,12 +1119,22 @@ compile_term(#{ <<"regexp">> := Regex }, Index) ->
     #{ type => regexp,
        value => compile_term(Regex, Index) };
 
-compile_term(#{ <<"text">> := Spec }, Index) ->
+compile_term(#{ <<"text">> := Spec }, Index) when is_map(Spec) -> 
+    #{ type => text,
+       spec => compile_term(Spec, Index) };
+
+compile_term(#{ <<"text">> := Spec }, Index)-> 
     maps:merge(#{ type => text},
                compile_term(Spec, Index));
 
 compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
                                    <<"params">> := Params }}, Index) when is_list(Params) -> 
+    #{ type => format,
+       pattern => compile_term(Pattern, Index),
+       params => compile_terms(Params, Index) };
+
+compile_term(#{ <<"format">> := Pattern,
+                <<"params">> := Params }, Index) when is_list(Params) -> 
     #{ type => format,
        pattern => compile_term(Pattern, Index),
        params => compile_terms(Params, Index) };
@@ -1112,6 +1151,15 @@ compile_term(#{ <<"format">> := #{ <<"pattern">> := FormatSpec,
     #{ type => format,
        pattern => compile_term(FormatSpec, Index),
        date => compile_term(DateSpec, Index) };
+
+
+compile_term(#{ <<"replace">> := #{ <<"in">> := SourceSpec,
+                                    <<"text">> := SearchSpec,
+                                    <<"with">> := ReplaceSpec }}, Index) ->
+    #{ type => replace,
+       source => compile_term(SourceSpec, Index),
+       text => compile_term(SearchSpec, Index),
+       with => compile_term(ReplaceSpec, Index) };
 
 compile_term(#{ <<"files">> := Spec }, Index) -> 
     #{ type => files,
@@ -1206,6 +1254,11 @@ compile_term(#{ <<"are_set">> := Specs }, Index) when is_list(Specs) ->
        spec => lists:map(fun(S) -> 
                                  compile_term(S, Index)
                          end, Specs)};
+
+compile_term(#{ <<"set">> := Spec }, Index) ->
+    #{ type => set,
+       spec => compile_term(Spec, Index)
+     };
 
 compile_term(#{ <<"is_set">> := Spec }, Index) ->
     #{ type => is_set,
@@ -1620,6 +1673,11 @@ compile_term(#{ <<"wait">> := #{
        spec => #{
          sleep => Secs * 1000 }};
 
+compile_term(#{ <<"wait">> := Secs }, _) -> 
+    #{ type => wait,
+       spec => #{
+         sleep => Secs * 1000 }};
+
 compile_term(#{ <<"match">> := #{
                     <<"value">> := ValueSpec,
                     <<"with">> := DecoderSpec } = MatchSpec}, Index) ->
@@ -1641,6 +1699,16 @@ compile_term(#{ <<"find">> := TargetSpec,
     #{ type => find,
        items => compile_term(SourceSpec, Index),
        target => compile_term(TargetSpec, Index) };
+
+
+compile_term(#{ <<"sort">> := ItemsSpec,
+                <<"by">> := PropSpec,
+                <<"mode">> := ModeSpec }, Index) ->
+
+    #{ type => sort,
+       items => compile_term(ItemsSpec, Index),
+       by => compile_term(PropSpec, Index),
+       mode => compile_term(ModeSpec, Index) };
 
 compile_term(#{ <<"iterate">> := SourceSpec,
                 <<"with">> := DestSpec } = Spec, Index) ->
@@ -1699,6 +1767,21 @@ compile_term(#{ <<"attempt">> := Spec }, Index) ->
        onerror => compile_term(#{ type => keyword,
                                   value => ok }, Index)
      };
+
+
+compile_term(#{ <<"queue">> := NameSpec,
+                <<"notify">> := JobSpec,
+                <<"info">> := InfoSpec }, Index) ->
+    #{ type => queue,
+       name => compile_term(NameSpec, Index),
+       notify => compile_term(JobSpec, Index),
+       info => compile_term(InfoSpec, Index) };
+
+compile_term(#{ <<"queue">> := NameSpec,
+                <<"finish">> := JobSpec }, Index) ->
+    #{ type => queue,
+       name => compile_term(NameSpec, Index),
+       finish => compile_term(JobSpec, Index) };
 
 compile_term(#{ <<"erlang">> := #{ <<"mod">> := Mod,
                                    <<"fun">> := Fun } = Spec}, Index) -> 
@@ -1762,7 +1845,7 @@ compile_term(Num, _) when is_number(Num) ->
 
 compile_term(Text, _) when is_binary(Text) -> 
 
-    #{ type => text, value => Text };
+    #{ type => text, spec => Text };
 
 compile_term(#{ <<"sequence">> := #{ <<"from">> := From,
                                      <<"to">> := To }}, Index) ->

@@ -5,6 +5,7 @@
          status/1, 
          schedule/2,
          subscribe/3,
+         notify/3,
          finish/2
         ]).
 
@@ -25,6 +26,9 @@ schedule(Name, Job) ->
 
 subscribe(Name, Topic, SessionId) ->
     ask(Name, {subscribe, Topic, SessionId}).
+
+notify(Name, Id, Info) ->
+    tell(Name, {info, Id, Info}).
 
 ask(Name, Msg) ->
     case erlang:whereis(Name) of

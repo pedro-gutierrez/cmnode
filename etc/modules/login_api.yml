@@ -12,9 +12,9 @@ spec:
       object:
         action: "login"
         username:
-          email: any
+          any: email
         password:
-          text: any
+          any: text
     invalid_username:
       object:
         action: "login"

@@ -37,7 +37,7 @@ export default (name, settings, app) => {
             case 'object':
                 const { err, value } = encode(spec, ctx);
                 if (err) return error(spec, ctx, "view_name_encode_error");
-                if (typeof(value) != 'string') return error(spec, ctx, "not_an_string");
+                if (typeof(value) != 'string') return error(value, ctx, "not_a_string");
                 return resolve(views, value, ctx);
             case 'string':
                 const resolved = views[spec];

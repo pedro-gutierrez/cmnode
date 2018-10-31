@@ -167,8 +167,11 @@
     }
 
     function encodeFormat(spec, data, ctx) {
-        const { pattern, params } = spec.format;
-        const { err, value } = encodeList(params, data, ctx);
+        var {pattern, params} = spec.format;
+        var {err, value} = encode(pattern, data, ctx);
+        if (err) return error(spec, data, err);
+        var pattern = value;
+        var {err, value} = encodeList(params, data, ctx);
         return err ? error(spec, data, err) : {value: fmt( pattern, value)};
     }
 
@@ -278,7 +281,8 @@
     function encodeText(spec, data, ctx) {
         var {err, value} = encode(spec.text, data, ctx);
         if (err) return error(spec, data, err);
-        return { value: new String(''+value) };
+        //return { value: new String(''+value) };
+        return { value: ''+value};
     }
 
     function encodePercent(spec, data, ctx) {
@@ -408,6 +412,7 @@
         //if (!spec) return error({}, data, "missing_encoder_spec");
         switch(typeof(spec)) {
             case "object":
+                if (spec.hasOwnProperty("text")) return encodeText(spec, data, ctx);
                 if (Array.isArray(spec)) return encodeList(spec, data, ctx);
                 if (spec.object) return encodeNewObject(spec, data, ctx);
                 if (spec.by_appending) return encodeByAppending(spec, data, ctx);
@@ -420,7 +425,6 @@
                 if (spec.either) return encodeEither(spec, data, ctx);
                 if (spec.encoder) return encodeUsingEncoder(spec, data, ctx);
                 if (spec.timestamp) return encodeTimestamp(spec, data, ctx);
-                if (spec.text) return encodeText(spec, data, ctx);
                 if (spec.percent) return encodePercent(spec, data, ctx);
                 if (spec.is_set) return encodeIsSet(spec, data, ctx);
                 if (spec.not) return encodeNot(spec, data, ctx);
@@ -449,20 +453,12 @@
         }
     }
 
-    function objectValueDecoder(spec, ctx) {
-        if (spec.key) {
-            return encode(spec, ctx);
-        } else return {value: spec};
-    }
-
     function decodeObject(spec, data, ctx) {
         if (!data || typeof(data) != 'object') return error(spec, data, "no_match");
         var out = {};
         for (var k in spec.object) {
             if (spec.object.hasOwnProperty(k)) {
-                var {err, value} = objectValueDecoder(spec.object[k], ctx);
-                if (err) return error(spec, data, err);
-                var {err, decoded} = decode(value, data[k], ctx);
+                var {err, decoded} = decode(spec.object[k], data[k], ctx);
                 if (err) return error(spec, data, err);
                 out[k] = decoded;
             }
@@ -544,9 +540,19 @@
         return error(spec, data, "no_match");
     };
 
+    function decodeKey(spec, data, ctx) {
+        var {err, value} = encode(spec, ctx);
+        console.log("decoding key", {err:err, value: value});
+        if (err) return error(spec, data, err);
+        console.log("decoding using key value", value, data);
+        return decode(value, data, ctx)
+    }
+
     function decode(spec, data, ctx) {
         switch(typeof(spec)) {
             case "object":
+                if (spec.hasOwnProperty("text")) return decode(spec.text, data, ctx);
+                if (spec.key) return decodeKey(spec, data, ctx);
                 if (Array.isArray(spec)) return error(spec, data, "decoder_not_supported");
                 if (spec.object) return decodeObject(spec, data, ctx);
                 if (spec.any) return decodeAny(spec, data, ctx);
@@ -736,16 +742,24 @@
         for (var k in decs) {
             if (decs.hasOwnProperty(k)) {
                 var d = decs[k];
-                var eff = d.object && d.object.effect ? d.object.effect : '_other';
+                var effSpec = d.object && d.object.effect ? d.object.effect : '_other';
+                var {err, value} = encode(effSpec, {});
+                if (err) return {err: err};
+                var eff = value;
                 if (!index[eff]) index[eff]=[];
                 index[eff].push({ msg: k, spec: d});
             }
         }
-        return index;
+        return {value: index};
     }
 
     function compiledApp(app) {
-        app.decoders = indexedDecoders(app.decoders);
+        var {err, value} = indexedDecoders(app.decoders);
+        if (err) {
+            console.error("(decoders) failed to index decoders", err);
+            return;
+        }
+        app.decoders = value;
         app.settings = app.settings || {};
         return app;
     }

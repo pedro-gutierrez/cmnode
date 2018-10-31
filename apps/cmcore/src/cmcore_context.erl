@@ -65,8 +65,10 @@ ready(cast, {update, Data}, #{ app := App,
     Log({App, in, Data}),
     case cmcore_util:decode(Spec, Data, Config) of 
         {ok, Msg, Decoded} ->
+            Log({App, decoded, Msg}),
             update(Spec, Msg, Decoded, Model, Config, Session);
         {error, no_match} ->
+            Log({App, no_match}),
             update(Spec, no_match, Data, Model, Config, Session);
         {error, E} -> 
             server_error(App, Session, update, #{ data => Data, reason => E}),

@@ -344,13 +344,23 @@ run(#{ type := merge,
            Other
    end;
 
+run(#{ type := set,
+       spec := Spec}, Settings, #{ data := Data } =World) ->
+   case cmencode:encode(Spec, World#{ settings => Settings }, Settings) of 
+       {ok, Data2} -> 
+           {ok, World#{ data => maps:merge(Data, Data2)}};
+       Other -> 
+           Other
+   end;
+
 run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
     In = World#{ settings => Settings },
     case cmencode:encode(As, In) of 
         {ok, EncodedAlias} -> 
             case cmencode:encode(Spec, In) of 
                 {ok, Encoded} ->
-                    { ok, World#{ data => Data#{ EncodedAlias=> Encoded }}};
+                    Key = cmkit:to_atom(EncodedAlias),
+                    { ok, World#{ data => Data#{ Key => Encoded }}};
                 Other -> 
                     Other
             end;
