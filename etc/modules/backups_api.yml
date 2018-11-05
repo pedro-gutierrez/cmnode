@@ -14,40 +14,42 @@ spec:
             app-secret: "nk"
         body:
           object:
-            env:
-              any: text
-            backup:
-              any: text
-            kind:
-              one_of:
-                - elastic
-                - cockroach
-            name:
-              any: text
-            db:
-              any: text
-            elapsed:
-              any: number
-            status:
-              one_of:
-                - error
-                - success
-            started:
+            backup_summary:
               object:
-                year:
+                env:
+                  any: text
+                backup:
+                  any: text
+                kind:
+                  one_of:
+                    - elastic
+                    - cockroach
+                name:
+                  any: text
+                db:
+                  any: text
+                elapsed:
                   any: number
-                month:
+                status:
+                  one_of:
+                    - error
+                    - success
+                started:
+                  object:
+                    year:
+                      any: number
+                    month:
+                      any: number
+                    day:
+                      any: number
+                    hour:
+                      any: number
+                    minute:
+                      any: number
+                    second:
+                      any: number
+                job:
                   any: number
-                day:
-                  any: number
-                hour:
-                  any: number
-                minute:
-                  any: number
-                second:
-                  any: number
-            job:
-              any: number
     backup_summary_written:
       object:
         context:
@@ -118,7 +120,8 @@ spec:
     backup_summary:
       model:
         backup:
-          key: body
+          key: backup_summary
+          in: body
       cmds:
         - effect: queue
           encoder: backup_job_finished
@@ -195,6 +198,11 @@ spec:
                     in: backup
                 database:
                   key: db
+                  in:
+                    key: info
+                    in: backup
+                name:
+                  key: name
                   in:
                     key: info
                     in: backup

@@ -35,3 +35,4 @@ spec:
               - nkpanel_ui_report
               - nkpanel_ui_release
               - nkpanel_ui_backups
+              - nkpanel_ui_restore

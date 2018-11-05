@@ -42,7 +42,28 @@ spec:
           object:
             style: "default"
             title:
-              key: title 
+              key: title
+    styled-status-label:
+      view:
+        view: status-label
+        params:
+          object:
+            style:
+              either:
+                - when: 
+                    eq:
+                      - text: "success"
+                      - key: status
+                  text: "success"
+                - text: "danger"
+            title:
+              either:
+                - when: 
+                    eq:
+                      - text: "success"
+                      - key: status
+                  text: "Success"
+                - text: "Error"
     label:
       view:
         tag: label

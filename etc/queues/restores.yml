@@ -1,0 +1,6 @@
+version: 1.0
+type: queue
+name: restores 
+spec:
+  concurrency: 1
+  max: 10

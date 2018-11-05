@@ -4,8 +4,10 @@
          get/2,
          delete/1,
          delete/2,
+         post/1,
          post/2,
          post/3,
+         put/1,
          put/2,
          put/3, 
          encodedQs/1]).
@@ -76,18 +78,22 @@ delete(Url, Headers) ->
     Headers2 = encoded_headers(Headers),
     handle(httpc:request(delete, {Url2, Headers2},[],[])).
 
+put(Url) ->
+    cmhttp:put(Url, #{}).
 
-put(Url, #{ 'content-type' := _}=Headers) ->
-    post(Url, Headers, ?EMPTY_BODY).
+put(Url, Headers) ->
+    cmhttp:put(Url, Headers, ?EMPTY_BODY).
 
 put(Url, #{ 'content-type' := _}=Headers, Data) ->
     send_body(put, Url, Headers, Data);
 
 put(Url, Headers, Data) ->
-    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
+    cmhttp:put(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
 
+post(Url) ->
+    post(Url, #{}).
 
-post(Url, #{ 'content-type' := _}=Headers) ->
+post(Url, Headers) ->
     post(Url, Headers, ?EMPTY_BODY).
 
 post(Url, #{ 'content-type' := _}=Headers, Data) ->

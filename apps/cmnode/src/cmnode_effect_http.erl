@@ -7,12 +7,27 @@
 effect_info() -> http.
 
 
-effect_apply(#{ method := get, 
+effect_apply(#{ method := Method, 
                 url := Url, 
                 context := Context } = Q, SessionId) ->
     
     cmkit:log({cmeffect, http, out, Q}),
-    Data = case cmhttp:get(Url) of 
+    Data = case cmhttp:Method(Url) of 
+               {ok, In} -> 
+                   In;
+               {error, E} -> 
+                   #{ error => E }
+           end,
+    
+    cmcore:update(SessionId, Data#{ context => Context});
+
+effect_apply(#{ method := Method, 
+                url := Url,
+                headers := Headers,
+                context := Context } = Q, SessionId) ->
+    
+    cmkit:log({cmeffect, http, out, Q}),
+    Data = case cmhttp:Method(Url, Headers) of 
                {ok, In} -> 
                    In;
                {error, E} -> 

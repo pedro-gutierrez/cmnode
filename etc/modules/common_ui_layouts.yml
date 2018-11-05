@@ -109,6 +109,26 @@ spec:
               format: human
               value:
                 key: content
+    status_prop:
+      view:
+        view: styled-status-label
+        params:
+          object:
+            status:
+              key: content
+    tag_prop:
+      view:
+        view: default-status-label
+        params:
+          object:
+            title:
+              key: content
+    label_prop:
+      view:
+        tag: label
+        children:
+          - text: 
+              key: content
     prop:
       view:
         tag: div
@@ -389,7 +409,12 @@ spec:
         children:
           - tag: div
             attrs:
-              class: "heading"
+              class: 
+                format:
+                  pattern: "heading heading-~a"
+                  params:
+                    - lowercase:
+                        key: title
             children:
               - tag: div
                 attrs:
@@ -464,9 +489,11 @@ spec:
                       - text: "content"
                 children:
                   - view:
-                      key: content_view
+                      key: view
+                      in: feature
                     params:
                       key: content
+                      in: feature
               - view: inspector
                 params:
                   object:

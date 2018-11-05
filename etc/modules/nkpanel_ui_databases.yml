@@ -133,7 +133,7 @@ spec:
       view:
         tag: div
         attrs:
-          class: "column col-xl-4 col-lg-4 col-md-4 col-sm-12 col-xs-12"
+          class: "column col-xl-4 col-lg-4 col-md-4 col-4 col-sm-12 col-xs-12"
         children:
           - view: panel
             params:

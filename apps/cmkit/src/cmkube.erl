@@ -54,23 +54,38 @@ do(#{ name := Name,
             Other
     end;
 
+
+do(#{ name := Name,
+      namespace := Ns,
+      resource := deployment,
+      server := #{ api := Url,
+                   token := Token },
+      state := scaled,
+      replicas := Replicas }) ->
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    cmkit:log({cmkube, deployment, Name, scaling, Replicas}),
+
+    Scale = [#{ op => replace, path => <<"/spec/replicas">>, value => Replicas}],
+    case kuberl_apps_v1_api:patch_namespaced_deployment(Ctx, Name, Ns, Scale, Opts) of 
+        {ok, _, _} ->
+            ok;
+        {error, _, #{ status := 404 }} when Replicas =:= 0 -> 
+            ok;
+        {error, E, _} ->
+            {error, E}
+    end;
+
 do(#{ name := Name,
       namespace := Ns,
       resource := deployment,
       server := #{ api := Url,
                    token := Token },
       state := absent,
-      props := Props }) -> 
-
-    Ctx = ctx:background(),
-    Opts = opts(Url, Token),
-    cmkit:log({cmkube, deployment, Name, deleting}),
-    case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
-        {error, Reason, #{ status := 404 }} ->
-            {ok, Reason};
-        {error, E, _} -> {error, E};
-        {ok, Data, _ } -> 
-            cmkit:log({cmkube, deployment, Name, deleted}),
+      props := Props } = Params) -> 
+    case do(Params#{ state => scaled, replicas => 0 }) of 
+        ok ->
             case await(#{ namespace => Ns,
                           resource => pod,
                           server => #{ api => Url,
@@ -81,10 +96,23 @@ do(#{ name := Name,
                           sleep => 1000,
                           exact => 0 }) of 
                 ok ->
-                    {ok, Data};
+                    Ctx = ctx:background(),
+                    Opts = opts(Url, Token),
+                    cmkit:log({cmkube, deployment, Name, deleting}),
+                    case kuberl_apps_v1_api:delete_namespaced_deployment(Ctx, Name, Ns, #{}, Opts) of 
+                        {error, Reason, #{ status := 404 }} ->
+                            {ok, Reason};
+                        {error, E, _} -> 
+                            {error, E};
+                        {ok, Data, _ } -> 
+                            cmkit:log({cmkube, deployment, Name, deleted, Data}),
+                            {ok, Data}
+                    end;
                 {error, E} ->
                     {error, E}
-            end
+            end;
+        Other ->
+            Other
     end;
 
 do(#{ name := Name,
@@ -134,6 +162,27 @@ do(#{ name := Name,
             Other
     end;
 
+do(#{ name := Name,
+      namespace := Ns,
+      resource := statefulset,
+      server := #{ api := Url,
+                   token := Token },
+      state := scaled,
+      replicas := Replicas }) -> 
+
+    Ctx = ctx:background(),
+    Opts = opts(Url, Token),
+    cmkit:log({cmkube, statefulset, Name, scaling, Replicas}),
+
+    Scale = [#{ op => replace, path => <<"/spec/replicas">>, value => Replicas}],
+    case kuberl_apps_v1_api:patch_namespaced_stateful_set(Ctx, Name, Ns, Scale, Opts) of 
+        {ok, _, _} ->
+            ok;
+        {error, _, #{ status := 404 }} when Replicas =:= 0 -> 
+            ok;
+        {error, E, _} ->
+            {error, E}
+    end;
 
 do(#{ name := Name,
       namespace := Ns,
@@ -141,17 +190,12 @@ do(#{ name := Name,
       server := #{ api := Url,
                    token := Token },
       state := absent,
-      props := Props }) -> 
+      props := Props } = Params) -> 
 
     Ctx = ctx:background(),
     Opts = opts(Url, Token),
-    cmkit:log({cmkube, statefulset, Name, deleting}),
-    case kuberl_apps_v1_api:delete_namespaced_stateful_set(Ctx, Name, Ns, #{}, Opts) of 
-        {error, Reason, #{ status := 404 }} ->
-            {ok, Reason};
-        {error, E, _} -> {error, E};
-        {ok, Data, _ } -> 
-            cmkit:log({cmkube, statefulset, Name, deleted}),
+    case do(Params#{ state => scaled, replicas => 0 }) of 
+        ok ->
             case await(#{ namespace => Ns,
                           resource => pod,
                           server => #{ api => Url,
@@ -162,10 +206,22 @@ do(#{ name := Name,
                           sleep => 1000,
                           exact => 0 }) of 
                 ok ->
-                    {ok, Data};
+                    cmkit:log({cmkube, statefulset, Name, deleting}),
+                    case kuberl_apps_v1_api:delete_namespaced_stateful_set(Ctx, Name, Ns, #{}, Opts) of 
+                        {error, Reason, #{ status := 404 }} ->
+                            {ok, Reason};
+                        {error, E, _} -> 
+                            {error, E};
+                        {ok, Data, _ } -> 
+                            cmkit:log({cmkube, statefulset, Name, deleted}),
+                            {ok, Data}
+                    end;
+
                 {error, E} ->
                     {error, E}
-            end
+            end;
+        Other ->
+            Other
     end;
 
 do(#{ name := Name,

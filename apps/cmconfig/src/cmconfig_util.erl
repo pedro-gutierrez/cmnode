@@ -1161,6 +1161,15 @@ compile_term(#{ <<"replace">> := #{ <<"in">> := SourceSpec,
        text => compile_term(SearchSpec, Index),
        with => compile_term(ReplaceSpec, Index) };
 
+compile_term(#{ <<"lowercase">> := Spec}, Index) ->
+    #{ type => lowercase,
+       spec => compile_term(Spec, Index) };
+
+compile_term(#{ <<"uppercase">> := Spec}, Index) ->
+    #{ type => uppercase,
+       spec => compile_term(Spec, Index) };
+
+
 compile_term(#{ <<"files">> := Spec }, Index) -> 
     #{ type => files,
        spec => compile_term(Spec, Index) 

@@ -417,6 +417,17 @@ spec:
                               in:
                                 key: small
                                 in: fonts
+                - s-class: "heading-restore"
+                  selectors:
+                    - s-class: "title"
+                      style:
+                        margin-left: "85px !important"
+                - s-class: "heading-backups"
+                  selectors:
+                    - s-class: "title"
+                      style:
+                        margin-left: "85px !important"
+
     - elem: "*"
       selectors:
         - p-class: "focus"
@@ -1012,6 +1023,10 @@ spec:
             - s-class: "value"
               style:
                 float: right
+              selectors:
+                - s-class: "label"
+                  style:
+                    margin-right: 0
     - class: "tabbed"
       style:
         margin-top: 15px

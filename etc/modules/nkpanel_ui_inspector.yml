@@ -21,6 +21,10 @@ spec:
                       in:
                         key: active
                         in: backups_activity
+                    - key: max
+                      in:
+                        key: active
+                        in: restores_activity
                 items:
                   merged_list:
                     - iterate:
@@ -37,6 +41,13 @@ spec:
                           in: backups_activity  
                       with:
                         encoder: backup_activity_item_view
+                    - iterate:
+                        key: items
+                        in: 
+                          key: active
+                          in: restores_activity  
+                      with:
+                        encoder: restore_activity_item_view
             pending:
               object:
                 max:
@@ -49,6 +60,10 @@ spec:
                       in:
                         key: pending
                         in: backups_activity
+                    - key: max
+                      in:
+                        key: pending
+                        in: restores_activity
                 items:
                   merged_list:
                     - iterate:
@@ -65,6 +80,13 @@ spec:
                           in: backups_activity
                       with:
                         encoder: backup_activity_item_view
+                    - iterate:
+                        key: items
+                        in: 
+                          key: pending
+                          in: restores_activity
+                      with:
+                        encoder: restore_activity_item_view
         filters:
           key: filters
     activity_detail:

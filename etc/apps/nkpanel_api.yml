@@ -17,6 +17,7 @@ spec:
     - tests_api
     - release_api
     - backups_api
+    - restore_api
   config:
     settings:
       - repository

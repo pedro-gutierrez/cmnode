@@ -45,26 +45,8 @@ spec:
                     any: text
                   started:
                     any: text
-    backup_selected:
-      object:
-        effect: ui
-        event:
-          object:
-            name: "select_backup"
-            backup:
-              object:
-                database:
-                  any: text
-                backup:
-                  any: text
-                kind:
-                  any: text
-                started:
-                  any: text
-                status:
-                  any: text
-                env:
-                  any: text
+                  name:
+                    any: text
     backup_acknowledged:
       object:
         effect: ws
@@ -103,14 +85,6 @@ spec:
           in: data
       cmds:
         - effect: ui
-    backup_selected:
-      model:
-        backup:
-          key: backup
-          in: event
-      cmds:
-        - effect: ui
-          encoder: backups_view
     backup_acknowledged:
       model:
         inspector: 
@@ -276,7 +250,7 @@ spec:
       view:
         tag: div
         attrs:
-          class: "column col-xl-8 col-lg-8 col-md-8 col-sm-12 col-xs-12"
+          class: "column col-xl-8 col-lg-8 col-md-8 col-8 col-sm-12 col-xs-12"
         children:
           - view: panel
             params:
@@ -287,128 +261,7 @@ spec:
                   object:
                     backups:
                       key: backups
-    restore_button_view:
-      view:
-        tag: div
-        attrs:
-          class: "row"
-        children:
-          - tag: div
-            attrs:
-              class: "info"
-            children:
-              - view: button
-                params:
-                  object:
-                    style: "btn-sm primary"
-                    title: "Restore"
-                    onclick:
-                      object:
-                        event: "restore"
-          - tag: div
-            children:
-              - tag: div
-                attrs:
-                  class: "title"
-                children:
-                  - text:
-                      key: title
-              - tag: div
-                attrs:
-                  class: "description"
-                children:
-                  - text:
-                      key: description
-    backup_detail_view:
-      view:
-        tag: div
-        attrs:
-          class: "form"
-        children:
-          - tag: div
-            attrs:
-              class: "info"
-            children:
-              - tag: div
-                attrs:
-                  class: "status wide"
-                children:
-                  - view: backup_kind_label
-                    params:
-                      object:
-                        title:
-                          key: kind
-                          in: backup 
-                  - view: backup_env_label
-                    params:
-                      object:
-                        env:
-                          key: env
-                          in: backup
-                  - view: backup_status_label
-                    params:
-                      object:
-                        status:
-                          key: status
-                          in: backup
-          - tag: div
-            attrs:
-              class: "title"
-            children:
-              - text:
-                  key: database 
-                  in: backup
-          - tag: div
-            attrs:
-              class: "subtitle"
-            children:
-              - timestamp:
-                  format: human
-                  value:
-                    key: started 
-                    in: backup
-          - tag: div
-            attrs:
-              class: "actions"
-            children:
-              - view: restore_button_view 
-                params:
-                  object:
-                    title: "Restore in Dev"
-                    description: "Restore this backup in a development environment"
-              - view: restore_button_view
-                params:
-                  object:
-                    title: "Restore in Preprod"
-                    description: "Restore this backup in a preprod environment"
 
-    selected_backup_view:
-      view:
-        tag: div
-        attrs:
-          class: "column col-6"
-          style: "max-height: 8rem; height: 8rem"
-        children:
-          - view: panel
-            params:
-              object:
-                view: backup_detail_view
-                style: "filled"
-                content:
-                  backup:
-                    key: backup
-    no_backup_selection_view:
-      view:
-        tag: div
-        attrs:
-          class: "column col-6"
-          style: "max-height: 8rem; height: 8rem"
-        children:
-          - view: dialog
-            params:
-              object:
-                title: "No backup selected"
-                subtitle: "Please select a backup from the list on the left"
     backups_dashboard:
       view:
         view: main

@@ -361,6 +361,16 @@
         return {value: flatten(lists)}
     }
 
+    function encodeMergedObject(spec, data, ctx) {
+        var objs = [];
+        for (var i=0; i<spec.merge.length; i++) {
+            var {err, value} = encode(spec.merge[i], data, ctx);
+            if (err) return error(spec, data, err);
+            objs[i] = value;
+        }
+        return {value: Object.assign({}, ...objs)}
+    }
+
     function encodePrettify(spec, data, ctx) {
         var {err, value} = encode(spec.prettify, data, ctx);
         if (err) return error(spec, data, err);
@@ -408,6 +418,28 @@
         return {value: s};
     }
 
+    function encodeLowerCase(spec, data, ctx) {
+        var {err, value} = encode(spec.lowercase, data, ctx);
+        if (err) return error(spec, data, err);
+        switch (typeof(value)) {
+            case "string": 
+                return {value: value.toLowerCase()};
+            default:
+                return error(spec, value, "not_a_string");
+        }
+    }
+    
+    function encodeUpperCase(spec, data, ctx) {
+        var {err, value} = encode(spec.uppercase, data, ctx);
+        if (err) return error(spec, data, err);
+        switch (typeof(value)) {
+            case "string": 
+                return {value: value.toUpperCase()};
+            default:
+                return error(spec, value, "not_a_string");
+        }
+    }
+
     function encode(spec, data, ctx) {
         //if (!spec) return error({}, data, "missing_encoder_spec");
         switch(typeof(spec)) {
@@ -432,6 +464,7 @@
                 if (spec.or) return encodeOr(spec, data, ctx);
                 if (spec.any) return encodeAny(spec, data, ctx);
                 if (spec.merged_list) return encodeMergedList(spec, data, ctx);
+                if (spec.merge) return encodeMergedObject(spec, data, ctx);
                 if (spec.iterate) return encodeIterate(spec, data, ctx);
                 if (spec.expression) return encodeExpression(spec, data, ctx);
                 if (spec.encoded) return encodeEncoded(spec, data, ctx);
@@ -439,6 +472,8 @@
                 if (spec.percent) return encodePercent(spec, data, ctx);
                 if (spec.sum) return encodeSum(spec, data, ctx);
                 if (spec.size_of) return encodeSizeOf(spec, data, ctx);
+                if (spec.lowercase) return encodeLowerCase(spec, data, ctx);
+                if (spec.uppercase) return encodeUpperCase(spec, data, ctx);
                 if (!Object.keys(spec).length) return {value: {}};
                 console.warn("returning spec as default encoding value", spec);
                 return { value: spec };
@@ -542,9 +577,7 @@
 
     function decodeKey(spec, data, ctx) {
         var {err, value} = encode(spec, ctx);
-        console.log("decoding key", {err:err, value: value});
         if (err) return error(spec, data, err);
-        console.log("decoding using key value", value, data);
         return decode(value, data, ctx)
     }
 

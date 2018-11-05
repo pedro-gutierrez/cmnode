@@ -1,0 +1,333 @@
+version: 1.0
+type: module
+category: ui
+name: nkpanel_ui_restore
+spec:
+  init:
+    model:
+      restores_activity:
+        object:
+          active:
+            object:
+              items: []
+              max: 10
+              current: 0
+          pending:
+            object:
+              items: []
+              max: 10
+              current: 0
+  decoders:
+    backup_selected:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "select_backup"
+            backup:
+              any: object
+    restore_backup:
+      object:
+        effect: ui
+        event:
+          object:
+            name: "restore"
+            backup:
+              any: object
+    restore_acknowledged:
+      object:
+        effect: ws
+        data:
+          restore: "ack"
+    restores_activity:
+      object:
+        effect: ws
+        data:
+          object:
+            restores:
+              object:
+                active:
+                  any: object
+                pending:
+                  any: object
+    cancel_restore:
+      object:
+        effect: "ui"
+        event:
+          object:
+            name: "cancel-restore"
+            id:
+              any: number
+  update:
+    backup_selected:
+      model:
+        backup:
+          key: backup
+          in: event
+      cmds:
+        - effect: ui
+          encoder: restore_view
+    restore_backup:
+      model:
+        restore:
+          key: backup
+          in: event
+      cmds:
+        - effect: ws
+          encoder: restore_backup
+    restore_acknowledged:
+      model:
+        inspector: 
+          object:
+            visibility: "visible"
+            view: "activity_view"
+            content_key: "activity"
+      cmds:
+        - effect: ui
+    restores_activity:
+      model:
+        restores_activity:
+          key: restores
+          in: data
+      cmds:
+        - effect: ui
+    cancel_restore:
+      model:
+        object:
+          restore_job_id:
+            key: id 
+            in: event
+      cmds:
+        - effect: ws
+          encoder: cancel_restore
+        - effect: ui
+  encoders:
+    restore_backup:
+      object:
+        action: restore
+        backup:
+          key: restore 
+    cancel_restore:
+      object:
+        action: "cancel"
+        restore:
+          key: restore_job_id
+    subscribe_to_restores:
+      object:
+        action: subscribe
+        topic: restores
+    restore_activity_item_view:
+      object:
+        action: "cancel-restore"
+        icon: "fas fa-cloud-download-alt"
+        id:
+          key: id
+        title:
+          format:
+            pattern: "~a in ~a"
+            params:
+              - key: database
+              - key: env
+        subtitle:
+          key: status
+        date:
+          key: timestamp
+    backup_summary_info:
+      view:
+        tag: div
+        attrs:
+          class: "summary"
+        children:
+          - view: props
+            params:
+              object:
+                title:
+                  key: database
+                props:
+                  list:
+                    - object:
+                        title: "Ran"
+                        view: timestamp_view
+                        content:
+                          key: started
+                    - object:
+                        title: "Instance"
+                        view: label_prop
+                        content:
+                          key: name
+                    - object:
+                        title: "Kind"
+                        view: tag_prop
+                        content:
+                          key: kind
+                    - object:
+                        title: "Environment"
+                        view: tag_prop
+                        content:
+                          key: env
+                    - object:
+                        title: "Status"
+                        view: status_prop
+                        content:
+                          key: status
+    backup_summary_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-xl-4 col-lg-4 col-md-4 col-4 col-sm-12 col-xs-12"
+        children:
+          - view: panel
+            params:
+              object:
+                style: "backup"
+                view: backup_summary_info
+                content:
+                  key: backup
+    backup_restore_view:
+      view:
+        tag: div
+        attrs:
+          class: "column col-xl-8 col-lg-8 col-md-8 col-8 col-sm-12 col-xs-12"
+        children:
+          - view: panel
+            params:
+              object:
+                style: "restore filled"
+                view: backup_restore_panel
+                content:
+                  object:
+                    backup:
+                      key: backup
+    backup_restore_panel:
+      view:
+        tag: div
+        attrs:
+          class: "form"
+        children:
+          - tag: div
+            attrs:
+              class: "title"
+            children:
+              - text: "Restore this backup"
+          - tag: div
+            attrs:
+              class: "subtitle"
+            children:
+              - text: "Please choose a target environment"
+          - tag: div
+            attrs:
+              class: "actions"
+            children:
+              - view: restore_button_view 
+                params:
+                  object:
+                    title: "Restore in Dev"
+                    description: "Restore this backup in a development environment"
+                    backup:
+                      key: backup
+                    env: "dev"
+              - view: restore_button_view
+                params:
+                  object:
+                    title: "Restore in Preprod"
+                    description: "Restore this backup in a preprod environment"
+                    backup:
+                      key: backup
+                    env: "preprod"
+    restore_button_view:
+      view:
+        tag: div
+        attrs:
+          class: "row"
+        children:
+          - tag: div
+            attrs:
+              class: "info"
+            children:
+              - view: button
+                params:
+                  object:
+                    style: "btn-sm primary"
+                    title: "Restore"
+                    onclick:
+                      object:
+                        name: "restore"
+                        backup:
+                          merge:
+                            - key: backup
+                            - object:
+                                env:
+                                  key: env
+          - tag: div
+            children:
+              - tag: div
+                attrs:
+                  class: "title"
+                children:
+                  - text:
+                      key: title
+              - tag: div
+                attrs:
+                  class: "description"
+                children:
+                  - text:
+                      key: description
+    restore_unavailable_view:
+      view:
+        tag: div
+        attrs:
+          class: "column column col-xl-8 col-lg-8 col-md-8 col-8 col-sm-12 col-xs-12"
+          style: "max-height: 8rem; height: 8rem"
+        children:
+          - view: dialog
+            params:
+              object:
+                title: "Restore not available"
+                subtitle: "It is not possible to restore this backup at the moment"
+    restore_dashboard:
+      view:
+        view: main
+        params:
+          object:
+            title: "Restore"
+            subtitle: "Restore a backup"
+            icon: "fas fa-cloud-download-alt"
+            views:
+              list:
+                - object:
+                    name: backup_summary_view
+                    content:
+                      object: 
+                        backup:
+                          key: backup
+                - object:
+                    name: backup_restore_view
+                    content:
+                      object:
+                        backup:
+                          key: backup
+    restore_view:
+      view:
+        view: nkpanel_view
+        params:
+          object:
+            prefs:
+              key: prefs
+            inspector:
+              object:
+                status:
+                  key: inspector
+                content:
+                  encoder: inspector_content
+            feature:
+              object:
+                name: "backups"
+                view: "restore_dashboard"
+                content:
+                  object:
+                    databases:
+                      key: databases
+                    backup:
+                      maybe:
+                        key: backup
+

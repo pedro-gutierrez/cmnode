@@ -279,6 +279,23 @@ term(#{ type := present, spec := Spec}, Settings) ->
 term(#{ type := list, value := V }, Settings) -> 
     terms(V, Settings);
 
+term(#{ type := lowercase,
+        spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ lowercase => Compiled }};
+        Other ->
+            Other
+    end;
+
+term(#{ type := uppercase,
+        spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ uppercase => Compiled }};
+        Other ->
+            Other
+    end;
 
 term(#{ type := format, 
         params := ParamsSpec,
@@ -432,6 +449,13 @@ term(#{ type := merged_list, spec := Spec}, Settings) ->
             Other
     end;
 
+term(#{ type := merge, spec := Specs }, Settings) ->
+    case terms(Specs, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ merge => Compiled}};
+        Other ->
+            Other
+    end;
 
 term(#{ type := iterate,
         source := Source,
