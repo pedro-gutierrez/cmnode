@@ -1,4 +1,4 @@
--module(cmnode_effect_slack).
+-module(cmeffect_slack).
 -export([ effect_info/0,
           effect_apply/2
         ]).

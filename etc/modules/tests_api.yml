@@ -137,28 +137,30 @@ spec:
     test_reports:
       object:
         test_reports:
-          list:
-            object:
-              id:
-                any: text
-              timestamp:
-                any: number
-              query: 
-                any: keyword
-              settings:
-                any: keyword 
-              seconds:
-                any: number
-              status:
-                keyword: ok
-              scenarios:
+          one_of:
+            - empty: list
+            - list:
                 object:
-                  fail:
+                  id:
+                    any: text
+                  timestamp:
                     any: number
-                  success:
+                  query: 
+                    any: keyword
+                  settings:
+                    any: keyword 
+                  seconds:
                     any: number
-                  total:
-                    any: number
+                  status:
+                    keyword: ok
+                  scenarios:
+                    object:
+                      fail:
+                        any: number
+                      success:
+                        any: number
+                      total:
+                        any: number
     test_report:
       object:
         test_report:

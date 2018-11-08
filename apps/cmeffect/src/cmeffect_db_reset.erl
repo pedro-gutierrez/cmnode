@@ -1,4 +1,4 @@
--module(cmnode_effect_db_reset).
+-module(cmeffect_db_reset).
 -export([ effect_info/0,
           effect_apply/2
         ]).

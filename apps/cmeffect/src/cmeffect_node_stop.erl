@@ -1,4 +1,4 @@
--module(cmnode_effect_node_stop).
+-module(cmeffect_node_stop).
 -export([ effect_info/0,
           effect_apply/2
         ]).

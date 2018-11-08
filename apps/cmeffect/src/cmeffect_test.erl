@@ -1,4 +1,4 @@
--module(cmnode_effect_test).
+-module(cmeffect_test).
 -export([ effect_info/0,
           effect_apply/2
         ]).

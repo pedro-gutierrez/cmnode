@@ -1,4 +1,4 @@
--module(cmnode_effect_db_get).
+-module(cmeffect_db_get).
 -export([ effect_info/0,
           effect_apply/2
         ]).
@@ -170,7 +170,7 @@ item_with_joined_prop(K, Join, Item) ->
             
             Item2 = case maps:get(K, Item, undef) of 
                 undef -> 
-                    cmkit:warning({cmnode_effect_db_get, 
+                    cmkit:warning({cmeffect_db_get, 
                                    no_such_prop_to_join, K, Item}),
                     Item;
                 Id when is_binary(Id) ->
@@ -178,7 +178,7 @@ item_with_joined_prop(K, Join, Item) ->
                                 {ok, Value} -> 
                                     Item#{ K => Value};
                                 {error, E} -> 
-                                    cmkit:warning({cmnode_effect_db_get,
+                                    cmkit:warning({cmeffect_db_get,
                                                    prop_not_resolved, K, Item,
                                                    E}),
                                     Item
@@ -189,14 +189,14 @@ item_with_joined_prop(K, Join, Item) ->
                                                            end, Ids)] ,
                     Item#{ K => Values};
                 Other ->
-                    cmkit:warning({cmnode_effect_db_get, 
+                    cmkit:warning({cmeffect_db_get, 
                                    unsupported_join_reference, K, Item, Other}),
                     Item
             end,
 
             Item2;
         Other -> 
-            cmkit:warning({cmnode_effect_db_get, unsupported_join_spec, K, Item, Other}),
+            cmkit:warning({cmeffect_db_get, unsupported_join_spec, K, Item, Other}),
             Item
     end.
 

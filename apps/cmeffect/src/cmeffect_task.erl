@@ -1,4 +1,4 @@
--module(cmnode_effect_task).
+-module(cmeffect_task).
 -export([ effect_info/0,
           effect_apply/2
         ]).

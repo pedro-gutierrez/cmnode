@@ -1,4 +1,4 @@
--module(cmnode_effect_db_put).
+-module(cmeffect_db_put).
 -export([ effect_info/0,
           effect_apply/2
         ]).

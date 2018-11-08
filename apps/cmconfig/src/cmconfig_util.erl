@@ -108,9 +108,10 @@ parse() ->
 
 effects() ->
     Mods = [ M ||M <-erlang:loaded(), cmkit:implements(M, effect_contract())],
+    cmkit:log({cmconfig, effects, length(Mods)}),
     lists:foldl(fun(Mod, Index) ->
                         Name = Mod:effect_info(),
-                    Index#{ Name => Mod }
+                        Index#{ Name => Mod }
               end, #{}, Mods).
 
 effect_contract() ->

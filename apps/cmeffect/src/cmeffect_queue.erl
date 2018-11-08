@@ -1,4 +1,4 @@
--module(cmnode_effect_queue).
+-module(cmeffect_queue).
 -export([ effect_info/0,
           effect_apply/2
         ]).

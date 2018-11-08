@@ -18,5 +18,5 @@ init([]) ->
     {stop, normal}.
 
 terminate(Reason, _, _) ->
-    cmkit:log({cmdb, terminate, Reason}),
+    cmkit:log({cmconfig, compiler, terminate, Reason}),
     ok.

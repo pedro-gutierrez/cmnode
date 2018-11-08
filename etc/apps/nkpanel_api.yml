@@ -18,6 +18,7 @@ spec:
     - release_api
     - backups_api
     - restore_api
+      #    - webhooks_netcomp_v10_api
   config:
     settings:
       - repository

@@ -1,4 +1,4 @@
--module(cmnode_effect_s3).
+-module(cmeffect_s3).
 -export([ effect_info/0,
           effect_apply/2
         ]).

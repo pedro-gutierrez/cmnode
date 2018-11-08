@@ -1,4 +1,4 @@
--module(cmnode_effect_http).
+-module(cmeffect_http).
 -export([ effect_info/0,
           effect_apply/2,
           effect_stream/1
@@ -6,35 +6,6 @@
 
 effect_info() -> http.
 
-
-effect_apply(#{ method := Method, 
-                url := Url, 
-                context := Context } = Q, SessionId) ->
-    
-    cmkit:log({cmeffect, http, out, Q}),
-    Data = case cmhttp:Method(Url) of 
-               {ok, In} -> 
-                   In;
-               {error, E} -> 
-                   #{ error => E }
-           end,
-    
-    cmcore:update(SessionId, Data#{ context => Context});
-
-effect_apply(#{ method := Method, 
-                url := Url,
-                headers := Headers,
-                context := Context } = Q, SessionId) ->
-    
-    cmkit:log({cmeffect, http, out, Q}),
-    Data = case cmhttp:Method(Url, Headers) of 
-               {ok, In} -> 
-                   In;
-               {error, E} -> 
-                   #{ error => E }
-           end,
-    
-    cmcore:update(SessionId, Data#{ context => Context});
 
 effect_apply(#{ method := Method, 
                 url := Url, 
@@ -61,6 +32,34 @@ effect_apply(#{ method := _,
                 body := _ } = Spec, SessionId) ->
 
     effect_apply(Spec#{ headers => #{}}, SessionId);
+
+effect_apply(#{ method := Method, 
+                url := Url,
+                headers := Headers,
+                context := Context }, SessionId) ->
+    
+    Data = case cmhttp:Method(Url, Headers) of 
+               {ok, In} -> 
+                   In;
+               {error, E} -> 
+                   #{ error => E }
+           end,
+    
+    cmcore:update(SessionId, Data#{ context => Context});
+
+effect_apply(#{ method := Method, 
+                url := Url, 
+                context := Context }, SessionId) ->
+    
+    Data = case cmhttp:Method(Url) of 
+               {ok, In} -> 
+                   In;
+               {error, E} -> 
+                   #{ error => E }
+           end,
+    
+    cmcore:update(SessionId, Data#{ context => Context});
+
 
 effect_apply(#{ stream := Stream } = Q, SessionId) ->
     cmkit:log({cmeffect, http, Q}),

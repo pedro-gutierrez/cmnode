@@ -7,7 +7,7 @@
 stop(Pid) ->
     case erlang:is_process_alive(Pid) of 
         true -> 
-            gen_server:call(Pid, stop);
+            gen_server:cast(Pid, stop);
         false ->
             ok
     end.
@@ -21,8 +21,13 @@ start_link(SessionId) ->
 init([SessionId]) ->
     {ok, SessionId}.
 
-handle_call(stop, _, SessionId) ->
-    {stop, normal, ok, SessionId}.
+handle_call(Msg, _, SessionId) ->
+    cmkit:warning({cmeffect, SessionId, ignored, Msg}),
+    {reply, ignored, SessionId}.
+
+handle_cast(stop, SessionId) ->
+    cmkit:log({cmeffect, SessionId, terminating}),
+    {stop, normal, SessionId};
 
 handle_cast(Msg, SessionId) ->
     handle(Msg, SessionId),
@@ -35,7 +40,8 @@ handle_info(Msg, SessionId) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(_, _) ->
+terminate(_, SessionId) ->
+    cmkit:log({cmeffect, SessionId, terminated}),
     ok.
 
 handle({apply, Mod, Data}, SessionId) ->

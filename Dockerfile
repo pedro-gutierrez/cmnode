@@ -1,4 +1,7 @@
-FROM netcomposer/erlang:19.3.6.1
+#FROM netcomposer/erlang:19.3.6.1
+FROM erlang:21
+MAINTAINER Pedro Gutiérrez <pedrogutierrez@mac.com>
+RUN apt-get update; apt-get install -y libgd-dev libwebp-dev inotify-tools vim tree
 RUN mkdir -p /opt/cmnode/apps
 ENV CMHOME /opt/cmnode
 WORKDIR /opt/cmnode

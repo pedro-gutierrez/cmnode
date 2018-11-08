@@ -1,4 +1,4 @@
--module(cmnode_effect_crypt_verify).
+-module(cmeffect_crypt_verify).
 -export([ effect_info/0,
           effect_apply/2
         ]).

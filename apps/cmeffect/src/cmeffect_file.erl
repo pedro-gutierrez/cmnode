@@ -1,4 +1,4 @@
--module(cmnode_effect_file).
+-module(cmeffect_file).
 -export([ effect_info/0,
           effect_apply/2,
           effect_stream/1

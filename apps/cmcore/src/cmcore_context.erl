@@ -68,7 +68,7 @@ ready(cast, {update, Data}, #{ app := App,
             Log({App, decoded, Msg}),
             update(Spec, Msg, Decoded, Model, Config, Session);
         {error, no_match} ->
-            Log({App, no_match}),
+            cmkit:warning({App, no_match, Data}),
             update(Spec, no_match, Data, Model, Config, Session);
         {error, E} -> 
             server_error(App, Session, update, #{ data => Data, reason => E}),

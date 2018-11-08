@@ -1,4 +1,4 @@
--module(cmnode_effect_css).
+-module(cmeffect_css).
 -export([ effect_info/0,
           effect_apply/2
         ]).
@@ -37,7 +37,7 @@ effect_apply(#{ settings := SettingsName,
     cmcore:update(Id, Res).
 
 err(Themes, I) -> 
-    cmkit:danger({cmnode_effect_css, Themes, I}),
+    cmkit:danger({cmeffect_css, Themes, I}),
     #{ language  => css,
        status => error,
        reason => Themes

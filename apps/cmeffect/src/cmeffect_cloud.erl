@@ -1,4 +1,4 @@
--module(cmnode_effect_cloud).
+-module(cmeffect_cloud).
 -export([ effect_info/0,
           effect_apply/2
         ]).

@@ -1,4 +1,4 @@
--module(cmnode_effect_uuid).
+-module(cmeffect_uuid).
 -export([ effect_info/0,
           effect_apply/2
         ]).

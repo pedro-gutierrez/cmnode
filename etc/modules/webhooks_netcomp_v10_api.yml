@@ -1,0 +1,3077 @@
+version: 1.0
+type: module
+category: server
+name: webhooks_netcomp_v10_api 
+spec:
+  decoders:
+    netc_certs_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "certs"
+            commits:
+              first:
+                object:
+                  modified:
+                    one_of:
+                      - list:
+                          with:
+                            text: "domains/netc.io.crt"
+                      - list:
+                          with:
+                            text: "domains/netc.io.key"
+    netk_certs_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "certs"
+            commits:
+              first:
+                object:
+                  modified:
+                    one_of:
+                      - list:
+                          with:
+                            text: "domains/netk.io.crt"
+                      - list:
+                          with:
+                            text: "domains/netk.io.key"
+    nimg_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "nimg"
+    nimg_tag_created:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: 
+                regexp: "refs/tags/v"
+            repository:
+              object:
+                name: 
+                  text: "nimg"
+    nimg_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "nimg"
+              repo_name:
+                any: text
+    nimg_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "v"
+          repository:
+            object:
+              name:
+                text: "nimg"
+              repo_name:
+                any: text
+    nimg_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/nimg"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    nimg_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "thumbnails"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    nimg_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "nimg"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    email_reports_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "email-reports"
+    email_reports_tag_created:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: 
+                regexp: "refs/tags/v"
+            repository:
+              object:
+                name: 
+                  text: "email-reports"
+    email_reports_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "email-reports"
+              repo_name:
+                any: text
+    email_reports_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "v"
+          repository:
+            object:
+              name:
+                text: "email-reports"
+              repo_name:
+                any: text
+    email_reports_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/email-reports"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    transcoder_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "transcoder"
+    transcoder_tag_created:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: 
+                regexp: "refs/tags/v"
+            repository:
+              object:
+                name: 
+                  text: "transcoder"
+    transcoder_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "transcoder"
+              repo_name:
+                any: text
+    transcoder_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "v"
+          repository:
+            object:
+              name:
+                text: "transcoder"
+              repo_name:
+                any: text
+    transcoder_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/transcoder"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    transcoder_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "transcoder"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    transcoder_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "transcoder"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    docker_release_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              any: text
+            settings:
+              one_of:
+                - text: "preprod"
+                - text: "preview"
+            tag:
+              any: text
+    webclient_dev_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                one_of:
+                  - text: "dkv-client"
+                  - text: "c4-client"
+                  - text: "sphera-brazil-cient"
+                  - text: "sphera-rwanda-client"
+                  - text: "sphera-videocal-client"
+                  - text: "sphera-morocco-client"
+              repo_name:
+                any: text
+    webclient_release_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                other_than:
+                  text: "latest" 
+          repository:
+            object:
+              name:
+                one_of:
+                  - text: "c4-client"
+                  - text: "sphera-brazil-client"
+                  - text: "sphera-rwanda-client"
+                  - text: "sphera-videocal-client"
+                  - text: "sphera-morocco-client"
+              repo_name:
+                any: text
+    dkv_webclient_release_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                other_than:
+                  text: "latest" 
+          repository:
+            object:
+              name: "dkv-client"
+              repo_name:
+                any: text
+    nkdomain_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "nkdomain"
+    sipstorm_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sipstorm"
+    sipstorm_sms_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sipstorm_sms"
+    sipstorm_c4_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sipstorm_c4"
+    sipstorm_dev_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "sipstorm-latest"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                any: text
+    sipstorm_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/netcomp"
+            settings:
+              text: "dev"
+            tag:
+              text: "sipstorm-latest"
+    sipstorm_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sipstorm"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    sipstorm_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sipstorm"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    sipstorm_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "sipstorm-v"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                text: "netcomposer/netcomp"
+    nktelemed_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "nktelemed"
+    nkteam_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "nkteam"
+    sphera_telemed_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sphera_telemed"
+    sphera_collab_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sphera_collab"
+    sphera_shp_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sphera_shp"
+    sphera_videocal_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "sphera_videocal"
+    dkv_telemed_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "dkv_telemed"
+    dkv_collab_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "dkv_collab"
+    dkv_shp_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/v09"
+            repository:
+              object:
+                name: 
+                  text: "dkv_shp"
+    dkv_dev_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "dkv-latest"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                any: text
+    dkv_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/netcomp"
+            settings:
+              text: "dev"
+            tag:
+              text: "dkv-latest"
+    dkv_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    dkv_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    dkv_pet_proxy_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "dkv-pet-proxy"
+    dkv_pet_proxy_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "dkv-pet-proxy"
+              repo_name:
+                any: text
+    dkv_pet_proxy_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                regexp: "v"
+          repository:
+            object:
+              name:
+                text: "dkv-pet-proxy"
+              repo_name:
+                any: text
+    dkv_pet_proxy_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-pet-proxy"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    dkv_pet_proxy_release_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-pet-proxy"
+            settings:
+              text: "dev"
+            tag:
+              regexp: "v"
+    dkv_pet_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-pet"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    dkv_pet_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-pet"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    dkv_notifications_dev_changed:
+      object:
+        headers:
+          object:
+            x-github-event: "push"
+        body:
+          object:
+            ref: 
+              text: "refs/heads/master"
+            repository:
+              object:
+                name: 
+                  text: "dkv-notifications"
+    dkv_notifications_docker_dev_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "latest"
+          repository:
+            object:
+              name:
+                text: "dkv-notifications"
+              repo_name:
+                any: text
+    dkv_notifications_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                regexp: "v"
+          repository:
+            object:
+              name:
+                text: "dkv-notifications"
+              repo_name:
+                any: text
+    dkv_notifications_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-notifications"
+            settings:
+              text: "dev"
+            tag:
+              text: "latest"
+    dkv_notifications_release_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/dkv-notifications"
+            settings:
+              text: "dev"
+            tag:
+              regexp: "v"
+    dkv_notifications_dev_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-notifications"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    dkv_notifications_dev_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "dkv-notifications"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    dkv_docker_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "dkv-v"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                text: "netcomposer/netcomp"
+    sphera_general_dev_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "sphera-general-latest"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                any: text
+    sphera_general_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/netcomp"
+            settings:
+              text: "dev"
+            tag:
+              text: "sphera-general-latest"
+    sphera_general_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sphera_general"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    sphera_general_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sphera_general"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    sphera_general_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "sphera-general-v"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                text: "netcomposer/netcomp"
+    sphera_brazil_dev_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "sphera-brazil-latest"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                any: text
+    sphera_brazil_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/netcomp"
+            settings:
+              text: "dev"
+            tag:
+              text: "sphera-brazil-latest"
+    sphera_brazil_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sphera_brazil"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    sphera_brazil_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sphera_brazil"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    sphera_brazil_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "sphera-brazil-v"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                text: "netcomposer/netcomp"
+    sphera_rwanda_dev_docker_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text: "sphera-rwanda-latest"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                any: text
+    sphera_rwanda_dev_deployed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "deploy-summary"
+        body:
+          object:
+            repo:
+              text: "netcomposer/netcomp"
+            settings:
+              text: "dev"
+            tag:
+              text: "sphera-rwanda-latest"
+    sphera_rwanda_tests_passed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sphera_rwanda"
+            settings:
+              text: "dev"
+            severity:
+              text: "success"
+    sphera_rwanda_tests_failed:
+      object:
+        headers:
+          object:
+            x-cm-event: 
+              text: "test-summary"
+        body:
+          object:
+            test:
+              text: "sphera_rwanda"
+            settings:
+              text: "dev"
+            severity:
+              one_of:
+                - text: "danger"
+                - text: "warning"
+    sphera_rwanda_release_ready:
+      object:
+        body:
+          push_data:
+            object:
+              tag:
+                text:
+                  regexp: "sphera-rwanda-v"
+          repository:
+            object:
+              name:
+                text: "netcomp"
+              repo_name:
+                text: "netcomposer/netcomp"
+  update:
+    netc_certs_changed:
+      model:
+        object:
+          domain:
+            text: "netc.io"
+      cmds:
+        - effect: slack
+          encoder: certs_changed_announcement
+        - effect: task
+          encoder: certs_domain_deploy_dev
+          #     - effect: task
+          #encoder: certs_domain_deploy_preprod
+        - effect: notify
+          encoder: ok
+    netk_certs_changed:
+      model:
+        object:
+          domain:
+            text: "netk.io"
+      cmds:
+        - effect: slack
+          encoder: certs_changed_announcement
+        - effect: task
+          encoder: certs_domain_deploy_aks
+        - effect: notify
+          encoder: ok
+    nimg_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: nimg_build_task 
+        - effect: notify
+          encoder: ok
+    nimg_docker_dev_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name: "nimg"
+              repo: "netcomposer/nimg"
+              tag: "latest"
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: nimg_deploy_task
+        - effect: notify
+          encoder: ok
+    nimg_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test
+          encoder: nimg_test
+        - effect: notify
+          encoder: ok
+    nimg_dev_tests_passed:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    nimg_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/nimg"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    nimg_tag_created:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    nimg_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: "nimg"
+              repo: "netcomposer/nimg"
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: nimg_deploy_task
+        - effect: notify
+          encoder: ok
+    email_reports_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: email_reports_build_task 
+        - effect: notify
+          encoder: ok
+    email_reports_docker_dev_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name: "email-reports"
+              repo: "netcomposer/email-reports"
+              tag: "latest"
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: email_reports_deploy_task
+        - effect: notify
+          encoder: ok
+    email_reports_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: notify
+          encoder: ok
+    email_reports_tag_created:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    email_reports_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: "email-reports"
+              repo: "netcomposer/email-reports"
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: email_reports_deploy_task
+        - effect: notify
+          encoder: ok
+    transcoder_dev_changed:
+      cmds:  
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: transcoder_build_task 
+        - effect: notify
+          encoder: ok
+    transcoder_docker_dev_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name: "transcoder"
+              repo: "netcomposer/transcoder"
+              tag: "latest"
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: transcoder_deploy_task
+        - effect: notify
+          encoder: ok
+    transcoder_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test
+          encoder: transcoder_test
+        - effect: notify
+          encoder: ok
+    transcoder_dev_tests_passed:
+      cmds:  
+        - effect: task
+          encoder: transcoder_release_task 
+        - effect: notify
+          encoder: ok
+    transcoder_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/transcoder"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    transcoder_tag_created:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    transcoder_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: "transcoder"
+              repo: "netcomposer/transcoder"
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: transcoder_deploy_task
+        - effect: notify
+          encoder: ok
+    docker_release_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: notify
+          encoder: ok
+    webclient_dev_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          docker_image:
+            object:
+              name:
+                key: name
+                in:
+                  key: repository
+                  in: body
+              repo:
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: webclient_deploy_task
+        - effect: notify
+          encoder: ok
+    webclient_release_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name:
+                key: name
+                in:
+                  key: repository
+                  in: body
+              repo:
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: webclient_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_webclient_release_docker_ready:
+      model:
+        object:
+          docker_image:
+            object:
+              repo:
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_webclient_preprod_deploy_task
+        - effect: task
+          encoder: dkv_webclient_preview_deploy_task
+        - effect: notify
+          encoder: ok
+    sipstorm_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sipstorm_build_task 
+        - effect: notify
+          encoder: ok
+    sipstorm_sms_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sipstorm_build_task 
+        - effect: notify
+          encoder: ok
+    sipstorm_c4_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sipstorm_build_task 
+        - effect: notify
+          encoder: ok
+    sipstorm_dev_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sipstorm"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    sipstorm_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: sipstorm_test
+        - effect: notify
+          encoder: ok
+    sipstorm_dev_tests_passed:
+      cmds:  
+      #   - effect: task
+      #    encoder: sipstorm_release_task 
+        - effect: notify
+          encoder: ok
+    sipstorm_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/netcomp:sipstorm-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    sipstorm_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sipstorm"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    nktelemed_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_build_task 
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: task
+          encoder: sphera_brazil_build_task 
+        - effect: task
+          encoder: sphera_rwanda_build_task 
+        - effect: notify
+          encoder: ok
+    nkteam_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_build_task 
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: task
+          encoder: sphera_brazil_build_task 
+        - effect: task
+          encoder: sphera_rwanda_build_task 
+    dkv_telemed_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_build_task 
+    dkv_collab_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_build_task 
+    dkv_shp_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_build_task 
+    dkv_dev_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "dkv"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: dkv_shp_test
+        - effect: test 
+          encoder: dkv_pet_test
+        - effect: notify
+          encoder: ok
+    dkv_dev_tests_passed:
+      cmds:  
+      #  - effect: task
+      #    encoder: dkv_release_task 
+        - effect: notify
+          encoder: ok
+    dkv_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/netcomp:dkv"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    dkv_docker_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_preprod_deploy_task
+        - effect: task
+          encoder: dkv_preview_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_pet_proxy_build_task 
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_docker_dev_ready:
+      model:
+        object:
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_pet_proxy_dev_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: dkv_pet_test
+        - effect: notify
+          encoder: ok
+    dkv_pet_dev_tests_passed:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    dkv_pet_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/dkv-pet-proxy"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    dkv_pet_proxy_docker_release_ready:
+      model:
+        object:
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_pet_proxy_preprod_deploy_task
+        - effect: task
+          encoder: dkv_pet_proxy_preview_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: dkv_notifications_build_task 
+        - effect: notify
+          encoder: ok
+    dkv_notifications_docker_dev_ready:
+      model:
+        object:
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_notifications_dev_deploy_task
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: dkv_notifications_test
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_tests_passed:
+      cmds:  
+        - effect: notify
+          encoder: ok
+    dkv_notifications_dev_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/dkv-notifications"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    dkv_notifications_docker_release_ready:
+      model:
+        object:
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: dkv_notifications_preprod_deploy_task
+        - effect: task
+          encoder: dkv_notifications_preview_deploy_task
+        - effect: notify
+          encoder: ok
+    nkdomain_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: task
+          encoder: sphera_brazil_build_task 
+        - effect: task
+          encoder: sphera_rwanda_build_task 
+        - effect: task
+          encoder: sipstorm_build_task 
+        - effect: task
+          encoder: dkv_build_task 
+        - effect: notify
+          encoder: ok
+    sphera_telemed_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: task
+          encoder: sphera_brazil_build_task 
+        - effect: task
+          encoder: sphera_rwanda_bild_task 
+        - effect: notify
+          encoder: ok
+    sphera_collab_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: task
+          encoder: sphera_brazil_build_task 
+        - effect: task
+          encoder: sphera_rwanda_build_task 
+        - effect: notify
+          encoder: ok
+    sphera_shp_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: task
+          encoder: sphera_brazil_build_task 
+        - effect: task
+          encoder: sphera_rwanda_build_task 
+        - effect: notify
+          encoder: ok
+    sphera_videocal_dev_changed:
+      model:
+        object:
+          repo:
+            key: name
+            in: 
+              key: repository
+              in: body
+      cmds:
+        - effect: task
+          encoder: github_changed_task
+        - effect: task
+          encoder: sphera_general_build_task 
+        - effect: notify
+          encoder: ok
+    sphera_general_dev_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sphera-general"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    sphera_general_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test 
+          encoder: sphera_general_test
+        - effect: notify
+          encoder: ok
+    sphera_general_tests_passed:
+      cmds:  
+      #   - effect: task
+      #    encoder: sphera_general_release_task 
+        - effect: notify
+          encoder: ok
+    sphera_general_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/netcomp:sphera-general-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    sphera_general_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sphera-general"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    sphera_brazil_dev_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sphera-brazil"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    sphera_brazil_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test
+          encoder: sphera_brazil_test
+        - effect: notify
+          encoder: ok
+    sphera_brazil_tests_passed:
+      cmds:  
+      #  - effect: task
+      #    encoder: sphera_brazil_release_task 
+        - effect: notify
+          encoder: ok
+    sphera_brazil_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/netcomp:sphera-brazil-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+        - effect: task
+          encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    sphera_brazil_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          name: 
+            text: "sphera-brazil"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    sphera_rwanda_dev_docker_ready:
+      model:
+        object:
+          settings:
+            keyword: dev
+          name: 
+            text: "sphera-rwanda"
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: netcomp_deploy_task
+        - effect: notify
+          encoder: ok
+    sphera_rwanda_dev_deployed:
+      model:
+        object:
+          deployment:
+            key: body
+      cmds:
+        - effect: task
+          encoder: deploy_announce_task
+        - effect: test
+          encoder: sphera_rwanda_test
+        - effect: notify
+          encoder: ok
+    sphera_rwanda_tests_passed:
+      cmds:  
+      #  - effect: task
+      #    encoder: sphera_rwanda_release_task 
+        - effect: notify
+          encoder: ok
+    sphera_rwanda_tests_failed:
+      model:
+        object:
+          repo:
+            text: "netcomposer/netcomp:sphera-rwanda-latest"
+          settings:
+            key: settings
+            in: body
+          test:
+            key: test
+            in: body
+      cmds:  
+      #- effect: task
+      #    encoder: release_aborted_announce_task 
+        - effect: notify
+          encoder: ok
+    sphera_rwanda_release_ready:
+      model:
+        object:
+          settings:
+            keyword: preprod
+          docker_image:
+            object:
+              name: 
+                key: name
+                in: 
+                  key: repository
+                  in: body
+              repo: 
+                key: repo_name
+                in: 
+                  key: repository
+                  in: body
+              tag:
+                key: tag
+                in: 
+                  key: push_data
+                  in: body
+      cmds:  
+        - effect: task
+          encoder: docker_ready_task
+        - effect: task
+          encoder: sphera_rwanda_deploy_task
+        - effect: task
+          encoder: sphera_morocco_deploy_task
+        - effect: notify
+          encoder: ok
+  encoders:
+    ok:
+      object:
+        status: 
+          keyword: ok
+    certs_changed_announcement:
+      object:
+        settings:
+          keyword: dev
+        subject:
+          text: "New SSL certificates"
+        text:
+          format:
+            pattern: "Certificates for ~s have changed"
+            params:
+              - key: domain
+    certs_github:
+      object:
+        task:
+          keyword: certs_github
+        params:
+          object:
+            settings:
+              keyword: dev
+    certs_domain_deploy_dev:
+      object:
+        task:
+          keyword: certs_domain_deploy
+        params:
+          object:
+            settings:
+              keyword: dev
+            domain:
+              key: domain
+            slack:
+              keyword: tests
+    certs_domain_deploy_preprod:
+      object:
+        task:
+          keyword: certs_domain_deploy
+        params:
+          object:
+            settings:
+              keyword: preprod
+            domain:
+              key: domain
+            slack:
+              keyword: tests
+    certs_domain_deploy_aks:
+      object:
+        task:
+          keyword: certs_domain_deploy
+        params:
+          object:
+            settings:
+              keyword: aks
+            domain:
+              key: domain
+            slack:
+              keyword: tests
+    github_changed_task:
+      object:
+        task:
+          keyword: github_announce
+        params:
+          object:
+            repo:
+              key: repo
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    docker_ready_task:
+      object:
+        task:
+          keyword: docker_announce
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    nimg_build_task:
+      object:
+        task:
+          keyword: nimg_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    nimg_deploy_task:
+      object:
+        task:
+          keyword: nimg_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    nimg_test:
+      object:
+        schedule:
+          keyword: thumbnails
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    email_reports_build_task:
+      object:
+        task:
+          keyword: email_reports_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    email_reports_deploy_task:
+      object:
+        task:
+          keyword: email_reports_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    transcoder_build_task:
+      object:
+        task:
+          keyword: transcoder_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    transcoder_deploy_task:
+      object:
+        task:
+          keyword: transcoder_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    transcoder_test:
+      object:
+        schedule:
+          keyword: transcoder
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    transcoder_release_task:
+      object:
+        task:
+          keyword: transcoder_release
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    release_aborted_announce_task:
+      object:
+        task:
+          keyword: release_aborted_announce
+        params:
+          object:
+            repo:
+              key: repo
+            settings:
+              key: settings 
+            test:
+              key: test 
+            slack:
+              keyword: tests
+    deploy_announce_task:
+      object:
+        task:
+          keyword: deploy_announce
+        params:
+          object:
+            settings:
+              key: settings
+              in: deployment
+            repo:
+              key: repo
+              in: deployment
+            tag:
+              key: tag
+              in: deployment
+            slack:
+              keyword: tests
+    webclient_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name:
+              key: name
+              in: docker_image
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    dkv_webclient_preprod_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name: "dkv-client"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_webclient_preview_deploy_task:
+      object:
+        task:
+          keyword: webclient_deploy
+        params:
+          object:
+            name: "dkv-preview-client"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preview
+    sipstorm_build_task:
+      object:
+        task:
+          keyword: netcomp_dev_build
+        params:
+          object:
+            name:
+              text: "sipstorm"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sipstorm_test:
+      object:
+        schedule:
+          keyword: sipstorm
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    sipstorm_release_task:
+      object:
+        task:
+          keyword: netcomp_release_build
+        params:
+          object:
+            name:
+              text: "sipstorm"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sphera_general_build_task:
+      object:
+        task:
+          keyword: netcomp_dev_build
+        params:
+          object:
+            name:
+              text: "sphera-general"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sphera_general_test:
+      object:
+        schedule:
+          keyword: sphera_general
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled: 
+                  keyword: true
+    sphera_general_release_task:
+      object:
+        task:
+          keyword: netcomp_release_build
+        params:
+          object:
+            name:
+              text: "sphera-general"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sphera_brazil_test:
+      object:
+        schedule:
+          keyword: sphera_brazil
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled: 
+                  keyword: true
+    sphera_brazil_release_task:
+      object:
+        task:
+          keyword: netcomp_release_build
+        params:
+          object:
+            name:
+              text: "sphera-brazil"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sphera_brazil_build_task:
+      object:
+        task:
+          keyword: netcomp_dev_build
+        params:
+          object:
+            name:
+              text: "sphera-brazil"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sphera_rwanda_build_task:
+      object:
+        task:
+          keyword: netcomp_dev_build
+        params:
+          object:
+            name:
+              text: "sphera-rwanda"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    sphera_rwanda_test:
+      object:
+        schedule:
+          keyword: sphera_rwanda
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled: 
+                  keyword: true
+    sphera_rwanda_release_task:
+      object:
+        task:
+          keyword: netcomp_release_build
+        params:
+          object:
+            name:
+              text: "sphera-rwanda"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_build_task:
+      object:
+        task:
+          keyword: netcomp_dev_build
+        params:
+          object:
+            name:
+              text: "dkv"
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_shp_test:
+      object:
+        schedule:
+          keyword: dkv_shp
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    dkv_pet_proxy_build_task:
+      object:
+        task:
+          keyword: pet_proxy_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_pet_proxy_dev_deploy_task:
+      object:
+        task:
+          keyword: pet_proxy_deploy
+        params:
+          object:
+            name: "dkv-pet-proxy"
+            dkv_settings:
+              keyword: dkv
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_pet_proxy_preprod_deploy_task:
+      object:
+        task:
+          keyword: pet_proxy_deploy
+        params:
+          object:
+            name: "dkv-pet-proxy-preprod"
+            dkv_settings:
+              keyword: dkv
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_pet_proxy_preview_deploy_task:
+      object:
+        task:
+          keyword: pet_proxy_deploy
+        params:
+          object:
+            name: "dkv-pet-proxy-preview"
+            dkv_settings:
+              keyword: dkv-preview
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preview
+    dkv_pet_test:
+      object:
+        schedule:
+          keyword: dkv_pet
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    dkv_notifications_build_task:
+      object:
+        task:
+          keyword: dkv_notifications_build
+        params:
+          object:
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_notifications_dev_deploy_task:
+      object:
+        task:
+          keyword: dkv_notifications_deploy
+        params:
+          object:
+            name: "dkv-notifications"
+            dkv_settings:
+              keyword: dkv
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: dev
+    dkv_notifications_preprod_deploy_task:
+      object:
+        task:
+          keyword: dkv_notifications_deploy
+        params:
+          object:
+            name: "dkv-notifications-preprod"
+            dkv_settings:
+              keyword: dkv
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_notifications_preview_deploy_task:
+      object:
+        task:
+          keyword: dkv_notifications_deploy
+        params:
+          object:
+            name: "dkv-notifications-preview"
+            dkv_settings:
+              keyword: dkv-preview
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preview
+    dkv_notifications_test:
+      object:
+        schedule:
+          keyword: dkv_notifications
+        settings:
+          keyword: dev
+        opts:
+          object:
+            webhook_opts:
+              object:
+                enabled:
+                  keyword: true
+    netcomp_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name:
+              key: name
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    dkv_preprod_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "dkv"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              keyword: preprod
+    dkv_preview_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "dkv-preview"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings: 
+              keyword: preview
+    sphera_rwanda_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "sphera-rwanda"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings
+    sphera_morocco_deploy_task:
+      object:
+        task:
+          keyword: netcomp_deploy
+        params:
+          object:
+            name: "sphera-morocco"
+            repo:
+              key: repo
+              in: docker_image
+            tag:
+              key: tag
+              in: docker_image
+            slack:
+              keyword: tests
+            settings:
+              key: settings

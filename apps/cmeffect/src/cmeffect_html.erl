@@ -1,22 +1,22 @@
--module(cmnode_effect_elementary).
+-module(cmeffect_html).
 -export([ effect_info/0,
           effect_apply/2
         ]).
 
-effect_info() -> elementary.
+effect_info() -> html.
 
 
 effect_apply(#{ settings := SettingsName,
-                app := Spec}, Id) ->
+                page := Page,
+                app := #{ views := Views}}, Id) ->
    
     Res = case cmconfig:settings(SettingsName) of 
         {ok, #{ spec := SettingsSpec}} -> 
             case cmencode:encode(SettingsSpec) of 
                 {ok, Settings} -> 
-                    compile(Spec, Settings);
+                    compile(Page, Views, Settings);
                 {error, E} -> 
                     #{ status => error,
-                       reason => encode,
                        reason => E }
             end;
         {error, E} -> 
@@ -25,19 +25,16 @@ effect_apply(#{ settings := SettingsName,
                        settings => SettingsName }
 
     end,
-    cmcore:update(Id, Res);
+    cmcore:update(Id, Res).
 
-effect_apply(#{ app := Spec}, Id) ->
-    cmcore:update(Id, compile(Spec, #{})).
-
-compile(Spec, Settings) -> 
-    case cmelementary:compile(Spec, Settings) of 
+compile(Page, Views, Settings) -> 
+    case cmhtml:compile(Page, Views, Settings) of 
         {ok, Source} ->
-            #{ language => elementary,
+            #{ language => html,
                status => ok,
                source => Source };
         {error, Error} -> 
-            #{ language  => elementary,
+            #{ language  => html,
                status => error,
                reason => Error
              }
