@@ -1,5 +1,10 @@
 -module(cmgit).
--export([clone/2, tag/2, tags/1]).
+-export([pull/1, clone/2, tag/2, tags/1]).
+
+
+pull(Dir) ->
+    cmkit:log({cmgit, pull, Dir}),
+    cmsh:sh(pull_cmd(), [{cd, Dir}]).
 
 clone(Repo, #{ clone := false }) -> 
     cmkit:log({cmgit, clone, Repo, skipped}),
@@ -136,6 +141,8 @@ is_tmp(Path) ->
 
 rmdir_cmd(Path) ->
     cmkit:fmt("rm -rf ~s", [Path]).
+
+pull_cmd() -> "git pull".
 
 tags_cmd() -> "git ls-remote".
 

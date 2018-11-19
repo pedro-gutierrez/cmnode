@@ -8,7 +8,7 @@ export default (name, settings, app) => {
 
     function event(eventName, value) {
         const e = { effect: name, event: eventName };
-        if (value) e.value = value;
+        e.value = value || "";
         update(e);
     }
 
@@ -31,6 +31,12 @@ export default (name, settings, app) => {
             }
         }
     }
+
+    function hash(s) {
+        for(var i=0, h=1; i<s.length; i++)
+            h=Math.imul(h+s.charCodeAt(i)|0, 2654435761);
+        return (h^h>>>17)>>>0;
+    };
     
     function resolve(views, spec, ctx) {
         switch(typeof(spec)) {
@@ -229,7 +235,88 @@ export default (name, settings, app) => {
         var json = window.himalaya.parse(html);
         return { view: compileJson(json[0]) };
     }
+    var uniqueId = function() {
+        return 'a' + Math.random().toString(36).substr(2, 16);
+    };
 
+    var chartTypes = {
+        line: Chartist.Line,
+        bar: Chartist.Bar
+    }
+
+    function compileChart(views, spec, ctx) {
+        var {err, value} = encode(spec.chart.type, ctx);
+        if (err) return error(spec, ctx, err);
+        var chartFun = chartTypes[value];
+        if (!chartFun) return error(spec, ctx, "chart '" + value + "' not supported");
+        var {err, value} = encode(spec.chart.labels, ctx);
+        if (err) return error(spec, ctx, err);
+        var labels = value;
+        var {err, value} = encode(spec.chart.data, ctx);
+        if (err) return error(spec, ctx, err);
+        var data = value;
+         
+        var low = 0;
+        if (spec.chart.hasOwnProperty('low')) {
+            var {err, value} = encode(spec.chart.low, ctx);
+            if (!err) low = value;
+        }
+        var high = 0;
+        var series = []
+            
+        var ptMetaFn = (data.length > 1) ? (sLabel, label) => {
+            return sLabel + '<br>' + label;
+        } : (_, label) => { return label };
+
+        for (var i=0; i<data.length; i++) {
+            var s = []
+            for (var j=0; j<data[i].values.length; j++) {
+                var v =  data[i].values[j];
+                if (v>high) high = v;
+                if (v<low) low = v;
+                s[j] = { meta: ptMetaFn(data[i].title, labels[j]), value: v}
+            }
+            series[i] = s;
+        }
+
+        var chartData = {
+            labels: labels,
+            series: series
+        };
+
+        var id = 'a' + hash(JSON.stringify(chartData));
+        var chartOptions = {
+            axisY: {
+                offset: 0,
+                showLabel: false
+            },
+            axisX: {
+                showLabel: false
+            },
+            low: low,
+            high: high,
+            fullWidth: true,
+            plugins: [
+                Chartist.plugins.tooltip({
+                    "class": 'ct-tooltip',
+                    appendToBody: true,
+                    metaIsHTML: true
+                })
+            ]
+        };
+
+        setTimeout(() => {
+            new chartFun('#'+id, chartData, chartOptions);
+        },0);
+
+        return { view: ['div', { 
+            style: "width: 100%; height: 160px; position: relative; overflow: hidden;",
+            "id": id,
+            key: id,
+        }]};
+    }
+
+    
     function compile(views, spec, ctx) {
         if (Array.isArray(spec)) return compileList(views, spec, ctx);       
         if (spec.name) return compileViewRef(views, spec, ctx);
@@ -241,6 +328,7 @@ export default (name, settings, app) => {
         if (spec.timestamp) return compileTimestamp(views, spec, ctx);
         if (spec.code) return compileCode(views, spec, ctx);
         if (spec.markdown) return compileMarkdown(views, spec, ctx);
+        if (spec.chart) return compileChart(views, spec, ctx);
         return error(spec, ctx, "view_not_supported");
     }
 

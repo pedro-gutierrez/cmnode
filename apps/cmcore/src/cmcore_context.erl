@@ -30,12 +30,12 @@ initializing({call, From}, init,  #{app := App,
                                     config := Config0,
                                     debug := Debug,
                                     timeout := Timeout, 
-                                    id := Id,
+    %                                id := Id,
                                     spec := Spec}=Session) ->
     
     Log = cmkit:log_fun(Debug),
     Effects = cmconfig:effects(),
-    {ok, Effect} = cmcore_effect_sup:start_effect(Id),
+    %{ok, Effect} = cmcore_effect_sup:start_effect(Id),
     Config = case maps:get(encoders, Spec, undef) of 
                   undef -> Config0;
                   Encs -> Config0#{ encoders => Encs }
@@ -46,7 +46,7 @@ initializing({call, From}, init,  #{app := App,
             {next_state, ready, Session#{ 
                                   config => Config,
                                   log => Log,
-                                  effect => Effect,
+    %                              effect => Effect,
                                   effects => Effects,
                                   model => Model }, [{reply, From, ok},
                                                      {state_timeout, Timeout, terminate}]};
@@ -76,14 +76,13 @@ ready(cast, {update, Data}, #{ app := App,
 
     end;
 
-ready(cast, terminate, #{ app := App, id := Id, log := Log, effect := Effect }) ->
-    Log({App, self(), Id, terminating}),
-    ok = cmcore_effect:stop(Effect),
-    {stop, normal};
+ready(cast, terminate, Data) ->
+    %ok = cmcore_effect:stop(Effect),
+    {stop, normal, Data};
 
-ready(state_timeout, terminate, #{ app := App, id := Id, effect := Effect }) ->
+ready(state_timeout, terminate, #{ app := App, id := Id }) ->
     cmkit:warning({App, self(), Id, timeout }),
-    ok = cmcore_effect:stop(Effect),
+    %ok = cmcore_effect:stop(Effect),
     {stop, normal};
 
 
@@ -123,8 +122,7 @@ server_error(App, _Session, Phase, Reason) ->
     gen_statem:cast(self(), terminate),
     Info.
 
-terminate(_, _, #{ start := Start, app := App, id := Id, log := Log})->
-    Log({App, self(), Id, terminated, cmkit:elapsed(Start)}),
+terminate(_, _, _)->
     ok.
 
 reply(From, Msg) -> [{reply, From, Msg}].

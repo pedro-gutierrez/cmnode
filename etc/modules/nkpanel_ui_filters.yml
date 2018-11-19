@@ -58,8 +58,9 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            key: name
+          object:
+            key: 
+              key: name
         children:
           - tag: div
             children:

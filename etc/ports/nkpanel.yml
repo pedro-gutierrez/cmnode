@@ -5,6 +5,8 @@ spec:
   port: 8084
   acceptors: 1
   apps:
+    hello:
+      http: "/hello"
     mock_oauth_api:
       http: "/oauth"
     mock_activities_ok_api:

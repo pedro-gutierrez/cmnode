@@ -16,7 +16,8 @@
          inspect/3,
          inspect/4,
          pipeline/3,
-         merge/1
+         merge/1,
+         fold/3
         ]).
 -record(acc, {h, v, s, p, o, r}).
 
@@ -294,7 +295,7 @@ fold(Tree, Start, Fun) ->
                                               {ok, [V2|Acc]};
                                           skip ->
                                               {ok, Acc};
-                                          stop ->
+                                          _ ->
                                               {stop, Acc}
                                       end
                               end, [], [{start_key, Start}]) of

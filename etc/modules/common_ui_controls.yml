@@ -102,9 +102,10 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            key: id
-          class: "form-group"
+          object:
+            key: 
+              key: id
+            class: "form-group"
         children:
           - tag: label
             attrs:
@@ -132,9 +133,10 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            key: id
-          class: "form-group"
+          object:
+            key: 
+              key: id
+            class: "form-group"
         children:
           - tag: label
             attrs:
@@ -166,9 +168,10 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            key: id
-          class: "form-group"
+          object:
+            key: 
+              key: id
+            class: "form-group"
         children:
           - tag: label
             attrs:

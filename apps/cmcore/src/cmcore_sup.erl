@@ -14,15 +14,7 @@ init([]) ->
                                   permanent,
                                   supervisor),
     
-    EffectSup = cmkit:child_spec(cmcore_effect_sup,
-                                  cmcore_effect_sup,
-                                  [],
-                                  permanent,
-                                  supervisor),
-
-    
     {ok, { {one_for_one, 0, 1}, [
-                                 ContextSup,
-                                 EffectSup
+                                 ContextSup
                                 ]}}.
 

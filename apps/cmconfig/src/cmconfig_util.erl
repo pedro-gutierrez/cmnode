@@ -21,14 +21,16 @@
                 task]).
 
 reload() -> 
-    cmkit:log({cmconfig, 'compiling...'}),
+    cmkit:log({cmconfig, reading_yamls}),
     {ok, Specs} = parse(),
     Index = compiled(sorted(ranked(Specs))),
+    
     Funs = merged(Index),
     Funs2 = Funs#{ effects => #{ arity => 0,
                                  clauses => [#{ vars => [],
                                                 body => #{ abstract => effects() }}]}},
 
+    cmkit:log({cmconfig, compiling}),
     Res = cmcode:compile(#{ module => ?GENERATED_MOD,
                             functions => Funs2
                           }),
@@ -171,6 +173,14 @@ deps(port, #{ <<"spec">> := #{
 deps(module, #{ <<"spec">> := 
                 #{ <<"encoders">> := Encoders }}) when is_map(Encoders) ->
     module_deps(maps:values(Encoders), []);
+
+deps(settings, #{ <<"spec">> := 
+                    #{ <<"merge">> := Settings }}) when is_list(Settings)->
+    lists:foldr(fun(#{ <<"settings">> := Name }, Deps) ->
+                        [{settings, cmkit:to_atom(Name)}|Deps];
+                   (_, Deps) ->
+                        Deps
+                end, [], Settings);
 
 deps(_, _) -> [].
 
@@ -433,6 +443,7 @@ compile_test(#{ <<"name">> := Name,
 
 
     Config = maps:get(<<"config">>, Spec, #{}),
+    Facts = maps:get(<<"facts">>, Spec, #{}),
     Scenarios = compile_scenarios(maps:get(<<"scenarios">>, Spec, []), Index),
     Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
     Procedures = maps:get(<<"procedures">>, Spec, []),
@@ -445,7 +456,8 @@ compile_test(#{ <<"name">> := Name,
        scenarios => Scenarios,
        steps => compile_steps(Steps, Index),
        procedures => compile_procedures(Procedures, Index),
-       backgrounds => compile_backgrounds(Backgrounds, Scenarios, Index)
+       backgrounds => compile_backgrounds(Backgrounds, Scenarios, Index),
+       facts => compile_term(Facts, Index)
      }.
 
 compile_procedures(Specs, Index) ->
@@ -678,6 +690,22 @@ compile_term(#{ <<"dump">> := Spec } = Map, _Index) when is_binary(Spec) and map
 compile_term(#{ <<"dump">> := Spec } = Map, Index) when map_size(Map) =:= 1 ->
     #{ type => dump,
        spec => compile_term(Spec, Index) };
+
+compile_term(#{ <<"settings">> := Name }, #{ settings := Settings }) when is_binary(Name) ->
+    S = cmkit:to_atom(Name),
+    case maps:get(S, Settings, undef) of 
+        undef ->
+            cmkit:warning({cmconfig, compile, no_such_settings, Name,
+                            maps:keys(Settings)}),
+            #{ type => object,
+               spec => #{ S => #{} } };
+        #{ name := S,
+           spec := Spec0 } ->
+            #{ type => object,
+               spec => #{ S => Spec0 }}
+    end;
+
+
 
 compile_term(#{ <<"decoders">> := Decs }, Index) ->
     compile_decoders(Decs, Index);
@@ -1036,8 +1064,8 @@ compile_term(#{ <<"encoded">> := Spec }, Index) ->
     #{ type => encoded, 
        spec => compile_term(Spec, Index) }; 
 
-compile_term(#{ <<"type">> := Type}, _) ->
-    compile_keyword(Type);
+%compile_term(#{ <<"type">> := Type}, _) ->
+%    compile_keyword(Type);
 
 compile_term(#{ <<"keyword">> := Keyword }, _) when is_binary(Keyword) ->
     #{ type => keyword,
@@ -1153,6 +1181,13 @@ compile_term(#{ <<"format">> := #{ <<"pattern">> := FormatSpec,
        pattern => compile_term(FormatSpec, Index),
        date => compile_term(DateSpec, Index) };
 
+compile_term(#{ <<"format">> := FormatSpec,
+                <<"date">> := DateSpec }, Index) -> 
+
+    #{ type => format,
+       pattern => compile_term(FormatSpec, Index),
+       date => compile_term(DateSpec, Index) };
+
 
 compile_term(#{ <<"replace">> := #{ <<"in">> := SourceSpec,
                                     <<"text">> := SearchSpec,
@@ -1197,33 +1232,36 @@ compile_term(#{ <<"item">> := Num }, _) when is_number(Num) ->
     #{ item => Num };
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }, _) when is_binary(Key) and is_binary(In) -> 
-    #{ key => compile_keyword(Key),
-       in => compile_keyword(In)
-     };
-
-
-compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }, Index) when is_binary(Key) -> 
-    #{ key => compile_keyword(Key),
-       in => compile_term(In, Index)
-     };
+                <<"in">> := In } = Spec, Index) when is_binary(Key) andalso is_binary(In) -> 
+    
+    with_default(Spec, #{ key => compile_keyword(Key),
+                          in => compile_keyword(In)
+                        }, Index);
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }, Index) when is_binary(In) -> 
-    #{ key => compile_term(Key, Index),
-       in => compile_keyword(In)
-     };
+                <<"in">> := In } = Spec, Index) when is_binary(Key) -> 
+    
+    with_default(Spec, #{ key => compile_keyword(Key),
+                          in => compile_term(In, Index)
+                        }, Index);
 
 compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In }, Index) -> 
-    #{ key => compile_term(Key, Index),
-       in => compile_term(In, Index)
-     };
+                <<"in">> := In } = Spec,  Index) when is_binary(In) -> 
 
-compile_term(#{ <<"key">> := Key}, _) ->
-    #{ key => compile_keyword(Key) };
+    with_default(Spec, #{ key => compile_term(Key, Index),
+                          in => compile_keyword(In)
+                        }, Index);
 
+compile_term(#{ <<"key">> := Key, 
+                <<"in">> := In } = Spec, Index) -> 
+    
+    with_default(Spec, #{ key => compile_term(Key, Index),
+                           in => compile_term(In, Index)
+                         }, Index);
+
+compile_term(#{ <<"key">> := Key} = Spec, Index) ->
+    
+    with_default(Spec, #{ key => compile_term(Key, Index)}, Index);
 
 compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
     #{ one_of => lists:map(fun(S) ->
@@ -1398,6 +1436,13 @@ compile_term(#{ <<"send">> :=
        spec => #{ to => compile_term(ConnSpec, Index),
                   spec => compile_term(Spec, Index) }};
 
+compile_term(#{ <<"send">> := Spec,
+                <<"to">> := ConnSpec }, Index ) ->
+
+    #{ type => send,
+       spec => #{ to => compile_term(ConnSpec, Index),
+                  spec => compile_term(Spec, Index) }};
+
 compile_term(#{ <<"send">> := Spec }, Index) ->
 
     #{ type => send,
@@ -1412,13 +1457,33 @@ compile_term(#{ <<"receive">> :=
     #{ type => recv,
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
-       as => compile_keyword(As)
+       as => compile_term(As, Index)
+     };
+
+compile_term(#{ <<"receive">> := Spec,
+                <<"from">> := From,
+                <<"as">> := Remember}, Index) ->
+    
+    #{ type => recv,
+       from => compile_term(From, Index),
+       spec => compile_term(Spec, Index),
+       as => compile_term(Remember, Index)
      };
 
 compile_term(#{ <<"receive">> := 
                 #{ <<"from">> := From,
                    <<"spec">> := Spec,
                    <<"remember">> := Remember }}, Index) ->
+    #{ type => recv,
+       from => compile_term(From, Index),
+       spec => compile_term(Spec, Index),
+       as => compile_object(Remember, Index)
+     };
+
+compile_term(#{ <<"receive">> := Spec,
+                <<"from">> := From,
+                <<"remember">> := Remember}, Index) ->
+    
     #{ type => recv,
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
@@ -1434,6 +1499,17 @@ compile_term(#{ <<"receive">> :=
        spec => compile_term(Spec, Index),
        as => latest 
      };
+
+compile_term(#{ <<"receive">> := Spec,
+                <<"from">> := From }, Index) ->
+    
+    #{ type => recv,
+       from => compile_term(From, Index),
+       spec => compile_term(Spec, Index),
+       as => latest
+     };
+
+
 
 compile_term(#{ <<"expect">> := Spec }, Index) ->
     #{ type => expect,
@@ -1479,6 +1555,7 @@ compile_term(#{ <<"join">> := Terms}, Index) when is_list(Terms) ->
     #{ type => join,
        terms => compile_terms(Terms, Index) };
 
+
 compile_term(#{ <<"url">> := Url,
                 <<"method">> := Method } = Spec, Index) ->
 
@@ -1498,19 +1575,22 @@ compile_term(#{ <<"url">> := Url,
                 BodySpec -> 
                     Expr2#{ body => compile_term(BodySpec, Index) }
             end,
-    Expr3;
+    Expr4 = case maps:get(<<"query">>, Spec, undef) of 
+                undef -> Expr3;
+                QuerySpec -> 
+                    Expr3#{ query => compile_term(QuerySpec, Index) }
+            end,
+    with_debug(Spec, Expr4, Index);
 
 compile_term(#{ <<"url">> := _}=Spec, Index) ->
     compile_term(Spec#{ method => <<"get">> }, Index);
     
-
 compile_term(#{ <<"host">> := Host,
                 <<"port">> := Port,
                 <<"transport">> := Transport,
                 <<"path">> := Path } = Spec, Index) ->
 
-    Expr = #{ type => url,
-              host => compile_term(Host, Index),
+    Expr = #{ host => compile_term(Host, Index),
               port => compile_term(Port, Index),
               transport => compile_term(Transport, Index),
               path => compile_term(Path, Index) },
@@ -1521,7 +1601,14 @@ compile_term(#{ <<"host">> := Host,
                 QuerySpec -> 
                     Expr#{ query => compile_term(QuerySpec, Index) }
             end,
-    Expr2;
+    #{ type => url,
+       spec => Expr2 };
+
+
+compile_term(#{ <<"url_from">> := Spec}, Index) ->
+
+    #{ type => url,
+       spec => compile_term(Spec, Index) };
 
 
 compile_term(#{ <<"multipart">> := #{ <<"files">> := FilesSpec } }, Index) ->
@@ -1529,9 +1616,11 @@ compile_term(#{ <<"multipart">> := #{ <<"files">> := FilesSpec } }, Index) ->
        files => compile_term(FilesSpec, Index) };
 
 
-compile_term(#{ <<"http">> := Spec }, Index) ->
+compile_term(#{ <<"http">> := Spec } = S0, Index) ->
+    
+    Debug = maps:get(<<"debug">>, S0, <<"false">>),
     #{ type => exec,
-       spec => compile_term(Spec, Index) };
+       spec => compile_term(Spec#{ <<"debug">> => Debug }, Index) };
 
 compile_term(#{ <<"procedure">> := Name,
                 <<"params">> := Params }, Index) ->
@@ -1585,6 +1674,13 @@ compile_term(#{ <<"slack">> := #{ <<"enabled">> := EnabledSpec,
                   subject => compile_term(SubjectSpec, Index),
                   body => compile_term(BodySpec, Index) }};
 
+compile_term(#{ <<"git">> := <<"pull">>,
+                <<"dir">> := Dir }, Index) ->
+    
+    #{ type => git,
+       spec => #{ action => pull,
+                  dir => compile_term(Dir, Index) }};
+    
 compile_term(#{ <<"git">> := #{ 
                     <<"credentials">> := CredsSpec,
                     <<"clone">> := #{ <<"repo">> := Repo,
@@ -1703,6 +1799,14 @@ compile_term(#{ <<"match">> := #{
 
     #{ type => match, spec => Expr2 };
 
+compile_term(#{ <<"match">> := ValueSpec,
+                <<"with">> := DecoderSpec } = Spec, Index) ->
+
+    Spec2 = maps:without([<<"match">>, <<"with">>], Spec),
+    MatchSpec = Spec2#{ <<"value">> => ValueSpec,
+                        <<"with">> => DecoderSpec },
+    compile_term(#{ <<"match">> => MatchSpec}, Index);
+
 compile_term(#{ <<"find">> := TargetSpec,
                 <<"in">> := SourceSpec }, Index) -> 
 
@@ -1720,15 +1824,20 @@ compile_term(#{ <<"sort">> := ItemsSpec,
        by => compile_term(PropSpec, Index),
        mode => compile_term(ModeSpec, Index) };
 
+compile_term(#{ <<"encode">> := SourceSpec,
+                <<"with">> := EncoderSpec} = Spec, Index) when is_map(EncoderSpec) ->
+    
+    #{ type => encode,
+       source => compile_term(SourceSpec, Index),
+       as => maybe_compile_as(Spec, Index),
+       dest => compile_term(EncoderSpec, Index) };
+
+compile_term(#{ <<"encode">> := _,
+                <<"with">> := With } = Spec, Index) when is_binary(With) ->
+    compile_term(Spec#{ <<"with">> => #{ <<"encoder">> => With }}, Index);
+
 compile_term(#{ <<"iterate">> := SourceSpec,
                 <<"with">> := DestSpec } = Spec, Index) ->
-    
-    AsSpec = case maps:get(<<"as">>, Spec, none) of 
-                none ->
-                    none;
-                S0 ->
-                    compile_term(S0, Index)
-             end,
     
     FilterSpec = case maps:get(<<"filter">>, Spec, none) of 
                 none ->
@@ -1740,7 +1849,7 @@ compile_term(#{ <<"iterate">> := SourceSpec,
     #{ type => iterate,
        source => compile_term(SourceSpec, Index),
        filter => FilterSpec,
-       as => AsSpec,
+       as => maybe_compile_as(Spec, Index),
        dest => compile_term(DestSpec, Index) };
 
 compile_term(#{ <<"filter">> := SourceSpec,
@@ -1919,6 +2028,22 @@ compile_term(Spec, _) ->
     #{ type => unknown, spec => Spec }.
 
 
+compile_as(As, Index) when is_binary(As) or is_atom(As) ->
+    compile_term(#{ <<"keyword">> => As }, Index);
+
+compile_as(As, Index) when is_map(As) ->
+    compile_term(As, Index).
+
+maybe_compile_as(Spec, Index) when is_map(Spec) ->
+    case maps:get(<<"as">>, Spec, none) of
+        none ->
+            none;
+        AsSpec ->
+            compile_as(AsSpec, Index)
+    end.
+
+
+
 compile_kube_spec(#{ <<"kind">> := Kind,
                      <<"namespace">> := NsSpec,
                      <<"state">> := StateSpec,
@@ -1957,7 +2082,11 @@ compile_object(null, _) ->
 
 compile_object(Map, Index) when is_map(Map) ->
     #{ type => object,
-       spec => compile_object(maps:keys(Map), Map, Index, #{}) }.
+       spec => compile_object(maps:keys(Map), Map, Index, #{}) };
+
+compile_object(Other, _) ->
+    cmkit:warning({cmconfig, compile_object, Other, not_supported}),
+    #{ type => object }.
 
 compile_object([], _, _, Out) -> Out;
 compile_object([K|Rem], Map, Index, Out) ->
@@ -2093,7 +2222,7 @@ compile_view(#{ <<"tag">> := Tag,
                 <<"attrs">> := Attrs,
                 <<"children">> := Children }, Index) when is_map(Children)->
     #{ tag => Tag,
-       attrs => compile_view_attrs(Attrs, Index),
+       attrs => compile_term(Attrs, Index),
        children => compile_term(Children, Index) 
      };
 
@@ -2101,7 +2230,7 @@ compile_view(#{ <<"tag">> := Tag,
                 <<"attrs">> := Attrs,
                 <<"children">> := Children }, Index) when is_list(Children)->
     #{ tag => Tag,
-       attrs => compile_view_attrs(Attrs, Index),
+       attrs => compile_term(Attrs, Index),
        children => lists:map(fun(C) ->
                                 compile_view(C, Index)     
                              end, Children) };
@@ -2124,7 +2253,6 @@ compile_view(#{ <<"text">> := Text}, _) when is_binary(Text) ->
 
 compile_view(#{ <<"text">> := Spec}, Index) ->
     #{ text => compile_term(Spec, Index) };
-
 
 compile_view(#{ <<"iterate">> := From,
                 <<"using">> := ItemView }, Index) ->
@@ -2183,15 +2311,31 @@ compile_view(#{ <<"loop">> := _ ,
     compile_term(Spec, Index);
 
 
+compile_view(#{ <<"chart">> := Type,
+                <<"labels">> := Labels,
+                <<"data">> := Data } = Spec, Index) ->
+
+    Expr0 = #{ type => compile_term(Type, Index),
+                   labels => compile_term(Labels, Index),
+                   data => compile_term(Data, Index) },
+    Expr = case maps:get(<<"low">>, Spec, undef) of 
+               undef -> 
+                   Expr0#{ low => 0 };
+               LowSpec ->
+                   Expr0#{ low => compile_term(LowSpec, Index)}
+           end,
+
+    #{ chart => Expr };
+
 compile_view(Spec, _) ->
     cmkit:danger({cmconfig, compile, view_spec_not_supported, Spec}),
     #{ view => not_supported,
        spec => Spec }.
 
-compile_view_attrs(Attrs, Index) when is_map(Attrs) ->
-    maps:fold(fun(K, V, Attrs2) ->
-                      Attrs2#{ compile_keyword(K) => compile_term(V, Index) }
-              end, #{}, Attrs). 
+%compile_view_attrs(Attrs, Index) when is_map(Attrs) ->
+%    maps:fold(fun(K, V, Attrs2) ->
+%                      Attrs2#{ compile_keyword(K) => compile_term(V, Index) }
+%              end, #{}, Attrs). 
 
 
 compile_model(Map, Index) -> compile_term(Map, Index).
@@ -2240,3 +2384,15 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}, Index) 
      };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect, Index) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}, Index).
+
+
+with_default(#{ <<"default">> := Default }, Compiled, Index) ->
+    Compiled#{ default => compile_term(Default, Index) };
+
+with_default(_, Compiled, _) -> Compiled.
+
+with_debug(#{ <<"debug">> := Debug}, Compiled, Index) ->
+    Compiled#{ debug => compile_term(Debug, Index) };
+
+with_debug(_, Compiled, _) -> Compiled#{ debug => false }.
+    

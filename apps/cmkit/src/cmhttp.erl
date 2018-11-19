@@ -1,5 +1,6 @@
 -module(cmhttp).
--export([stream/1, 
+-export([stream/1,
+         do/1,
          get/1, 
          get/2,
          delete/1,
@@ -12,6 +13,7 @@
          put/3, 
          encodedQs/1]).
 -define(EMPTY_BODY, <<>>).
+-define(DEFAULT_MIME, <<"application/octect-stream">>).
 
 
 stream(#{ method := Method,
@@ -61,6 +63,69 @@ stream(#{ method := _,
           context := _} = Q) -> 
     
     stream(Q#{ headers => #{} }).
+
+do(Req0) ->
+    Req = with_method(Req0),
+    {Elapsed, Out} = timer:tc(fun() -> req(Req) end),
+    Millis = trunc(Elapsed/1000),
+    Log = cmkit:log_fun(Req),
+    case Out of 
+        {ok, Res} ->
+            Log({http, #{ in => Req0, 
+                          out => Res,
+                          millis => Millis }}),
+            {ok, Res#{ req => Req0,
+                       millis => Millis }};
+        {error, E} ->
+            Log({http, #{ in => Req0, 
+                          out => E,
+                          millis => Millis }}),
+            {error, E}
+    end.
+
+with_method(#{ method := V }=S) when V =:= <<"get">> orelse V =:= <<"GET">> -> 
+    S#{ method => get };
+
+with_method(#{ method := V }=S) when V =:= <<"post">> orelse V =:= <<"POST">> -> 
+    S#{ method => post };
+
+with_method(#{ method := V }=S) when V =:= <<"delete">> orelse V =:= <<"DELETE">> -> 
+    S#{ method => delete };
+
+with_method(#{ method := V }=S) when V =:= <<"put">> orelse V =:= <<"PUT">> -> 
+    S#{ method => put };
+
+with_method(#{ method := M }=S) when is_atom(M) ->
+    S;
+
+with_method(S) ->
+    S#{ method => get }.
+
+
+req(#{ method := M,
+       url := Url,
+       headers := Headers,
+       body := Body } = Spec) ->
+
+    cmhttp:M(withQs(Url, Spec), Headers, Body);
+
+req(#{ method := M,
+       url := Url,
+       headers := Headers } = Spec) ->
+
+    cmhttp:M(withQs(Url, Spec), Headers);
+
+req(#{ method := M,
+       url := Url,
+       body:= Body } = Spec) ->
+
+    cmhttp:M(withQs(Url, Spec), Url, #{ <<"content-type">> => ?DEFAULT_MIME }, Body);
+
+req(#{ method := M,
+       url := Url }  =Spec) ->
+
+    cmhttp:M(withQs(Url, Spec)).
+
 
 get(Url) ->
     get(Url, #{}).
@@ -164,6 +229,14 @@ decoded_headers([{K, V}|Rem], Out) ->
     BinKey = cmkit:to_bin(K),
     BinValue = cmkit:to_bin(V),
     decoded_headers(Rem, Out#{ BinKey => BinValue }).
+
+withQs(Url, #{ query := Qs}) when map_size(Qs) > 0 ->
+    EncodedQs = encodedQs(Qs),
+    <<Url/binary, EncodedQs/binary>>;
+
+withQs(Url, _) -> Url.
+    
+
 
 encodedQs(Map) when is_map(Map) ->
     Params = cmkit:bin_join(maps:fold(fun(K, V, Acc) ->

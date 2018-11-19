@@ -29,6 +29,13 @@ websocket_handle({binary, Data}, State) ->
 websocket_handle({text, Data}, State) -> 
     handle_data(Data, State).
 
+
+websocket_info({'DOWN', _, process, _, normal}, #{ app := App,
+                                                   port := Port,
+                                                   id := Id } = State) ->
+    cmkit:warning({ws, context_closed, App, Port, Id, self()}),
+    {stop, State};
+
 websocket_info(Data, #{ app := App, 
                         port := Port, 
                         id := Id, 

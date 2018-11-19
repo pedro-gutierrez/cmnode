@@ -38,27 +38,23 @@ effect_apply(#{ method := Method,
                 headers := Headers,
                 context := Context }, SessionId) ->
     
-    Data = case cmhttp:Method(Url, Headers) of 
-               {ok, In} -> 
-                   In;
-               {error, E} -> 
-                   #{ error => E }
+    Data = case cmencode:encode(#{ type => exec,
+                                   spec => #{ type => http,
+                                              method => Method,
+                                              url => url_spec(Url),
+                                              headers => #{ type => object,
+                                                            spec => Headers }}}) of 
+               {ok, Res} -> Res;
+               {error, E} -> #{ error => E }
            end,
     
     cmcore:update(SessionId, Data#{ context => Context});
 
-effect_apply(#{ method := Method, 
-                url := Url, 
-                context := Context }, SessionId) ->
+effect_apply(#{ method := _, 
+                url := _, 
+                context := _} = Spec, SessionId) ->
     
-    Data = case cmhttp:Method(Url) of 
-               {ok, In} -> 
-                   In;
-               {error, E} -> 
-                   #{ error => E }
-           end,
-    
-    cmcore:update(SessionId, Data#{ context => Context});
+     effect_apply(Spec#{ headers => #{}}, SessionId);
 
 
 effect_apply(#{ stream := Stream } = Q, SessionId) ->

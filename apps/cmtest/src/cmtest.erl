@@ -11,8 +11,12 @@
          schedule/3, 
          reports/0, 
          reports/1, 
-         report/1, 
-         status/0
+         report/1,
+         report_scenario/2,
+         status/0,
+         test_history/1,
+         scenario_history/2,
+         step_history/3
         ]).
 -define(REL, is).
 
@@ -98,10 +102,10 @@ queue_job(T, S, Opts) ->
                   stop => {cmtest, stop, [Now]}}
      }.
 
-report(Id) ->
-    case cmdb:get(tests, report, ?REL, Id) of 
-        {ok, [{_, _, _, R}]} ->
-            {ok, sanitized_report(R)};
+report_scenario(Id, Title) ->
+    case cmdb:get(tests, scenario, Id, Title) of 
+        {ok, [{_, _, _, S}]} ->
+            {ok, S};
         {ok, []}->
             {error, not_found};
         Other -> 
@@ -110,54 +114,97 @@ report(Id) ->
 
 reports() -> reports(1).
 
+report_summary(Id) ->
+    case cmdb:get(tests, report, ?REL, Id) of 
+        {ok, [{_, _, _, R}]} ->
+            {ok, R};
+        {ok, []}->
+            {error, not_found};
+        Other -> 
+            {error, Other}
+    end.
+
+report_scenarios_summary(Id) ->
+    case cmdb:get(tests, scenarios, all, Id) of 
+        {ok, [{_, _, _, S}]} ->
+            {ok, S};
+        {ok, []}->
+            {error, not_found};
+        Other -> 
+            {error, Other}
+    end.
+
+report(Id) -> 
+    case report_summary(Id) of 
+        {ok, R} ->
+            case report_scenarios_summary(Id) of 
+                {ok, S} ->
+                    {ok, R#{ result => S }};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
 reports(Days) ->
-    Ids0 = lists:foldl(fun(D, Acc) ->
-                              Key = cmcalendar:to_bin(D, date),
-                              case cmdb:get(tests, report, Key) of
-                                  {ok, Entries} ->
-                                      Acc ++ [Id||{_, _, _, Id}<-Entries];
-                                  _ -> 
-                                      Acc
-                              end
-                      end, [], cmcalendar:last({Days, days})),
-    Ids = cmkit:distinct(Ids0),
-    Reports = lists:foldl(fun(Id, Reports) ->
-                                  case cmdb:get(tests, report, ?REL, Id) of 
-                                      {ok, [{_, _, _, R}]} ->
-                                          [R|Reports];
-                                      _ -> Reports
-                                  end                
-                          end, [], Ids),
-    
-    Reports2 = lists:sort(fun cmtest_util:report_sort_fun/2, Reports),
-    Reports3 = cmkit:top(20, Reports2),
-    {ok, Reports3}.
-
-
-sanitized_report(#{ result := Result }=R) ->
-    R#{ result => sanitized_report_result(Result) }.
-
-sanitized_report_result(Items) -> 
-    lists:map(fun(#{ status := success }=I) -> I;
-                 (#{ status := fail,
-                     failure := F }=I) -> 
-                      I#{ failure => sanitized_failure(F) } 
-              end, Items).
-
-sanitized_failure(#{ reason := R }=F) -> 
-    F#{ reason => sanitized_failure_reason(R) };
-
-sanitized_failure(F) ->  F.
-
-sanitized_failure_reason(#{ info := Info }=R) ->
-    R#{ info => sanitized_failure_reason_info(Info) };
-
-sanitized_failure_reason(R) -> R.
-
-sanitized_failure_reason_info(#{ data := _ }=I) ->
-    maps:without([data], I);
-
-sanitized_failure_reason_info(I) -> I.
+    Since = cmcalendar:to_epoch(cmcalendar:back({Days, days})) *1000,
+    case cmdb:between(tests, reports, all, Since, cmkit:now()) of 
+        {ok, Entries} ->
+            Ids = [Id || {_, _, _, Id} <- Entries],
+            Reports = lists:foldl(fun(Id, R0) ->
+                                          case report_summary(Id) of 
+                                              {ok, R} ->
+                                                  [R|R0];
+                                              _ -> R0
+                                          end                
+                                  end, [], Ids),
+            {ok, Reports};
+        Other ->
+            Other
+    end.
 
 status() -> 
     cmqueue:status(tests_queue).
+
+test_history(Test, Days) ->
+    Hash = cmtest_util:hash(Test),
+    history(Hash, Days, [duration, failed, passed]).
+
+test_history(Test) -> test_history(Test, 7).
+
+scenario_history(Test, Scenario) ->
+    scenario_history(Test, Scenario, 7).
+
+scenario_history(Test, Scenario, Days) ->
+    Hash = cmtest_util:hash(Test, Scenario),
+    history(Hash, Days, [duration]).
+
+step_history(Test, Scenario, Step) ->
+    step_history(Test, Scenario, Step, 7).
+
+step_history(Test, Scenario, Step, Days) ->
+    Hash = cmtest_util:hash(Test, Scenario, Step),
+    history(Hash, Days, [duration]).
+
+history(Query, Days, Series) ->
+    Since = cmcalendar:to_epoch(cmcalendar:back({Days, days})) *1000,
+    case cmdb:between(tests, history, Query, Since, cmkit:now()) of
+        {ok, Entries} ->
+            Acc = lists:foldl(fun(S, Acc0) ->
+                                      Acc0#{ S => []}
+                              end, #{}, Series),
+            Acc2 = Acc#{ labels => [], series => Acc },
+            History = lists:foldr(fun({_, _, _, #{ label := L }=H}, #{ labels := Labels,
+                                                                       series := AllSeries0 }=Acc0) ->
+                            AllSeries1 = lists:foldl(fun(S, A0) ->
+                                            V = maps:get(S, H),
+                                            S0 = maps:get(S, A0),
+                                            A0#{ S => [V|S0] } 
+                                        end, AllSeries0, Series),
+                            Acc0#{ labels => [L|Labels], series => AllSeries1 }
+                        end, Acc2, Entries),
+            {ok, History};
+        Other ->
+            Other
+    end.

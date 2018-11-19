@@ -113,7 +113,9 @@ stress(Name, N, C, I) ->
                   end, lists:seq(1, C)).
 
 loop(SoFar, Writers, Writers, Since) ->
-    cmkit:success({finished, SoFar, cmkit:elapsed(Since)/1000000});
+    Elapsed = cmkit:elapsed(Since)/1000000,
+    Speed = SoFar/Elapsed,
+    cmkit:success({finished, SoFar, Elapsed, Speed});
 
 loop(SoFar, Finished, Writers, Since) ->
     receive

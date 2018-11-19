@@ -1,4 +1,4 @@
--sname cmnode
+-sname nkadmin
 -setcookie cm
 -smp enable
 +pc unicode

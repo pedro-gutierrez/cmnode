@@ -124,10 +124,11 @@ spec:
       view:
         tag: div
         attrs:
-          class: "row"
-          key: 
-            key: title 
-            in: item
+          object:
+            class: "row"
+            key: 
+              key: title 
+              in: item
         children:
           - tag: div
             attrs:

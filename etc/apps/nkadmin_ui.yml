@@ -1,0 +1,13 @@
+version: 1.0
+type: app
+category: ui
+name: nkadmin_ui
+spec: 
+  debug: false 
+  modules:
+    - elementary_common
+    - nkadmin_ui
+  config:
+    settings:
+      - nkadmin
+

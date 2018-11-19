@@ -1,0 +1,201 @@
+version: 1.0
+type: test
+name: resiliency 
+spec:
+  config:
+    retries: 30 
+    wait: 1000
+  backgrounds: []
+  scenarios:
+    - title: "Wait for Elasticsearch on startup"
+      steps:
+        - title: "Delete the Elasticsearch service"
+          kube:
+            kind: service 
+            name: elastic
+            namespace: "nc"
+            state: 
+              keyword: absent
+            server:
+              key: kubernetes
+              in: settings
+        - title: "Delete the Netcomposer deployment"
+          kube:
+            kind: deployment
+            name: sipstorm-09
+            namespace: "nc"
+            state: 
+              keyword: absent
+            server:
+              key: kubernetes
+              in: settings
+            props:
+              object:
+                labels:
+                  object:
+                    app: sipstorm-09
+        - title: "Deploy Netcomposer"
+          procedure: netcomp_deploy
+          params:
+            object:
+              name: sipstorm-09
+              repo: "netcomposer/netcomp"
+              tag: "sipstorm-latest"
+              settings-key: sipstorm
+              server:
+                key: kubernetes
+                in: settings
+        - title: "Give Netcomposer enought time to startup"
+          wait: 
+            seconds: 30 
+        - title: "Create the Elasticsearch service"
+          kube:
+            kind: service
+            name: elastic
+            state: 
+              keyword: present
+            namespace: nc
+            server:
+              key: kubernetes
+              in: settings
+            props:
+              object:
+                retries: 120
+                labels:
+                  object:
+                    app: elastic
+                spec:
+                  object:
+                    type: ClusterIP
+                    ports: 
+                      - name: standard
+                        port: 9200
+                        protocol: TCP
+                      - name: discovery
+                        port: 9300
+                        protocol: TCP
+        - title: "Ensure the Netcomposer admin api is online"
+          expect:
+            eq:
+              - number: 200
+              - key: status
+                in:
+                  http:
+                    method: get
+                    url:
+                      host:
+                        key: host
+                        in: settings
+                      port:
+                        key: port
+                        in:
+                          key: admin
+                          in: 
+                            key: sipstorm
+                            in: settings
+                      path:
+                        join:
+                          terms:
+                            - key: path
+                              in:
+                                key: admin 
+                                in:
+                                  key: sipstorm
+                                  in: settings
+                            - text: "/_admin/"
+                      transport:
+                        key: transport
+                        in:
+                          key: admin 
+                          in: 
+                            key: sipstorm
+                            in: settings
+  procedures: 
+    - name: netcomp_deploy 
+      spec:
+        kube:
+          kind: deployment
+          name: 
+            key: name
+            in: params
+          state: 
+            keyword: present
+          server:
+            key: server
+            in: params
+          namespace: "nc"
+          props:
+            object:
+              retries: 120
+              labels:
+                object:
+                  app:
+                    key: name
+                    in: params
+              replicas: 1
+              spec:
+                object:
+                  imagePullSecrets:
+                    list:
+                      - name: 
+                          text: docker
+                  volumes:
+                    list:
+                      - name: config
+                        configMap:
+                          name:
+                            key: name
+                            in: params
+                  containers:
+                    list:
+                      - object:
+                          name:
+                            key: name
+                            in: params
+                          imagePullPolicy: 
+                            text: "Always"
+                          image:
+                            text:
+                              format:
+                                pattern: "~s:~s"
+                                params:
+                                  - key: repo
+                                    in: params
+                                  - key: tag
+                                    in: params
+                          stdin: 
+                            keyword: true
+                          tty:
+                            keyword: true
+                          volumeMounts:
+                            list:
+                              - object:
+                                  name: "config"
+                                  mountPath: "/opt/netcomp/config/shell.config"
+                                  subPath: "shell.config"
+                                  readOnly:
+                                    keyword: true
+                          ports:
+                            iterate:
+                              key: services
+                              in:
+                                key: nc
+                                in:
+                                  key:
+                                    key: settings-key 
+                                    in: params
+                                  in: settings
+                            filter:
+                              object:
+                                port:
+                                  any: number
+                                name:
+                                  any: text 
+                            with:
+                              object:
+                                containerPort: 
+                                  key: port
+                                name:
+                                  key: name
+                                protocol:
+                                  text: "TCP"

@@ -344,10 +344,11 @@ spec:
       view:
         tag: div
         attrs:
-          class: "row"
-          key: 
-            key: scenario
-            in: item
+          object:
+            class: "row"
+            key: 
+              key: scenario
+              in: item
         children:
           - tag: div
             attrs:

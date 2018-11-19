@@ -18,7 +18,6 @@ spec:
           keyword: admin
         of:
           key: roles
-          in: model
   update:
     no_match:
       cmds:

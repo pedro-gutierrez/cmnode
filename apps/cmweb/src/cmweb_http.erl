@@ -33,6 +33,9 @@ init(Req, #{app := App}=State) ->
                                                         start => Start })
     end.
 
+info({'DOWN', _, process, _, _}, Req, State) ->
+    reply_and_stop(error, json, #{ error => internal_server_error }, Req, State);
+
 info({stream, start, Headers}, Req, State) ->
     Headers2 = binary_headers(Headers),
     Req2 = cowboy_req:stream_reply(200, Headers2, Req),

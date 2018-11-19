@@ -25,7 +25,11 @@ effect_apply(#{ settings := SettingsName,
                        settings => SettingsName }
 
     end,
-    cmcore:update(Id, Res).
+    cmcore:update(Id, Res);
+
+effect_apply(Page, Id) ->
+    cmcore:update(Id, compile(Page, #{}, #{})).
+
 
 compile(Page, Views, Settings) -> 
     case cmhtml:compile(Page, Views, Settings) of 

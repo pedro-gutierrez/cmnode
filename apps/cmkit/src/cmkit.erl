@@ -1,15 +1,25 @@
 -module(cmkit).
--export([log/1, log_fun/1, print/2, home/0, env/1, etc/0, data/0, data/1, data/2, assets/0, asset/1, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, jsone/1, jsone/2, jsond/1, yamld/1, elapsed/1, micros/0, millis/0, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_float/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, sname/1, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, node_for_host/2, node_for_host/3, intersection/2, closest_node/1, uniconvert/1, map_join/3, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, to_list/3, date_as_map/1, format_date/1, format_date/2, parse_date/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1, to_millis/1, find_by/3, top/2, is_string/1, read_file/1, tar/2, prefix/2, file_info/1, stream_error/4, stream_file/1, printable/1, printable/2, cast/4, encrypt/2, decrypt/2, hex/1, reregister/2, is_json/1, replace/3]).
+-export([is_true/1, log/1, log_fun/1, print/2, home/0, env/1, etc/0, data/0, data/1, data/2, assets/0, asset/1, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, jsone/1, jsone/2, jsond/1, yamld/1, millis_since/1, elapsed/1, micros/0, millis/0, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_float/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, sname/1, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, node_for_host/2, node_for_host/3, intersection/2, closest_node/1, uniconvert/1, map_join/3, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, to_list/3, date_as_map/1, format_date/1, format_date/2, parse_date/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1, to_millis/1, find_by/3, top/2, is_string/1, read_file/1, tar/2, prefix/2, file_info/1, stream_error/4, stream_file/1, printable/1, printable/2, cast/4, encrypt/2, decrypt/2, hex/1, reregister/2, is_json/1, replace/3]).
 -include_lib("kernel/include/file.hrl").
 
 log(Data)->    
     io:format("[LOG] ~P~n", [Data, 30]).
 
-log_fun(true) -> 
-    fun log/1;
+log_fun(#{ debug := Debug }) ->
+    log_fun(Debug);
 
-log_fun(false) ->
-    fun(_) -> ok end.
+log_fun(V) ->
+    case is_true(V) of 
+        true ->
+            fun log/1;
+        false ->
+            fun(_) -> ok end
+    end.
+
+is_true(true) -> true;
+is_true(<<"true">>) -> true;
+is_true(yes) -> true;
+is_true(_) -> false.
 
 print(Pattern, Args, Color) ->
     Str = lists:flatten(to_list(fmt(Pattern, Args))),
@@ -31,15 +41,16 @@ warning(Term) ->
     print(Term, yellow).
 
 home() -> env("CMHOME").
-etc() -> filename:join([home(), "etc"]).
-assets() -> filename:join([home(), "assets"]).
-asset(Name) -> filename:join([home(), "assets", Name]).
-data() -> filename:join([home(), "data"]).
-data(Name) -> filename:join([home(), "data", to_list(Name)]).
-data(Name, Item) -> filename:join([home(), "data", to_list(Name), to_list(Item)]).
+etc() -> env("CMETC", filename:join([home(), "etc"])).
+assets() -> env("CMASSETS", filename:join([home(), "assets"])).
+asset(Name) -> filename:join([assets(), Name]).
+data() -> env("CMDATA", filename:join([home(), "data"])).
+data(Name) -> filename:join([data(), to_list(Name)]).
+data(Name, Item) -> filename:join([data(), to_list(Name), to_list(Item)]).
 
 
 env(Key) -> os:getenv(Key).
+env(Key, Default) -> os:getenv(Key, Default).
 
 files(Dir, Ext) ->
     filelib:fold_files(Dir, Ext ++ "$", true, fun(Filename, All) ->
@@ -140,6 +151,9 @@ fmt(Format, Args) when is_binary(Format) ->
 
 elapsed(Since) ->
     micros() - Since.
+
+millis_since(Millis) ->
+    millis() - Millis.
 
 micros() ->
     erlang:system_time(microsecond).
@@ -780,13 +794,16 @@ prefix(String, Prefix) ->
 printable(Term) -> printable(64, Term).
 
 printable(BinSize, List) when is_list(List) ->
-    case is_string(List) of 
-        true -> 
-            case length(List) > BinSize of 
+    case length(List) > BinSize of
+        true ->
+            case is_string(List) of 
                 true -> 
                     lists:sublist(List, BinSize);
                 false ->
-                    List
+                    SL = lists:map(fun(T) ->
+                                           printable(BinSize, T)
+                                   end, List),
+                    lists:sublist(SL, BinSize)
             end;
         false -> 
             lists:map(fun(T) -> 

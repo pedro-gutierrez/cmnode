@@ -237,9 +237,8 @@ term(#{ type := object, spec := Spec}, Settings) ->
             Other
     end;
 
-term(#{ type := text, key := Key, in := In}, Settings) ->
-    case term( #{ key => Key,
-                  in => In }, Settings) of 
+term(#{ type := text, key := _, in := _}=Spec, Settings) ->
+    case term(maps:without([type], Spec), Settings) of 
         {ok, Compiled} -> 
             {ok, #{ text => Compiled}};
         Other -> 
@@ -298,20 +297,37 @@ term(#{ type := uppercase,
     end;
 
 term(#{ type := format, 
-        params := ParamsSpec,
+       params := ParamsSpec,
         pattern := PatternSpec }, Settings) -> 
     case term(PatternSpec, Settings) of 
         {ok, Pattern} -> 
             case term(ParamsSpec, Settings) of 
                 {ok, Params} -> 
-                    {ok, #{ format => #{ pattern => Pattern,
-                                         params => Params }}};
+                    {ok, #{ format_text => #{ pattern => Pattern,
+                                              params => Params }}};
                 Other -> 
                     Other
             end;
         Other ->
             Other
     end;
+
+term(#{ type := format, 
+        date := DateSpec,
+        pattern := PatternSpec }, Settings) -> 
+    case term(PatternSpec, Settings) of 
+        {ok, Pattern} -> 
+            case term(DateSpec, Settings) of 
+                {ok, Date} -> 
+                    {ok, #{ format_date => #{ pattern => Pattern,
+                                         date => Date }}};
+                Other -> 
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 
 term(#{ type := sum,
         spec := Specs }, Settings) -> 
@@ -499,8 +515,7 @@ term(#{ type := view, spec := Spec}, Settings) ->
     end;
 
 term(#{ tag := Tag, attrs := AttrsSpec, children := ChildrenSpecs}, Settings) -> 
-    case term(#{ type => object,
-                 spec => AttrsSpec }, Settings) of 
+    case term(AttrsSpec, Settings) of 
         {ok, Attrs} ->
             case term(ChildrenSpecs, Settings) of 
                 {ok, Children} -> 
@@ -588,17 +603,27 @@ term(#{ type := condition,
             Other
     end;
 
-term(#{ key := K, in := InSpec }, Settings) ->
-    case term(InSpec, Settings) of 
-        {ok, In} -> 
-            {ok, #{ key =>  K,
-                    in => In}};
-        Other -> 
+term(#{ key := KeySpec, in := InSpec } = Spec, Settings) ->
+    case term(KeySpec, Settings) of 
+        {ok, Key} ->
+            case term(InSpec, Settings) of 
+                {ok, In} ->
+                    with_default(Spec, #{ key =>  Key,
+                                          in => In}, Settings);
+                Other -> 
+                    Other
+            end;
+        Other ->
             Other
     end;
 
-term(#{ key := K }, _) ->
-    {ok, #{ key => K }};
+term(#{ key := KeySpec } = Spec, Settings) ->
+    case term(KeySpec, Settings) of 
+        {ok, Key} ->
+            with_default(Spec, #{key => Key}, Settings);
+        Other ->
+            Other
+    end;
 
 term(object, _) -> 
     {ok, #{ type => object }};
@@ -727,10 +752,50 @@ term(#{ code := #{ lang := LangSpec,
             Other
     end;
 
+term(#{ chart := #{ type := Type,
+                    labels := Labels,
+                    data := Data,
+                    low := Low }}, Settings) ->
+    case term(Type, Settings) of 
+        {ok, T} ->
+            case term(Labels, Settings) of 
+                {ok, L} ->
+                    case term(Data, Settings) of 
+                        {ok, D} ->
+                            case term(Low, Settings) of 
+                                {ok, Lo} ->
+
+                                    {ok, #{ chart => #{ type => T,
+                                                        labels => L,
+                                                        low => Lo,
+                                                        data => D }}};
+                                Other ->
+                                    Other
+                            end;
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
 
 term(Map, _) when is_map(Map) andalso map_size(Map) =:= 0 ->
     {ok, #{}};
 
-term(Other, _) -> 
-    cmkit:warning({cmelementary, term, other, Other}),
-    {ok, Other}.
+term(Other, Settings) ->
+    term(#{ type => object,
+            spec => Other }, Settings).
+
+
+with_default(#{ default := DefaultSpec}, Compiled, Settings) ->
+    case term(DefaultSpec, Settings) of 
+        {ok, Default} ->
+            {ok, Compiled#{ default => Default }};
+        Other ->
+            Other
+    end;
+
+with_default(_, Compiled, _) -> {ok, Compiled}.

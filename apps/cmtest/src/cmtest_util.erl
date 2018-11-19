@@ -1,16 +1,104 @@
 -module(cmtest_util).
--export([start/4,
+-export([hash/1,
+         hash/2,
+         hash/3,
+         start/5,
          scenarios_by_tag/2,
          steps/2,
          run/3,
          close/2, 
+         report_entries/1,
          report_sort_fun/2,
          printable/1]).
 
-start(Test, Scenario, Settings, Runner) ->
+report_entries(#{ id := Id, 
+                  query := Q, 
+                  result := Result, 
+                  timestamp := TStamp,
+                  status := Status,
+                  seconds := Seconds,
+                  scenarios := #{ success := Passed,
+                                  fail := Failed,
+                                  total := Total }}=R) ->
+    Summary = report_summary(R),
+    Scenarios = lists:map(fun report_scenario_summary/1, Result),
+    QHash = hash(Q),
+    H = #{ label => TStamp,
+           status => Status,
+           duration => Seconds,
+           passed => Passed,
+           failed => Failed,
+           total => Total },
+
+    with_scenarios_entries(R, [{report, is, Id, Summary},
+                               {reports, QHash, Id, Id},
+                               {reports, all, TStamp, Id},
+                               {history, QHash, TStamp, H},
+                               {scenarios, all, Id, Scenarios}]).
+
+report_summary(R) ->
+    maps:with([ id,
+                timestamp,
+                query,
+                settings,
+                seconds,
+                status,
+                scenarios], R).
+
+report_scenario_summary(S) ->
+    maps:with([ elapsed,
+                scenario,
+                status,
+                test ], S).
+
+
+with_scenarios_entries(#{ id := Id,
+                          result := Scenarios,
+                          query := Test,
+                          timestamp := TStamp}, Entries) ->
+    lists:foldl(fun(#{ scenario := Title,
+                       status := Status,
+                       elapsed := Elapsed } = S, E0) ->
+                        SHash = hash(Test, Title),
+                        H = #{ label => TStamp, 
+                               duration => Elapsed,
+                               status => Status },
+                        E1 = [{scenario, Id, Title, S},
+                              {history, SHash, TStamp, H}],
+                        with_steps_entries(S#{ timestamp => TStamp}, E1++E0)
+                end, Entries, Scenarios).
+
+with_steps_entries(#{ steps := Steps,
+                     scenario := Scenario,
+                     timestamp := TStamp,
+                     test := Test }, Entries) ->
+
+    lists:foldl(fun(#{ millis := Millis,
+                       status := Status,
+                       step := #{ title := Step }}, E0) ->
+                    SHash = hash(Test, Scenario, Step),
+                    H = #{ label => TStamp, 
+                           status => Status,
+                           duration => Millis },
+                    [{history, SHash, TStamp, H}|E0]
+                end, Entries, Steps).
+
+
+
+
+hash(Test) -> cmkit:hash(cmkit:to_bin(Test)).
+hash(Test, Scenario) -> cmkit:hash(cmkit:bin_join([cmkit:to_bin(Test), Scenario])).
+hash(Test, Scenario, Step) -> cmkit:hash(cmkit:bin_join([cmkit:to_bin(Test), Scenario, Step])).
+
+
+
+
+
+
+start(Test, Scenario, Facts, Settings, Runner) ->
     case cmtest_util:steps(Scenario, Test) of 
         {ok, Steps} -> 
-            case cmtest_scenario_sup:start(Test, Scenario, Steps, Settings, Runner) of 
+            case cmtest_scenario_sup:start(Test, Scenario, Steps, Facts, Settings, Runner) of 
                 {ok, Pid} ->
                     {ok, Pid};
                 Other ->
@@ -216,7 +304,8 @@ run(#{ type := expect,
     In = World#{ settings => Settings },
     case cmencode:encode(Spec, In) of 
         {ok, false} -> retry;
-        {ok, true} -> {ok, World};
+        {ok, true} -> 
+            {ok, World};
         {ok, Encoded} ->
             {ok, World#{ data => maps:merge( Data, Encoded)}};
         Other -> 
@@ -353,22 +442,6 @@ run(#{ type := set,
            Other
    end;
 
-run(#{ as := As }=Spec, Settings, #{ data := Data}=World) ->
-    In = World#{ settings => Settings },
-    case cmencode:encode(As, In) of 
-        {ok, EncodedAlias} -> 
-            case cmencode:encode(Spec, In) of 
-                {ok, Encoded} ->
-                    Key = cmkit:to_atom(EncodedAlias),
-                    { ok, World#{ data => Data#{ Key => Encoded }}};
-                Other -> 
-                    Other
-            end;
-        Other ->
-            Other
-    end;
-
-
 run(#{ type := parallel,
        count := CountSpec,
        spec := Spec0 }, Settings, #{ data := _Data }=World) ->
@@ -383,24 +456,32 @@ run(#{ type := parallel,
             Other
     end;
 
-run(Spec, Settings, World) ->
-   case cmencode:encode(Spec, World#{ settings => Settings}) of 
-       {ok, _} -> 
-           {ok, World};
-       Other -> 
-           Other
-   end.
+run(Spec, Settings, #{ data := Data }=World) ->
+    In = World#{ settings => Settings },
+    case encode_alias(Spec, In) of 
+        {ok, Alias} ->
+            case cmencode:encode(Spec, In) of 
+                {ok, Encoded} ->
+                    { ok, World#{ data => Data#{ Alias => Encoded }}};
+                Other -> 
+                    Other
+            end;
+        Other ->
+            Other
+    end.
 
-%run(Step, _, _) ->
-%    {error, #{ error => unsupported,
-%               info => Step }}.
+
+encode_alias(#{ as := AliasSpec }, In) ->
+    case cmencode:encode(AliasSpec, In) of 
+        {ok, As} when is_binary(As) ->
+            {ok, cmkit:to_atom(As)};
+        Other ->
+            Other
+    end;
+
+encode_alias(_, _) -> {ok, latest }.
 
 close(#{ conns := _Conns }, _Pid) ->
-    %lists:foreach(fun(#{ name := Name,
-    %                     pid := Pid }) ->
-    %                      cmkit:log({cmtest, closing, Name, Pid})
-    %                      cmtest_ws_sup:stop(Pid)
-    %              end, maps:values(Conns)),
     ok.
 
 

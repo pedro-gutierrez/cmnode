@@ -53,6 +53,7 @@ load_cron(#{ name := Name,
     
     S = schedule(Schedule),
     Status = succeeded(attempted(Name, S, Jobs)),
+    cmkit:log({cron, Name, length(Status)}),
     Data#{ Name => Status }.
 
 succeeded(Results) ->
@@ -112,5 +113,4 @@ status(Data) ->
 
 schedule_job(Spec) ->
     Ref = erlcron:cron(Spec),
-    cmkit:log({cron, loaded, Spec, Ref}),
     {ok, Ref}.

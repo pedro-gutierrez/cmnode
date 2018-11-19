@@ -27,10 +27,12 @@ start_link(Name, Config, Owner) ->
     gen_statem:start_link(?MODULE, [Name, Config, Owner], []).
 
 init([Name, #{ debug := Debug, 
+               url := Url,
                host := _,
                port := _,
                path := _} = Config, Owner]) ->
     Log = cmkit:log_fun(Debug),
+    Log({cmwsc, Name, starting, Url}),
     {Conn, MRef} = connect(Config),
     {ok, connecting, #{ name => Name,
                         log => Log,

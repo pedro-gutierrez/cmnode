@@ -6,6 +6,7 @@
          get/2,
          get/3,
          get/4,
+         between/5,
          map/4,
          map/5,
          pipeline/2
@@ -28,6 +29,15 @@ get(Name, S) ->
 
 get(Name, S, P, O) ->
     merge(cmdb_util:inspect(Name, S, P, O)).
+
+between(Name, S, P, O1, O2) ->
+    EndFun = fun({S0, P0, O0, H, T}, V) when S0 =:= S andalso
+                                             P0 =:= P andalso
+                                             O0 < O2 -> {ok, {S0, P0, O0, H, T, V}};
+                (_, _) -> stop
+             end,
+
+    merge(cmdb_util:fold(Name, {S, P, O1, 0, 0}, EndFun)).
 
 map(Name, S, Match, Merge) ->
     cmdb_util:map(cmdb_config:storage(Name), Name, S, Match, Merge).

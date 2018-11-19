@@ -9,6 +9,8 @@ spec:
         method: "GET"
   update:
     hello:
+      model:
+        msg: "Rajoy"
       cmds:
         - effect: notify
           encoder: hello
@@ -20,5 +22,4 @@ spec:
         headers:
           content-type: "application/json; charset=utf-8"
         body:
-          object:
-            msg: hello
+          key: msg

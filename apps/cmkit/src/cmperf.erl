@@ -1,5 +1,5 @@
 -module(cmperf).
--export([bench/2, stats/0, procs/1, procs/0]).
+-export([bench/2, stats/0, procs/1, procs/0, gc/0]).
 
 bench(Fun, Limit) ->
     {Time, _ } = timer:tc(fun() -> 
@@ -20,6 +20,10 @@ stats() ->
   #{mem => maps:from_list(memsup:get_system_memory_data()),
     cpu => CpuInfo
    }.
+
+gc() ->
+    [ erlang:garbage_collect(Pid) || #{ pid := Pid} <- procs() ].
+
 
 procs() -> procs(5).
 

@@ -138,12 +138,50 @@ effect_apply(#{ query := report,
           end,
     cmcore:update(SessionId, #{ test_report => Res});
 
+effect_apply(#{ query := report_scenario,
+                report := Id,
+                scenario := Title }, SessionId) ->
+
+    Res = case cmtest:report_scenario(Id, Title) of 
+              {ok, S} -> S;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ test_report_scenario => Res});
+
 effect_apply(#{ query := status }, SessionId) ->
     Res = case cmtest:status() of 
               {ok, Status } -> Status;
               {error, E} -> E
           end,
-    cmcore:update(SessionId, #{ tests => Res }).
+    cmcore:update(SessionId, #{ tests => Res });
+
+
+effect_apply(#{ query := test_history,
+                test := Test }, SessionId) ->
+    Res = case cmtest:test_history(Test) of 
+              {ok, H} -> H;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ test_history => Res });
+
+effect_apply(#{ query := scenario_history,
+                test := Test,
+                scenario := Scenario }, SessionId) ->
+    Res = case cmtest:scenario_history(Test, Scenario) of 
+              {ok, H} -> H;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ test_scenario_history => Res });
+
+effect_apply(#{ query := step_history,
+                test := Test,
+                scenario := Scenario,
+                step := Step }, SessionId) ->
+    Res = case cmtest:step_history(Test, Scenario, Step) of 
+              {ok, H} -> H;
+              {error, E} -> E
+          end,
+    cmcore:update(SessionId, #{ test_step_history => Res }).
 
 metadata(Spec) ->
     maps:with([title, id, tags], Spec).

@@ -273,6 +273,35 @@ do(#{ name := Name,
             Other
     end;
 
+
+do(#{ name := _,
+      namespace := Ns,
+      resource := statefulset,
+      server := #{ api := Url,
+                   token := Token },
+      state := upgraded,
+      props := Props } = Params) ->
+    
+    case do(Params#{ state => scaled, replicas => 0 }) of 
+        ok ->
+            case await(#{ namespace => Ns,
+                          resource => pod,
+                          server => #{ api => Url,
+                                       token => Token },
+                          state => <<"Running">>,
+                          props => Props,
+                          retries => ?RETRIES,
+                          sleep => 1000,
+                          exact => 0 }) of 
+                ok -> 
+                    do(Params#{ state => patched })
+            end;
+        Other ->
+            Other
+    end;
+
+
+
 do(#{ name := Name,
       namespace := Ns,
       resource := statefulset,
@@ -293,7 +322,7 @@ do(#{ name := Name,
                         serviceName => ServiceName,
                         selector => #{ matchLabels => Labels },
                         template =>
-                        #{ metadata => #{ labels => Labels },
+                        #{ metadata => #{ labels => Labels#{ date => cmkit:to_bin(cmkit:now()) } },
                            spec => Spec } }},
 
     Ctx = ctx:background(),

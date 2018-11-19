@@ -61,15 +61,16 @@ spec:
       view:
         tag: div
         attrs:
-          class: "row"
-          key:
-            format:
-              pattern: "~a-~a"
-              params:
-                - key: database
-                  in: item
-                - key: env
-                  in: item
+          object:
+            class: "row"
+            key:
+              format:
+                pattern: "~a-~a"
+                params:
+                  - key: database
+                    in: item
+                  - key: env
+                    in: item
         children:
           - tag: div
             attrs: 

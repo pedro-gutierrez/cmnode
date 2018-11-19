@@ -8,8 +8,9 @@
         ]).
 
 init(Spec, #{ app := _, id := _}=Session) ->
-    {ok, Context} = cmcore_context_sup:start_context(Spec, Session, self()),
-    ok = gen_statem:call(Context, init). 
+    {ok, Pid} = cmcore_context_sup:start_context(Spec, Session, self()),
+    erlang:monitor(process, Pid),
+    ok = gen_statem:call(Pid, init). 
 
 update(Id, Data) when is_binary(Id) ->
     case global:whereis_name(Id) of 

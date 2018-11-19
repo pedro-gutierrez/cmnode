@@ -203,15 +203,16 @@ spec:
       view:
         tag: div
         attrs:
-          class: "row"
-          key: 
-            key: id
-            in: item
-          onclick:
-            object:
-              show_report:
-                key: id
-                in: item
+          object:
+            class: "row"
+            key: 
+              key: id
+              in: item
+            onclick:
+              object:
+                show_report:
+                  key: id
+                  in: item
         children:
           - tag: "div"
             attrs:
@@ -270,15 +271,16 @@ spec:
       view:
         tag: div
         attrs:
-          class: "row"
-          key:
-            key: name
-            in: item
-          onclick:
-            object:
-              show_test:
-                key: name
-                in: item
+          object:
+            class: "row"
+            key:
+              key: name
+              in: item
+            onclick:
+              object:
+                show_test:
+                  key: name
+                  in: item
         children:
           - tag: div
             attrs:

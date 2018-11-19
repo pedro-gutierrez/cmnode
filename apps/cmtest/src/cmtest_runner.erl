@@ -3,7 +3,7 @@
 -export([
          run/2,
          run/3,
-         progress/5,
+         progress/6,
          success/5,
          fail/5,
          stop/1,
@@ -26,8 +26,8 @@ run(Test, Scenarios, Settings) ->
             Other
     end.
 
-progress(T, S, Info, Elapsed, Pid) ->
-    gen_statem:cast(Pid, {progress, T, S, Info, Elapsed}).
+progress(T, S, Info, Rem, Elapsed, Pid) ->
+    gen_statem:cast(Pid, {progress, T, S, Info, Rem, Elapsed}).
 
 success(T, S, Info, Elapsed, Pid) ->
     gen_statem:cast(Pid, {success, T, S, Info, Elapsed}).
@@ -60,9 +60,10 @@ init([]) ->
                    failures => [] 
                  }}.
 
-ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
-                                                    spec := SettingsSpec }}, Data) ->
+ready({call, From}, {scenarios, #{ name := TestName }=Test, Scenarios, #{ name := SettingsName,
+                                                                          spec := SettingsSpec }}, Data) ->
     
+    cmkit:log({cmtest, TestName, SettingsName, length(Scenarios)}),
     Data2 = Data#{ report_to => From, 
                    settings => #{ name => SettingsName },
                    query => test,
@@ -70,32 +71,35 @@ ready({call, From}, {scenarios, Test, Scenarios, #{ name := SettingsName,
                    total => length(Scenarios),
                    success => 0,
                    fail => 0,
-                   result => [] },
+                   result => [],
+                   current => [] },
 
-    case cmencode:encode(SettingsSpec) of 
-        {ok, EncodedSettings} -> 
-            
-            EncodedSettings2 = case maps:get(opts, Test, undef) of 
-                                   undef -> EncodedSettings;
-                                   Opts -> 
-                                       maps:merge(EncodedSettings, Opts)
-                               end,
-            Data3 = Data2#{ settings => #{ name => SettingsName,
-                                           value => EncodedSettings2 }},
-            
-            case start_scenario(Test, Scenarios, Data3) of 
-                {ok, Data4} ->
-                    {keep_state, Data4, ok(From)}; 
-                {finished, Data4} ->
-                    report(Data4),
-                    {stop_and_reply, normal, ok(From)};
+    case encoded_settings(SettingsSpec, Test) of 
+        {ok, Settings} ->
+            case encoded_facts(Test, Settings) of 
+                {ok, Facts} ->
+
+                    Data3 = Data2#{ 
+                              facts => Facts,
+                              settings => #{ name => SettingsName,
+                                             value => Settings }},
+
+                    case start_scenario(Test, Scenarios, Data3) of 
+                        {ok, Data4} ->
+                            {keep_state, Data4, ok(From)}; 
+                        {finished, Data4} ->
+                            report(Data4),
+                            {stop_and_reply, normal, ok(From)};
+                        Other ->
+                            notify_error(Other, Data3),
+                            {stop_and_reply, normal, ok(From)}
+                    end;
                 Other ->
-                    notify_error(Other, Data3),
+                    notify_error(Other, Data2),
                     {stop_and_reply, normal, ok(From)}
             end;
-        
-        {error, E} ->
-            notify_error(E, Data2),
+        Other ->
+            notify_error(Other, Data2),
             {stop_and_reply, normal, ok(From)}
     end;
 
@@ -104,24 +108,31 @@ ready({call, From}, {stop, _}, #{ pid := Pid }=Data) ->
     cmtest_scenario:stop(Pid),
     {keep_state, Data#{ stats => null }, [{reply, From, ok}]};
 
-ready(cast, {progress, _, Scenario, StepsRem, Elapsed}, #{ pid := Pid }=Data) ->
-    notify_progress(Scenario, StepsRem, Elapsed, Data),
-    cmtest_scenario:next(Pid),
-    {keep_state, Data};
+ready(cast, {progress, _, Scenario, Step, StepsRem, Elapsed}, #{ pid := Pid,
+                                                                    current := C }=Data) ->
 
-ready(cast, {success, _, Title, _, Elapsed }, #{ 
-                                      test := #{ name := Name }=Test,
-                                      scenarios:= Rem,
-                                      success := Success,
-                                      result := Result
-                                    }=Data) ->
+    Data2 = Data#{ current => [Step#{ status => success, failure => #{} }|C]},
+    notify_progress(Scenario, StepsRem, Elapsed, Data2),
+    cmtest_scenario:next(Pid),
+    {keep_state, Data2};
+
+ready(cast, {success, TestTitle, Scenario, _, Elapsed }, #{ test := Test, 
+                                                            scenarios:= Rem,
+                                                            current := C,
+                                                            success := Success,
+                                                            result := R }=Data) ->
     
     Data2 = stop_scenario(Data),
-    Data3 = Data2#{ success => Success + 1, 
-                   result => [#{ test => Name,
-                                 scenario => Title, 
-                                 status => success,
-                                 elapsed => Elapsed }|Result] },
+    ScenarioResult = #{ test => TestTitle,
+                        scenario => Scenario,
+                        status => success,
+                        elapsed => Elapsed,
+                        failure => #{},
+                        steps => lists:reverse(C)},
+    Data3 = Data2#{ current => [],
+                    result => [ScenarioResult|R],
+                    success => Success + 1 },
+
     case start_scenario(Test, Rem, Data3) of 
         {ok, Data4} ->
             {keep_state, Data4};
@@ -133,21 +144,53 @@ ready(cast, {success, _, Title, _, Elapsed }, #{
             {stop, normal}
     end;
 
-ready(cast, {fail, _, Title, Info, Elapsed }, #{ test := Test, scenarios := Rem }=Data) ->
-    Data2 = data_with_failure(Test, Title, Info, Elapsed, Data),
-    case start_scenario(Test, Rem, Data2) of 
-        {ok, Data3} ->
-            {keep_state, Data3};
-        {finished, Data3} ->
-            report(Data3),
+ready(cast, {fail, TestTitle, Scenario, #{ failure := F} = Step, Elapsed }, #{ test := Test, 
+                                                                               scenarios := Rem,
+                                                                               current := C,
+                                                                               result := R,
+                                                                               fail := Fail }=Data) ->
+
+    
+    Data2 = stop_scenario(Data),
+    ScenarioResult = #{ test => TestTitle,
+                        scenario => Scenario,
+                        status => fail,
+                        elapsed => Elapsed,
+                        failure => F,
+                        steps => lists:reverse([Step#{ status => fail }|C])},
+    Data3 = Data2#{ current => [],
+                    result => [ScenarioResult|R],
+                    fail => Fail + 1 },
+
+    case start_scenario(Test, Rem, Data3) of 
+        {ok, Data4} ->
+            {keep_state, Data4};
+        {finished, Data4} ->
+            report(Data4),
             {stop, normal};
         {error, E} ->
-            notify_error(E, Data2),
+            notify_error(E, Data3),
             {stop, normal}
     end.
     
 terminate(_, _, _) ->
     ok.
+
+
+encoded_settings(Spec, Test) ->
+    case cmencode:encode(Spec) of 
+        {ok, S} -> 
+            case maps:get(opts, Test, undef) of 
+                undef -> {ok, S};
+                Opts -> 
+                    {ok, maps:merge(S, Opts)}
+            end;
+        Other ->
+            Other
+    end.
+
+encoded_facts(#{ facts := Facts }, Settings) ->
+    cmencode:encode(Facts, #{ settings => Settings }).
 
 start_test([], Data) ->
     {finished, Data#{ finished => cmkit:now() }};
@@ -162,42 +205,40 @@ start_scenario(_, [], #{ tests := [] } = Data) ->
 start_scenario(_, [], #{ tests := Tests }=Data) ->
     start_test(Tests, Data);
 
-start_scenario(Test, [#{title := Title}=S|Rem], #{ settings := #{ value := Settings } }=Data) ->
-    case cmtest_util:start(Test, S, Settings, self() ) of 
+start_scenario(#{ name := TestTitle }=Test, [#{title := ScenarioTitle}=S|Rem], #{ facts := Facts,
+                                                                                  result := R,
+                                                                                  fail := Fail,
+                                                                                  settings := #{ value := Settings } }=Data) ->
+    case cmtest_util:start(Test, S, Facts, Settings, self() ) of 
         {ok, Pid} ->
+
             Data2 = Data#{ 
                       pid => Pid,
-                      scenarios => Rem
+                      scenarios => Rem,
+                      started => cmkit:now()
                      },
             cmtest_scenario:next(Pid),
             {ok, Data2};
         {error, E} ->
-            Data2 = data_with_failure(Test, Title, #{ reason => E,
-                                                      step => #{},
-                                                      world => #{} }, 0, Data#{ scenarios => Rem }),
+
+            ScenarioResult = #{ test => TestTitle,
+                                scenario => ScenarioTitle,
+                                status => fail,
+                                elapsed => 0,
+                                failure => E,
+                                steps => [] },
+            
+            Data2 = Data#{ current => [],
+                            result => [ScenarioResult|R],
+                            fail => Fail + 1 },
+
             start_scenario(Test, Rem, Data2)
     end;
 
 start_scenario(_, _, Data) ->
     {finished, Data#{ finished => cmkit:now() }}.
 
-data_with_failure(Test, Title, #{ step := _, world := _, reason := _ } = Error, Elapsed, #{ log := Log,
-                                                                                            test := #{ name := Name }=Test,
-                                                                                            scenarios := Rem,
-                                                                                            fail := Fail,
-                                                                                            result := Result } = Data) -> 
-    
-    Log({cmtest, Name, failed, Title, remaining, length(Rem)}),
-    Data2 = stop_scenario(Data),
-    Data3 = Data2#{ fail => Fail + 1, result => [#{ test => Name, 
-                                                    scenario => Title,
-                                                    status => fail,
-                                                    failure => Error,
-                                                    elapsed => Elapsed }|Result] },
-    Data3.
-
 stop_scenario(#{ pid := Pid }=Data) ->
-    cmkit:log({cmtest, stopping_senario, Pid}),
     ok = cmtest_scenario:stop(Pid),
     maps:without([pid], Data);
 
@@ -224,12 +265,6 @@ report(#{ settings := #{ name := SettingsName }=Settings,
                fail => Fail,
                seconds => Secs },
         
-    Failures = lists:filter(fun(#{ status := fail }) -> true;
-                               (_) -> false 
-                            end, Result),
-   
-
-
     Report = #{ timestamp => cmkit:now(),
                 query => Q,
                 settings => SettingsName,
@@ -238,7 +273,7 @@ report(#{ settings := #{ name := SettingsName }=Settings,
                 seconds => Secs,
                 result => Result},
 
-    cmkit:S({cmtest, Q, SettingsName, Failures, Stats, Secs}),
+    cmkit:S({cmtest, Q, SettingsName, Stats, Secs}),
     save_report(Report),
     finish(Data),
     
@@ -289,17 +324,12 @@ severity(_, _, _) -> warning.
 query(#{ query := all }) -> all;
 query(#{ query := test, test := #{ name := Name}}) -> Name.
 
-save_report(#{ query := Query} = Report) -> 
+save_report(#{ query := Query } = R) -> 
     Id = cmkit:uuid(),
-    Now = calendar:local_time(), 
-    Pairs = [{report, is, Id, Report#{ id => Id }},
-             {report, Query, Id, Id},
-             {report, cmcalendar:to_bin(Now, year), Id, Id},
-             {report, cmcalendar:to_bin(Now, month), Id, Id},
-             {report, cmcalendar:to_bin(Now, date), Id, Id}],
-
-    cmkit:log({cmtest, report, Id}),
-    cmdb:put(tests, Pairs).
+    Pairs = cmtest_util:report_entries(R#{ id => Id }), 
+    Res = cmdb:put(tests, Pairs),
+    cmkit:log({cmtest, report, Query, Id, length(Pairs), Res}),
+    Res.
 
 webhook(#{ settings := #{ name := SettingsName,
                           value := Settings }}=Data, Summary) ->

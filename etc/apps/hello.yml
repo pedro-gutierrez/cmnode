@@ -3,7 +3,7 @@ type: app
 category: api
 name: hello 
 spec:
-  debug: true 
+  debug: false 
   modules:
     - hello
   config:

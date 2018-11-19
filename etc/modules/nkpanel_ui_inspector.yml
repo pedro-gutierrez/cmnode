@@ -93,8 +93,9 @@ spec:
       view:
         tag: div
         attrs:
-          key: 
-            key: id
+          object:
+            key: 
+              key: id
         children:
           - view: icon-right
             params:

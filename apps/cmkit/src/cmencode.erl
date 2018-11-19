@@ -73,25 +73,29 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
     end;
 
 
-encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
+encode(#{ key := Key, in := At } = Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
     case encode(#{ key => At }, In, Config) of 
         {ok, In2} ->
-            encode(#{ key => Key }, In2, Config);
+            encode(maps:without([in], Spec), In2, Config);
         Other -> 
             Other
     end;
 
-encode(#{ key := Key}, In, _) when is_binary(Key) or is_atom(Key) ->
+encode(#{ key := Key} = Spec, In, Config) when is_binary(Key) or is_atom(Key) ->
     case is_map(In) of 
         true ->
             case cmkit:value_at(Key, In) of
                undef ->
-                    E = #{ status => missing_key,
-                           key => Key,
-                           keys => maps:keys(In) },
-                    cmkit:danger({cmencode, E}),
-                   
-                    {error, E};
+                    case maps:get(default, Spec, undef) of 
+                        undef ->
+                            E = #{ status => missing_key,
+                                   key => Key,
+                                   keys => maps:keys(In) },
+                            cmkit:danger({cmencode, E}),
+                            {error, E};
+                        Default ->
+                            encode(Default, In, Config)
+                    end;
                V ->
                    {ok, V}
            end;
@@ -310,10 +314,10 @@ encode(#{ type := config,
     end;
 
 encode(#{ type := url,
-          host := Host,
-          port := Port,
-          transport := Transport,
-          path := Path }=Spec, In, Config) ->
+          spec := #{ host := Host,
+                     port := Port,
+                     transport := Transport,
+                     path := Path }=Spec}, In, Config) ->
     case encode(Host, In, Config) of 
         {ok, EncodedHost} ->
             case encode(Port, In, Config) of 
@@ -361,6 +365,20 @@ encode(#{ type := url,
         Other -> Other
     end;
 
+
+encode(#{ type := url,
+          spec := Spec}, In, Config) ->
+    
+    case encode(Spec, In, Config) of 
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _ } = Url} ->
+            encode(#{ type => url, spec => Url}, In, Config);
+        Other ->
+            Other
+    end;
+
 encode(#{ type := request,
           as := As,
           spec := Spec }, In, Config) ->
@@ -377,67 +395,52 @@ encode(#{ type := request,
 encode(#{ type := http,
           method := Method,
           url := Url,
-          body := Body,
-          headers := Headers }, In, Config) ->
-    case encode(Headers, In, Config) of 
-        {ok, H} ->
-            encode_http(Method, Url, H, Body, In, Config);
-        Other -> Other
-    end;
+          body := Body }=Spec, In, Config) ->
+    
+    H = case maps:get(headers, Spec, undef) of 
+            undef -> #{};
+            H0 -> H0
+        end,
+    
+    Q = case maps:get(query, Spec, undef) of 
+            undef -> #{};
+            Q0 -> Q0
+        end,
+
+    D = maps:get(debug, Spec, false),
+            
+
+    encode_http(Method, Url, Q, H, D, Body, In, Config);
+
 
 encode(#{ type := http,
           method := Method,
-          url := Url,
-          headers := Headers }, In, Config) ->
-    case encode(Headers, In, Config) of 
-        {ok, H} ->
-            encode_http(Method, Url, H, In, Config);
-        Other -> Other
-    end;
+          url := Url }=Spec, In, Config) ->
 
-encode(#{ type := http,
-          method := _,
-          url := _ }=Spec, In, Config) ->
-    encode(Spec#{ headers => #{}}, In, Config);
+    H = case maps:get(headers, Spec, undef) of 
+            undef -> #{};
+            H0 -> H0
+        end,
+    
+    Q = case maps:get(query, Spec, undef) of 
+            undef -> #{};
+            Q0 -> Q0
+        end,
+    
+    D = maps:get(debug, Spec, false),
+    
+    encode_http(Method, Url, Q, H, D, In, Config);
+
+
+encode(#{ type := http } = Spec, _, _) ->
+    encode_error(unsupported_http, Spec);
 
 
 encode( #{ type := exec,
            spec := #{ type := http } = Spec}, In, Config) ->
     case encode(Spec, In, Config) of 
-        {ok, #{ method := M,
-                url := Url,
-                headers := Headers,
-                body := Body }} ->
-                
-            cmkit:log({cmencode, http, out, M, Url, Headers, Body}),
-            Res = cmhttp:M(Url, Headers, Body),
-            cmkit:log({cmencode, http, in, Res}),
-            Res;
-        
-        {ok, #{ method := M, 
-                url := Url,
-                headers := Headers }} ->
-            
-            cmkit:log({cmencode, http, out, M, Url, Headers}),
-            Res = cmhttp:M(Url, Headers),
-            cmkit:log({cmencode, http, in, Res}),
-            Res;
-        
-        {ok, #{ method := get, 
-                url := Url }} ->
-            
-            cmkit:log({cmencode, http, out, get, Url}),
-            Res = cmhttp:get(Url),
-            cmkit:log({cmencode, http, in, Res}),
-            Res;
-        
-        {ok, #{ method := delete, 
-                url := Url }} ->
-            
-            cmkit:log({cmencode, http, out, delete, Url}),
-            Res = cmhttp:delete(Url),
-            cmkit:log({cmencode, http, in, Res}),
-            Res;
+        {ok, #{ url := Url } = Req} when is_binary(Url) ->
+            cmhttp:do(Req);
         
         {ok, U} when is_binary(U) ->
             case cmkit:prefix(U, <<"http">>) of 
@@ -447,12 +450,7 @@ encode( #{ type := exec,
                                data => In,
                                reason => U}};
                 _ -> 
-
-
-                    cmkit:log({cmencode, http, out, get, U}),
-                    Res = cmhttp:get(U),
-                    cmkit:log({cmencode, http, in, Res}),
-                    Res
+                    cmhttp:do(#{ url => U })
             end;
 
         {ok, Other} ->
@@ -654,6 +652,15 @@ encode(#{ type := s3,
             Other
     end;
 
+encode(#{ type := git,
+          spec := #{ action := pull,
+                     dir := Dir }}, In, Config) ->
+    case cmencode:encode(Dir, In, Config) of
+        {ok, D} ->
+            cmgit:pull(D);
+        Other ->
+            Other
+    end;
 
 encode(#{ type := erlang,
           mod := M,
@@ -990,6 +997,23 @@ encode(#{ type := sort,
             Other
     end;
 
+encode(#{ type := encode,
+          source := SourceSpec,
+          as := AsSpec,
+          dest := DestSpec }, In, Config) ->
+    
+    case cmencode:encode(SourceSpec, In, Config) of
+        {ok, Source} ->
+            case map(DestSpec, In, Config, Source, AsSpec) of 
+                {ok, [Encoded]} ->
+                    {ok, Encoded};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 encode(#{ type := iterate, 
           source := SourceSpec,
           filter := FilterSpec,
@@ -1078,9 +1102,7 @@ encode(#{ type := merge,
           spec := Specs } = Spec, In, Config) -> 
     case encode_all(Specs, In, Config) of 
         {ok, EncodedTerms} ->
-            {ok, lists:foldl(fun(M, Acc) -> 
-                                     maps:merge(Acc, M)
-                             end, #{}, EncodedTerms) };
+            merge_maps(EncodedTerms);
         {error, E} -> 
             fail(Spec, In, E)
     end;
@@ -1321,17 +1343,22 @@ map(Dest, In, Config, Source, AsSpec) ->
 
 map(_, _, _, [], _, Out) ->  {ok, lists:reverse(Out)};
 map(DestSpec, In, Config, [Item|Rem], As, Out) -> 
-    In2 = case As of 
-             none -> Item;
-             _ -> 
-                 In#{ As => Item }
-         end,
-    case cmencode:encode(DestSpec, In2, Config) of 
+    case map(DestSpec, In, Config, Item, As, Out) of 
         {ok, Encoded} ->
             map(DestSpec, In, Config, Rem, As, [Encoded|Out]);
         Other -> 
             Other
-    end.
+    end;
+
+map(DestSpec, In, Config, Item, As, _) ->
+     In2 = case As of
+             none -> 
+                   maps:merge(In, Item);
+             _ ->
+                 In#{ As => Item }
+         end,
+    cmencode:encode(DestSpec, In2, Config).
+
 
 fail(Spec, In, Out) ->
     {error, #{ status => encode_error,
@@ -1424,77 +1451,83 @@ encode_retry(Retries, Millis, Condition, In, Config) ->
             encode_retry(Retries-1, Millis, Condition, In, Config)
     end.
 
-encode_http(Method, Url, H, Body, In, Config) ->
-    case encode(Url, In, Config) of 
-        {ok, #{ url := U }} ->
+encode_http(Method, Url, Query, Headers, Debug, Body, In, Config) ->
+    case encode_http(Method, Url, Query, Headers, Debug, In, Config) of 
+        {ok, Spec} ->
             case encode(Body, In, Config) of 
                 {ok, multipart, B, Boundary} ->
-                    {ok, #{ url => U,
-                            method => Method,
-                            headers => H#{ 'content-type' => 
-                                           "multipart/form-data; boundary=" 
-                                           ++ binary_to_list(Boundary) },
-                            body => B }}; 
+                    #{ headers := H } = Spec,
+                    {ok, Spec#{ body => B,
+                                headers => H#{ 'content-type' => 
+                                               "multipart/form-data; boundary=" 
+                                               ++ binary_to_list(Boundary) }}};
                 {ok, B} ->
-                    {ok, #{ url => U,
-                            method => Method,
-                            headers => H,
-                            body => B }}; 
-                Other -> Other
+                    {ok, Spec#{ body => B}};
+                Other -> 
+                    Other
             end;
+        Other ->
+            Other
+    end.
+
+encode_http(Method, Url, Query, Headers, Debug, In, Config) ->
+    case encode(Headers, In, Config) of
+        {ok, H} ->
+            case encode(Query, In, Config) of 
+                {ok, Q} ->
+                    case encode(Debug, In, Config) of 
+                        {ok, D} ->
+                            case encode_url(Url, In, Config) of 
+                                {ok, #{ url := U }} ->
+                                    {ok, #{ url => U,
+                                            debug => D,
+                                            method => Method,
+                                            headers => H,
+                                            query => Q}};
+                                Other ->
+                                    Other
+                            end;
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
+
+encode_url(Url, In, Config) ->
+    case encode(Url, In, Config) of
+        {ok, #{ url := _ } = Spec} ->
+            {ok, Spec};
+        
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _ } = Spec} ->
+            encode_url(#{ type => url,
+                          spec => Spec }, In, Config);
+        
         {ok, U} when is_binary(U) -> 
-            case encode(Body, In, Config) of 
-                {ok, multipart, B, Boundary} ->
-                    {ok, #{ url => U,
-                            method => Method,
-                            headers => H#{ 'content-type' => 
-                                           "multipart/form-data; boundary=" 
-                                           ++ binary_to_list(Boundary) },
-                            body => B }}; 
-                {ok, B} ->
-                    {ok, #{ url => U,
-                            method => Method,
-                            headers => H,
-                            body => B }}; 
-                Other -> Other
-            end;
-        {ok, #{ host := _,
-                port := _,
-                transport := _,
-                path := _ } = Spec} ->
-            encode_http(Method, Spec#{ type => url }, H, Body, In, Config);
+            {ok, #{ url => U }};
 
-        Other -> 
-            {error, #{ error => encode_url,
-                       url => Url,
-                       reason => Other }}
-    end.
-
-encode_http(Method, Url, H, In, Config) ->
-    case encode(Url, In, Config) of 
-        {ok, #{ url := U }} ->
-            {ok, #{ url => U,
-                    method => Method,
-                    headers => H }}; 
-        Url when is_binary(Url) ->
-            {ok, #{ url => Url,
-                    method => Method }};
-        {ok, #{ host := _,
-                port := _,
-                transport := _,
-                path := _ } = Spec} ->
-            encode_http(Method, Spec#{ type => url }, H, In, Config);
-
-        {ok, U} when is_binary(U) ->
-            {ok, #{ url => U,
-                    method => Method }};
-        Other -> 
-            {error, #{ error => encode_url,
-                       url => Url,
-                       reason => Other }}
+        U when is_binary(U) ->
+            {ok, #{ url => U }}
     end.
 
 
+merge_maps(Maps) -> merge_maps(Maps, #{}).
+merge_maps([], Out) -> {ok, Out};
+merge_maps([M|Rem], Out) when is_map(M) ->
+    merge_maps(Rem, maps:merge(Out, M));
+merge_maps([Other|_], _) ->
+    encode_error(not_a_map, Other).
+
+encode_error(R, Data) ->
+    {error, #{ error => R,
+               data => Data }}.
 
 all_equal([V|Rem]) -> all_equal(Rem, V).
 all_equal([], _) -> true;

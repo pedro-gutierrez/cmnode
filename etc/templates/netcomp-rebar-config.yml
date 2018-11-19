@@ -10,8 +10,10 @@ spec:
       debug_info, warnings_as_errors, {parse_transform, lager_transform}
     ]}.
 
+    {overrides, [
+             {del, [{erl_opts, [warnings_as_errors]}]}]}.
+
     {deps, [
-      {cuttlefish, {git, "git://github.com/basho/cuttlefish.git", {tag, "2.0.11"}}},
       {nkservice, {git, "https://github.com/netcomposer/nkservice", {branch, "v09"}}},
       {nkdomain, {git, "https://github.com/netcomposer/nkdomain", {branch, "v09"}}},
       {nkchat, {git, "https://github.com/netcomposer/nkchat", {branch, "v09"}}}, 
@@ -26,15 +28,6 @@ spec:
       {nkimage, {git, "https://github.com/netcomposer/nkimage", {branch, "master"}}},
       {media_converter, {git, "https://github.com/pedro-gutierrez/media-converter", {branch, "master"}}}]}.
 
-    {project_plugins, [ 
-      {rebar3_cuttlefish, "0.14.0"}
-    ]}.
-    
-    {cuttlefish, [
-      %{file_name, "netcomp.conf.example"},
-      {schema_discovery, false}
-    ]}.
-
     {profiles, [
       {prod, [
         {relx, [
@@ -46,7 +39,6 @@ spec:
   
     {relx, [
       {release, {netcomp, "0.0.1"}, [
-        {cuttlefish, load},
         netcomp
       ]},
     
@@ -59,15 +51,4 @@ spec:
         {mkdir, "etc"},
         {mkdir, "share/schema"},
         {mkdir, "data"},
-        {mkdir, "log"},   
-        {template, "schema/nklib.schema", "share/schema/01-nklib.schema"},
-        {template, "schema/nkbase.schema", "share/schema/01-nkbase.schema"},
-        {template, "schema/nkmail.schema", "share/schema/01-nkmail.schema"},
-        {template, "schema/nkdomain.schema", "share/schema/01-nkdomain.schema"},
-        {template, "schema/nkswarm.schema", "share/schema/01-nkswarm.schema"},
-        {template, "schema/nkstats.schema", "share/schema/01-nkstats.schema"},
-        {template, "schema/sipstorm.schema", "share/schema/01-sipstorm.schema"},
-        {template, "schema/sphera.schema", "share/schema/01-sphera.schema"},
-        {template, "schema/lager.schema", "share/schema/02-lager.schema"},
-        {template, "schema/sasl.schema", "share/schema/02-sasl.schema"},
-        {template, "schema/erlang_vm.schema", "share/schema/03-erlang_vm.schema"} ]}]}.
+        {mkdir, "log"}]}]}.

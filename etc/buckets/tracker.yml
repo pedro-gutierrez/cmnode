@@ -5,4 +5,4 @@ spec:
   storage: disc
   consistency: strong
   replication: none
-  debug: true
+  debug: false

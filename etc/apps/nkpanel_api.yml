@@ -3,7 +3,7 @@ type: app
 category: api
 name: nkpanel_api
 spec:
-  debug: true 
+  debug: false
   timeout: 600000
   modules:
     - common_api

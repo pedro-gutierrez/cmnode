@@ -167,15 +167,16 @@ spec:
       view:
         tag: div
         attrs:
-          class: "row"
-          key: 
-            key: backup
-            in: item
-          onclick:
-            object:
-              name: "select_backup"
-              backup:
-                key: item
+          object:
+            class: "row"
+            key: 
+              key: backup
+              in: item
+            onclick:
+              object:
+                name: "select_backup"
+                backup:
+                  key: item
         children:
           - tag: div
             attrs:

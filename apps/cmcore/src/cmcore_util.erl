@@ -13,12 +13,13 @@ init(_, _) -> {ok, #{}, []}.
 
 update_spec(#{ update := Updates, encoders := Encoders }, Msg, Data, Model, Config) ->
     case maps:get(Msg, Updates, undef) of
-        undef -> 
+        undef ->
             {error, #{  update => not_implemented, msg => Msg }};
         Clauses ->
-            In = #{ model => Model, data => Data },
-            case first_clause(Clauses, Encoders, In, Config) of 
-                none -> 
+            %In = #{ model => Model, data => Data },
+            In = maps:merge(Model, Data),
+            case first_clause(Clauses, Encoders, In, Config) of
+                none ->
                     {error, #{  update => none_applies, msg => Msg }};
                 Spec ->
                     {ok, Spec}
@@ -30,7 +31,7 @@ update_spec(_, Msg, _, _, _) ->
 
 first_clause([], _, _, _) -> none;
 first_clause([#{ condition := Cond}=Spec|Rem], Encoders, In, Config) ->
-    case cmeval:eval(Cond, Encoders, In, Config) of 
+    case cmeval:eval(Cond, Encoders, In, Config) of
         true -> Spec;
         false -> first_clause(Rem, Encoders, In, Config)
     end.
@@ -42,7 +43,7 @@ decode([], _, _) -> {error, no_match};
 
 decode([#{ msg := Msg, spec := Spec}|Rem], Data, Config) ->
     case cmdecode:decode(Spec, Data, Config) of
-        no_match -> 
+        no_match ->
             decode(Rem, Data, Config);
         {ok, Decoded} ->
             {ok, Msg, Decoded}
@@ -55,12 +56,12 @@ update(App, Spec, Config) -> update(App, Spec, Config, #{}).
 update(App, Spec, Config, In) -> update(App, Spec, Config, In, {#{}, []}).
 
 update(App, #{ model := M, cmds := C }, Config, In, {Model, Cmds}) ->
-    case update_model(M, In, Config, Model) of 
-        {ok, M2} -> 
-            case resolve_cmds(App, C) of 
+    case update_model(M, In, Config, Model) of
+        {ok, M2} ->
+            case resolve_cmds(App, C) of
                 {ok, C2} ->
                     {ok, M2, Cmds ++ C2};
-                {error, E} -> 
+                {error, E} ->
                     {error, E}
             end;
         {error, E} -> {error, E}
@@ -73,7 +74,7 @@ resolve_cmds(App, Cmds) ->
 
 resolve_cmds(_, [], Out) -> {ok, lists:reverse(Out)};
 resolve_cmds(App, [Cmd|Rem], Out) ->
-    case resolve_cmd(App, Cmd) of 
+    case resolve_cmd(App, Cmd) of
         {ok, Cmd2} ->
             resolve_cmds(App, Rem, [Cmd2|Out]);
         {error, E} -> {error, E}
@@ -102,16 +103,16 @@ unknown_encoder(Enc) ->
 
 
 update_model(Spec, In, Config, Prev) ->
-    case cmencode:encode(Spec, maps:merge(Prev, In), Config) of 
+    case cmencode:encode(Spec, maps:merge(Prev, In), Config) of
         {ok, New} ->
             {ok, maps:merge(Prev, New)};
         Other -> Other
     end.
 
 cmds([], _, _, _) -> ok;
-cmds([#{ effect := Effect, 
+cmds([#{ effect := Effect,
          encoder := Spec }|Rem], Model, Config, Session) ->
-    case cmencode:encode(Spec, Model, Config) of 
+    case cmencode:encode(Spec, Model, Config) of
         {error, Error} ->
             cmkit:danger({cmcore, Effect, Spec, Error});
         {ok, Data} ->
@@ -120,17 +121,19 @@ cmds([#{ effect := Effect,
     cmds(Rem, Model, Config, Session);
 
 cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
-    apply_effect(Effect, nothing, Session), 
+    apply_effect(Effect, nothing, Session),
     cmds(Rem, Model, Config, Session).
 
-apply_effect(Effect, Data, #{ effects := Effects, effect := Pid, id := Id }) ->
-    case maps:get(Effect, Effects, undef) of 
+apply_effect(Effect, Data, #{ effects := Effects, id := Id }) ->
+    case maps:get(Effect, Effects, undef) of
         undef ->
             cmkit:danger({cmcore, not_such_effect, Effect, Data}),
             cmcore:update(Id, #{ error => no_such_effect,
                                  effect => Effect,
                                  data => Data });
-        Mod -> 
-            cmcore_effect:apply(Pid, Mod, Data)
+        Mod ->
+            spawn(fun() ->
+                          Mod:effect_apply(Data, Id)
+                  end)
     end,
     ok.

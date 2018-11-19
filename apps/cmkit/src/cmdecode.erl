@@ -43,16 +43,11 @@ decode_object([Key|Rem], Spec, Data, Context, Out) when is_map(Data) ->
         undef -> 
             no_match;
         _ -> 
-            %DecodeSpec = case maps:get(relates_to, KeySpec, undef) of 
-            %                 undef -> 
-            %                     KeySpec;
-            %                 OtherKey ->
-            %                     KeySpec#{ value => cmkit:value_at(OtherKey, Data) }
-            %             end,
             case decode_term(KeySpec, Value, Context) of 
                 {ok, Decoded} ->
                     decode_object(Rem, Spec, Data, Context, Out#{ Key => Decoded});
-                no_match -> no_match
+                no_match -> 
+                    no_match
             end
 
     end.
@@ -329,6 +324,24 @@ decode_term(#{ one_of := Specs }, In, Config) when is_list(Specs) ->
 decode_term(#{ all := Specs }, In, Config) when is_list(Specs) ->
     decode_all_specs(Specs, In, Config);
 
+decode_term(#{ type := member,
+               spec := Spec }, In, Config) ->
+    case cmencode:encode(Spec, In, Config) of
+        {ok, Members} when is_list(Members) ->
+            case lists:member(In, Members) of 
+                true ->
+                    {ok, In};
+                false ->
+                    no_match
+            end;
+        {ok, Other} ->
+            cmkit:warning({cmdecode, member, Spec, not_a_list, Other}),
+            no_match;
+        Other ->
+            cmkit:danger({cmdecode, member, Spec, Other}),
+            no_match
+    end;
+
 decode_term(Spec, Data, Context) when is_map(Spec) -> 
     case cmencode:encode(Spec, Context) of 
         {ok, Expected} when is_map(Expected) -> 
@@ -336,12 +349,13 @@ decode_term(Spec, Data, Context) when is_map(Spec) ->
         {ok, Expected} ->
            decode_term(Expected, Data, Context); 
         Other -> 
-            cmkit:danger({cmdecode, spec_encoding, Spec, Other}),
+            cmkit:danger({cmencode, Spec, Other}),
             no_match
     end;
 
 decode_term(V, V, _) -> {ok, V};
-decode_term(_, _, _) -> no_match.
+decode_term(_, _, _) ->
+    no_match.
 
 
 decode_first_spec([], _, _) -> no_match;
