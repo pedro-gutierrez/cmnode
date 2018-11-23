@@ -1,4 +1,4 @@
-run=@export CMHOME=~/Projects/$1; export CMSLACK=$2; export CMNODE=$1; export CODE_LOADING_MODE=embedded; export RELX_REPLACE_OS_VARS=true; rebar3 release; _build/default/rel/cmnode/bin/cmnode console
+run=@export CMHOME=~/Projects/$1; export CMSLACK=$2; export CMNODE=$1; export CODE_LOADING_MODE=interactive; export RELX_REPLACE_OS_VARS=true; rebar3 release; _build/default/rel/cmnode/bin/cmnode console
 
 
 cmnode:
@@ -6,6 +6,9 @@ cmnode:
 
 nkadmin:
 	$(call run,"nkadmin","false")
+
+dkv-notifications:
+	$(call run,"dkv-notifications","false")
 
 ci:
 	$(call run,"ci","false")

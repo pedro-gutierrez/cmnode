@@ -1,6 +1,23 @@
 -module(cmcode).
 
--export([compile/1]).
+-export([load_beams/2, compile/1]).
+
+load_beams(App, Prefix) ->
+    Dir = code:lib_dir(App, ebin),
+    Files = cmkit:files(Dir, ".beam"),
+    Mods = lists:foldl(fun(F, Mods) ->
+                      ModName = filename:rootname(filename:basename(F)),
+                      case cmkit:prefix(ModName, Prefix) of
+                          no_match -> Mods;
+                          _ ->
+                              ModFile = Dir ++ "/" ++ ModName,
+                              Mod = cmkit:to_atom(ModName),
+                              code:purge(Mod),
+                              code:load_abs(ModFile),
+                              [Mod|Mods]
+                      end
+              end, [], Files),
+    Mods.
 
 compile(#{ module := Module,
            functions := Functions }) ->
@@ -24,8 +41,12 @@ compile(#{ module := Module,
                           erl_syntax:atom(Fun), [ compile(C) || C <- maps:get(clauses, maps:get(Fun, Functions)) ])) 
                       || Fun <- maps:keys(Functions) ],
 
-    {ok, Mod, Bin} = compile:forms([ModForm, ExportForm] ++ FunctionForms),
-    code:load_binary(Mod, [], Bin);
+    case compile:forms([ModForm, ExportForm] ++ FunctionForms) of 
+        {ok, Mod, Bin} -> 
+            code:load_binary(Mod, [], Bin);
+        Other ->
+            cmkit:danger({code, Other})
+    end;
 
 compile(#{ vars := Vars,
            body := Body }) ->

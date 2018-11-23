@@ -1,0 +1,28 @@
+version: 1.0
+type: template
+name: config2
+spec:
+  contents: |-
+    -module(cmconfig).
+    -export([
+    {% for t in types %}
+      {{ t.plural }}/0,
+      {{ t.singular }}/1,
+    {% endfor %}
+      types/0
+    ]).
+    
+    types() -> {{ types | length }}.
+
+
+    {% for t in types %}
+    {{ t.plural }}() -> maps:values(cmconfig_index:get({{ t.singular }})).
+
+    {{ t.singular }}(N) ->
+      K = cmkit:to_atom(N),
+      I = cmconfig_index:get({{ t.singular }}),
+      case maps:get(K, I, undef) of
+        undef -> {error, not_found};
+        V -> {ok, V}
+      end.
+    {% endfor %}

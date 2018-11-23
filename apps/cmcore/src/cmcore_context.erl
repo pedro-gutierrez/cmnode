@@ -30,11 +30,9 @@ initializing({call, From}, init,  #{app := App,
                                     config := Config0,
                                     debug := Debug,
                                     timeout := Timeout, 
-    %                                id := Id,
                                     spec := Spec}=Session) ->
     
     Log = cmkit:log_fun(Debug),
-    Effects = cmconfig:effects(),
     %{ok, Effect} = cmcore_effect_sup:start_effect(Id),
     Config = case maps:get(encoders, Spec, undef) of 
                   undef -> Config0;
@@ -46,8 +44,6 @@ initializing({call, From}, init,  #{app := App,
             {next_state, ready, Session#{ 
                                   config => Config,
                                   log => Log,
-    %                              effect => Effect,
-                                  effects => Effects,
                                   model => Model }, [{reply, From, ok},
                                                      {state_timeout, Timeout, terminate}]};
         {error, E} -> 
@@ -76,14 +72,13 @@ ready(cast, {update, Data}, #{ app := App,
 
     end;
 
-ready(cast, terminate, Data) ->
-    %ok = cmcore_effect:stop(Effect),
+ready(cast, terminate, #{ log := Log, app := App, id := Id } = Data) ->
+    Log({App, self(), Id, terminating}),
     {stop, normal, Data};
 
-ready(state_timeout, terminate, #{ app := App, id := Id }) ->
-    cmkit:warning({App, self(), Id, timeout }),
-    %ok = cmcore_effect:stop(Effect),
-    {stop, normal};
+ready(state_timeout, terminate, #{ log := Log, timeout := Timeout, app := App, id := Id } = Data) ->
+    Log({App, self(), Id, timeout, Timeout}),
+    {stop, normal, Data};
 
 
 ready({call, From}, connections,  #{conns := Conns}=Data) ->
@@ -122,7 +117,11 @@ server_error(App, _Session, Phase, Reason) ->
     gen_statem:cast(self(), terminate),
     Info.
 
-terminate(_, _, _)->
+terminate(_, _, #{ log := Log,
+                   start := Started, 
+                   app := App, 
+                   id := Id })->
+    Log({App, self(), Id, terminated, cmkit:elapsed(Started)}),
     ok.
 
 reply(From, Msg) -> [{reply, From, Msg}].

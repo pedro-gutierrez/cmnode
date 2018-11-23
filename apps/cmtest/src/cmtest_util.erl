@@ -114,23 +114,33 @@ scenarios_by_tag(Tag, Scenarios) ->
                               lists:member(Tag, Tags)
                       end, Scenarios)}.
 
+steps_from_background(#{ steps := Steps}) -> Steps.
+steps_from_backgrounds(Backgrounds) ->
+    lists:flatten(lists:map(fun steps_from_background/1, Backgrounds)).
+
+
 steps(#{ steps := Steps,
          backgrounds := Backgrounds }, Test) ->
     Procs = index_procedures(Test),
     IndexedReusableSteps = index_reusable_steps(Test),
-    case resolve_backgrounds(Backgrounds, Test, IndexedReusableSteps, Procs) of 
-        {ok, Resolved } ->
-            Steps3 = lists:flatten(lists:map(fun(B) -> 
-                                        maps:get(steps, B)
-                                    end, Resolved)) ++ Steps,
-            case resolve_procedures(Steps3, Procs, []) of 
-                {ok, Steps4} -> 
-                    resolve_steps(Steps4, IndexedReusableSteps, Procs);
-                Other -> 
-                    Other
+    case resolve_backgrounds(Steps, Test, IndexedReusableSteps, Procs, fun maybe_resolve_background/2 ) of 
+        {ok, Resolved1} ->
+            case resolve_backgrounds(Backgrounds, Test, IndexedReusableSteps, Procs, fun enforce_resolve_background/2) of 
+                {ok, Resolved2 } ->
+                    Steps3 = steps_from_backgrounds(Resolved2) ++ steps_from_backgrounds(Resolved1),
+                    case resolve_procedures(Steps3, Procs, []) of 
+                        {ok, Steps4} -> 
+                            {ok, Steps4};
+                            %resolve_steps(Steps4, IndexedReusableSteps, Procs);
+                        Other -> 
+                            Other
+                    end;
+                Other -> Other
             end;
-        Other -> Other
+        Other ->
+            Other
     end.
+
 
 index_reusable_steps(#{ steps := Steps }) ->
     lists:foldl(fun(#{ title := Title }=Spec, Acc) ->
@@ -180,40 +190,92 @@ resolve_procedure(#{ type := procedure,
 
 resolve_procedure(S, _Procs) -> {ok, S}.
 
-resolve_backgrounds(Backgrounds, Test, ReusableSteps, Procs) ->
-    resolve_backgrounds(Backgrounds, Test, ReusableSteps, Procs, []).
+resolve_backgrounds(Backgrounds, Test, ReusableSteps, Procs, ResolveFun) ->
+    resolve_backgrounds(Backgrounds, Test, ReusableSteps, Procs, ResolveFun, []).
 
-resolve_backgrounds([], _, _, _, Out) -> {ok, lists:reverse(Out)};
-resolve_backgrounds([#{ id := BId, title := Title }=BRef|Rem], #{ backgrounds := Backgrounds }=Test, ReusableSteps, Procs, Out) ->
-    R = case maps:get(BId, Backgrounds, undef) of 
-            undef -> 
-                case maps:get(Title, ReusableSteps, undef) of 
-                    undef -> undef;
-                    Step -> #{ title => Title,
-                               steps => [Step] }
-                end;
+resolve_backgrounds([], _, _, _, _, Out) -> {ok, lists:reverse(Out)};
+resolve_backgrounds([Ref|Rem], #{ backgrounds := Backgrounds }=Test, ReusableSteps, Procs, ResolveFun, Out) ->
 
-            Other -> 
+    R = case lookup_step(Ref, Backgrounds, ReusableSteps) of
+            {Title, #{ steps := Steps0 }} ->
+                #{ title => Title,
+                   steps => Steps0};
+            {Title, Step} ->
+                #{ title => Title,
+                   steps => [Step] };
+            Other ->
                 Other
         end,
-
     case R of 
-        undef -> 
-            {error, #{ error => missing_background_or_step,
-                       name => BRef }};
-        #{ steps := Steps } = Resolved ->
-            case resolve_procedures(Steps, Procs, []) of
-                {ok, Steps2} ->
-                    case resolve_steps(Steps2, ReusableSteps, Procs) of 
-                        {ok, Steps3} -> 
-                            resolve_backgrounds(Rem, Test, ReusableSteps, Procs, [Resolved#{ steps => Steps3 }|Out]);
-                        Other2 -> 
+        {error, E} ->
+            {error, E};
+        _ ->
+            case ResolveFun(R, Ref) of 
+                {ok, #{ steps := Steps } = Resolved} ->
+                    case resolve_procedures(Steps, Procs, []) of
+                        {ok, Steps2} ->
+                            case resolve_steps(Steps2, ReusableSteps, Procs) of 
+                                {ok, Steps3} -> 
+                                    resolve_backgrounds(Rem, Test, ReusableSteps, Procs, ResolveFun, [Resolved#{ steps => Steps3 }|Out]);
+                                Other2 -> 
+                                    Other2
+                            end;
+                        Other2 ->
                             Other2
                     end;
                 Other2 ->
                     Other2
             end
     end.
+
+lookup_step(#{ id := Bid, title := Title }, Backgrounds, ReusableSteps) ->
+    case maps:get(Bid, Backgrounds, undef) of
+        undef ->
+            lookup_step(Title, Backgrounds, ReusableSteps);
+        Background ->
+            {Title, Background}
+    end;
+
+lookup_step(#{ title := Title }, Backgrounds, ReusableSteps) ->
+    lookup_step(Title, Backgrounds, ReusableSteps);
+
+lookup_step(#{ ref := Title }, Backgrounds, ReusableSteps) ->
+    lookup_step(Title, Backgrounds, ReusableSteps);
+
+lookup_step(Title, Backgrounds, ReusableSteps) when is_binary(Title) ->
+    case maps:get(Title, Backgrounds, undef) of 
+        undef ->
+            case maps:get(Title, ReusableSteps, undef) of 
+                undef -> 
+                    undef;
+                Step ->
+                    {Title, Step}
+            end;
+        Background ->
+            {Title, Background}
+    end;
+    
+lookup_step(Other, _, _) ->
+    {error, #{ error => unsupported_step_reference,
+               ref => Other }}.
+
+maybe_resolve_background(undef, #{ title := Title } = Step) ->
+    {ok, #{ title => Title,
+            steps => [Step]}};
+
+maybe_resolve_background(undef, #{ ref := Title } = Step) ->
+    {ok, #{ title => Title,
+            steps => [Step]}};
+
+maybe_resolve_background(Resolved, _) ->
+    {ok, Resolved}.
+
+enforce_resolve_background(undef, #{title := Title}) ->
+    {error, #{ error => missing_background_or_step,
+               title => Title }};
+
+enforce_resolve_background(Resolved, _) ->
+    {ok, Resolved}.
 
 resolve_steps(Steps, ReusableSteps, Procs) -> 
     resolve_steps(Steps, ReusableSteps, Procs, []).

@@ -1,6 +1,7 @@
 -module(cmkit).
--export([is_true/1, log/1, log_fun/1, print/2, home/0, env/1, etc/0, data/0, data/1, data/2, assets/0, asset/1, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, jsone/1, jsone/2, jsond/1, yamld/1, millis_since/1, elapsed/1, micros/0, millis/0, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_float/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, sname/1, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, node_for_host/2, node_for_host/3, intersection/2, closest_node/1, uniconvert/1, map_join/3, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, to_list/3, date_as_map/1, format_date/1, format_date/2, parse_date/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1, to_millis/1, find_by/3, top/2, is_string/1, read_file/1, tar/2, prefix/2, file_info/1, stream_error/4, stream_file/1, printable/1, printable/2, cast/4, encrypt/2, decrypt/2, hex/1, reregister/2, is_json/1, replace/3]).
+-export([is_true/1, log/1, log_fun/1, print/2, home/0, env/1, etc/0, data/0, data/1, data/2, assets/0, asset/1, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, jsone/1, jsone/2, jsond/1, yamld/1, millis_since/1, micros_since/1, elapsed/1, micros/0, millis/0, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_float/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, sname/1, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, node_for_host/2, node_for_host/3, intersection/2, closest_node/1, uniconvert/1, map_join/3, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, to_list/3, date_as_map/1, format_date/1, format_date/2, parse_date/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1, to_millis/1, find_by/3, top/2, is_string/1, read_file/1, tar/2, prefix/2, file_info/1, stream_error/4, stream_file/1, printable/1, printable/2, cast/4, encrypt/2, decrypt/2, hex/1, reregister/2, is_json/1, replace/3, merge/2, app_env/2, set_app_env/3, app_env/3, set_app_env/4]).
 -include_lib("kernel/include/file.hrl").
+-define(NOT_FOUND, {error, not_found}).
 
 log(Data)->    
     io:format("[LOG] ~P~n", [Data, 30]).
@@ -150,6 +151,9 @@ fmt(Format, Args) when is_binary(Format) ->
     fmt(binary_to_list(Format), Args).
 
 elapsed(Since) ->
+    micros() - Since.
+
+micros_since(Since) ->
     micros() - Since.
 
 millis_since(Millis) ->
@@ -908,3 +912,57 @@ is_json(_) -> false.
 
 replace(Source, Search, Replace) ->
     binary:replace(Source, Search, Replace, [global]).
+
+merge_maps(Keys, M1, M2) ->
+    merge_maps(Keys, M1, M2, #{}).
+
+merge_maps([], _, _, Res) -> Res;
+merge_maps([K|Rem], M1, M2, Res) ->
+    V = merge(maps:get(K, M1), maps:get(K, M2)),
+    merge_maps(Rem, M1, M2, Res#{ K => V }).
+
+merge(MA, MB) when is_map(MA) andalso is_map(MB) ->
+    KeySetA = sets:from_list(maps:keys(MA)),
+    KeySetB = sets:from_list(maps:keys(MB)),
+    CommonKeys = sets:to_list(sets:intersection(KeySetA, KeySetB)),
+    M0 = maps:without(CommonKeys, MA),
+    M1 = maps:merge(M0, maps:without(CommonKeys, MB)),
+    M2 = maps:merge(M1, merge_maps(CommonKeys, MA, MB)),
+    M2;
+
+merge(L1, L2) when is_list(L1) andalso is_list(L2) ->
+    L1++L2;
+
+merge(A, A) ->
+    A;
+
+merge(A, B) ->
+    cmkit:warning({cmkit, merge, A, B, discarding, A}),
+    B.
+
+app_env(App, Ns, K) when is_atom(K) ->
+    case application:get_env(App,{Ns, K}) of 
+        undefined -> ?NOT_FOUND;
+        V -> V
+    end;
+
+app_env(App, Ns, K) when is_binary(K) ->
+    app_env(App, Ns, cmkit:to_atom(K)).
+
+app_env(App,K) when is_binary(K) ->
+    app_env(App, cmkit:to_atom(K));
+
+app_env(App,K) when is_atom(K) ->
+    case application:get_env(App,K) of 
+        undefined -> ?NOT_FOUND;
+        V -> V
+    end;
+
+app_env(App,K) when is_binary(K) ->
+    app_env(App, cmkit:to_atom(K)).
+
+set_app_env(App, K, V) ->
+    application:set_env(App, cmkit:to_atom(K), V, [{persistent, true}]).
+
+set_app_env(App, Ns, K, V) ->
+    application:set_env(App, {cmkit:to_atom(Ns), cmkit:to_atom(K)}, V, [{persistent, true}]).

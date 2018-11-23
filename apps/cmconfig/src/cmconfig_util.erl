@@ -1,14 +1,18 @@
 -module(cmconfig_util).
--export([
+-export([plural/1,
+         filenames/0,
+         filenames/1,
          reload/0,
+         reload/1,
          compiled/1,
          parse/0,
+         parse/1,
          rank/1,
          ranked/1,
          deps/1
         ]).
--define(GENERATED_MOD, cmconfig).
--define(TYPES, [port,
+-define(TYPES, [effect,
+                port,
                 template,
                 module,
                 app,
@@ -20,57 +24,81 @@
                 bucket,
                 task]).
 
-reload() -> 
-    cmkit:log({cmconfig, reading_yamls}),
-    {ok, Specs} = parse(),
-    Index = compiled(sorted(ranked(Specs))),
+plural(settings) -> "settings";
+plural(T) -> cmkit:to_list(cmkit:fmt("~ss", [T])).
+
+filenames(T) when is_list(T) ->
+    lists:merge(lists:map(fun filenames/1, T));
+
+filenames(T) when is_atom(T) ->
+    cmkit:files(filename:join([
+                               cmkit:etc(),
+                               plural(T)
+                              ]), ".yml").
+
+filenames() ->
+    cmkit:files(cmkit:etc(), ".yml").
+
+compile_plan(module) -> [module, app, port];
+compile_plan(app) -> [app, port];
+compile_plan(settings) -> [settings, module, app, port];
+compile_plan(T) when is_atom(T) -> [T];
+compile_plan(B) when is_binary(B) -> compile_plan(cmkit:to_atom(B)).
+
+reload() ->
+    reload(?TYPES, fun parse/0).
+
+reload(T) ->
+    Types = compile_plan(T),
+    reload(Types, fun() ->
+                        parse(Types)
+                end).
+
+reload(Types, SpecsFun) ->
+    S0 = cmkit:micros(),
+    case SpecsFun() of 
+        {ok, Specs} ->
     
-    Funs = merged(Index),
-    Funs2 = Funs#{ effects => #{ arity => 0,
-                                 clauses => [#{ vars => [],
-                                                body => #{ abstract => effects() }}]}},
+            E1 = cmkit:elapsed(S0),
+            cmkit:log({cmconfig, yamls, parsed}),
+            I = compiled(sorted(ranked(Specs))),
+            E2 = cmkit:elapsed(S0),
+            cmkit:log({cmconfig, yamls, indexed}),
+            lists:foreach(fun(T) ->
+                                  compile_forms(T, I)     
+                          end, Types),
+            E3 = cmkit:elapsed(S0),
+            cmkit:log({cmconfig, yamls, compiled, stats(I), #{ parse => E1,
+                                                               index => E2-E1,
+                                                               compile => E3-E2,
+                                                               total => E3}});
+        Other ->
+            cmkit:danger({cmconfig, reload, Types, Other}),
+            Other
+    end.
 
-    cmkit:log({cmconfig, compiling}),
-    Res = cmcode:compile(#{ module => ?GENERATED_MOD,
-                            functions => Funs2
-                          }),
 
-    cmkit:log({cmconfig, compiled, stats(Index)}),
-    Res.
-
+compile_forms(T, Index) -> 
+    cache(T, Index).
 
 stats(Index) ->
     maps:fold(fun(Type, SubIndex, Acc) ->
-                      Acc#{ Type => map_size(SubIndex) } 
+                      case map_size(SubIndex) of 
+                        0 -> Acc;
+                        C -> Acc#{ Type => C }
+                      end
               end, #{}, Index).
 
-merged(Index) -> merged(maps:keys(Index), Index, #{}).
-merged([], _Index, Out) -> Out;
-merged([K|Rem], Index, Out) ->
-    FName = plural(K),
-    I0 = maps:get(K, Index),
-    merged(Rem, Index, Out#{ FName => #{ arity => 0,
-                                         clauses => [ #{ vars => [],
-                                                         body => #{ abstract => maps:values(I0) }
-                                                       }
-                                                    ]},
-                             K => #{ arity => 1,
-                                     clauses => 
-                                        lists:flatten(lists:map(fun(N) ->
-                                                          [
-                                                           #{ vars => [#{ atom => N }], 
-                                                              body => #{ abstract => {ok, maps:get(N, I0)}}},
-                                                           #{ vars => [#{ abstract => cmkit:to_bin(N) }], 
-                                                              body => #{ abstract => {ok, maps:get(N, I0)}}}
-                                                          ]
-                                                  end, maps:keys(I0))) ++ [ #{ vars => [ underscore ],
-                                                                              body => #{ abstract =>
-                                                                                         {error, not_found}}}
-                                                                         ]}}).
-                                     
-plural(settings) -> settings;
-plural(Type) -> 
-    cmkit:to_atom(cmkit:bin_join([cmkit:to_bin(Type), <<"s">>])).
+cache(T, Index) ->
+    I = maps:get(T, Index),
+    cmkit:set_app_env(cmconfig, T, maps:values(I)),
+    cache(T, maps:keys(I), I).
+
+cache(_, [], _) -> ok;
+cache(T, [K|Rem], I) ->
+    cmkit:set_app_env(cmconfig, T, K, maps:get(K, I)),
+    cache(T, Rem, I).
+
 
 ranked(Specs) ->
     lists:map(fun ranked_spec/1, Specs).
@@ -99,29 +127,23 @@ compiled([Spec|Rem], Index) ->
     end.
     
 parse() ->
-    case lists:foldr(fun({yaml, _, {ok, Spec}}, {Specs, Errors}) ->
-                             {[Spec|Specs], Errors};
-                        ({yaml, Filename, {error, E}}, {Specs, Errors}) ->
-                             {Specs, [{Filename, E}|Errors]}
-                     end, {[], []}, cmyamls:all()) of 
-        {Specs, []} -> {ok, Specs};
-        {_, Errors} -> {error, Errors}
+    specs(filenames()).
+    
+parse(T) ->
+    specs(filenames(T)).
+
+specs(Filenames) ->
+    specs(Filenames, []).
+
+specs([], Specs) -> {ok, Specs};
+specs([F|Rem], Specs) ->
+    case cmkit:yaml(F) of 
+        {ok, S} -> 
+            specs(Rem, [S|Specs]);
+        {error, E} ->
+            {error, #{ yaml => F,
+                       error => E }}
     end.
-
-effects() ->
-    Mods = [ M ||M <-erlang:loaded(), cmkit:implements(M, effect_contract())],
-    cmkit:log({cmconfig, effects, length(Mods)}),
-    lists:foldl(fun(Mod, Index) ->
-                        Name = Mod:effect_info(),
-                        Index#{ Name => Mod }
-              end, #{}, Mods).
-
-effect_contract() ->
-  [{effect_info, 0},
-   {effect_apply, 2}
-  ]. 
-
-
 
 rank(port) -> 3;
 rank(app) -> 2;
@@ -484,56 +506,47 @@ compile_scenarios(Specs, Index) ->
 
 compile_scenario(#{ <<"title">> := Title }=Spec, Index) ->
 
-    Id = test_item_id(Title),
     Tags = maps:get(<<"tags">>, Spec, []),
     Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
     Steps =  maps:get(<<"steps">>, Spec, []),
 
     #{ title => Title,
-       id => Id,
        tags => compile_tags(Tags),
-       backgrounds => lists:map(fun(T) -> 
-                                        #{ id => test_item_id(T),
-                                           title => T }
-                                end, Backgrounds),
+       backgrounds => Backgrounds,
        steps => compile_steps(Steps, Index)
      }.
 
 compile_background(#{ <<"title">> := Title,
                       <<"steps">> := Steps }=Spec, Scenarios, Index) ->
 
-    Id = test_item_id(Title),
     Tags = maps:get(<<"tags">>, Spec, []),
 
-    RelatedScenarios = lists:filter(fun(#{ backgrounds := BackgroundRefs }) ->
-                                            lists:any(fun(#{ id := BackgroundId }) ->
-                                                              BackgroundId =:= Id
-                                                      end, BackgroundRefs)
+    RelatedScenarios = lists:filter(fun(#{ backgrounds := Backgrounds }) ->
+                                            lists:any(fun(BackgroundTitle) ->
+                                                              BackgroundTitle =:= Title
+                                                      end, Backgrounds)
                                     end, Scenarios),
 
 
     #{ title => Title,
-       id => Id,
        tags => compile_tags(Tags),
-       scenarios => lists:map(fun(S) -> 
-                                      maps:with([id, title], S)
-                              end, RelatedScenarios),
+       scenarios => RelatedScenarios,
        steps => compile_steps(Steps, Index)
      }.
 
 
-test_item_id(Title) ->
-    cmkit:hash(cmkit:to_lower(Title)).
-
-
 compile_backgrounds(Specs, Scenarios, Index) ->
     lists:foldl(fun(Spec, Out) -> 
-                        #{ id := Key } = Compiled = compile_background(Spec, Scenarios, Index),
-                        Out#{ Key => Compiled } 
+                        #{ title := Title } = Compiled = compile_background(Spec, Scenarios, Index),
+                        Out#{ Title => Compiled } 
                 end, #{}, Specs).
 
 compile_tags(Tags) when is_list(Tags) ->
     lists:map(fun cmkit:to_atom/1, Tags);
+
+compile_tags(Tags) when is_binary(Tags) ->
+    F = fun(V) -> cmkit:to_atom(cmkit:bin_trim(V)) end,
+    lists:map(F, cmkit:bin_split(Tags, <<",">>));
 
 compile_tags(Spec) ->
     cmkit:danger({cmconfig, compile, invalid_tags, Spec}),
@@ -651,8 +664,7 @@ merge_spec([Key|Rem], Spec, Spec0) ->
 
 merge_model_spec(#{ spec := S1 }, #{ spec := S2}) -> 
     #{ type => object,
-       spec => maps:merge(S2, S1) 
-     }.
+       spec => cmkit:merge(S2, S1) }.
 
 merge_cmds_spec(Cmds1, Cmds2) -> Cmds1 ++ Cmds2. 
 

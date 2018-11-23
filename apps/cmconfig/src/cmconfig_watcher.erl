@@ -37,7 +37,7 @@ handle_file_event(File, ".yml", modified) ->
                                <<"name">> := Name, 
                                <<"version">> := Version }} ->
                            cmkit:log({cmconfig, modified, Type, Name, Version}),
-                           cmconfig_util:reload();
+                           cmconfig_util:reload(Type);
                        _ ->
                            cmkit:danger({cmconfig, error, File})
                    end

@@ -19,7 +19,7 @@ websocket_init(#{app := App, port := Port }=State) ->
             Log({ws, new_connection, App, Port, Id}),
             {ok, State#{ id => Id, log => Log} };
        {error, E} -> 
-            cmkit:log({ws, new_connection, invalid_app, App, Port, E}),
+            cmkit:warning({ws, new_connection, invalid_app, App, Port, E}),
             {stop, E}
     end.
 

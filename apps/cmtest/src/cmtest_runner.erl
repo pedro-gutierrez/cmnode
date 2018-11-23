@@ -273,7 +273,12 @@ report(#{ settings := #{ name := SettingsName }=Settings,
                 seconds => Secs,
                 result => Result},
 
-    cmkit:S({cmtest, Q, SettingsName, Stats, Secs}),
+    Failures = [ #{ scenario => Scenario,
+                    failure => Failure } || #{ scenario := Scenario, 
+                                               failure := Failure,
+                                               status := fail } <- R ],
+
+    cmkit:S({cmtest, Q, SettingsName, Stats, Failures, Secs}),
     save_report(Report),
     finish(Data),
     

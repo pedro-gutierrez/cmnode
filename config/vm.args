@@ -1,4 +1,4 @@
--sname nkadmin
+-sname ci
 -setcookie cm
 -smp enable
 +pc unicode

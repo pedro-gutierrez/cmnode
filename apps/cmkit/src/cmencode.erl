@@ -1514,7 +1514,10 @@ encode_url(Url, In, Config) ->
             {ok, #{ url => U }};
 
         U when is_binary(U) ->
-            {ok, #{ url => U }}
+            {ok, #{ url => U }};
+
+        Other ->
+            Other
     end.
 
 

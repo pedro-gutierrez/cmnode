@@ -342,6 +342,12 @@ decode_term(#{ type := member,
             no_match
     end;
 
+decode_term(#{ type := 'not', spec := Spec }, In, Config) ->
+    case decode(Spec, In, Config) of 
+        {ok, _} -> no_match;
+        no_match -> {ok, In}
+    end;
+
 decode_term(Spec, Data, Context) when is_map(Spec) -> 
     case cmencode:encode(Spec, Context) of 
         {ok, Expected} when is_map(Expected) -> 
