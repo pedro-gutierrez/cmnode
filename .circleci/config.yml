@@ -5,5 +5,8 @@ jobs:
       - image: docker:17.05.0-ce-git
     steps:
       - checkout
-      - docker build -t pedrogutierrez/cmnode:latest .
-      - docker push pedrogutierrez/cmnode:latest
+      - run:
+          name: Build application Docker image
+          command: |
+            docker build -t pedrogutierrez/cmnode:latest .
+            docker push pedrogutierrez/cmnode:latest
