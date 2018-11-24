@@ -3,3 +3,5 @@ jobs:
   build:
     docker:
       - image: pedrogutierrez:cmnode
+    steps:
+      - checkout
