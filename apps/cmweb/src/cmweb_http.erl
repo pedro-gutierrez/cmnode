@@ -6,22 +6,24 @@ init(Req, #{app := App}=State) ->
     Start = cmkit:micros(),
     case cmconfig:app(App) of
         {ok, #{ debug := Debug }=Spec} -> 
+            Pid = self(),
             Log = cmkit:log_fun(Debug),
             {ok, Data, Req2} = request_body(Req),
             BodyTime = cmkit:elapsed(Start),
-            Id = cmkit:uuid(),
-            Session = #{ id => Id, app => App },
             SessionTime = cmkit:elapsed(Start),
-            ok = cmcore:init(Spec, Session),
+            {ok, Model, Config} = cmcore:init(Pid, Spec, Log),
+            Spec2 = Spec#{ config => Config },
             InitTime = cmkit:elapsed(Start),
             Data2 = #{ method => cowboy_req:method(Req),
                        body => Data,
                        params => cowboy_req:bindings(Req),
                        headers => cowboy_req:headers(Req),
                        query => maps:from_list(cowboy_req:parse_qs(Req2)) },
-            cmcore:update(Id, Data2),
+            {ok, Model2} = cmcore:update(Pid, Spec2, Data2, Model, Log),
             UpdateTime = cmkit:elapsed(Start),
             {cowboy_loop, Req2, State#{ log => Log, 
+                                        spec => Spec2,
+                                        model => Model2,
                                         start => Start,
                                         body_time => BodyTime,
                                         session_time => SessionTime,
@@ -33,8 +35,15 @@ init(Req, #{app := App}=State) ->
                                                         start => Start })
     end.
 
-info({'DOWN', _, process, _, _}, Req, State) ->
-    reply_and_stop(error, json, #{ error => internal_server_error }, Req, State);
+info({update, Data}, Req, #{ spec := Spec,
+                             model := Model,
+                             log := Log } = State) ->
+    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log),
+    {ok, Req, State#{ model => Model2 }};
+
+info(terminate = Msg, Req, State) ->
+    cmkit:warning({http, implement_me, Msg}),
+    {ok, Req, State};
 
 info({stream, start, Headers}, Req, State) ->
     Headers2 = binary_headers(Headers),

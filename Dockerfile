@@ -1,9 +1,9 @@
-#FROM netcomposer/erlang:19.3.6.1
 FROM erlang:21
 MAINTAINER Pedro Gutiérrez <pedrogutierrez@mac.com>
 RUN apt-get update; apt-get install -y libgd-dev libwebp-dev inotify-tools vim tree
 RUN mkdir -p /opt/cmnode/apps; mkdir ~/.ssh; ssh-keyscan github.com >> ~/.ssh/known_hosts
 ENV CMHOME /opt/cmnode
+ENV CODE_LOADING_MODE interactive
 WORKDIR /opt/cmnode
 ADD rebar.config .
 ADD config config

@@ -1,11 +1,11 @@
 -module(cmcore_util).
 -export([
          init/2,
-         cmds/4,
+         cmds/5,
          update/5,
          update_spec/5,
-         decode/3,
-         apply_effect/3
+         decode/3
+         %apply_effect/4
         ]).
 
 init(#{ init := Init }=App, Config) -> update(App, Init, Config);
@@ -109,31 +109,28 @@ update_model(Spec, In, Config, Prev) ->
         Other -> Other
     end.
 
-cmds([], _, _, _) -> ok;
+cmds([], _, _, _, _) -> ok;
 cmds([#{ effect := Effect,
-         encoder := Spec }|Rem], Model, Config, Session) ->
+         encoder := Spec }|Rem], Model, Config, Pid, Log) ->
     case cmencode:encode(Spec, Model, Config) of
         {error, Error} ->
             cmkit:danger({cmcore, Effect, Spec, Error});
         {ok, Data} ->
-            apply_effect(Effect, Data, Session)
+            apply_effect(Effect, Data, Pid, Log)
     end,
-    cmds(Rem, Model, Config, Session);
+    cmds(Rem, Model, Config, Pid, Log);
 
-cmds([#{ effect := Effect}|Rem], Model, Config, Session) ->
-    apply_effect(Effect, nothing, Session),
-    cmds(Rem, Model, Config, Session).
+cmds([#{ effect := Effect}|Rem], Model, Config, Pid, Log) ->
+    apply_effect(Effect, nothing, Pid, Log),
+    cmds(Rem, Model, Config, Pid, Log).
 
-apply_effect(Effect, Data, #{ id := Id }) ->
+apply_effect(Effect, Data, Pid, _Log) ->
     case cmconfig:effect(Effect) of
         {error, not_found} ->
-            cmkit:danger({cmcore, not_such_effect, Effect, Data}),
-            cmcore:update(Id, #{ error => no_such_effect,
-                                 effect => Effect,
-                                 data => Data });
+            cmkit:danger({cmcore, not_such_effect, Effect, Data});
         {ok, Mod} ->
             spawn(fun() ->
-                          Mod:effect_apply(Data, Id)
+                          Mod:effect_apply(Data, Pid)
                   end)
     end,
     ok.

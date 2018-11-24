@@ -12,14 +12,14 @@ init(Req, State) ->
 websocket_init(#{app := App, port := Port }=State) ->
     case cmconfig:app(App) of
         {ok, #{ debug := Debug }=Spec} -> 
+            Pid = self(),
             Log = cmkit:log_fun(Debug),
-            Id = cmkit:uuid(),
-            Session = #{ id => Id, app => App },
-            ok = cmcore:init(Spec, Session),
-            Log({ws, new_connection, App, Port, Id}),
-            {ok, State#{ id => Id, log => Log} };
+            {ok, Model, Config} = cmcore:init(Pid, Spec, Log),
+            Spec2 = Spec#{ config => Config },
+            Log({ws, new_connection, App, Port, Pid}),
+            {ok, State#{ spec => Spec2, model => Model, log => Log} };
        {error, E} -> 
-            cmkit:warning({ws, new_connection, invalid_app, App, Port, E}),
+            cmkit:warning({ws, new_connection, no_such_app, App, Port, E}),
             {stop, E}
     end.
 
@@ -30,17 +30,23 @@ websocket_handle({text, Data}, State) ->
     handle_data(Data, State).
 
 
-websocket_info({'DOWN', _, process, _, normal}, #{ app := App,
-                                                   port := Port,
-                                                   id := Id } = State) ->
-    cmkit:warning({ws, context_closed, App, Port, Id, self()}),
+websocket_info(terminate, #{ app := App,
+                             port := Port,
+                             log := Log }=State) ->
+    Log({App, Port, self(), terminate}),
     {stop, State};
+
+websocket_info({update, Data}, #{ model := Model,
+                                  spec := Spec,
+                                  log := Log }=State) ->
+
+    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log),
+    {ok, State#{ model => Model2 }};
 
 websocket_info(Data, #{ app := App, 
                         port := Port, 
-                        id := Id, 
                         log := Log }=State) ->
-    Log({ws, out, App, Port, Id, self(), Data}),
+    Log({App, Port, self(), out, Data}),
     {reply, {text, cmkit:jsone(Data)}, State}.
 
 
@@ -48,15 +54,16 @@ handle_data(<<>>, State) -> {ok, State};
 
 handle_data(Data, #{ app := App,
                      port := Port,
-                     id := Id,
+                     spec := Spec,
+                     model := Model,
                      log := Log }=State) ->
 
     case cmkit:jsond(Data) of
         {error, _} -> 
-            Log({ws, in, App, Port, Id, invalid, Data}),
+            Log({ws, in, App, Port, self(), invalid, Data}),
             {stop, State};
         {ok, Decoded} ->
-            Log({ws, in, App, Port, Id, self(), ok, Decoded}),
-            cmcore:update(Id, Decoded),
-            {ok, State}
+            Log({App, Port, self(), in, Decoded}),
+            {ok, Model2} = cmcore:update(self(), Spec, Decoded, Model, Log),
+            {ok, State#{ model => Model2 }}
     end.

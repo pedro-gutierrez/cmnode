@@ -1,7 +1,7 @@
-cmcore
+cmcore2
 =====
 
-An OTP application
+An OTP library
 
 Build
 -----

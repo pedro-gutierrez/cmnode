@@ -39,8 +39,8 @@ filenames(T) when is_atom(T) ->
 filenames() ->
     cmkit:files(cmkit:etc(), ".yml").
 
-compile_plan(module) -> [module, app, port];
-compile_plan(app) -> [app, port];
+compile_plan(module) -> [settings, module, app, port];
+compile_plan(app) -> [settings, app, port];
 compile_plan(settings) -> [settings, module, app, port];
 compile_plan(T) when is_atom(T) -> [T];
 compile_plan(B) when is_binary(B) -> compile_plan(cmkit:to_atom(B)).
