@@ -10,5 +10,6 @@ jobs:
       - run:
           name: Build application Docker image
           command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker build -t pedrogutierrez/cmnode:latest .
             docker push pedrogutierrez/cmnode:latest
