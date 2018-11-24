@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: pedrogutierrez:cmnode
     steps:
       - checkout
+      - docker build -t pedrogutierrez/cmnode:latest .
+      - docker push pedrogutierrez/cmnode:latest
