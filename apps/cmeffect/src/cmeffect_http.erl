@@ -7,55 +7,41 @@
 effect_info() -> http.
 
 
-effect_apply(#{ method := Method, 
-                url := Url, 
-                context := Context,
-                headers := Headers, 
-                body := Body }, SessionId) ->
+effect_apply(#{ context := Context,
+                method := Method, 
+                url := Url } = Spec, SessionId) ->
+
+    HttpSpec0 = #{ type => http,
+                  method => Method,
+                  url => url_spec(Url)},
+    
+    HttpSpec1 = case maps:get(headers, Spec, undef) of 
+                    undef -> HttpSpec0;
+                    Headers -> 
+                        HttpSpec0#{ headers => #{ type => object,
+                                                 spec => Headers }}
+                end,
+    
+    HttpSpec2 = case maps:get(query, Spec, undef) of 
+                    undef -> HttpSpec1;
+                    Query -> 
+                        HttpSpec1#{ query => #{ type => object,
+                                                 spec => Query }}
+                end,
+
+    HttpSpec = case maps:get(body, Spec, undef) of 
+                    undef -> HttpSpec2;
+                    Body -> 
+                        HttpSpec2#{ body => Body }
+                end,
     
     Data = case cmencode:encode(#{ type => exec,
-                                   spec => #{ type => http,
-                                              method => Method,
-                                              url => url_spec(Url),
-                                              body => Body,
-                                              headers => #{ type => object,
-                                                            spec => Headers }}}) of 
+                                   spec => HttpSpec}) of 
                {ok, Res} -> Res;
                {error, E} -> #{ error => E }
            end,
 
     cmcore:update(SessionId, Data#{ context => Context});
-
-effect_apply(#{ method := _, 
-                url := _, 
-                context := _,
-                body := _ } = Spec, SessionId) ->
-
-    effect_apply(Spec#{ headers => #{}}, SessionId);
-
-effect_apply(#{ method := Method, 
-                url := Url,
-                headers := Headers,
-                context := Context }, SessionId) ->
-    
-    Data = case cmencode:encode(#{ type => exec,
-                                   spec => #{ type => http,
-                                              method => Method,
-                                              url => url_spec(Url),
-                                              headers => #{ type => object,
-                                                            spec => Headers }}}) of 
-               {ok, Res} -> Res;
-               {error, E} -> #{ error => E }
-           end,
-    
-    cmcore:update(SessionId, Data#{ context => Context});
-
-effect_apply(#{ method := _, 
-                url := _, 
-                context := _} = Spec, SessionId) ->
-    
-     effect_apply(Spec#{ headers => #{}}, SessionId);
-
 
 effect_apply(#{ stream := Stream } = Q, SessionId) ->
     cmkit:log({cmeffect, http, Q}),

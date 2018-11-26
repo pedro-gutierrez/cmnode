@@ -804,14 +804,84 @@ encode(#{ type := sum,
     end;
 
 encode(#{ type := join,
-          terms := Specs }=Spec, In, Config) ->
+          separator := SepSpec,
+          spec := Specs }, In, Config) when is_list(Specs) ->
 
     case encode_all(Specs, In, Config) of 
         {ok, EncodedTerms} ->
-            {ok, cmkit:bin_join(EncodedTerms)};
-        {error, E} -> 
-            fail(Spec, In, E)
+            case encode(SepSpec, In, Config) of 
+                {ok, Sep} ->
+                    {ok, cmkit:bin_join(EncodedTerms, Sep)};
+                Other ->
+                    Other
+            end;
+        Other -> 
+            Other
     end;
+
+encode(#{ type := join,
+          separator := SepSpec,
+          spec := Spec }, In, Config) ->
+
+    case encode(Spec, In, Config) of 
+        {ok, EncodedTerms} when is_list(EncodedTerms) ->
+            case encode(SepSpec, In, Config) of 
+                {ok, Sep} ->
+                    {ok, cmkit:bin_join(EncodedTerms, Sep)};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := split,
+          separator := SepSpec,
+          spec := Spec }, In, Config) ->
+
+    case encode(Spec, In, Config) of 
+        {ok, Encoded} ->
+            case encode(SepSpec, In, Config) of 
+                {ok, Sep} ->
+                    {ok, cmkit:bin_split(Encoded, Sep)};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := length,
+          spec := Spec }, In, Config) ->
+
+    case encode(Spec, In, Config) of
+        {ok, Encoded} when is_list(Encoded) ->
+            {ok, length(Encoded)};
+        Other ->
+            Other
+    end;
+
+
+encode(#{ type := head,
+          spec := Spec }, In, Config) ->
+
+    case encode(Spec, In, Config) of
+        {ok, [H|_]} ->
+            {ok, H};
+        Other ->
+            Other
+    end;
+
+encode(#{ type := tail,
+          spec := Spec }, In, Config) ->
+
+    case encode(Spec, In, Config) of
+        {ok, [_|T]} ->
+            {ok, T};
+        Other ->
+            Other
+    end;
+
 
 encode(#{ type := format, 
           pattern := PatternSpec,

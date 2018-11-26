@@ -1556,16 +1556,46 @@ compile_term(#{ <<"response">> := Spec }, Index) ->
        spec => compile_term(Spec, Index) 
      };
 
+
+compile_term(#{ <<"split">> := Term,
+                <<"using">> := Separator }, Index) ->
+    #{ type => split,
+       spec => compile_term(Term, Index),
+       separator => compile_term(Separator, Index) };
+
+
+compile_term(#{ <<"length">> := Term }, Index) ->
+    #{ type => length,
+       spec => compile_term(Term, Index) };
+
+
+compile_term(#{ <<"head">> := Term }, Index) ->
+    #{ type => head,
+       spec => compile_term(Term, Index) };
+
+compile_term(#{ <<"tail">> := Term }, Index) ->
+    #{ type => tail,
+       spec => compile_term(Term, Index) };
+
+compile_term(#{ <<"join">> := Term,
+                <<"using">> := Separator }, Index) ->
+
+    #{ type => join,
+       spec => compile_term(Term, Index),
+       separator => compile_term(Separator, Index) };
+
 compile_term(#{ <<"join">> := #{ 
                     <<"terms">> := Terms 
                    }
               }, Index) ->
     #{ type => join,
-       terms => compile_terms(Terms, Index) };
+       separator => <<"">>,
+       spec => compile_terms(Terms, Index) };
 
 compile_term(#{ <<"join">> := Terms}, Index) when is_list(Terms) ->  
     #{ type => join,
-       terms => compile_terms(Terms, Index) };
+       seperator => <<"">>,
+       spec  => compile_terms(Terms, Index) };
 
 
 compile_term(#{ <<"url">> := Url,

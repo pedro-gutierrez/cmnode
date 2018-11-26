@@ -40,10 +40,8 @@ update(Pid, #{ name := App,
     
     case cmcore_util:update_spec(Spec, Msg, Data, Model, Config) of
         {ok, UpdateSpec} ->
-            Log({App, Pid, update, UpdateSpec}),
             case cmcore_util:update(Spec, UpdateSpec, Config, Data, {Model, []}) of
                 {ok, Model2, Cmds } ->
-                    Log({App, Pid, model, Model2, cmds, Cmds}),
                     cmcore_util:cmds(Cmds, Model2, Config, Pid, Log),
                     {ok, Model2};
                 {error, E} ->
