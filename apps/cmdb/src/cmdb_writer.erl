@@ -153,8 +153,8 @@ map_entries(Pid, Tree, Entries, Match, Merge, #{ name := Name,
     end.
 
 
-timestamp_fun(#{ replication := none }) ->
-    fun() -> 0 end;
+%timestamp_fun(#{ replication := none }) ->
+%    fun() -> 0 end;
 
 timestamp_fun(_) -> 
     fun() -> cmkit:micros() end.

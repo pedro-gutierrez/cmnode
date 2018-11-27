@@ -107,16 +107,20 @@ compile_update_clauses([C|Rem], Settings, Out) ->
     end.
 
 compile_update(#{ model := ModelSpec, 
-                  cmds := Cmds,
+                  cmds := CmdsSpec,
                   condition := ConditionSpec }, Settings) -> 
     case term(ModelSpec, Settings) of 
         {ok, Model} -> 
             case term(ConditionSpec, Settings) of 
                 {ok, Condition} -> 
-
-                    {ok, #{ model => Model,
-                            cmds => Cmds,
-                            condition => Condition }};
+                    case term(CmdsSpec, Settings) of 
+                        {ok, Cmds} ->
+                            {ok, #{ model => Model,
+                                    cmds => Cmds,
+                                    condition => Condition }};
+                        Other ->
+                            Other
+                    end;
                 Other -> 
                     Other
             end;
@@ -693,6 +697,15 @@ term(#{ type := 'or', spec := Spec}, Settings) ->
             Other
     end;
 
+
+term(#{ encoder := Encoder,
+        effect := Effect }, _) -> 
+    {ok, #{ encoder => Encoder,
+            effect =>  Effect }};
+
+
+term(#{ effect := Effect }, _) -> 
+    {ok, #{ effect =>  Effect }};
 
 term(#{ encoder := Encoder }, _) -> 
     {ok, #{ encoder => Encoder }};

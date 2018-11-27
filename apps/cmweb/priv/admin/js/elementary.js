@@ -288,8 +288,11 @@ export default (appUrl, appEffects) => {
     }
 
     function encodeUsingEncoder(spec, data, ctx) {
-        var enc = state.app.encoders[spec.encoder];
-        if (!enc) return error(spec, data, "no_such_encoder");
+        var {err, value} = encode(spec.encoder, data, ctx);
+        if (err) return error(spec, data, err);
+        var encName = value;
+        var enc = state.app.encoders[encName];
+        if (!enc) return error(spec, data, "no_such_encoder: " + encName);
         return encode(enc, data, ctx);
     }
 
@@ -465,13 +468,26 @@ export default (appUrl, appEffects) => {
     }
 
     function encodeOneOf(spec, data, ctx) {
-	for (var i=0; i<spec.one_of.length; i++) {
-	    var {err, value} = encode(spec.one_of[i], data, ctx);
-	    if (!err && value) {
-	        return {value: value}
-	    }
-	}
-	return error(spec, data, "no_valid_non_null_expression_found");
+        for (var i=0; i<spec.one_of.length; i++) {
+            var {err, value} = encode(spec.one_of[i], data, ctx);
+            if (!err && value) {
+                return {value: value}
+            }
+        }
+        return error(spec, data, "no_valid_non_null_expression_found");
+    }
+
+
+    function encodeCmd(spec, data, ctx) {
+        var {err, value} = encode(spec.effect, data, ctx);
+        if (err) return error(spec, data, err);
+        var cmd = { effect: value };
+        if (spec.encoder) {
+            var {err, value} = encode(spec.encoder, data, ctx);
+            if (err) return error(spec, data, err);
+            cmd.encoder = value;
+        }
+        return {value: cmd};
     }
 
     function encode(spec, data, ctx) {
@@ -492,6 +508,7 @@ export default (appUrl, appEffects) => {
                 if (spec.equal) return encodeEqual(spec, data, ctx);
                 if (spec.either) return encodeEither(spec, data, ctx);
 		        if (spec.one_of) return encodeOneOf(spec, data, ctx);
+                if (spec.effect) return encodeCmd(spec, data, ctx);
                 if (spec.encoder) return encodeUsingEncoder(spec, data, ctx);
                 if (spec.percent) return encodePercent(spec, data, ctx);
                 if (spec.is_set) return encodeIsSet(spec, data, ctx);
@@ -656,10 +673,22 @@ export default (appUrl, appEffects) => {
     function assetUrl(baseUrl, name) {
         return baseUrl + 'js/' + name + '.js';
     }
-
+    
+    function encodeCmds(spec, data) {
+        switch(typeof(spec)) {
+            case "object":
+                return (Array.isArray(spec)) ? 
+                    {value: spec} : encode(spec, data, {}) 
+            default:
+                return error(spec, data, "unsupported_cmds")
+        }
+    }
 
     function applyCmds(encoders, effects, cmds, m2) {
-        cmds.forEach((cmd) => {
+        var {err, value} = encodeCmds(cmds, m2);
+        console.log("cmds", {spec: cmds, value: value, err: err});
+        if (err) return error(cmds, m2, err);
+        value.forEach((cmd) => {
             const { effect, encoder } = cmd;
             const eff = effects[effect];
             if (!eff) {

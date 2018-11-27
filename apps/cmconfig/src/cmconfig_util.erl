@@ -725,8 +725,19 @@ compile_term(#{ <<"decoders">> := Decs }, Index) ->
 compile_term(#{ <<"encoders">> := Encs }, Index) ->
     compile_encoders(Encs, Index);
 
+compile_term(#{ <<"effect">> := Effect, 
+                <<"encoder">> := Encoder }, _) ->
+    #{ effect => compile_keyword(Effect),
+       encoder => compile_keyword(Encoder) };
+
+compile_term(#{ <<"effect">> := Effect  }, _) ->
+    #{ effect => compile_keyword(Effect) };
+
 compile_term(#{ <<"encoder">> := Enc }, _) when is_binary(Enc) ->
     #{ encoder => compile_keyword(Enc) };
+
+compile_term(#{ <<"encoder">> := Spec }, Index) when is_map(Spec) ->
+    #{ encoder => compile_term(Spec, Index) };
 
 compile_term(#{ <<"init">> := Init }, Index) ->
     compile_init(Init, Index);
@@ -2203,16 +2214,22 @@ compile_updates([K|Rem], Updates, Index, Out) ->
     Init = compile_init(maps:get(K, Updates), Index),
     compile_updates(Rem, Updates, Index, Out#{ Name => Init }).
 
-compile_update_spec(#{ <<"when">> := When}=Spec, Index) when is_map(Spec) -> 
-    #{ condition => compile_term(When, Index), 
-       model => compile_model(maps:get(<<"model">>, Spec, #{}), Index),
-       cmds => compile_cmds(maps:get(<<"cmds">>, Spec, []), Index) 
-     };
-
 compile_update_spec(Spec, Index) when is_map(Spec) -> 
-    #{ condition => #{ type => true }, 
+    Condition = case maps:get(<<"when">>, Spec, undef) of 
+                    undef -> #{ type => true };
+                    S -> compile_term(S, Index)
+                end,
+    
+    Cmds = case maps:get(<<"cmds">>, Spec, []) of 
+               L when is_list(L) -> 
+                   compile_terms(L, Index);
+               Other ->
+                   compile_term(Other, Index)
+           end,
+
+    #{ condition => Condition, 
        model => compile_model(maps:get(<<"model">>, Spec, #{}), Index),
-       cmds => compile_cmds(maps:get(<<"cmds">>, Spec, []), Index) 
+       cmds => Cmds 
      }.
 
 compile_init(Spec, Index) when is_map(Spec) ->
@@ -2381,19 +2398,6 @@ compile_view(Spec, _) ->
 
 
 compile_model(Map, Index) -> compile_term(Map, Index).
-
-compile_cmds(Cmds, Index) ->
-    lists:map(fun(C) ->
-                      compile_cmd(C, Index)
-              end, Cmds).
-
-compile_cmd(#{ <<"effect">> := Effect, 
-               <<"encoder">> := Encoder }, _) ->
-    #{ effect => compile_keyword(Effect),
-       encoder => compile_keyword(Encoder) };
-
-compile_cmd(#{ <<"effect">> := Effect  }, _) ->
-    #{ effect => compile_keyword(Effect) }.
 
 resolve_modules(Names, All) ->
     lists:map(fun(Name) ->
