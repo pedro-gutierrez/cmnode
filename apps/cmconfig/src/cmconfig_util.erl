@@ -1707,7 +1707,7 @@ compile_term(#{ <<"join">> := #{
 
 compile_term(#{ <<"join">> := Terms}, Index) when is_list(Terms) ->  
     #{ type => join,
-       seperator => <<"">>,
+       separator => <<"">>,
        spec  => compile_terms(Terms, Index) };
 
 
