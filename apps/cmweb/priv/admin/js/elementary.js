@@ -1,13 +1,21 @@
 export default (appUrl, appEffects) => {
     const config = (window.elementary || {})
     const state = {}
-    
+
+    function sleep(sleepDuration) {
+        var now = new Date().getTime();
+        while(new Date().getTime() < now + sleepDuration){ /* do nothing */ } 
+    }
+
+    function elapsed(t1, t2) {
+        return t2.getTime() - t1.getTime();
+    }
+
     function tc(fun) {
         const t1 = new Date();
         const r = fun();
         const t2 = new Date();
-        return { millis: t2.getMilliseconds() - t1.getMilliseconds(),
-                 res: r };
+        return { millis: elapsed(t1, t2), res: r };
     }
 
     function typeOf(data) {
@@ -733,7 +741,6 @@ export default (appUrl, appEffects) => {
 
     function applyCmds(encoders, effects, cmds, m2) {
         var {err, value} = encodeCmds(cmds, m2);
-        console.log("cmds", {spec: cmds, value: value, err: err});
         if (err) return error(cmds, m2, err);
         value.forEach((cmd) => {
             const { effect, encoder } = cmd;
@@ -818,9 +825,9 @@ export default (appUrl, appEffects) => {
         const t3 = new Date();
         if (state.app.settings.telemetry) {
             console.log("[core]"
-                + "[decode " + (t1.getMilliseconds() - t0.getMilliseconds()) + "ms]"
-                + "[update " + (t2.getMilliseconds() - t1.getMilliseconds()) + "ms]"
-                + "[cmds " + (t3.getMilliseconds() - t2.getMilliseconds()) + "ms]");
+                + "[decode " + elapsed(t0, t1) + "ms]"
+                + "[update " + elapsed(t1, t2) + "ms]"
+                + "[cmds " + elapsed(t2, t3) + "ms]");
         }
     }
 
@@ -845,8 +852,8 @@ export default (appUrl, appEffects) => {
             const t2 = new Date();
             if (state.app.settings.telemetry) {
                 console.log("[core]"
-                    + "[init " + (t1.getMilliseconds() - t0.getMilliseconds()) + "ms]"
-                    + "[cmds " + (t2.getMilliseconds() - t1.getMilliseconds()) + "ms]");
+                    + "[init " + elapsed(t0, t1) + "ms]"
+                    + "[cmds " + elapsed(t1, t2) + "ms]");
             }
         }
     }

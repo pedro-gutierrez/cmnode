@@ -5,7 +5,7 @@ export default (name, settings, app) => {
     function log(msg, data) {
         if (settings.debug) console.log(msg, data);
     }
-
+    
     function event(eventName, value) {
         const e = { effect: name, event: eventName };
         e.value = value || "";
