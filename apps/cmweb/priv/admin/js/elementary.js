@@ -23,7 +23,7 @@ export default (appUrl, appEffects) => {
     }
     function fmt(pattern, args) {
         var argNum = 0;
-        return pattern.replace(/~a/gi, function(match) {
+        return pattern.replace(/~a|~s/gi, function(match) {
             var curArgNum, prop = null;
             curArgNum = argNum;
             argNum++;
@@ -62,14 +62,21 @@ export default (appUrl, appEffects) => {
             case 'object':
                 if (spec.in) {
                     var {err, value} = encodeKey(spec.in, data, ctx);
-                    if (err) return error(spec, data, err);
+                    if (err) {
+                        if (err.reason === 'missing_key' &&
+                            spec.hasOwnProperty("default")) {
+                            var {err, value} = encode(spec['default'], data, ctx);
+                            if (err) return error(spec, data, err);
+                            return {value};
+                        }
+                        return error(spec, data, err);
+                    }
                     var inCtx = value;
                     switch (typeof(spec.key)) {
                         case 'object':
                             var {err, value} = encode(spec.key, data, ctx);
                             if (err) return error(spec, data, err);
-                            var keySpec = value;
-                            return encodeKey({ key: keySpec}, inCtx, ctx);
+                            return encodeKey({key: value}, inCtx, ctx);
                         case 'string':
                             if (!inCtx.hasOwnProperty(spec.key)) {
                                 if (!spec.hasOwnProperty("default"))  
@@ -89,7 +96,7 @@ export default (appUrl, appEffects) => {
                         case 'object' :
                             var {err, value} = encode(spec.key, data, ctx);
                             if (err) return error(spec, data, err);
-                            return encodeKey({ key: value }, data, ctx);
+                            return encodeKey({key: value}, data, ctx);
                         case 'string' :
                             if (!data.hasOwnProperty(spec.key)) {
                                 if (!spec.hasOwnProperty("default")) {   
@@ -677,8 +684,21 @@ export default (appUrl, appEffects) => {
     function encodeCmds(spec, data) {
         switch(typeof(spec)) {
             case "object":
-                return (Array.isArray(spec)) ? 
-                    {value: spec} : encode(spec, data, {}) 
+                if (Array.isArray(spec)) {
+                    var encoded = [];
+                    for (var i=0; i<spec.length; i++) {
+                        var cmd = { effect: spec[i].effect };
+                        if (spec[i].hasOwnProperty("encoder")) {
+                            var {err, value} = encode(spec[i].encoder, data, {});
+                            if (err) return error(spec, data, "unsupported_encoder");
+                            cmd.encoder = value;
+                        } 
+                        encoded[i] = cmd;
+                    }
+                    return {value: encoded};
+                } else {
+                    return encode(spec, data, {})
+                }
             default:
                 return error(spec, data, "unsupported_cmds")
         }

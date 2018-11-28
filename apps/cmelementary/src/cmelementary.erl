@@ -699,16 +699,48 @@ term(#{ type := 'or', spec := Spec}, Settings) ->
 
 
 term(#{ encoder := Encoder,
-        effect := Effect }, _) -> 
+        effect := Effect }, _) when is_binary(Encoder) andalso is_binary(Effect) -> 
     {ok, #{ encoder => Encoder,
             effect =>  Effect }};
 
+term(#{ encoder := EncoderSpec,
+        effect := EffectSpec }, Settings) ->
+    case term(EncoderSpec, Settings) of 
+        {ok, Enc} ->
+            case term(EffectSpec, Settings) of 
+                {ok, Eff} ->
+                    {ok, #{ encoder => Enc,
+                            effect => Eff }};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
 
-term(#{ effect := Effect }, _) -> 
+term(#{ effect := Effect }, _) when is_binary(Effect) ->
     {ok, #{ effect =>  Effect }};
 
-term(#{ encoder := Encoder }, _) -> 
+term(#{ effect := EffectSpec }, Settings) ->
+    case term(EffectSpec, Settings) of 
+        {ok, Eff} ->
+            {ok, #{ effect =>  Eff }};
+        Other ->
+            Other
+    end;
+
+term(#{ encoder := Encoder }, _) when is_binary(Encoder) -> 
     {ok, #{ encoder => Encoder }};
+
+term(#{ encoder := EncoderSpec }, Settings) ->
+    case term(EncoderSpec, Settings) of 
+        {ok, Enc} ->
+            {ok, #{ encoder => Enc }};
+        Other ->
+            Other
+    end;
+
+
 
 term(#{ timestamp := #{ format := FormatSpec,
                         value := Spec }}, Settings) -> 

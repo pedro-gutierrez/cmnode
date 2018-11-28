@@ -695,6 +695,64 @@ compile_terms(Specs, Index) ->
     lists:map(fun(S) -> compile_term(S, Index) end, Specs).
 
 
+to_key_path(Bin) when is_binary(Bin) -> Bin;
+
+to_key_path(#{ in := In } = Spec) ->
+    InPath = to_key_path(In),
+    KeyPath = to_key_path(maps:without([in], Spec)),
+    <<InPath/binary, ".", KeyPath/binary>>;
+
+to_key_path(#{ key := Key }) when is_binary(Key) or is_atom(Key) ->
+    cmkit:to_bin(Key).
+
+is_key_path(Term) when is_binary(Term) ->
+    case binary:match(Term, <<".">>) of 
+        nomatch ->
+            case binary:match(Term, <<"{{">>) of 
+                nomatch ->
+                    false;
+                _ ->
+                    true
+            end;
+        _ ->
+            true
+    end;
+
+is_key_path(_) -> false.
+
+
+compile_key_path(Term) ->
+    Parts = cmkit:bin_split(Term, <<".">>),
+    compile_key_path_parts(lists:reverse(Parts)).
+
+compile_key_path_parts([]) -> none;
+
+compile_key_path_parts([P|Rem]) ->
+    Spec0 = compile_key_path_part(P),
+    Spec = case compile_key_path_parts(Rem) of 
+        none ->
+            Spec0;
+        In ->
+            Spec0#{ in => In }
+    end,
+    Spec.
+
+compile_key_path_part(P) ->
+    case re:split(P, "{{(\s*)(.*?)(\s*)}}") of 
+        [_, _, Path, _, _] ->
+            #{ key => compile_key_path(Path) };
+        _ ->
+            case cmkit:bin_split(P, <<"||">>) of
+                [Single] ->
+                    #{ key => cmkit:to_atom(Single)};
+                [Key|[Default|_]] ->
+                    #{ key => cmkit:to_atom(cmkit:bin_trim(Key)),
+                       default => cmkit:bin_trim(Default) }
+            end
+    end.
+
+
+
 compile_term(#{ <<"dump">> := Spec } = Map, _Index) when is_binary(Spec) and map_size(Map) =:= 1 ->
     #{ type => dump,
        spec => compile_keyword(Spec) };
@@ -726,12 +784,20 @@ compile_term(#{ <<"encoders">> := Encs }, Index) ->
     compile_encoders(Encs, Index);
 
 compile_term(#{ <<"effect">> := Effect, 
-                <<"encoder">> := Encoder }, _) ->
+                <<"encoder">> := Encoder }, _) when is_binary(Effect) andalso is_binary(Encoder)->
     #{ effect => compile_keyword(Effect),
        encoder => compile_keyword(Encoder) };
 
-compile_term(#{ <<"effect">> := Effect  }, _) ->
+compile_term(#{ <<"effect">> := EffectSpec, 
+                <<"encoder">> := EncoderSpec }, Index) ->
+    #{ effect => compile_term(EffectSpec, Index),
+       encoder => compile_term(EncoderSpec, Index) };
+
+compile_term(#{ <<"effect">> := Effect  }, _) when is_binary(Effect) ->
     #{ effect => compile_keyword(Effect) };
+
+compile_term(#{ <<"effect">> := Spec }, Index) when is_map(Spec) ->
+    #{ effect => compile_term(Spec, Index) };
 
 compile_term(#{ <<"encoder">> := Enc }, _) when is_binary(Enc) ->
     #{ encoder => compile_keyword(Enc) };
@@ -1254,6 +1320,37 @@ compile_term(#{ <<"item">> := Num,
 compile_term(#{ <<"item">> := Num }, _) when is_number(Num) ->
     #{ item => Num };
 
+compile_term(#{ <<"i18n">> := KeySpec0} = Spec, Index) ->
+    KeySpec = case KeySpec0 of 
+                  #{ <<"key">> := _ } ->
+                      KeySpec0;
+                  Path when is_binary(Path) ->
+                      #{ <<"key">> => Path }
+              end,
+
+    LangSpec = case maps:get(<<"lang">>, Spec, undef) of 
+                   undef ->
+                       #{ key => lang, default => en };
+                   L ->
+                       compile_term(L, Index)
+               end,
+    
+    In = compile_term(KeySpec, Index),
+    InPath = to_key_path(In),
+    Default = case maps:get(<<"default">>, Spec, undef) of 
+                  undef ->
+                      #{ type => format,
+                         pattern => <<"??~s.~s??">>,
+                         params => [ InPath, LangSpec ] };
+                  DefaultSpec ->
+                      compile_term(DefaultSpec, Index)
+              end,
+
+    #{ key => LangSpec,
+       in => In,
+        default => Default };
+
+
 compile_term(#{ <<"key">> := Key, 
                 <<"in">> := In } = Spec, Index) when is_binary(Key) andalso is_binary(In) -> 
     
@@ -1282,9 +1379,14 @@ compile_term(#{ <<"key">> := Key,
                            in => compile_term(In, Index)
                          }, Index);
 
-compile_term(#{ <<"key">> := Key} = Spec, Index) ->
-    
-    with_default(Spec, #{ key => compile_term(Key, Index)}, Index);
+compile_term(#{ <<"key">> := Key } = Spec, Index) ->
+    Compiled = case is_key_path(Key) of 
+                  false ->
+                        #{ key => compile_term(Key, Index) };
+                  true ->
+                      compile_key_path(Key)
+              end,
+    with_default(Spec, Compiled, Index);
 
 compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
     #{ one_of => lists:map(fun(S) ->
@@ -2430,6 +2532,14 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}, Index) 
      };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect, Index) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}, Index).
+
+
+%%with_default(#{ in := In, key := _} = Spec, Default) ->
+%%    Spec#{ default => Default, in => with_default(In, Default)};
+%%
+%%with_default(#{ key := _} = Spec, Default) ->
+%%    Spec#{ default => Default }.
+
 
 
 with_default(#{ <<"default">> := Default }, Compiled, Index) ->
