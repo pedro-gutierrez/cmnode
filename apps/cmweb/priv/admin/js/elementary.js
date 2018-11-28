@@ -63,8 +63,7 @@ export default (appUrl, appEffects) => {
                 if (spec.in) {
                     var {err, value} = encodeKey(spec.in, data, ctx);
                     if (err) {
-                        if (err.reason === 'missing_key' &&
-                            spec.hasOwnProperty("default")) {
+                        if (spec.hasOwnProperty("default")) {
                             var {err, value} = encode(spec['default'], data, ctx);
                             if (err) return error(spec, data, err);
                             return {value};
@@ -187,6 +186,32 @@ export default (appUrl, appEffects) => {
         }
         
         return error(spec, ctx, "by_replacing spec not supported");
+    }
+    
+    
+
+
+    function encodeKeyPath(spec, data, ctx) {
+        var parts = spec.key_path.split(".");
+        var d = data;
+        for (var i=0; i<parts.length; i++) {
+            var p = parts[i];
+            if (!d.hasOwnProperty(p)) return error(p, d, "missing_key");
+            d = d[p];
+        }
+        return { value: d };
+    }
+
+    function encodeI18n(spec, data, ctx) {
+        var {err, value} = encode(spec.lang, data, ctx);
+        if (err) return error(spec, data, err);
+        var lang = value;
+        var {err, value} = encode(spec.i18n, data, ctx);
+        if (err) return error(spec, data, err);
+        var keyPath = value;
+        var {err, value} = encodeKeyPath({ key_path: keyPath + "." + lang }, data, ctx);
+        if (err) return { value: "??" + keyPath + "." + lang + "??" };
+        return { value };
     }
 
     function encodeFormatText(spec, data, ctx) {
@@ -508,6 +533,8 @@ export default (appUrl, appEffects) => {
                 if (spec.by_replacing) return encodeByReplacing(spec, data, ctx);
                 if (spec.by_removing) return encodeByRemoving(spec, data, ctx);
                 if (spec.key) return encodeKey(spec, data, ctx);
+                if (spec.key_path) return encodeKeyPath(spec, data, ctx);
+                if (spec.i18n) return encodeI18n(spec, data, ctx);
                 if (spec.format_text) return encodeFormatText(spec, data, ctx);
                 if (spec.format_date) return encodeFormatDate(spec, data, ctx);
                 if (spec.timestamp) return encodeTimestamp(spec, data, ctx);

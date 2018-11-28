@@ -695,16 +695,6 @@ compile_terms(Specs, Index) ->
     lists:map(fun(S) -> compile_term(S, Index) end, Specs).
 
 
-to_key_path(Bin) when is_binary(Bin) -> Bin;
-
-to_key_path(#{ in := In } = Spec) ->
-    InPath = to_key_path(In),
-    KeyPath = to_key_path(maps:without([in], Spec)),
-    <<InPath/binary, ".", KeyPath/binary>>;
-
-to_key_path(#{ key := Key }) when is_binary(Key) or is_atom(Key) ->
-    cmkit:to_bin(Key).
-
 is_key_path(Term) when is_binary(Term) ->
     case binary:match(Term, <<".">>) of 
         nomatch ->
@@ -1153,9 +1143,6 @@ compile_term(#{ <<"encoded">> := Spec }, Index) ->
     #{ type => encoded, 
        spec => compile_term(Spec, Index) }; 
 
-%compile_term(#{ <<"type">> := Type}, _) ->
-%    compile_keyword(Type);
-
 compile_term(#{ <<"keyword">> := Keyword }, _) when is_binary(Keyword) ->
     #{ type => keyword,
        value => cmkit:to_atom(Keyword) };
@@ -1320,37 +1307,17 @@ compile_term(#{ <<"item">> := Num,
 compile_term(#{ <<"item">> := Num }, _) when is_number(Num) ->
     #{ item => Num };
 
-compile_term(#{ <<"i18n">> := KeySpec0} = Spec, Index) ->
-    KeySpec = case KeySpec0 of 
-                  #{ <<"key">> := _ } ->
-                      KeySpec0;
-                  Path when is_binary(Path) ->
-                      #{ <<"key">> => Path }
-              end,
-
-    LangSpec = case maps:get(<<"lang">>, Spec, undef) of 
-                   undef ->
-                       #{ key => lang, default => en };
-                   L ->
-                       compile_term(L, Index)
-               end,
+compile_term(#{ <<"i18n">> := KeySpec } = Spec, Index) ->
+     
+    #{ type => i18n,
+       spec => compile_term(KeySpec, Index),
+       lang => case maps:get(<<"lang">>, Spec, undef) of
+                   undef -> 
+                       #{ key => lang };
+                   LangSpec ->
+                       compile_term(LangSpec, Index)
+               end };
     
-    In = compile_term(KeySpec, Index),
-    InPath = to_key_path(In),
-    Default = case maps:get(<<"default">>, Spec, undef) of 
-                  undef ->
-                      #{ type => format,
-                         pattern => <<"??~s.~s??">>,
-                         params => [ InPath, LangSpec ] };
-                  DefaultSpec ->
-                      compile_term(DefaultSpec, Index)
-              end,
-
-    #{ key => LangSpec,
-       in => In,
-        default => Default };
-
-
 compile_term(#{ <<"key">> := Key, 
                 <<"in">> := In } = Spec, Index) when is_binary(Key) andalso is_binary(In) -> 
     
@@ -2493,12 +2460,6 @@ compile_view(Spec, _) ->
     #{ view => not_supported,
        spec => Spec }.
 
-%compile_view_attrs(Attrs, Index) when is_map(Attrs) ->
-%    maps:fold(fun(K, V, Attrs2) ->
-%                      Attrs2#{ compile_keyword(K) => compile_term(V, Index) }
-%              end, #{}, Attrs). 
-
-
 compile_model(Map, Index) -> compile_term(Map, Index).
 
 resolve_modules(Names, All) ->
@@ -2532,15 +2493,6 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}, Index) 
      };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect, Index) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}, Index).
-
-
-%%with_default(#{ in := In, key := _} = Spec, Default) ->
-%%    Spec#{ default => Default, in => with_default(In, Default)};
-%%
-%%with_default(#{ key := _} = Spec, Default) ->
-%%    Spec#{ default => Default }.
-
-
 
 with_default(#{ <<"default">> := Default }, Compiled, Index) ->
     Compiled#{ default => compile_term(Default, Index) };

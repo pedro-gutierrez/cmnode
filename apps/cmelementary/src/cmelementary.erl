@@ -607,6 +607,23 @@ term(#{ type := condition,
             Other
     end;
 
+
+term(#{ type := i18n,
+        spec := Spec,
+        lang := Lang }, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, K} ->
+            case term(Lang, Settings) of 
+                {ok, L} ->
+                    {ok, #{ i18n => K,
+                            lang => L }};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 term(#{ key := KeySpec, in := InSpec } = Spec, Settings) ->
     case term(KeySpec, Settings) of 
         {ok, Key} ->
