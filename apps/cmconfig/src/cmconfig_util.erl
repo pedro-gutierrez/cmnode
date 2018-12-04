@@ -2284,22 +2284,30 @@ compile_updates([K|Rem], Updates, Index, Out) ->
     compile_updates(Rem, Updates, Index, Out#{ Name => Init }).
 
 compile_update_spec(Spec, Index) when is_map(Spec) -> 
-    Condition = case maps:get(<<"when">>, Spec, undef) of 
-                    undef -> #{ type => true };
-                    S -> compile_term(S, Index)
-                end,
-    
-    Cmds = case maps:get(<<"cmds">>, Spec, []) of 
-               L when is_list(L) -> 
-                   compile_terms(L, Index);
-               Other ->
-                   compile_term(Other, Index)
-           end,
+    E1 = #{ model => compile_model(maps:get(<<"model">>, Spec, #{}), Index) },
 
-    #{ condition => Condition, 
-       model => compile_model(maps:get(<<"model">>, Spec, #{}), Index),
-       cmds => Cmds 
-     }.
+
+    E2 = case maps:get(<<"when">>, Spec, undef) of
+             undef -> 
+                 E1;
+             When -> 
+                 E1#{ condition => compile_term(When, Index) }
+         end, 
+    E3 = case maps:get(<<"where">>, Spec, undef) of
+             undef -> 
+                 E2;
+             Where -> 
+                 E2#{ where => compile_term(Where, Index) }
+         end, 
+
+    E4 = case maps:get(<<"cmds">>, Spec, []) of
+             L when is_list(L) -> 
+                 E3#{ cmds => compile_terms(L, Index) };
+             Other ->
+                 E3#{ cmds => compile_term(Other, Index) }
+         end,
+
+    E4.
 
 compile_init(Spec, Index) when is_map(Spec) ->
     compile_init([Spec], Index);

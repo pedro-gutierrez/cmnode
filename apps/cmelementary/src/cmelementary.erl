@@ -106,30 +106,67 @@ compile_update_clauses([C|Rem], Settings, Out) ->
             Other
     end.
 
-compile_update(#{ model := ModelSpec, 
-                  cmds := CmdsSpec,
-                  condition := ConditionSpec }, Settings) -> 
-    case term(ModelSpec, Settings) of 
-        {ok, Model} -> 
-            case term(ConditionSpec, Settings) of 
-                {ok, Condition} -> 
-                    case term(CmdsSpec, Settings) of 
-                        {ok, Cmds} ->
-                            {ok, #{ model => Model,
-                                    cmds => Cmds,
-                                    condition => Condition }};
-                        Other ->
-                            Other
-                    end;
-                Other -> 
-                    Other
-            end;
-        Other -> 
+
+compile_update_model(#{ model := ModelSpec}, Settings, Out) ->
+    case term(ModelSpec, Settings) of
+        {ok, Model} ->
+            {ok, Out#{ model => Model }};
+        Other ->
             Other
     end;
 
-compile_update(#{ model := _, cmds := _} = Spec, Settings) -> 
-    compile_update(Spec#{ condition => #{ type => true }}, Settings).
+compile_update_model(_, _, Out) -> {ok, Out}.
+
+compile_update_cmds(#{ cmds := CmdsSpec }, Settings, Out) ->
+    case term(CmdsSpec, Settings) of 
+        {ok, Cmds} ->
+            {ok, Out#{ cmds => Cmds }};
+        Other ->
+            Other
+    end;
+
+compile_update_cmds(_, _, Out) -> {ok, Out}.
+
+
+compile_update_condition(#{ condition := ConditionSpec }, Settings, Out) ->
+    case term(ConditionSpec, Settings) of 
+        {ok, Condition} ->
+            {ok, Out#{ condition => Condition }};
+        Other ->
+            Other
+    end;
+
+compile_update_condition(_, _, Out) -> {ok, Out}.
+
+
+compile_update_where(#{ where := WhereSpec }, Settings, Out) ->
+    case term(WhereSpec, Settings) of 
+        {ok, Where} ->
+            {ok, Out#{ where => Where }};
+        Other ->
+            Other
+    end;
+
+compile_update_where(_, _, Out) -> {ok, Out}.
+
+compile_update(Spec, Settings) -> 
+    case compile_update_model(Spec, Settings, #{}) of 
+        {ok, C1} ->
+            case compile_update_cmds(Spec, Settings, C1) of 
+                {ok, C2} ->
+                    case compile_update_condition(Spec, Settings, C2) of 
+                        {ok, C3} ->
+                            compile_update_where(Spec, Settings, C3);
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
 
 
 compile_object([], _, _, Out) -> {ok, Out};

@@ -29,12 +29,19 @@ update_spec(#{ update := Updates, encoders := Encoders }, Msg, Data, Model, Conf
 update_spec(_, Msg, _, _, _) ->
     {error, #{ update => not_implemented, msg => Msg }}.
 
+
+
+
+
 first_clause([], _, _, _) -> none;
 first_clause([#{ condition := Cond}=Spec|Rem], Encoders, In, Config) ->
     case cmeval:eval(Cond, Encoders, In, Config) of
         true -> Spec;
         false -> first_clause(Rem, Encoders, In, Config)
-    end.
+    end;
+
+first_clause([Spec|_], _, _, _) ->
+    Spec.
 
 decode(#{ decoders := Decoders }, Data, Config) ->
     decode(Decoders, Data, Config);
@@ -55,19 +62,38 @@ update(App, Spec, Config) -> update(App, Spec, Config, #{}).
 
 update(App, Spec, Config, In) -> update(App, Spec, Config, In, {#{}, []}).
 
-update(App, #{ model := M, cmds := C }, Config, In, {Model, Cmds}) ->
-    case update_model(M, In, Config, Model) of
-        {ok, M2} ->
-            case resolve_cmds(App, C) of
-                {ok, C2} ->
-                    {ok, M2, Cmds ++ C2};
-                {error, E} ->
+update(App, #{ model := M, cmds := C } = Spec, Config, In, {Model, Cmds}) ->
+    case data_with_where(Spec, In, Model, Config) of 
+        {ok, In2} ->
+            case cmencode:encode(M, In2, Config) of
+                {ok, M2} ->
+                    M3 = maps:merge(Model, M2),
+                    case resolve_cmds(App, C) of
+                        {ok, C2} ->
+                            {ok, M3, Cmds ++ C2};
+                        {error, E} ->
+                            {error, E}
+                    end;
+                {error, E} -> 
                     {error, E}
             end;
-        {error, E} -> {error, E}
+        Other ->
+            Other
     end;
 
 update(_, Spec, _, _, _) -> {error, {invalid_update, Spec}}.
+
+
+data_with_where(#{ where := WhereSpec }, Data, Model, Config) ->
+    In = maps:merge(Model, Data),
+    case cmencode:encode(WhereSpec, In, Config) of 
+        {ok, Where} ->
+            {ok, maps:merge(In, Where)};
+        Other ->
+            Other
+    end;
+        
+data_with_where(_, Data, Model, _) -> {ok, maps:merge(Model, Data)}.
 
 resolve_cmds(App, Cmds) ->
     resolve_cmds(App, Cmds, []).
@@ -101,13 +127,6 @@ unknown_encoder(Enc) ->
     #{ encoder => Enc,
        status => undefined }.
 
-
-update_model(Spec, In, Config, Prev) ->
-    case cmencode:encode(Spec, maps:merge(Prev, In), Config) of
-        {ok, New} ->
-            {ok, maps:merge(Prev, New)};
-        Other -> Other
-    end.
 
 cmds([], _, _, _, _) -> ok;
 cmds([#{ effect := Effect,

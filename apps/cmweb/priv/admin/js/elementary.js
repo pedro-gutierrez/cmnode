@@ -828,6 +828,13 @@ export default (appUrl, appEffects) => {
         log("[core] new model", state.model);
     }
 
+    function withWhere(spec, data) {
+        if (!spec.where) return {value: data};
+        var {err, value} = encode(spec.where, data);
+        if (err) return error(spec.where, data, err);
+        return {value: Object.assign(data, value)};
+    }
+
     function log(msg, data) {
         if (state.app.settings.debug) console.log(msg, data);
     }
@@ -837,6 +844,7 @@ export default (appUrl, appEffects) => {
         if (!clauses || !clauses.length) return error(msg, ctx, "no_update_implemented");
         for (var i=0; i<clauses.length; i++) {
             var c = clauses[i];
+            if (!c.condition) return {spec: c};
             const { err, value } = encode(c.condition, ctx);
             log("[core] condition", { 
                 condition: c.condition,
@@ -867,8 +875,13 @@ export default (appUrl, appEffects) => {
             console.error("Update error", err);
             return;
         } 
-        
-        log("[core] update spec", spec);
+        var {err, value} = withWhere(spec, ctx);
+        if (err) {
+            console.error("Where error", err);
+            return;
+        }
+        ctx = value;
+        log("[core] update spec", spec, ctx);
         var err = updateModel(spec.model, ctx);
         if (err) {
             console.error("Update error", err);
