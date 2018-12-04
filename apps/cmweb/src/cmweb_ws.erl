@@ -16,10 +16,10 @@ websocket_init(#{app := App, port := Port }=State) ->
             Log = cmkit:log_fun(Debug),
             {ok, Model, Config} = cmcore:init(Pid, Spec, Log),
             Spec2 = Spec#{ config => Config },
-            Log({ws, new_connection, App, Port, Pid}),
+            Log({ws, new, App, Port, Pid}),
             {ok, State#{ spec => Spec2, model => Model, log => Log} };
        {error, E} -> 
-            cmkit:warning({ws, new_connection, no_such_app, App, Port, E}),
+            cmkit:warning({ws, new, unknown_app, App, Port, E}),
             {stop, E}
     end.
 
@@ -46,7 +46,7 @@ websocket_info({update, Data}, #{ model := Model,
 websocket_info(Data, #{ app := App, 
                         port := Port, 
                         log := Log }=State) ->
-    Log({App, Port, self(), out, Data}),
+    Log({ws, out, App, Port, self(), Data}),
     {reply, {text, cmkit:jsone(Data)}, State}.
 
 
@@ -63,7 +63,7 @@ handle_data(Data, #{ app := App,
             Log({ws, in, App, Port, self(), invalid, Data}),
             {stop, State};
         {ok, Decoded} ->
-            Log({App, Port, self(), in, Decoded}),
+            Log({ws, in, App, Port, self(), Decoded}),
             {ok, Model2} = cmcore:update(self(), Spec, Decoded, Model, Log),
             {ok, State#{ model => Model2 }}
     end.

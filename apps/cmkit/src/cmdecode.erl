@@ -109,7 +109,7 @@ decode_term(#{ type := other_than, spec := Spec }, Data, Config) ->
             case decode_term(Value, Data, Config) of 
                 no_match -> 
                     {ok, Data};
-                {ok, _} -> 
+                {ok, _} ->
                     no_match
             end;
         Other ->

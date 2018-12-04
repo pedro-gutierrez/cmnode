@@ -81,11 +81,14 @@ clone(#{ repo := Repo,
          branch := Branch }) -> 
     case is_tmp(Dir) of
         true ->
-            cmsh:sh(rmdir_cmd(Dir), []),
+            {ok, _} = cmsh:sh(rmdir_cmd(Dir), []),
             ok = filelib:ensure_dir(Dir),
             Url = git_http_url(Repo, Creds),
             cmkit:log({cmgit, cloning, Repo, Branch}),
-            cmsh:sh(clone_cmd(Url, Dir, Branch), []);
+            {ok, _} = cmsh:sh(clone_cmd(Url, Dir, Branch), []),
+            {ok, LastCommitInfo} = cmsh:sh(last_commit_cmd(), [{cd, Dir}]),
+            cmkit:log({cmgit, last_commit, LastCommitInfo}),
+            {ok, LastCommitInfo};
         false ->
             {error, not_a_tmp_folder}
     end;
@@ -151,6 +154,9 @@ tag_create_cmd(Tag) ->
 
 tag_push_cmd(RepoURL, Tag) ->
     cmkit:fmt("git push \"~s\" ~s", [RepoURL, Tag]).
+
+last_commit_cmd() ->
+    "git show --summary".
 
 clone_cmd(RepoURL, RepoPath, Branch) ->
     cmkit:fmt("git clone -b ~s \"~s\" \"~s\"", [Branch, RepoURL, RepoPath]).

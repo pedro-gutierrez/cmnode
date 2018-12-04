@@ -530,6 +530,55 @@ export default (appUrl, appEffects) => {
         return {value: cmd};
     }
 
+    function encodeSplit(spec, data, ctx) {
+        var {err, value} = encode(spec.using, data, ctx);
+        if (err) return error(spec, data, err);
+        var sep = value; 
+        var {err, value} = encode(spec.split, data, ctx);
+        if (err) return error(spec, data, err);
+        switch (typeof(value)) {
+            case "string":
+                return {value: value.split(sep)};
+            default:
+                return error(spec, value, "not_a_string");
+        }
+    }
+    
+    function encodeJoin(spec, data, ctx) {
+        var {err, value} = encode(spec.using, data, ctx);
+        if (err) return error(spec, data, err);
+        var sep = value; 
+        var {err, value} = encode(spec.join, data, ctx);
+        if (err) return error(spec, data, err);
+        if (!Array.isArray(value)) return error(spec, value, "not_a_list");
+        return {value: value.join(sep)};
+    }
+
+    function encodeHead(spec, data, ctx) {
+        var {err, value} = encode(spec.head, data, ctx);
+        if (err) return error(spec, data, err);
+        if (!Array.isArray(value)) return error(spec, value, "not_a_list");
+        const [head, _] = value;
+        return {value: head};
+
+    }
+
+    function encodeTail(spec, data, ctx) {
+        var {err, value} = encode(spec.tail, data, ctx);
+        if (err) return error(spec, data, err);
+        if (!Array.isArray(value)) return error(spec, value, "not_a_list");
+        const [_, ...tail] = value;
+        return {value: tail};
+    }
+    
+    function encodeLast(spec, data, ctx) {
+        var {err, value} = encode(spec.last, data, ctx);
+        if (err) return error(spec, data, err);
+        if (!Array.isArray(value)) return error(spec, value, "not_a_list");
+        if (!value.length) return error(spec, value, "empty_list");
+        return {value: value[value.length-1]};
+    }
+
     function encode(spec, data, ctx) {
         //if (!spec) return error({}, data, "missing_encoder_spec");
         switch(typeof(spec)) {
@@ -558,6 +607,11 @@ export default (appUrl, appEffects) => {
                 if (spec.and) return encodeAnd(spec, data, ctx);
                 if (spec.or) return encodeOr(spec, data, ctx);
                 if (spec.any) return encodeAny(spec, data, ctx);
+                if (spec.head) return encodeHead(spec, data, ctx);
+                if (spec.tail) return encodeTail(spec, data, ctx);
+                if (spec.last) return encodeLast(spec, data, ctx);
+                if (spec.split) return encodeSplit(spec, data, ctx);
+                if (spec.join) return encodeJoin(spec, data, ctx);
                 if (spec.merged_list) return encodeMergedList(spec, data, ctx);
                 if (spec.merge) return encodeMergedObject(spec, data, ctx);
                 if (spec.iterate) return encodeIterate(spec, data, ctx);

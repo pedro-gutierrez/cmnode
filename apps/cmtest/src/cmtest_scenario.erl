@@ -87,20 +87,19 @@ run_steps(#{ test := #{ name := Name },
 
     case Steps of 
         [#{ title := StepTitle}=Step|Rem] ->
-            Log({cmtest, starting, StepTitle}),
             StepStarted = step_started(Data),
             Res = cmtest_util:run(Step, Settings, World),
             case Res of 
                 retry ->
                     Elapsed = cmkit:millis_since(ScenarioStarted),
                     World2 = retried(World#{ elapsed => Elapsed }),
-                    cmkit:warning({cmtest, #{ test => Name,
-                                              scenario => Title,
-                                              step => StepTitle,
-                                              step_started => StepStarted,
-                                              step_elapsed => cmkit:millis_since(StepStarted),
-                                              retries => Retries,
-                                              pid => self()}}),
+                    %cmkit:warning({cmtest, #{ test => Name,
+                    %                          scenario => Title,
+                    %                          step => StepTitle,
+                    %                          step_started => StepStarted,
+                    %                          step_elapsed => cmkit:millis_since(StepStarted),
+                    %                          retries => Retries,
+                    %                          pid => self()}}),
                     {keep_state, Data#{ step_started => StepStarted,
                                         world => World2  }, 
                         [{state_timeout, Wait, retry}]};

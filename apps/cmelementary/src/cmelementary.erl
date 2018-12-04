@@ -221,6 +221,51 @@ term(#{ type := by_removing, spec := Spec}, Settings) ->
             Other
     end;
 
+
+term(#{ type := tail, spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ tail => Compiled}};
+        Other ->
+            Other
+    end;
+
+term(#{ type := split, spec := Spec, separator := Separator }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            case term(Separator, Settings) of 
+                {ok, Sep} ->
+                    {ok, #{ split => Compiled, using => Sep}};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+term(#{ type := join, spec := Spec, separator := Separator }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            case term(Separator, Settings) of 
+                {ok, Sep} ->
+                    {ok, #{ join => Compiled, using => Sep}};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+
+term(#{ type := head, spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ head => Compiled}};
+        Other ->
+            Other
+    end;
+
+
 term(#{ type := size_of,
         spec := Spec }, Settings) -> 
     case term(Spec, Settings) of 
@@ -848,6 +893,7 @@ term(Map, _) when is_map(Map) andalso map_size(Map) =:= 0 ->
     {ok, #{}};
 
 term(Other, Settings) ->
+    cmkit:warning({cmelementary, default_as_object, Other}),
     term(#{ type => object,
             spec => Other }, Settings).
 

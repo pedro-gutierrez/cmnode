@@ -29,14 +29,17 @@ effect_apply(#{ context := Context,
                                                  spec => Query }}
                 end,
 
-    HttpSpec = case maps:get(body, Spec, undef) of 
+    HttpSpec3 = case maps:get(body, Spec, undef) of 
                     undef -> HttpSpec2;
                     Body -> 
-                        HttpSpec2#{ body => Body }
+                        HttpSpec2#{ body => #{ type => object,
+                                               spec => Body }}
                 end,
+
+    HttpSpec4 = HttpSpec3#{ debug => maps:get(debug, Spec, false) },
     
     Data = case cmencode:encode(#{ type => exec,
-                                   spec => HttpSpec}) of 
+                                   spec => HttpSpec4}) of 
                {ok, Res} -> Res;
                {error, E} -> #{ error => E }
            end,
