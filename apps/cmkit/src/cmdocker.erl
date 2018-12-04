@@ -2,11 +2,22 @@
 -export([build/1, pull/1]).
 -define(BASE_URL, <<"http://localhost:1234">>).
 
-pull(#{ repo := _Repo,
-        tag := _Version,
-        credentials := _Creds }) -> 
-    {error, not_implemented_yet}.
+pull(#{ repo := Repo,
+        tag := Tag,
+        credentials := Creds }) -> 
 
+    Image = <<Repo/binary, ":", Tag/binary>>,
+    cmkit:log({cmdocker, pull, Image}),
+    PushUrl = <<?BASE_URL/binary, "/images/create?fromImage=", Image/binary>>,
+    case cmhttp:post(PushUrl, #{ 
+                       'content-type' => "application/json",
+                       'X-Registry-Auth' => auth_config(Creds) }, #{}) of 
+        {ok, #{ status := 200, body := R2 }} -> 
+            cmkit:log({cmdocker, pulled, R2}),
+            ok;
+        Other -> 
+            Other
+    end.
 
 
 delete(#{ repo := Repo }) ->
