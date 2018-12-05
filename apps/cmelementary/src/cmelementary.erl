@@ -312,6 +312,19 @@ term(#{ type := size_of,
             Other
     end;
 
+term(#{ type := char, spec := CharSpec, in := InSpec }, Settings) ->
+    case term(InSpec, Settings) of 
+        {ok, In} ->
+            case term(CharSpec, Settings) of 
+                {ok, Char} ->
+                    {ok, #{ char => Char, in => In}};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 term(#{ type := list, size := Size}, _) -> 
         {ok, #{ list => #{ size => Size }}};
 

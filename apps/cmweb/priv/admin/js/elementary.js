@@ -579,11 +579,21 @@ export default (appUrl, appEffects) => {
         return {value: value[value.length-1]};
     }
 
+    function encodeChar(spec, data, ctx) {
+        var {err, value} = encode(spec['char'], data, ctx);
+        if (err) return error(spec, data, err);
+        var c = value;
+        var {err, value} = encode(spec['in'], data, ctx);
+        if (err) return error(spec, data, err);
+        return {value: value.charAt(c)};
+    }           
+
     function encode(spec, data, ctx) {
         //if (!spec) return error({}, data, "missing_encoder_spec");
         switch(typeof(spec)) {
             case "object":
                 if (spec.hasOwnProperty("text")) return encodeText(spec, data, ctx);
+                if (spec.hasOwnProperty("char")) return encodeChar(spec, data, ctx);
                 if (Array.isArray(spec)) return encodeList(spec, data, ctx);
                 if (spec.object) return encodeNewObject(spec, data, ctx);
                 if (spec.by_appending) return encodeByAppending(spec, data, ctx);

@@ -1636,6 +1636,12 @@ compile_term(#{ <<"response">> := Spec }, Index) ->
        spec => compile_term(Spec, Index) 
      };
 
+compile_term(#{ <<"char">> := Char,
+                <<"in">> := In }, Index) ->
+    #{ type => char,
+       spec => compile_term(Char, Index),
+       in => compile_term(In, Index ) 
+     };
 
 compile_term(#{ <<"split">> := Term,
                 <<"using">> := Separator }, Index) ->
