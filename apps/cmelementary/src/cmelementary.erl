@@ -357,6 +357,22 @@ term(#{ literal := V }, _) ->  {ok, V};
 
 term(#{ type := true }, _) -> {ok, true};
 term(#{ type := false}, _) -> {ok, false};
+
+
+term(#{ type := boolean, spec := Spec}, _) when is_atom(Spec) ->
+    {ok, Spec};
+
+term(#{ type := boolean, spec := Spec}, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ boolean => Compiled}};
+        Other ->
+            Other
+    end;
+
+term(#{ type := boolean }, _) -> 
+    {ok, #{ any => boolean }};
+
 term(#{ type := equal, spec := Spec }, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
@@ -768,8 +784,6 @@ term(#{ type := text }, _) ->
 term(#{ type := list}, _) -> 
     {ok, #{ any => list }};
 
-term(#{ type := boolean }, _) -> 
-    {ok, #{ any => boolean }};
 
 term(#{ type := object}, _) -> 
     {ok, #{ any => object }};

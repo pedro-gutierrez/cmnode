@@ -38,7 +38,8 @@ delete(#{ repo := Repo }) ->
 build(#{ dir := Dir,
          repo := Repo,
          tag := Version,
-         credentials := Creds } = Req) -> 
+         credentials := Creds,
+         errors := Errors } = Req) -> 
 
     [User, Image] = cmkit:bin_split(Repo, <<"/">>),
     TarFilename = cmkit:to_list(cmkit:bin_join([User, Image, Version], <<"-">>)),
@@ -55,20 +56,26 @@ build(#{ dir := Dir,
                             Headers = #{ 'content-type' => <<"application/x-tar">> },
                             cmkit:log({cmdocker, building, Tag}),
                             case cmhttp:post(Url, Headers, Data) of 
-                                {ok, #{ status := 200, body := R } } ->
-                                    cmkit:log({cmdocker, build, R}),
-                                    PushUrl = <<?BASE_URL/binary, "/images/", Repo/binary, 
-                                                "/push?tag=", Version/binary>>,
+                                {ok, #{ status := 200, raw := R, mime := Mime } } ->
+                                    case has_errors(cmkit:to_bin(R), Errors) of 
+                                        {true, E} ->
+                                            cmkit:danger({cmdocker, build, E, R}),
+                                            {error, E};
+                                        false ->
+                                            cmkit:log({cmdocker, built, Mime, R}),
+                                            PushUrl = <<?BASE_URL/binary, "/images/", Repo/binary, 
+                                                        "/push?tag=", Version/binary>>,
 
-                                    cmkit:log({cmdocker,pushing, PushUrl}),
-                                    case cmhttp:post(PushUrl, #{ 
-                                                       'content-type' => "application/json",
-                                                       'X-Registry-Auth' => auth_config(Creds) }, #{}) of 
-                                        {ok, #{ status := 200, body := R2 }} -> 
-                                            cmkit:log({cmdocker, pushed, R2}),
-                                            ok;
-                                        Other -> 
-                                            Other
+                                            cmkit:log({cmdocker,pushing, PushUrl}),
+                                            case cmhttp:post(PushUrl, #{ 
+                                                               'content-type' => "application/json",
+                                                               'X-Registry-Auth' => auth_config(Creds) }, #{}) of 
+                                                {ok, #{ status := 200, raw := R2, mime := Mime }} -> 
+                                                    cmkit:log({cmdocker, pushed, Mime, R2}),
+                                                    ok;
+                                                Other -> 
+                                                    Other
+                                            end
                                     end;
                                 Other -> 
                                     Other
@@ -95,3 +102,11 @@ auth_config(#{ user := User,
                                  email => Email,
                                  serveraddress => Registry })).
 
+has_errors(_, []) -> false;
+has_errors(Raw, [E|Rem]) ->
+    case binary:matches(Raw, E) of 
+        [] ->
+            has_errors(Raw, Rem);
+        _ ->
+            {true, E}
+    end.

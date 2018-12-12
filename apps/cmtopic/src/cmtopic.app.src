@@ -1,11 +1,13 @@
-{application, weekonekt,
+{application, cmtopic,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { weekonekt_app, []}},
+  {mod, { cmtopic_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cmkit,
+    cmconfig
    ]},
   {env,[]},
   {modules, []},

@@ -213,7 +213,8 @@ run_item(_, #{ type := docker, spec := #{ action := build,
                                           credentials := CredsSpec,
                                           repo := RepoSpec,
                                           tag := TagSpec,
-                                          dir := DirSpec }}, In) ->
+                                          dir := DirSpec,
+                                          errors := ErrorsSpec }}, In) ->
     case cmencode:encode(RepoSpec, In) of 
         {ok, Repo} -> 
             case cmencode:encode(DirSpec, In) of 
@@ -222,10 +223,16 @@ run_item(_, #{ type := docker, spec := #{ action := build,
                         {ok, Tag} -> 
                             case cmencode:encode(CredsSpec, In) of 
                                 {ok, Creds} -> 
-                                    cmdocker:build(#{ credentials => Creds,
-                                                      dir => Dir,
-                                                      repo => Repo,
-                                                      tag => Tag });
+                                    case cmencode:encode(ErrorsSpec, In) of 
+                                        {ok, Errors} ->
+                                            cmdocker:build(#{ credentials => Creds,
+                                                              dir => Dir,
+                                                              repo => Repo,
+                                                              tag => Tag,
+                                                              errors => Errors });
+                                        Other ->
+                                            Other
+                                    end;
                                 Other -> 
                                     Other
                             end;

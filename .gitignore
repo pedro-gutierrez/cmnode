@@ -12,3 +12,5 @@ _build
 **/*.DS_Store
 data
 assets
+etc.demo
+etc.old

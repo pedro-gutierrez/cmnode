@@ -246,7 +246,10 @@ select_clause([#{ condition := Cond }=Spec|Rem], Ctx) ->
         true -> {ok, Spec};
         false -> 
             select_clause(Rem, Ctx)
-    end.
+    end;
+
+select_clause([Spec|_], _) ->
+    {ok, Spec}.
 
 apply_cmds([], _, _) -> ok;
 apply_cmds([#{ effect := _,

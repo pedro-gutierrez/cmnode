@@ -22,6 +22,8 @@
          test/1,
          themes/0,
          theme/1,
+         topics/0,
+         topic/1,
          effects/0,
          effect/1
         ]).
@@ -48,6 +50,8 @@ tests() -> {ok, V} = cmkit:app_env(cmconfig, test), V.
 test(N) -> cmkit:app_env(cmconfig, test, N).
 themes() -> {ok, V} = cmkit:app_env(cmconfig, theme), V.
 theme(N) -> cmkit:app_env(cmconfig, theme, N).
+topics() -> {ok, V} = cmkit:app_env(cmconfig, topic), V.
+topic(N) -> cmkit:app_env(cmconfig, topic, N).
 
 effects() -> cmeffect:effects().
 

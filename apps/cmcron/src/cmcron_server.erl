@@ -93,12 +93,26 @@ mfa(#{ task := Task,
             end;
         Other ->
             Other
+    end;
+
+mfa(#{ task := Task }) ->
+
+    case cmencode:encode(Task) of 
+        {ok, T} ->
+            {ok, {cmtask, schedule, [T, #{}]}};
+        Other ->
+            Other
     end.
 
 schedule(#{ type := once,
             secs := Secs }) ->
 
     {once, Secs};
+
+schedule(#{ type := every, 
+            secs := Secs }) ->
+    
+    {daily, {every, {Secs, sec}, {between, {0, am}, {11, 59, pm}}}};
 
 schedule(#{ type := daily, 
             hour := H,

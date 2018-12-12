@@ -34,9 +34,8 @@ handle_file_event(File, ".yml", modified) ->
     spawn( fun() ->
                    case cmkit:yaml(File) of 
                        {ok, #{ <<"type">> := Type, 
-                               <<"name">> := Name, 
-                               <<"version">> := Version }} ->
-                           cmkit:log({cmconfig, modified, Type, Name, Version}),
+                               <<"name">> := Name }} ->
+                           cmkit:log({cmconfig, modified, Type, Name}),
                            cmconfig_util:reload(Type);
                        _ ->
                            cmkit:danger({cmconfig, error, File})

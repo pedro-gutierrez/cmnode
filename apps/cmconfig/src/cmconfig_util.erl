@@ -22,7 +22,8 @@
                 cron,
                 test,
                 bucket,
-                task]).
+                task,
+                topic]).
 
 plural(settings) -> "settings";
 plural(T) -> cmkit:to_list(cmkit:fmt("~ss", [T])).
@@ -169,6 +170,7 @@ compile(#{ <<"type">> := <<"settings">> }=Spec, Index) -> {ok, compile_settings(
 compile(#{ <<"type">> := <<"cron">> }=Spec, Index) -> {ok, compile_cron(Spec, Index)};
 compile(#{ <<"type">> := <<"task">> }=Spec, Index) -> {ok, compile_task(Spec, Index)};
 compile(#{ <<"type">> := <<"theme">> }=Spec, Index) -> {ok, compile_theme(Spec, Index)};
+compile(#{ <<"type">> := <<"topic">> }=Spec, Index) -> {ok, compile_topic(Spec, Index)};
 
 compile(Spec, _) ->
     cmkit:danger({cmconfig, unknown_spec, Spec}),
@@ -229,14 +231,15 @@ compile_port(#{ <<"name">> := Name,
                 <<"rank">> := Rank,
                 <<"spec">> := #{
                     <<"port">> := Port,
-                    <<"acceptors">> := Acceptors,
-                    <<"apps">> := Apps }}, _) ->
+                    <<"apps">> := Apps } = PortSpec}, _) ->
+
+
 
     #{ name => compile_keyword(Name),
        type => port,
        rank => Rank,
        port  => Port,
-       acceptors => Acceptors,
+       acceptors => maps:get(<<"acceptors">>, PortSpec, 1),
        apps => compile_port_apps(Apps) }.
 
 compile_port_apps(Apps) ->
@@ -304,6 +307,10 @@ compile_cron(#{ <<"name">> := Name,
        jobs => compile_cron_jobs(Jobs, Index) 
      }.
 
+compile_cron_schedule(#{ <<"every">> := Secs}) ->
+    #{ type => every,
+       secs => Secs };
+
 compile_cron_schedule(#{ <<"once">> := Secs}) ->
     #{ type => once,
        secs => Secs };
@@ -340,12 +347,22 @@ compile_cron_job(#{ <<"module">> := Mod,
        args => EncodedArgs
      };
 
-compile_cron_job(#{ <<"task">> := Name,
-                     <<"settings">> := Settings }, Index) ->
+compile_cron_job(#{ <<"task">> := Name } = Spec, Index) ->
     
-    #{ task=> compile_term(Name, Index),
-       settings => compile_term(Settings, Index)
-     }.
+    TaskName = case is_binary(Name) of 
+                  true ->
+                      cmkit:to_atom(Name);
+                  false ->
+                      compile_term(Name, Index)
+              end,
+
+    Term = #{ task => TaskName },
+    case maps:get(<<"settings">>, Spec, undef) of 
+        undef ->
+            Term;
+        Settings ->
+            Term#{ settings => compile_term(Settings, Index) }
+    end.
 
 compile_task(#{ <<"name">> := Name,
                 <<"rank">> := Rank,
@@ -367,6 +384,14 @@ compile_template(#{ <<"name">> := Name,
          name => cmkit:to_atom(Name),
          contents => Contents }.
 
+compile_topic(#{ <<"name">> := Name,
+                    <<"rank">> := Rank,
+                    <<"spec">> := _ }, _) ->
+
+    #{   type => topic,
+         rank => Rank,
+         name => cmkit:to_atom(Name),
+         spec => #{}}.
 
 compile_module(#{ <<"name">> := Name,
                   <<"rank">> := Rank,
@@ -416,7 +441,6 @@ compile_app_config(_, Other, Index) ->
 
 compile_app(#{ <<"name">> := Name,
                <<"rank">> := Rank,
-               <<"category">> := Cat,
                <<"spec">> := #{
                    <<"modules">> := Modules 
                   } = Spec
@@ -440,7 +464,6 @@ compile_app(#{ <<"name">> := Name,
        config => AppConfig,
        debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
        timeout => cmkit:to_number(maps:get(<<"timeout">>, Spec, <<"10000">>)),
-       category => compile_keyword(Cat),
        spec => compile_modules(ResolvedModules, #{})
      }.
 
@@ -1214,6 +1237,14 @@ compile_term(#{ <<"any">> := <<"number">> }, _) ->
 compile_term(#{ <<"number">> := <<"any">> }, _) ->
     #{ type => number };
 
+compile_term(#{ <<"boolean">> := Value }, _) when is_binary(Value) or is_atom(Value) ->
+    #{ type => boolean,
+       spec => cmkit:is_true(Value) };
+
+compile_term(#{ <<"boolean">> := Term }, Index) ->
+    #{ type => boolean,
+       spec => compile_term(Term, Index) };
+
 compile_term(#{ <<"any">> := <<"boolean">> }, _) ->
     #{ type => boolean };
 
@@ -1281,6 +1312,9 @@ compile_term(#{ <<"uppercase">> := Spec}, Index) ->
     #{ type => uppercase,
        spec => compile_term(Spec, Index) };
 
+compile_term(#{ <<"capitalized">> := Spec}, Index) ->
+    #{ type => capitalized,
+       spec => compile_term(Spec, Index) };
 
 compile_term(#{ <<"files">> := Spec }, Index) -> 
     #{ type => files,
@@ -1428,6 +1462,12 @@ compile_term(#{ <<"other_than">> := Spec }, Index) ->
 
 compile_term(#{ <<"gt">> := Specs }, Index) when is_list(Specs) ->
     #{ type => greater_than,
+       spec => lists:map(fun(S) ->
+                            compile_term(S, Index)     
+                         end, Specs)};
+
+compile_term(#{ <<"lt">> := Specs }, Index) when is_list(Specs) ->
+    #{ type => lower_than,
        spec => lists:map(fun(S) ->
                             compile_term(S, Index)     
                          end, Specs)};
@@ -1865,13 +1905,23 @@ compile_term(#{ <<"docker">> := #{
                     <<"credentials">> := CredsSpec,
                     <<"build">> := #{ <<"repo">> := Repo,
                                       <<"tag">> := Tag,
-                                      <<"dir">> := Dir }}}, Index) -> 
+                                      <<"dir">> := Dir }} =  Spec}, Index) -> 
+
+    DockerSpec = #{ action => build,
+                    credentials => compile_term(CredsSpec, Index),
+                    repo => compile_term(Repo, Index),
+                    tag => compile_term(Tag, Index),
+                    dir => compile_term(Dir, Index) },
+    
+    DockerSpec2 = case maps:get(<<"errors">>, Spec, undef) of 
+                      undef -> 
+                          DockerSpec#{ errors => [] };
+                      ErrorsSpec -> 
+                          DockerSpec#{ errors => compile_term(ErrorsSpec, Index) }
+                  end,
+                      
     #{ type => docker,
-       spec => #{ action => build,
-                  credentials => compile_term(CredsSpec, Index),
-                  repo => compile_term(Repo, Index),
-                  tag => compile_term(Tag, Index),
-                  dir => compile_term(Dir, Index) }};
+       spec => DockerSpec2 };
 
 compile_term(#{ <<"docker">> := #{ 
                     <<"credentials">> := CredsSpec,

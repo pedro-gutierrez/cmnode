@@ -185,27 +185,30 @@ handle({error,E}) ->
     {error, E};
 
 handle({ok, {{_, Code, _}, Headers, Body}}) ->
-    DecodedBody = case decoded_mime(Headers) of
-        {error, no_content_type} -> Body;
-        {ok, json} ->
+    DecodedMime = decoded_mime(Headers),
+    DecodedBody = case DecodedMime of
+        missing -> Body;
+        json ->
             case cmkit:jsond(Body) of 
                 {ok, Term} -> Term;
                 _ -> Body
             end;
-        {ok, _} -> Body
+        _ -> Body
     end,
 
     {ok, #{ status => Code,
             headers => decoded_headers(Headers, #{}), 
-            body => DecodedBody }}.
+            mime => DecodedMime,
+            body => DecodedBody,
+            raw => Body }}.
 
 decoded_mime(Headers) ->
     case lists:keyfind("content-type", 1, Headers) of 
-        false -> {error, no_content_type};
+        false -> missing;
         {"content-type", CT} ->
             case string:str(CT, "json") of 
-                0 -> {ok, CT};
-                _ -> {ok, json}
+                0 -> CT;
+                _ -> json
             end
     end.
 
