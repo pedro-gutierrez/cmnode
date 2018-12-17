@@ -476,21 +476,5 @@ run_item(_, #{ type := alias,
                        context => In }}
     end;
 
-run_item(_, #{ type := pub,
-               topic := Topic,
-               spec := Spec }, In) ->
-    case cmencode:encode(Topic, In) of
-        {ok, T} ->
-            case cmencode:encode(Spec, In) of 
-                {ok, Msg} ->
-                    cmkit:warning({pub, T, Msg}),
-                    cmtopic:pub(T, Msg);
-                Other ->
-                    Other
-            end;
-        Other ->
-            Other
-    end;
-
 run_item(_, Spec, In) -> 
     cmencode:encode(Spec, In).

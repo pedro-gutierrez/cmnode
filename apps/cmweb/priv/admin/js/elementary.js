@@ -314,17 +314,18 @@ export default (appUrl, appEffects) => {
     }
 
     function encodeEither(spec, data, ctx) {
-        function _(i) {
-            if (i == spec.either.length) return error(spec, data, "no_condition_matched")
+        if (!spec.either.length) return error(spec, data, "not_conditions");
+        for (var i=0; i<spec.either.length; i++) {
             var s = spec.either[i];
             var { err, value } = encode(s.when, data, ctx);
             if (err) return error(spec, data, err);
-            if (!value) return _(i+1);
-            var { err, value } = encode(s.then, data, ctx);
-            if (err) return error(spec, data, err);
-            return { value };
+            if (value) {
+                var { err, value } = encode(s.then, data, ctx);
+                if (err) return error(spec, data, err);
+                return { value };
+            }
         }
-        return _(0);
+        return error(spec, data, "no_condition_matched");
     }
 
     function encodeUsingEncoder(spec, data, ctx) {
@@ -587,7 +588,27 @@ export default (appUrl, appEffects) => {
         if (err) return error(spec, data, err);
         return {value: value.charAt(c)};
     }           
+    
+    function encodeGreaterThan(spec, data, ctx) {
+        if (spec.greater_than.length < 2) return error(spec, data, "not_enough_arguments");
+        var {err, value}= encode(spec.greater_than[0], data, ctx);
+        if (err) return error(spec, data, err);
+        var v1  = value;
+        var {err, value}= encode(spec.greater_than[1], data, ctx);
+        if (err) return error(spec, data, err);
+        return {value: v1>value};
+    }
 
+    function encodeLowerThan(spec, data, ctx) {
+        if (spec.lower_than.length < 2) return error(spec, data, "not_enough_arguments");
+        var {err, value}= encode(spec.lower_than[0], data, ctx);
+        if (err) return error(spec, data, err);
+        var v1  = value;
+        var {err, value}= encode(spec.lower_than[1], data, ctx);
+        if (err) return error(spec, data, err);
+        return {value: v1<value};
+    }
+    
     function encode(spec, data, ctx) {
         //if (!spec) return error({}, data, "missing_encoder_spec");
         switch(typeof(spec)) {
@@ -633,6 +654,8 @@ export default (appUrl, appEffects) => {
                 if (spec.size_of) return encodeSizeOf(spec, data, ctx);
                 if (spec.lowercase) return encodeLowerCase(spec, data, ctx);
                 if (spec.uppercase) return encodeUpperCase(spec, data, ctx);
+                if (spec.greater_than) return encodeGreaterThan(spec, data, ctx);
+                if (spec.lower_than) return encodeLowerThan(spec, data, ctx);
                 if (!Object.keys(spec).length) return {value: {}};
                 console.warn("returning spec as default encoding value", spec);
                 return { value: spec };

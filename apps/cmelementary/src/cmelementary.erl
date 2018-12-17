@@ -572,6 +572,22 @@ term(#{ type := other_than, spec := Spec }, Settings) ->
             Other
     end;
 
+term(#{ type := greater_than, spec := Terms }, Settings) -> 
+    case terms(Terms, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ greater_than => Compiled }};
+        Other -> 
+            Other
+    end;
+
+term(#{ type := lower_than, spec := Terms }, Settings) -> 
+    case terms(Terms, Settings) of 
+        {ok, Compiled} -> 
+            {ok, #{ lower_than => Compiled }};
+        Other -> 
+            Other
+    end;
+
 term(#{ type := merged_list, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Terms} -> 
