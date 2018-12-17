@@ -161,6 +161,22 @@ encode(#{ type := condition,
             Other
     end;
 
+encode(#{ type := 'case',
+          spec := Case,
+          'of' := Of } = Spec, In, Config) ->
+    
+    case with_where(Spec, In, Config) of 
+        {ok, In2} ->
+            case encode(Case, In2, Config) of 
+                {ok, Expr} ->
+                    encode_case_clause(Of, Expr, In2, Config);
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 encode(#{ type := text,
           spec := Spec } = Spec0, In, Config) ->
     case encode(Spec, In, Config) of 
@@ -775,6 +791,29 @@ encode(#{ type := encrypt,
             Other
     end;
 
+encode(#{ type := pub,
+          topic := Topic,
+          spec := Msg }, In, Config) ->
+    case encode(Topic, In, Config) of 
+        {ok, T} ->
+            case encode(Msg, In, Config) of 
+                {ok, M} ->
+                    case cmbus:pub(T, M) of 
+                        ok ->
+                            {ok, ok};
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := perf }, _, _) ->
+    {ok, cmperf:stats()};
+
 encode(#{ type := asset,
           spec := Spec }, In, Config) ->
     case encode(Spec, In, Config) of
@@ -799,6 +838,11 @@ encode(#{ type := greater_than,
             {ok, V1 > V2};
         Other -> Other
     end;
+
+encode(#{ type := 'or',
+          spec := Exprs }, In, Config) ->
+    first_true(Exprs, In, Config);
+        
 
 encode(#{ type := sum,
           spec := Specs } = Spec, In, Config) ->
@@ -1452,6 +1496,16 @@ fail(Spec, In, Out) ->
              }
     }.
 
+first_true([], _, _) -> {ok, false};
+first_true([Spec|Rem], In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, true} ->
+            {ok, true};
+        _ ->
+            first_true(Rem, In, Config)
+    end.
+
+
 encode_all(Specs) -> encode_all(Specs, #{}, #{}).
 encode_all(Specs, In) -> encode_all(Specs, In, #{}).
 
@@ -1485,6 +1539,30 @@ pipe([Spec|Rem], As, In, Config) ->
             pipe(Rem, As, In#{ As => Encoded}, Config);
         Other ->
             Other
+    end.
+
+with_where(#{ where := WhereSpec }, In, Config) ->
+    case encode(WhereSpec, In, Config) of 
+        {ok, Where} ->
+            {ok, maps:merge(In, Where)};
+        Other->
+            Other
+    end;
+
+with_where(_, In, _) -> {ok, In}.
+
+
+encode_case_clause([], _, _, _) -> 
+    {error, #{ error => encode_error,
+               reason => no_clause_matches }};
+
+encode_case_clause([#{ condition := Condition,
+                       spec := Spec} |Rem], Expr, In, Config) ->
+    case cmdecode:decode(Condition, Expr, Config) of 
+        {ok, _} ->
+            encode(Spec, In, Config);
+        _ ->
+            encode_case_clause(Rem, Expr, In, Config)
     end.
 
 encode_options([], All,  In, _) -> {error, #{ status => encode_error,

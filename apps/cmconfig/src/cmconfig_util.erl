@@ -837,6 +837,39 @@ compile_term(#{ <<"either">> := Specs }, Index) when is_list(Specs) ->
                             end, Specs) };
 
 
+compile_term(#{ <<"case">> := CaseSpec,
+                <<"of">> := OfSpecs } = Spec, Index) ->
+    Spec0 = #{ type => 'case',
+               spec => compile_term(CaseSpec, Index),
+               'of' => compile_terms(OfSpecs, Index) },
+
+    case maps:get(<<"where">>, Spec, undef) of 
+        undef ->
+            Spec0;
+        WhereSpec ->
+            Spec0#{ where => compile_term(WhereSpec, Index) }
+    end;
+
+compile_term(#{ <<"when">> := GuardSpec } = Spec, Index) ->
+    #{ type => condition,
+       condition => compile_term(GuardSpec, Index),
+       spec => compile_term(maps:without([<<"when">>], Spec), Index) };
+
+
+compile_term(#{ <<"pub">> := MessageSpec,
+                <<"to">> := TopicSpec }, Index) ->
+    #{ type => pub,
+       topic => compile_term(TopicSpec, Index),
+       spec => compile_term(MessageSpec, Index) };
+
+compile_term(#{ <<"sub">> := TopicSpec }, Index) ->
+    #{ type => sub,
+       topic => compile_term(TopicSpec, Index)};
+
+compile_term(#{ <<"unsub">> := TopicSpec }, Index) ->
+    #{ type => unsub,
+       topic => compile_term(TopicSpec, Index)};
+
 compile_term(#{ <<"spec">> := Spec,
                 <<"to">> := To }, Index) when is_binary(To) ->
     #{ to => cmkit:to_atom(To),
@@ -1038,6 +1071,9 @@ compile_term(#{ <<"os">> := Var,
 compile_term(#{ <<"os">> := Var }, Index) ->
     #{ type => os,
        name => compile_term(Var, Index) };
+
+compile_term(#{ <<"perf">> := <<"stats">> }, _) ->
+    #{ type => perf };
 
 compile_term(#{ <<"object">> := Object}, Index) ->
     compile_object(Object, Index);

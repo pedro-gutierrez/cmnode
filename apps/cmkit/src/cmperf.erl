@@ -10,16 +10,36 @@ bench(Fun, Limit) ->
        ops_per_sec => trunc(Limit*1000000/Time) }.
 
 stats() ->
-  CpuInfo = case cpu_sup:util([per_cpu]) of
-    {all, 0, 0, []} -> <<"Not available">>;
-    [_|_] = UtilDescs ->
-                lists:map(fun({Cpus, Busy, NonBusy, _}) ->
-                              #{ num => Cpus, busy => Busy, idle => NonBusy }
-                          end, UtilDescs)
-  end,
-  #{mem => maps:from_list(memsup:get_system_memory_data()),
-    cpu => CpuInfo
-   }.
+    CpuInfo = case cpu_sup:util([per_cpu]) of
+                  {all, 0, 0, []} -> <<"Not available">>;
+                  [_|_] = UtilDescs ->
+                      lists:map(fun({Cpus, Busy, NonBusy, _}) ->
+                                        #{ num => Cpus, busy => Busy, idle => NonBusy }
+                                end, UtilDescs)
+              end,
+
+
+    AvgCpu = trunc(lists:foldl(fun(#{ busy := Busy }, Sum) ->
+                    Busy + Sum
+                end, 0, CpuInfo)/length(CpuInfo)),
+    
+    
+    {TotalMem0, _, _} = memsup:get_memory_data(),
+    TotalMem = trunc(TotalMem0/(1 bsl 20)),
+    UsedMem = trunc(erlang:memory(total) / (1 bsl 20)),
+
+    
+
+
+
+    #{mem => #{ 
+        used => UsedMem,
+        total => TotalMem
+       }, 
+      cpu => #{
+        average => AvgCpu
+       }
+     }.
 
 gc() ->
     [ erlang:garbage_collect(Pid) || #{ pid := Pid} <- procs() ].

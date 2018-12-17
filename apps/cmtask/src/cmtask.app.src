@@ -9,7 +9,8 @@
     cmconfig,
     cmkit,
     cmtest,
-    cmtemplate
+    cmtemplate,
+    cmtopic
    ]},
   {env,[]},
   {modules, []},
