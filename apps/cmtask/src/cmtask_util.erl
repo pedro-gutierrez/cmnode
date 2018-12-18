@@ -39,12 +39,11 @@ run(#{ name := Name,
     
     case resolve_items(Items) of 
         {ok, Items2} -> 
-            cmkit:log({task, Name, starting}),
             case run_items(Name, Items2, Input) of 
                 {error, E} ->
                     cmkit:danger({task, Name, error, E});
-                _Other ->
-                    cmkit:success({task, Name, Params, success})
+                _ ->
+                    ok
             end;
         Other -> 
             Other
@@ -81,7 +80,6 @@ run_items(Name, [Item|Rem], In) ->
         {alias, Extra} ->
             In2 = In#{ context => Ctx },
             In3 = maps:merge(In2, Extra),
-            cmkit:log({Name, alias, Extra}),
             run_items(Name, Rem, In3); 
         Other -> 
             Other

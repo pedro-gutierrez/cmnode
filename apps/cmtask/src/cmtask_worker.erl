@@ -60,6 +60,5 @@ handle_info(_, Data) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(Reason, Name) ->
-    cmkit:log({cmtask, Name, self(), terminated, Reason}),
+terminate(_, _) ->
     ok.
