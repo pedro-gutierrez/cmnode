@@ -9,7 +9,7 @@ effect_apply(#{ settings := Settings,
                 text := Text }, _) -> 
     
     case cmconfig:settings(Settings) of 
-        {ok, Spec} -> 
+        {ok, #{ spec := Spec}} -> 
             case cmencode:encode(Spec) of 
                 {ok, #{ slack := 
                         #{ tests := #{
