@@ -15,7 +15,19 @@ sub(T) ->
     sub(T, self()).
 
 sub(T, Pid) ->
-    pg2:join(T, Pid).
+    case pg2:get_members(T) of 
+        {error, {no_such_group, T}} ->
+            {error, no_such_group};
+        [] ->
+            pg2:join(T, Pid);
+        Members when is_list(Members) ->
+            case lists:is_member(Pid, Members) of 
+                false ->
+                    pg2:join(T, Pid);
+                true ->
+                    ok
+            end
+    end.
 
 unsub(T) ->
     unsub(T, self()).
@@ -29,7 +41,7 @@ pub(T, Msg) ->
                   case pg2:get_members(T) of
                       Pids when is_list(Pids) ->
                           lists:foreach(fun(Pid) ->
-                                                Pid ! Msg
+                                                cmcore:update(Pid, Msg)
                                         end, Pids);
                       {error, E} ->
                           cmkit:warning({cmtopic, T, pub, Msg, E})

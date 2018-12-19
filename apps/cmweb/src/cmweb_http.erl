@@ -2,7 +2,7 @@
 -export([init/2,
          info/3]).
 
-init(Req, #{app := App}=State) ->
+init(Req, #{app := App, effects := Effects}=State) ->
     Start = cmkit:micros(),
     case cmconfig:app(App) of
         {ok, #{ debug := Debug }=Spec} -> 
@@ -11,7 +11,7 @@ init(Req, #{app := App}=State) ->
             {ok, Data, Req2} = request_body(Req),
             BodyTime = cmkit:elapsed(Start),
             SessionTime = cmkit:elapsed(Start),
-            {ok, Model, Config} = cmcore:init(Pid, Spec, Log),
+            {ok, Model, Config} = cmcore:init(Pid, Spec, Log, Effects),
             Spec2 = Spec#{ config => Config },
             InitTime = cmkit:elapsed(Start),
             Data2 = #{ method => cowboy_req:method(Req),
@@ -19,7 +19,7 @@ init(Req, #{app := App}=State) ->
                        params => cowboy_req:bindings(Req),
                        headers => cowboy_req:headers(Req),
                        query => maps:from_list(cowboy_req:parse_qs(Req2)) },
-            {ok, Model2} = cmcore:update(Pid, Spec2, Data2, Model, Log),
+            {ok, Model2} = cmcore:update(Pid, Spec2, Data2, Model, Log, Effects),
             UpdateTime = cmkit:elapsed(Start),
             {cowboy_loop, Req2, State#{ log => Log, 
                                         spec => Spec2,
@@ -37,8 +37,9 @@ init(Req, #{app := App}=State) ->
 
 info({update, Data}, Req, #{ spec := Spec,
                              model := Model,
-                             log := Log } = State) ->
-    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log),
+                             log := Log,
+                             effects := Effects } = State) ->
+    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log, Effects),
     {ok, Req, State#{ model => Model2 }};
 
 info(terminate = Msg, Req, State) ->

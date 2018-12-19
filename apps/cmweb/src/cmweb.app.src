@@ -8,8 +8,8 @@
     stdlib,
     ranch,
     cowboy,
-    cmconfig,
-    cmcore
+    cmkit,
+    cmconfig
    ]},
   {env,[]},
   {modules, []},

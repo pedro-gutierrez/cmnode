@@ -3,7 +3,8 @@
 -export([start/2, stop/1]).
 
 start(_, _) ->
-    [ open(Port) || Port <- cmconfig:ports() ],
+    {ok, Effects} = cmconfig:effects(),
+    [ open(Port, Effects) || Port <- cmconfig:ports() ],
     cmweb_sup:start_link().
 
 stop(_) ->
@@ -12,21 +13,21 @@ stop(_) ->
 open(#{ name := Name, 
         acceptors := Acceptors,
         port := Port, 
-        apps := Apps }) ->
+        apps := Apps }, Effects) ->
 
-    Dispatch = cowboy_router:compile([{'_', routes(Name, Port, Apps)}]),
+    Dispatch = cowboy_router:compile([{'_', routes(Name, Port, Apps, Effects)}]),
     {ok, _} = cowboy:start_clear(Name, 
                                  [{port, Port}, {num_acceptors, Acceptors}],
                                  #{env => #{dispatch => Dispatch},
                                   stream_handlers => [cowboy_stream_h]}),
     cmkit:log({cmweb, Name, Port, ok});
 
-open(_) -> ok.
+open(_, _) -> ok.
 
-routes(PortName, PortNumber, Apps) ->
+routes(PortName, PortNumber, Apps, Effects) ->
     AppDir = atom_to_list(PortName),
     lists:flatten(lists:map(fun (App) -> 
-                               app_routes(PortNumber, App)     
+                               app_routes(PortNumber, App, Effects)     
                             end, Apps))
     ++
     [
@@ -34,14 +35,14 @@ routes(PortName, PortNumber, Apps) ->
         {"/[...]", cowboy_static, {priv_dir, cmweb, AppDir}}
     ].
 
-app_routes(Port, #{ name := Name, mounts := Mounts }) ->
+app_routes(Port, #{ name := Name, mounts := Mounts }, Effects) ->
     lists:map(fun(Mount) ->
-                    mount_route(Name, Mount, Port)
+                    mount_route(Name, Mount, Port, Effects)
               end, Mounts).
 
-mount_route(App, #{ path := Path, transport := http }, Port) ->
+mount_route(App, #{ path := Path, transport := http }, Port, Effects) ->
     %{ Path ++ "/[...]", cmweb_http, #{app => App, port => Port, transport => http }};
-    { Path, cmweb_http, #{app => App, port => Port, transport => http }};
+    { Path, cmweb_http, #{app => App, port => Port, transport => http, effects => Effects }};
 
-mount_route(App, #{ path := Path, transport := ws }, Port) ->
-    { Path, cmweb_ws, #{ app => App, port => Port, transport => ws }}.
+mount_route(App, #{ path := Path, transport := ws }, Port, Effects ) ->
+    { Path, cmweb_ws, #{ app => App, port => Port, transport => ws, effects => Effects }}.

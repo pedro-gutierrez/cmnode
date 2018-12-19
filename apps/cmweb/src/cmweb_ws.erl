@@ -9,15 +9,16 @@
 init(Req, State) ->
     {cowboy_websocket, Req, State }.
 
-websocket_init(#{app := App, port := Port }=State) ->
+websocket_init(#{app := App, port := Port, effects := Effects }=State) ->
     case cmconfig:app(App) of
         {ok, #{ debug := Debug }=Spec} -> 
             Pid = self(),
             Log = cmkit:log_fun(Debug),
-            {ok, Model, Config} = cmcore:init(Pid, Spec, Log),
+            {ok, Effects} = cmconfig:effects(),
+            {ok, Model, Config} = cmcore:init(Pid, Spec, Log, Effects),
             Spec2 = Spec#{ config => Config },
             Log({ws, new, App, Port, Pid}),
-            {ok, State#{ spec => Spec2, model => Model, log => Log} };
+            {ok, State#{ spec => Spec2, model => Model, log => Log }};
        {error, E} -> 
             cmkit:warning({ws, new, unknown_app, App, Port, E}),
             {stop, E}
@@ -38,9 +39,10 @@ websocket_info(terminate, #{ app := App,
 
 websocket_info({update, Data}, #{ model := Model,
                                   spec := Spec,
-                                  log := Log }=State) ->
+                                  log := Log,
+                                  effects := Effects }=State) ->
 
-    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log),
+    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log, Effects),
     {ok, State#{ model => Model2 }};
 
 websocket_info(Data, #{ app := App, 
@@ -56,7 +58,8 @@ handle_data(Data, #{ app := App,
                      port := Port,
                      spec := Spec,
                      model := Model,
-                     log := Log }=State) ->
+                     log := Log,
+                     effects := Effects }=State) ->
 
     case cmkit:jsond(Data) of
         {error, _} -> 
@@ -64,6 +67,6 @@ handle_data(Data, #{ app := App,
             {stop, State};
         {ok, Decoded} ->
             Log({ws, in, App, Port, self(), Decoded}),
-            {ok, Model2} = cmcore:update(self(), Spec, Decoded, Model, Log),
+            {ok, Model2} = cmcore:update(self(), Spec, Decoded, Model, Log, Effects),
             {ok, State#{ model => Model2 }}
     end.

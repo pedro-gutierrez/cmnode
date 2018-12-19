@@ -9,10 +9,11 @@ reload() ->
                             case cmkit:implements(Mod, [{effect_info,0}]) of 
                                 true -> 
                                     Name = Mod:effect_info(),
-                                    NameBin = cmkit:to_bin(Name),
-                                    I2 = Index#{ Name => Mod, NameBin => Mod },
+                                    %NameBin = cmkit:to_bin(Name),
+                                    %I2 = Index#{ Name => Mod, NameBin => Mod },
+                                    I2 = Index#{ Name => Mod },
                                     cmkit:set_app_env(cmeffect, Name, Mod),
-                                    cmkit:set_app_env(cmeffect, NameBin, Mod),
+                                    %cmkit:set_app_env(cmeffect, NameBin, Mod),
                                     I2;
                                 false -> 
                                     Index
