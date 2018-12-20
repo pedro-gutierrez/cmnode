@@ -788,8 +788,6 @@ compile_term(#{ <<"settings">> := Name }, #{ settings := Settings }) when is_bin
                spec => #{ S => Spec0 }}
     end;
 
-
-
 compile_term(#{ <<"decoders">> := Decs }, Index) ->
     compile_decoders(Decs, Index);
 
@@ -1300,19 +1298,13 @@ compile_term(#{ <<"text">> := Spec }, Index)->
                compile_term(Spec, Index));
 
 compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
-                                   <<"params">> := Params }}, Index) when is_list(Params) -> 
+                                   <<"params">> := Params }}, Index) -> 
     #{ type => format,
        pattern => compile_term(Pattern, Index),
-       params => compile_terms(Params, Index) };
+       params => compile_term(Params, Index) };
 
 compile_term(#{ <<"format">> := Pattern,
-                <<"params">> := Params }, Index) when is_list(Params) -> 
-    #{ type => format,
-       pattern => compile_term(Pattern, Index),
-       params => compile_terms(Params, Index) };
-
-compile_term(#{ <<"format">> := #{ <<"pattern">> := Pattern,
-                                   <<"params">> := Params }}, Index) when is_map(Params) -> 
+                <<"params">> := Params }, Index) -> 
     #{ type => format,
        pattern => compile_term(Pattern, Index),
        params => compile_term(Params, Index) };
@@ -1388,42 +1380,39 @@ compile_term(#{ <<"i18n">> := KeySpec } = Spec, Index) ->
                        compile_term(LangSpec, Index)
                end };
     
-compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In } = Spec, Index) when is_binary(Key) andalso is_binary(In) -> 
-    
-    with_default(Spec, #{ key => compile_keyword(Key),
-                          in => compile_keyword(In)
-                        }, Index);
+compile_term(#{ <<"key">> := KeySpec } = Spec, Index) ->
 
-compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In } = Spec, Index) when is_binary(Key) -> 
-    
-    with_default(Spec, #{ key => compile_keyword(Key),
-                          in => compile_term(In, Index)
-                        }, Index);
+    E1 = case is_key_path(KeySpec) of 
+             false ->
+                 case is_binary(KeySpec) of 
+                     false ->
+                         #{ key => compile_term(KeySpec, Index) };
+                     true ->
+                         #{ key => cmkit:to_atom(KeySpec) }
+                 end;
+             true ->
+                 compile_key_path(KeySpec)
+         end,
 
-compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In } = Spec,  Index) when is_binary(In) -> 
+    E2 = case maps:get(<<"in">>, Spec, undef) of 
+             undef -> 
+                 E1;
 
-    with_default(Spec, #{ key => compile_term(Key, Index),
-                          in => compile_keyword(In)
-                        }, Index);
+             InSpec ->
+                 case is_key_path(InSpec) of
+                     false ->
+                         case is_binary(InSpec) of
+                             false ->
+                                 E1#{ in => compile_term(InSpec, Index) };
+                             true ->
+                                 E1#{ in => cmkit:to_atom(InSpec) }
+                         end;
+                     true ->
+                         E1#{ in => compile_key_path(InSpec) }
+                 end
+         end,
 
-compile_term(#{ <<"key">> := Key, 
-                <<"in">> := In } = Spec, Index) -> 
-    
-    with_default(Spec, #{ key => compile_term(Key, Index),
-                           in => compile_term(In, Index)
-                         }, Index);
-
-compile_term(#{ <<"key">> := Key } = Spec, Index) ->
-    Compiled = case is_key_path(Key) of 
-                  false ->
-                        #{ key => compile_term(Key, Index) };
-                  true ->
-                      compile_key_path(Key)
-              end,
-    with_default(Spec, Compiled, Index);
+    with_default(Spec, E2, Index);
 
 compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
     #{ one_of => lists:map(fun(S) ->
@@ -2230,9 +2219,7 @@ compile_term(null, _) ->
 
 compile_term(Items, Index) when is_list(Items) ->
     #{ type => list,
-       value => lists:map( fun(I) -> 
-                                   compile_term(I, Index)
-                           end, Items) };
+       value => compile_terms(Items, Index) };
 
 compile_term([], _) -> 
     #{ type => list, value => [] };

@@ -944,13 +944,20 @@ encode(#{ type := tail,
 encode(#{ type := format, 
           pattern := PatternSpec,
           params := ParamsSpec }, In, Config) -> 
-
+    
     case cmencode:encode(PatternSpec, In, Config) of 
         {ok, Pattern} ->
-            case encode_all(ParamsSpec, In, Config) of 
-                {ok, Params} ->
-                    {ok, cmkit:fmt(Pattern, Params)};
-                Other -> Other
+            case encode(ParamsSpec, In, Config) of 
+                {ok, []} ->
+                    {ok, Pattern};
+                {ok, List} when is_list(List) ->
+                    {ok, cmkit:fmt(Pattern, List)};
+                {ok, null} ->
+                    {ok, Pattern};
+                {ok, Map} when is_map(Map)  ->
+                    cmkit:fmt_named(Pattern, Map);
+                Other -> 
+                    Other
             end;
         Other -> Other
     end;
@@ -1428,6 +1435,11 @@ encode(#{ type := pipe,
           as := As }, In, Config) ->
 
     pipe(Specs, As, In, Config);
+
+
+
+encode(List, In, Config) when is_list(List) ->
+    encode_all(List, In, Config);
 
 encode(Value, _, _) ->
     {ok, Value}.
