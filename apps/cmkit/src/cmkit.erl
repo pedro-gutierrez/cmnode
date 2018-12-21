@@ -639,7 +639,7 @@ mkdirp(Dir) ->
 value_at(Key, Map) when is_atom(Key) and is_map(Map) ->
     case maps:get(Key, Map, undef) of
         undef ->
-            value_at(to_bin(Key), Map);
+            maps:get(to_bin(Key), Map, undef);
         V -> 
             V
     end;
@@ -647,13 +647,7 @@ value_at(Key, Map) when is_atom(Key) and is_map(Map) ->
 value_at(Key, Map) when is_binary(Key) and is_map(Map) ->
     case maps:get(Key, Map, undef) of 
         undef -> 
-            case lists:filter(fun(K) ->
-                                      Key =:= cmkit:to_bin(K)
-                              end, maps:keys(Map)) of 
-                [] -> undef;
-                [K|_] ->
-                    maps:get(K, Map)
-            end;
+            maps:get(to_atom(Key), Map, undef);
         V -> V
     end.
 

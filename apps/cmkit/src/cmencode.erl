@@ -73,39 +73,29 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
     end;
 
 
-encode(#{ key := Key, in := At } = Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
+encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
     case encode(#{ key => At }, In, Config) of 
         {ok, In2} ->
-            encode(maps:without([in], Spec), In2, Config);
+            encode(#{ key => Key }, In2, Config);
         Other -> 
             Other
     end;
 
-encode(#{ key := Key} = Spec, In, Config) when is_binary(Key) or is_atom(Key) ->
-    case is_map(In) of 
-        true ->
-            case cmkit:value_at(Key, In) of
-               undef ->
-                    case maps:get(default, Spec, undef) of 
-                        undef ->
-                            E = #{ status => missing_key,
-                                   key => Key,
-                                   keys => maps:keys(In) },
-                            cmkit:danger({cmencode, E}),
-                            {error, E};
-                        Default ->
-                            encode(Default, In, Config)
-                    end;
-               V ->
-                   {ok, V}
-           end;
-        false ->
-            E = #{ status => not_a_map,
-                   key => Key,
-                   data => In },
-            cmkit:danger({cmencode, E}),
-
-            {error, E}
+encode(#{ key := Key} = Spec, In, Config) when is_binary(Key) or is_atom(Key) andalso is_map(In) ->
+    case cmkit:value_at(Key, In) of
+        undef ->
+            case maps:get(default, Spec, undef) of 
+                undef ->
+                    E = #{ status => missing_key,
+                           key => Key,
+                           keys => maps:keys(In) },
+                    cmkit:danger({cmencode, E}),
+                    {error, E};
+                Default ->
+                    encode(Default, In, Config)
+            end;
+        V ->
+            {ok, V}
     end;
 
 encode(#{ key := KeySpec }=Spec, In, Config) when is_map(KeySpec) -> 
@@ -117,6 +107,13 @@ encode(#{ key := KeySpec }=Spec, In, Config) when is_map(KeySpec) ->
         Other -> 
             Other
     end;
+
+encode(#{ key := _ } = Spec, In, _) ->
+    E = #{ status => invalid_key_spec,
+           spec => Spec,
+           in => In },
+    cmkit:danger({cmencode, E}),
+    {error, E};
 
 
 encode(#{ type := is_set, spec := Spec }, In, Config) ->
