@@ -213,6 +213,5 @@ err(App, Pid, Phase, Info) ->
            pid => Pid,
            phase => Phase,
            info => Info },
-    cmkit:danger({cmcore, E}),
     {error, E}.
 

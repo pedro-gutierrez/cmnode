@@ -19,32 +19,43 @@ init(Req, #{app := App, effects := Effects}=State) ->
                        params => cowboy_req:bindings(Req),
                        headers => cowboy_req:headers(Req),
                        query => maps:from_list(cowboy_req:parse_qs(Req2)) },
-            {ok, Model2} = cmcore:update(Pid, Spec2, Data2, Model, Log, Effects),
-            UpdateTime = cmkit:elapsed(Start),
-            {cowboy_loop, Req2, State#{ log => Log, 
-                                        spec => Spec2,
-                                        model => Model2,
-                                        start => Start,
-                                        body_time => BodyTime,
-                                        session_time => SessionTime,
-                                        init_time => InitTime,
-                                        update_call_time => UpdateTime }};
+            case cmcore:update(Pid, Spec2, Data2, Model, Log, Effects) of 
+                {ok, Model2} ->
+                    UpdateTime = cmkit:elapsed(Start),
+                    {cowboy_loop, Req2, State#{ log => Log, 
+                                                spec => Spec2,
+                                                model => Model2,
+                                                start => Start,
+                                                body_time => BodyTime,
+                                                session_time => SessionTime,
+                                                init_time => InitTime,
+                                                update_call_time => UpdateTime }};
+                {error, E} ->
+                    cmkit:danger({http, App, update, E}),
+                    reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1,
+                                                                start => Start })
+            end;
         {error, E} -> 
             cmkit:danger({http, new, no_such_app, App, E}),
-            reply_and_ok(error, json, #{}, Req, State#{ log => fun cmkit:log/1, 
+            reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1, 
                                                         start => Start })
     end.
 
-info({update, Data}, Req, #{ spec := Spec,
+info({update, Data}, Req, #{ app := App,
+                             spec := Spec,
                              model := Model,
                              log := Log,
                              effects := Effects } = State) ->
-    {ok, Model2} = cmcore:update(self(), Spec, Data, Model, Log, Effects),
-    {ok, Req, State#{ model => Model2 }};
+    case cmcore:update(self(), Spec, Data, Model, Log, Effects) of 
+        {ok, Model2} ->
+            {ok, Req, State#{ model => Model2 }};
+        {error, E} ->
+            cmkit:danger({http, App, update, E}),
+            reply_and_stop(error, json, #{}, Req, State)
+    end;
 
-info(terminate = Msg, Req, State) ->
-    cmkit:warning({http, implement_me, Msg}),
-    {ok, Req, State};
+info(terminate, Req, State) ->
+    {stop, Req, State};
 
 info({stream, start, Headers}, Req, State) ->
     Headers2 = binary_headers(Headers),
@@ -85,10 +96,10 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
     {stop, Req2, State};
     
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
-    reply_and_stop(Status, json, Body, Req, State);
+    reply_and_ok(Status, json, Body, Req, State);
 
 info(Body, Req, State) when is_binary(Body) ->
-    reply_and_stop(ok, binary, Body, Req, State);
+    reply_and_ok(ok, binary, Body, Req, State);
 
 info(Data, Req, State) ->
     reply_and_stop(error, json, #{ error => Data }, Req, State).

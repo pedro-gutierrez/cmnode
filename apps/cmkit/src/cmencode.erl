@@ -218,12 +218,7 @@ encode(#{ type := capitalized,
           spec := Spec}, In, Config) ->
     case encode(Spec, In, Config) of 
         {ok, V} when is_binary(V) ->
-            Str = cmkit:uniconvert(V),
-            First = string:slice(Str, 0, 1),
-            Rest = string:slice(Str, 1, length(Str)-1),
-            FirstCapBin = cmkit:to_bin(string:to_upper(First)),
-            RestBin = cmkit:to_bin(Rest),
-            {ok, <<FirstCapBin/binary, RestBin/binary>>};
+            {ok, cmkit:capitalize(V)};
         Other ->
             Other
     end;
