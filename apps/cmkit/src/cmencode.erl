@@ -460,6 +460,7 @@ encode(#{ type := http } = Spec, _, _) ->
 
 encode( #{ type := exec,
            spec := #{ type := http } = Spec}, In, Config) ->
+    
     case encode(Spec, In, Config) of 
         {ok, #{ url := Url } = Req} when is_binary(Url) ->
             cmhttp:do(Req);
@@ -1594,8 +1595,8 @@ encode_first([Spec|Rem], All, In, Config) ->
     case encode(Spec, In, Config) of 
         {ok, Encoded} ->
             {ok, Encoded};
-        Other ->
-            cmkit:warning({cmencode, encode_first, Other, trying_next}),
+        _Other ->
+            %cmkit:warning({cmencode, encode_first, Other, trying_next}),
             encode_first(Rem, All, In, Config)
     end.
 

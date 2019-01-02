@@ -230,6 +230,9 @@ apply_protocol(_, Data) ->
     cmkit:log({cmwsc, no_protocol, Data}),
     ok.
 
+try_decoders(#{ default := Decs }, Data) ->
+    try_decoders(Decs, Data);
+
 try_decoders([], _) -> no_match;
 try_decoders([#{ msg := Msg,
                  spec := Spec}|Rem], Data) ->

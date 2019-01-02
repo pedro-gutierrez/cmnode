@@ -395,14 +395,15 @@ compile_topic(#{ <<"name">> := Name,
 
 compile_module(#{ <<"name">> := Name,
                   <<"rank">> := Rank,
-                  <<"spec">> := Spec }, Index) ->
+                  <<"spec">> := Spec } = Mod, Index) ->
 
-
-    #{ spec := CompiledSpec } = compile_spec(Spec, Index),
+    Version = cmkit:to_number(maps:get(<<"version">>, Mod, 1)),
+    #{ spec := CompiledSpec } = compile_spec(Spec, Index#{ version => Version }),
     maps:merge(CompiledSpec,  #{
                  name => cmkit:to_atom(Name),
                  type => module,
-                 rank => Rank
+                 rank => Rank,
+                 version => Version
                 }).
 
 
@@ -635,8 +636,8 @@ compile_config(Spec, Index) ->
             #{}
     end.
 
-compile_modules([], #{ decoders := Decs }=Spec) -> 
-    Spec#{ decoders => sort_decoders(Decs) };
+%compile_modules([], #{ decoders := Decs }=Spec) -> 
+%    Spec#{ decoders => sort_decoders(Decs) };
 
 compile_modules([], Spec) -> Spec;
 
@@ -656,9 +657,10 @@ compile_modules([_|Rest], Spec) ->
 
 merge_spec([], _, Spec) -> Spec;
 merge_spec([decoders|Rem], Spec, Spec0) ->
-    Decs0 = maps:get(decoders, Spec0, []),
-    Decs = maps:get(decoders, Spec, []),
-    merge_spec(Rem, Spec, maps:put(decoders, Decs ++ Decs0, Spec0));
+    Decs0 = maps:get(decoders, Spec0, #{ default => [] }),
+    Decs = maps:get(decoders, Spec, #{ default => [] }),
+    MergedDecs = cmkit:merge(Decs0, Decs),
+    merge_spec(Rem, Spec, maps:put(decoders, MergedDecs, Spec0));
 
 merge_spec([init|Rem], 
            #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, 
@@ -2297,27 +2299,32 @@ compile_object([K|Rem], Map, Index, Out) ->
 
 compile_keyword(K) -> cmkit:to_atom(K).
 
+compile_decoders(Effs, #{ version := 2 }=Index) when is_map(Effs) ->
+    compile_decoders_by_effect(maps:keys(Effs), Effs, Index, #{});
+
 compile_decoders(Decs, Index) when is_map(Decs) ->
-    compile_decoders(maps:keys(Decs), Decs, Index, []);
+    CompiledDecs = compile_decoders(maps:keys(Decs), Decs, Index, []),
+    #{ default => CompiledDecs };
 
-compile_decoders(_, _) -> [].
+compile_decoders(Decs, _) -> 
+    cmkit:warning({cmconfig, decoders, invalid, Decs}),
+    #{ default => []}.
 
 
-compile_decoders([], _, _, Out) -> sort_decoders(Out);
+compile_decoders_by_effect([], _, _, Out) -> Out;
+compile_decoders_by_effect([K|Rem], Effs, Index, Out) ->
+    EffName = cmkit:to_atom(K),
+    Decs = maps:get(K, Effs),
+    CompiledDecs = compile_decoders(maps:keys(Decs), Decs, Index, []),
+    compile_decoders_by_effect(Rem, Effs, Index, Out#{ EffName => CompiledDecs }).
+
+compile_decoders([], _, _, Out) -> Out;
 compile_decoders([K|Rem], Decs, Index, Out) ->
     Msg = compile_keyword(K),
     Dec = maps:get(K, Decs),
     Spec = compile_term(Dec, Index),
     compile_decoders(Rem, Decs, Index, [#{ msg => Msg,
-                                    priority => compile_priority(Dec),
                                     spec => Spec}|Out]). 
-
-compile_priority(#{ <<"priority">> := P }) ->
-    compile_keyword(P);
-
-compile_priority(_) ->
-    compile_keyword(normal).
-
 
 compile_options(Spec, Index) when is_map(Spec) ->
     compile_options(maps:keys(Spec), Spec, Index, []).
@@ -2329,11 +2336,11 @@ compile_options([K|Rem], Spec, Index, Out) ->
                                  }|Out]).
 
 
-sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
+%sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
 
-compare_priorities(#{ priority := _ }, #{ priority := lowest }) -> true;
-compare_priorities(#{ priority := lowest }, #{ priority := _ }) -> false;
-compare_priorities(#{ priority := _ }, #{ priority := _ }) -> true.
+%compare_priorities(#{ priority := _ }, #{ priority := lowest }) -> true;
+%compare_priorities(#{ priority := lowest }, #{ priority := _ }) -> false;
+%compare_priorities(#{ priority := _ }, #{ priority := _ }) -> true.
 
 compile_encoders(Encs, Index) when is_map(Encs) ->
     compile_encoders(maps:keys(Encs), Encs, Index, #{});

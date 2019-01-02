@@ -19,7 +19,8 @@ init(Req, #{app := App, effects := Effects}=State) ->
                        params => cowboy_req:bindings(Req),
                        headers => cowboy_req:headers(Req),
                        query => maps:from_list(cowboy_req:parse_qs(Req2)) },
-            case cmcore:update(Pid, Spec2, Data2, Model, Log, Effects) of 
+            case cmcore:update(Pid, Spec2, #{ effect => web,
+                                              data => Data2 }, Model, Log, Effects) of 
                 {ok, Model2} ->
                     UpdateTime = cmkit:elapsed(Start),
                     {cowboy_loop, Req2, State#{ log => Log, 

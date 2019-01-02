@@ -135,10 +135,6 @@ update_spec(#{ update := Updates, encoders := Encoders }, Msg, Data, Model, Conf
 update_spec(_, Msg, _, _, _) ->
     {error, #{ update => not_implemented, msg => Msg }}.
 
-
-
-
-
 first_clause([], _, _, _) -> none;
 first_clause([#{ condition := Cond}=Spec|Rem], Encoders, In, Config) ->
     case cmeval:eval(Cond, Encoders, In, Config) of
@@ -149,20 +145,44 @@ first_clause([#{ condition := Cond}=Spec|Rem], Encoders, In, Config) ->
 first_clause([Spec|_], _, _, _) ->
     Spec.
 
+
+decode(#{ decoders := Decoders }, #{ effect := default,
+                                     data :=  Data }, Config) ->
+    
+    DefaultDecoders = maps:get(default, Decoders, []),
+    decode_with(DefaultDecoders, Data, Config);
+    
+decode(#{ decoders := Decoders }, #{ effect := Effect,
+                                     data :=  Data }, Config) ->
+    case maps:get(Effect, Decoders, undef) of 
+        undef ->
+            DefaultDecoders = maps:get(default, Decoders, []),
+            decode_with(DefaultDecoders, Data, Config);
+        EffectDecoders ->
+            case decode_with(EffectDecoders, Data, Config) of 
+                {ok, Msg, Decoded} ->
+                    {ok, Msg, Decoded};
+                {error, no_match} ->
+                    DefaultDecoders = maps:get(default, Decoders, []),
+                    decode_with(DefaultDecoders, Data, Config)
+            end
+    end;
+
 decode(#{ decoders := Decoders }, Data, Config) ->
-    decode(Decoders, Data, Config);
+    DefaultDecoders = maps:get(default, Decoders, []),
+    decode_with(DefaultDecoders, Data, Config).
 
-decode([], _, _) -> {error, no_match};
+decode_with([], _, _) -> {error, no_match};
 
-decode([#{ msg := Msg, spec := Spec}|Rem], Data, Config) ->
+decode_with([#{ msg := Msg, spec := Spec}|Rem], Data, Config) ->
     case cmdecode:decode(Spec, Data, Config) of
         no_match ->
-            decode(Rem, Data, Config);
+            decode_with(Rem, Data, Config);
         {ok, Decoded} ->
             {ok, Msg, Decoded}
     end;
 
-decode(_, _, _) -> {error, no_match}.
+decode_with(_, _, _) -> {error, no_match}.
 
 
 update(Pid, #{ name := App,

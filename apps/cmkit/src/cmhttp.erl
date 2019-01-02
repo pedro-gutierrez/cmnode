@@ -71,14 +71,14 @@ do(Req0) ->
     Log = cmkit:log_fun(Req),
     case Out of 
         {ok, Res} ->
-            Log({http, #{ in => Req0, 
-                          out => Res,
+            Log({http, #{ in => Res, 
+                          out => Req0,
                           millis => Millis }}),
             {ok, Res#{ req => Req0,
                        millis => Millis }};
         {error, E} ->
-            Log({http, #{ in => Req0, 
-                          out => E,
+            Log({http, #{ out => Req0, 
+                          in => E,
                           millis => Millis }}),
             {error, E}
     end.

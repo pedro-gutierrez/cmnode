@@ -21,7 +21,7 @@ sub(T, Pid) ->
         [] ->
             pg2:join(T, Pid);
         Members when is_list(Members) ->
-            case lists:is_member(Pid, Members) of 
+            case lists:member(Pid, Members) of 
                 false ->
                     pg2:join(T, Pid);
                 true ->

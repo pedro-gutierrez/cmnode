@@ -13,7 +13,7 @@ compile(#{ effects := EffectsSpec,
                 {ok, Init} -> 
                     case compile_updates(UpdateSpecs, Settings) of 
                         {ok, Updates} ->
-                            case compile_decoders(DecoderSpecs, Settings) of 
+                            case compile_effect_decoders(DecoderSpecs, Settings) of 
                                 {ok, Decoders} -> 
                                     case compile_encoders(EncoderSpecs, Settings) of 
                                         {ok, Encoders} -> 
@@ -51,8 +51,17 @@ compile_encoders([K|Rem], Specs, Ctx, Out) ->
             Other
     end.
 
-compile_decoders(Specs, Ctx) ->
-    compile_decoders(Specs, Ctx, #{}).
+compile_effect_decoders(Effects, Ctx) ->
+    compile_effect_decoders(maps:keys(Effects), Effects, Ctx, #{}).
+
+compile_effect_decoders([], _, _, Out) -> {ok, Out};
+compile_effect_decoders([Eff|Rem], Effects, Ctx, Out) ->
+    case compile_decoders(maps:get(Eff, Effects), Ctx, #{}) of 
+        {ok, Decs} ->
+            compile_effect_decoders(Rem, Effects, Ctx, Out#{ Eff => Decs });
+        Other ->
+            Other
+    end.
 
 compile_decoders([], _, Out) -> {ok, Out};
 compile_decoders([#{ msg := Msg,

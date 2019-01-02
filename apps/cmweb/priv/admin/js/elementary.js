@@ -958,17 +958,23 @@ export default (appUrl, appEffects) => {
         }
     }
 
-    function indexedDecoders(decs, index) {
+
+    function indexedDecoders(effects, index) {
         var index = {};
-        for (var k in decs) {
-            if (decs.hasOwnProperty(k)) {
-                var d = decs[k];
-                var effSpec = d.object && d.object.effect ? d.object.effect : '_other';
-                var {err, value} = encode(effSpec, {});
-                if (err) return {err: err};
-                var eff = value;
-                if (!index[eff]) index[eff]=[];
-                index[eff].push({ msg: k, spec: d});
+        for (var k in effects) {
+            if (effects.hasOwnProperty(k)) {
+                var decs = effects[k];
+                for (var dec in decs) {
+                    if (decs.hasOwnProperty(dec)) {
+                        var d = decs[dec];
+                        var effSpec = d.object && d.object.effect ? d.object.effect : k;
+                        var {err, value} = encode(effSpec, {});
+                        if (err) return {err: err};
+                        var eff = value;
+                        if (!index[eff]) index[eff]=[];
+                        index[eff].push({ msg: dec, spec: d});
+                    }
+                }
             }
         }
         return {value: index};
