@@ -835,7 +835,7 @@ prefix(String, Prefix) ->
         _ -> nomatch
     end.
 
-printable(Term) -> printable(64, Term).
+printable(Term) -> printable(128, Term).
 
 printable(BinSize, List) when is_list(List) ->
     case length(List) > BinSize of

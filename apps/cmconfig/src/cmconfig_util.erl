@@ -1435,11 +1435,13 @@ compile_term(#{ <<"key">> := KeySpec } = Spec, Index) ->
                  end
          end,
 
-    with_default(Spec, E2, Index);
+    with_required(Spec, with_default(Spec, E2, Index), Index);
 
 compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
-    #{ one_of => lists:map(fun(S) ->
-                              compile_term(S, Index)     
+    #{ one_of => lists:map(fun(S) when is_map(S) ->
+                              compile_term(S#{ <<"required">> => <<"false">> }, Index);
+                              (S) ->
+                                   compile_term(S, Index)
                            end, Specs) }; 
 
 compile_term(#{ <<"all">> := Specs }, Index) when is_list(Specs) ->
@@ -2636,7 +2638,14 @@ compile_effect(Name, #{ <<"type">> := _ }=Effect, Index) -> compile_effect(Name,
 with_default(#{ <<"default">> := Default }, Compiled, Index) ->
     Compiled#{ default => compile_term(Default, Index) };
 
+
 with_default(_, Compiled, _) -> Compiled.
+
+with_required(#{ <<"required">> := <<"false">> }, Compiled, _) ->
+    Compiled#{ required => false };
+
+with_required(_, Compiled, _) ->
+    Compiled.
 
 with_debug(#{ <<"debug">> := Debug}, Compiled, Index) ->
     Compiled#{ debug => compile_term(Debug, Index) };

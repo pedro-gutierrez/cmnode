@@ -73,24 +73,34 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
     end;
 
 
-encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
-    case encode(#{ key => At }, In, Config) of 
+encode(#{ key := Key, in := At } = Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
+    Required = maps:get(required, Spec, true),
+    case encode(#{ key => At, 
+                   required => Required }, In, Config) of 
         {ok, In2} ->
-            encode(#{ key => Key }, In2, Config);
+            encode(#{ key => Key, 
+                      required => Required }, In2, Config);
         Other -> 
             Other
     end;
 
-encode(#{ key := Key} = Spec, In, Config) when is_binary(Key) or is_atom(Key) andalso is_map(In) ->
+encode(#{ key := Key } = Spec, In, Config) when is_binary(Key) or is_atom(Key) andalso is_map(In) ->
     case cmkit:value_at(Key, In) of
         undef ->
             case maps:get(default, Spec, undef) of 
                 undef ->
+                    Required = maps:get(required, Spec, true),
                     E = #{ status => missing_key,
+                           required => Required,
                            key => Key,
                            keys => maps:keys(In) },
-                    cmkit:danger({cmencode, E}),
-                    {error, E};
+                    case Required of 
+                        true -> 
+                            cmkit:danger({cmencode, E}),
+                            {error, E};
+                        false ->
+                            {error, E}
+                    end;
                 Default ->
                     encode(Default, In, Config)
             end;
