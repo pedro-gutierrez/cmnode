@@ -838,9 +838,30 @@ compile_term(#{ <<"either">> := Specs }, Index) when is_list(Specs) ->
 
 
 compile_term(#{ <<"case">> := CaseSpec,
-                <<"of">> := OfSpecs } = Spec, Index) ->
+                <<"of">> := OfSpecs,
+                <<"otherwise">> := DefaultSpec } = Spec, Index) when is_map(OfSpecs) ->
+
+
     Spec0 = #{ type => 'case',
                spec => compile_term(CaseSpec, Index),
+               default => compile_term(DefaultSpec, Index),
+               'of' => maps:fold(fun(K, V, Acc) ->
+                                         Acc#{ K => compile_term(V, Index) }
+                                 end, #{}, OfSpecs) },
+
+    case maps:get(<<"where">>, Spec, undef) of 
+        undef ->
+            Spec0;
+        WhereSpec ->
+            Spec0#{ where => compile_term(WhereSpec, Index) }
+    end;
+
+compile_term(#{ <<"case">> := CaseSpec,
+                <<"otherwise">> :=  DefaultSpec,
+                <<"of">> := OfSpecs } = Spec, Index) when is_list(OfSpecs) ->
+    Spec0 = #{ type => 'case',
+               spec => compile_term(CaseSpec, Index),
+               default => compile_term(DefaultSpec, Index),
                'of' => compile_terms(OfSpecs, Index) },
 
     case maps:get(<<"where">>, Spec, undef) of 
@@ -1493,7 +1514,19 @@ compile_term(#{ <<"gt">> := Specs }, Index) when is_list(Specs) ->
                             compile_term(S, Index)     
                          end, Specs)};
 
+compile_term(#{ <<"greater_than">> := Specs }, Index) when is_list(Specs) ->
+    #{ type => greater_than,
+       spec => lists:map(fun(S) ->
+                            compile_term(S, Index)     
+                         end, Specs)};
+
 compile_term(#{ <<"lt">> := Specs }, Index) when is_list(Specs) ->
+    #{ type => lower_than,
+       spec => lists:map(fun(S) ->
+                            compile_term(S, Index)     
+                         end, Specs)};
+
+compile_term(#{ <<"lower_than">> := Specs }, Index) when is_list(Specs) ->
     #{ type => lower_than,
        spec => lists:map(fun(S) ->
                             compile_term(S, Index)     
@@ -1504,6 +1537,18 @@ compile_term(#{ <<"sum">> := Specs }, Index) when is_list(Specs) ->
        spec => lists:map(fun(S) ->
                             compile_term(S, Index)     
                          end, Specs)};
+
+compile_term(#{ <<"div">> := Specs } = Spec, Index) when is_list(Specs) ->
+    Expr = #{ type => 'divide',
+              spec => lists:map(fun(S) ->
+                                        compile_term(S, Index)     
+                                end, Specs)},
+    case maps:get(<<"decimals">>, Spec, undef) of 
+        undef ->
+            Expr;
+        Decs ->
+            Expr#{ decimals => compile_term(Decs, Index) }
+    end;
 
 compile_term(#{ <<"and">> := Specs }, Index) when is_list(Specs) ->
     #{ type => 'and',

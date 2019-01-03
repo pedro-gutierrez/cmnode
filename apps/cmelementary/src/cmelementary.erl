@@ -187,6 +187,11 @@ compile_object([K|Rem], Spec, Settings, Out) ->
             Other
     end.
 
+
+terms(Specs, Settings) when is_map(Specs) ->
+    terms(maps:keys(Specs), Specs, Settings, #{});
+
+
 terms(Specs, Settings) -> 
     terms(Specs, Settings, []).
 
@@ -196,6 +201,15 @@ terms([Spec|Rem], Settings, Out) ->
         {ok, Compiled} -> 
             terms(Rem, Settings, [Compiled|Out]);
         Other -> 
+            Other
+    end.
+
+terms([], _, _, Out) -> {ok, Out};
+terms([K|Rem], Specs, Settings, Out) ->
+    case term(maps:get(K, Specs), Settings) of
+        {ok, Compiled} ->
+            terms(Rem, Specs, Settings, Out#{ K => Compiled}); 
+        Other ->
             Other
     end.
 
@@ -266,6 +280,32 @@ term(#{ type := by_removing, spec := Spec}, Settings) ->
         Other -> 
             Other
     end;
+
+
+term(#{ type := 'case',
+        spec := Spec,
+        'of' := Clauses,
+        default := DefaultSpec }, Settings) when is_map(Clauses) ->
+
+    case term(Spec, Settings) of
+        {ok, CompiledSpec} ->
+            case term(DefaultSpec, Settings) of 
+                {ok, CompiledDefaultSpec} ->
+                    case terms(Clauses, Settings) of 
+                        {ok, CompiledClauses} ->
+                            {ok, #{ 'case' => CompiledSpec,
+                                    'of' => CompiledClauses,
+                                    otherwise => CompiledDefaultSpec }};
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 
 
 term(#{ type := tail, spec := Spec }, Settings) ->
@@ -449,6 +489,26 @@ term(#{ type := format,
                     Other
             end;
         Other ->
+            Other
+    end;
+
+term(#{ type := divide,
+        spec := Specs } = Spec, Settings) -> 
+    case terms(Specs, Settings) of 
+        {ok, CompiledTerms} ->
+            Expr = #{ divide => CompiledTerms },
+            case maps:get(decimals, Spec, undef) of 
+                undef ->
+                    {ok, Expr};
+                Decs -> 
+                    case term(Decs, Settings) of 
+                        {ok, D} ->
+                            {ok, Expr#{ decimals => D}};
+                        Other ->
+                            Other
+                    end
+            end;
+        Other -> 
             Other
     end;
 
@@ -849,6 +909,9 @@ term(#{ type := 'or', spec := Spec}, Settings) ->
     end;
 
 
+
+
+
 term(#{ encoder := Encoder,
         effect := Effect }, _) when is_binary(Encoder) andalso is_binary(Effect) -> 
     {ok, #{ encoder => Encoder,
@@ -892,6 +955,32 @@ term(#{ encoder := EncoderSpec }, Settings) ->
     end;
 
 
+term(#{ type := encode,
+        source := SourceSpec,
+        dest := DestSpec,
+        as := AsSpec }, Settings) ->
+    case term(SourceSpec, Settings) of
+        {ok, S} ->
+            case term(DestSpec, Settings) of 
+                {ok, D} ->
+                    Compiled = #{ encode => S, with => D },
+                    case AsSpec of 
+                        none ->
+                            {ok, Compiled};
+                        _ -> 
+                            case term(AsSpec, Settings) of 
+                                {ok, As} ->
+                                    {ok, Compiled#{ as => As}};
+                                Other ->
+                                    Other
+                            end
+                    end;
+                Other -> 
+                    Other
+            end;
+        Other -> 
+            Other
+    end;
 
 term(#{ timestamp := #{ format := FormatSpec,
                         value := Spec }}, Settings) -> 

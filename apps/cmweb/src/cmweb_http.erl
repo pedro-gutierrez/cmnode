@@ -168,24 +168,65 @@ request_body(Req) ->
         false -> 
             {ok, #{}, Req};
         true ->
-            CT = cowboy_req:header(<<"content-type">>, Req, <<"application/json">>),
-            {ok, Raw, Req2} = cowboy_req:read_body(Req),
-            case request_body(CT, Raw) of 
-                {ok, Decoded} -> 
-                    {ok, Decoded, Req2};
-                {error, E} -> 
-                    cmkit:warning({cmweb_http, body_error, Raw, E}),
-                    {ok, Raw, Req2}
-            end
+            {CT1, CT2, _} = cowboy_req:parse_header(<<"content-type">>, Req),
+            request_body(CT1, CT2, Req)
     end.
 
-request_body(Mime, Raw) ->
-    case cmkit:is_json(Mime) of 
-        true ->
-            cmkit:jsond(Raw);
-        false ->
-            {ok, Raw}
+
+request_body(<<"application">>, <<"json">>, Req) ->
+    {ok, Raw, Req2} = cowboy_req:read_body(Req),
+    case cmkit:jsond(Raw) of 
+        {ok, Decoded} -> 
+            {ok, Decoded, Req2};
+        {error, E} ->
+            cmkit:warning({cmweb_http, body_error, cmkit:printable(Raw), E}),
+            {ok, Raw, Req2}
+    end;
+
+request_body(<<"multipart">>, <<"form-data">>, Req) ->
+    multipart_body(Req, #{});
+
+request_body(_, _, Req) ->
+    {ok, Raw, Req2} = cowboy_req:read_body(Req),
+    {ok, Raw, Req2}.
+
+
+multipart_body(Req0, Body) ->
+    case cowboy_req:read_part(Req0) of
+        {ok, Headers, Req1} ->
+            case cow_multipart:form_data(Headers) of
+                {data, FieldName} ->
+                    {ok, Body0, Req2} = cowboy_req:read_part_body(Req1),
+                    multipart_body(Req2, Body#{ FieldName => Body0 });
+                {file, FieldName, Filename, CType} ->
+                    %%%
+                    %%% TODO: streaming
+                    case multipart_file(Req1) of 
+                        {ok, FileData, Req2} ->
+                            multipart_body(Req2, Body#{ FieldName => #{ name => Filename,
+                                                                        type => CType,
+                                                                        content => FileData }});
+                        {error, E, Req2} ->
+                            multipart_body(Req2, Body#{ FieldName => #{ name => Filename,
+                                                                        type => CType,
+                                                                        error => E }})
+                    end
+            end;
+        {done, Req} ->
+            {ok, Body, Req}
     end.
+
+multipart_file(Req) ->
+    multipart_file(Req, <<>>).
+
+multipart_file(Req0, Out) ->
+    case cowboy_req:read_part_body(Req0) of
+        {ok, Chunk, Req} ->
+            {ok, <<Out/binary, Chunk/binary>>, Req};
+        {more, Chunk, Req} ->
+            multipart_file(Req, <<Out/binary, Chunk/binary>>)
+    end.
+
 
 binary_headers(Map) when is_map(Map) -> 
     maps:fold(fun(K, V, Out) ->

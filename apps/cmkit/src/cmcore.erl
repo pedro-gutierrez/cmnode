@@ -194,7 +194,7 @@ update(Pid, #{ name := App,
             Log({App, Pid, decoded, Msg}),
             update(Pid, AppSpec,  Msg, Decoded, Model, Log, Effects);
         {error, no_match} ->
-            cmkit:warning({App, Pid, no_match, Data}),
+            cmkit:warning({App, Pid, no_match, cmkit:printable(Data)}),
             update(Pid, AppSpec,  no_match, Data, Model, Log, Effects);
         {error, E} ->
             err(App, Pid, update, #{ data => Data, reason => E })
