@@ -2,39 +2,47 @@
 -export([init/2,
          info/3]).
 
+
+
 init(Req, #{app := App, effects := Effects}=State) ->
     Start = cmkit:micros(),
     case cmconfig:app(App) of
-        {ok, #{ debug := Debug }=Spec} -> 
+        {ok, #{ debug := Debug } = Spec} -> 
             Pid = self(),
             Log = cmkit:log_fun(Debug),
-            {ok, Data, Req2} = request_body(Req),
+            {ok, Data, Req2} = request_body(Req, Log),
             BodyTime = cmkit:elapsed(Start),
             SessionTime = cmkit:elapsed(Start),
-            {ok, Model, Config} = cmcore:init(Pid, Spec, Log, Effects),
-            Spec2 = Spec#{ config => Config },
-            InitTime = cmkit:elapsed(Start),
-            Data2 = #{ method => cowboy_req:method(Req),
-                       body => Data,
-                       params => cowboy_req:bindings(Req),
-                       headers => cowboy_req:headers(Req),
-                       query => maps:from_list(cowboy_req:parse_qs(Req2)) },
-            case cmcore:update(Pid, Spec2, #{ effect => web,
-                                              data => Data2 }, Model, Log, Effects) of 
-                {ok, Model2} ->
-                    UpdateTime = cmkit:elapsed(Start),
-                    {cowboy_loop, Req2, State#{ log => Log, 
-                                                spec => Spec2,
-                                                model => Model2,
-                                                start => Start,
-                                                body_time => BodyTime,
-                                                session_time => SessionTime,
-                                                init_time => InitTime,
-                                                update_call_time => UpdateTime }};
+            case cmcore:init(Pid, Spec, Log, Effects) of 
+                {ok, Model, Config} -> 
+                    Spec2 = Spec#{ config => Config },
+                    InitTime = cmkit:elapsed(Start),
+                    Data2 = #{ method => cowboy_req:method(Req),
+                               body => Data,
+                               params => cowboy_req:bindings(Req),
+                               headers => cowboy_req:headers(Req),
+                               query => maps:from_list(cowboy_req:parse_qs(Req2)) },
+                    case cmcore:update(Pid, Spec2, #{ effect => web,
+                                                      data => Data2 }, Model, Log, Effects) of 
+                        {ok, Model2} ->
+                            UpdateTime = cmkit:elapsed(Start),
+                            {cowboy_loop, Req2, State#{ log => Log, 
+                                                        spec => Spec2,
+                                                        model => Model2,
+                                                        start => Start,
+                                                        body_time => BodyTime,
+                                                        session_time => SessionTime,
+                                                        init_time => InitTime,
+                                                        update_call_time => UpdateTime }};
+                        {error, E} ->
+                            cmkit:danger({http, App, update, E}),
+                            reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1,
+                                                                          start => Start })
+                    end;
                 {error, E} ->
-                    cmkit:danger({http, App, update, E}),
-                    reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1,
-                                                                start => Start })
+                    cmkit:danger({http, App, init, E}),
+                    reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1, 
+                                                                  start => Start })
             end;
         {error, E} -> 
             cmkit:danger({http, new, no_such_app, App, E}),
@@ -81,19 +89,21 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
                                                                     update_call_time := UpdateTime,
                                                                     log := Log
                                                                   }=State) ->
-    Elapsed = cmkit:elapsed(Start),
     Headers2 = binary_headers(Headers),
     Body2 = encoded_body(Headers2, Body),
-    Req2 = cowboy_req:reply(Code, Headers2, Body2, Req),
+    Elapsed = cmkit:elapsed(Start),
+    Headers3 = Headers2#{ <<"elapsed">> => cmkit:to_bin(Elapsed) },
+    Req2 = cowboy_req:reply(Code, Headers3, Body2, Req),
     Elapsed2 = cmkit:elapsed(Start),
-    Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
-                                                    body_time => BodyTime,
-                                                    session_time => SessionTime - BodyTime,
-                                                    init_time => InitTime - SessionTime,
-                                                    update_call_time => UpdateTime - InitTime,
-                                                    update_other_time => Elapsed - UpdateTime,
-                                                    render_time => Elapsed2 - Elapsed
-                                                  }}),
+    Log({App, out, #{ status => Code, 
+                      headers => Headers,
+                      body => Body, 
+                      times => #{ total => Elapsed2,
+                                  body  => BodyTime,
+                                  init  => InitTime - SessionTime,
+                                  update_call => UpdateTime - InitTime,
+                                  update_other  => Elapsed - UpdateTime,
+                                  render => Elapsed2 - Elapsed }}}),
     {stop, Req2, State};
     
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
@@ -108,9 +118,10 @@ info(Data, Req, State) ->
 reply_and_stop(Status, Type, Body, Req, #{ log := Log,
                                            start := Start,
                                            app := App }=State) ->
-    Elapsed = cmkit:elapsed(Start),
     {Code, Headers, EncodedBody} = reply(Status, Type, Body),
-    Req2 = cowboy_req:reply(Code, Headers, EncodedBody, Req),
+    Elapsed = cmkit:elapsed(Start),
+    Headers2 = Headers#{ <<"elapsed">> => cmkit:to_bin(Elapsed) },
+    Req2 = cowboy_req:reply(Code, Headers2, EncodedBody, Req),
     Elapsed2 = cmkit:elapsed(Start),
     Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
                                                   render_time => Elapsed2 - Elapsed}}),
@@ -163,30 +174,30 @@ mime(#{ <<"content-type">> := <<"application/json">> }) -> json;
 mime(#{ <<"content-type">> := <<"application/javascript">> }) -> json;
 mime(_) -> other.
 
-request_body(Req) ->
+request_body(Req, Log) ->
     case cowboy_req:has_body(Req) of 
         false -> 
             {ok, #{}, Req};
         true ->
             {CT1, CT2, _} = cowboy_req:parse_header(<<"content-type">>, Req),
-            request_body(CT1, CT2, Req)
+            request_body(CT1, CT2, Req, Log)
     end.
 
 
-request_body(<<"application">>, <<"json">>, Req) ->
+request_body(<<"application">>, <<"json">>, Req, Log) ->
     {ok, Raw, Req2} = cowboy_req:read_body(Req),
     case cmkit:jsond(Raw) of 
         {ok, Decoded} -> 
             {ok, Decoded, Req2};
         {error, E} ->
-            cmkit:warning({cmweb_http, body_error, cmkit:printable(Raw), E}),
+            Log({cmweb_http, body_error, cmkit:printable(Raw), E, Req}),
             {ok, Raw, Req2}
     end;
 
-request_body(<<"multipart">>, <<"form-data">>, Req) ->
+request_body(<<"multipart">>, <<"form-data">>, Req, _) ->
     multipart_body(Req, #{});
 
-request_body(_, _, Req) ->
+request_body(_, _, Req, _) ->
     {ok, Raw, Req2} = cowboy_req:read_body(Req),
     {ok, Raw, Req2}.
 

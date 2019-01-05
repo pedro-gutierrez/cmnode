@@ -41,7 +41,7 @@ filenames() ->
     cmkit:files(cmkit:etc(), ".yml").
 
 compile_plan(module) -> [settings, module, app, port];
-compile_plan(app) -> [settings, app, port];
+compile_plan(app) -> [settings, module, app, port];
 compile_plan(settings) -> [settings, module, app, port];
 compile_plan(T) when is_atom(T) -> [T];
 compile_plan(B) when is_binary(B) -> compile_plan(cmkit:to_atom(B)).
@@ -418,19 +418,8 @@ app_settings_ref(#{ <<"as">> := Alias, <<"name">> := Name}) ->
 app_config_with_settings([], _,  _, Out) -> Out;
 app_config_with_settings([N|Rem], App, Settings, Out) ->
     {Alias, SettingsName} = app_settings_ref(N),
-    case maps:get(SettingsName, Settings, undef) of 
-        undef -> 
-            cmkit:warning({app, App, config, no_such_settings, SettingsName}),
-            app_config_with_settings(Rem, App, Settings, Out);
-        #{ spec := Spec } ->
-            case cmencode:encode(Spec) of 
-                {ok, Encoded} ->
-                    app_config_with_settings(Rem, App, Settings, Out#{ Alias => Encoded});
-                Other ->
-                    cmkit:warning({app, App, config, invalid_settings, SettingsName, Other}),
-                    app_config_with_settings(Rem, App, Settings, Out)
-            end
-    end.
+    EncodedSettings = encoded_settings(App, SettingsName, Settings),
+    app_config_with_settings(Rem, App, Settings, Out#{ Alias => EncodedSettings }).
 
 compile_app_config(App, #{ <<"settings">> := Names }=Spec, 
                    #{ settings := Settings }=Index) when is_list(Names)  ->
@@ -439,6 +428,49 @@ compile_app_config(App, #{ <<"settings">> := Names }=Spec,
 
 compile_app_config(_, Other, Index) ->
      compile_config(Other, Index).
+
+
+compile_app_settings(App, #{ <<"config">> := Config }, Index) ->
+    compile_app_config(App, Config, Index);
+
+
+compile_app_settings(App, #{ <<"settings">> := Names }, #{ settings := Settings }) when is_list(Names) ->
+    BaseConfig = encoded_settings(App, App, Settings),
+    app_config_with_settings(Names, App, Settings, BaseConfig);
+
+
+compile_app_settings(App, _, #{ settings := Settings }) ->
+    encoded_settings(App, App, Settings).
+
+
+encoded_settings_spec(App, Name, Spec) ->
+    case cmencode:encode(Spec) of
+        {ok, Encoded} -> Encoded;
+        {error, E} ->
+            cmkit:warning({app, App, settings, Name, E}),
+            #{}
+    end.
+
+encoded_settings(App, App, Settings) ->
+    case maps:get(App, Settings, undef) of
+        undef ->
+            #{ debug => false };
+        #{ spec := Spec } ->
+            encoded_settings_spec(App, App, Spec)
+    end;
+
+encoded_settings(App, Name, Settings) ->
+    case maps:get(Name, Settings, undef) of
+        undef -> 
+            cmkit:warning({app, App, settings, Name, unknown}),
+            #{};
+        #{ spec := Spec } ->
+            encoded_settings_spec(App, Name, Spec)
+    end.
+
+app_debug(#{ debug := true }) -> true;
+app_debug(#{ config := #{ debug := true }}) -> true;
+app_debug(_) -> false.
 
 compile_app(#{ <<"name">> := Name,
                <<"rank">> := Rank,
@@ -450,23 +482,26 @@ compile_app(#{ <<"name">> := Name,
     AppName = cmkit:to_atom(Name),
     ResolvedModules = resolve_modules(Modules, Mods),
     
-    AppConfig = compile_app_config(AppName, maps:get(<<"config">>, Spec, #{}), Index),
+    AppConfig = compile_app_settings(AppName, Spec, Index),
 
-    #{ name => AppName,
-       type => app,
-       rank => Rank,
-       modules => lists:map(fun(#{ status := unknown }=M) ->
-                                    M;
-                               (#{ name := ModName }) ->
-                                    #{ name => ModName,
-                                       status => resolved
-                                     }
-                            end, ResolvedModules),
-       config => AppConfig,
-       debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
-       timeout => cmkit:to_number(maps:get(<<"timeout">>, Spec, <<"10000">>)),
-       spec => compile_modules(ResolvedModules, #{})
-     }.
+    Spec2 = #{ name => AppName,
+              type => app,
+              rank => Rank,
+              modules => lists:map(fun(#{ status := unknown }=M) ->
+                                           M;
+                                      (#{ name := ModName }) ->
+                                           #{ name => ModName,
+                                              status => resolved
+                                            }
+                                   end, ResolvedModules),
+              config => AppConfig,
+              debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
+              timeout => cmkit:to_number(maps:get(<<"timeout">>, Spec, <<"10000">>)),
+              spec => compile_modules(ResolvedModules, #{})
+            },
+
+    Debug = app_debug(Spec2),
+    Spec2#{ debug => Debug }.
 
 
 compile_bucket(#{ <<"name">> := Name,
@@ -617,12 +652,17 @@ compile_spec(Spec, Index) ->
             <<"update">>, <<"views">>, <<"effects">> ],
 
     Contents = lists:foldl(fun(Key, C0) ->
-                                   Term = #{ Key => maps:get(Key, Spec, #{})},
-                                   case compile_term(Term, Index) of 
-                                       [] -> C0;
-                                       [_|_]=Other -> C0#{ compile_keyword(Key) => Other };
-                                       Map when map_size(Map) =:= 0 -> C0;
-                                       Other -> C0#{ compile_keyword(Key) => Other }
+                                   case maps:get(Key, Spec, undef) of 
+                                       undef ->
+                                           C0;
+                                       Term0 ->
+                                           Term = #{ Key => Term0 },
+                                           case compile_term(Term, Index) of 
+                                               [] -> C0;
+                                               [_|_]=Other -> C0#{ compile_keyword(Key) => Other };
+                                               Map when map_size(Map) =:= 0 -> C0;
+                                               Other -> C0#{ compile_keyword(Key) => Other }
+                                           end
                                    end
                            end, #{}, Keys),
 
@@ -665,6 +705,7 @@ merge_spec([decoders|Rem], Spec, Spec0) ->
 merge_spec([init|Rem], 
            #{ init := [ #{ model := Model, cmds := Cmds }]}=Spec, 
            #{ init := #{ model := Model0, cmds := Cmds0 }}=Spec0) ->
+
     merge_spec(Rem, Spec, 
                maps:put(init, #{ model => merge_model_spec(Model, Model0),
                                  cmds => merge_cmds_spec(Cmds, Cmds0) 
@@ -677,13 +718,17 @@ merge_spec([init|Rem],
                                  cmds => Cmds 
                                }, Spec0));
 
+merge_spec([init|Rem], Spec, Spec0) ->
+    merge_spec(Rem, Spec, Spec0);
+
+
 merge_spec([update|Rem], Spec, Spec0) ->
     merge_spec(Rem, Spec, 
                maps:put(update, merge_updates_spec( 
                                   maps:get(update, Spec, #{}), 
                                   maps:get(update, Spec0, #{})), Spec0));
 
-merge_spec([Key|Rem], Spec, Spec0) ->
+merge_spec([Key|Rem], Spec, Spec0) when Key =:= views orelse Key =:= effects orelse Key =:= encoders ->
     merge_spec(Rem, Spec, 
                maps:put(Key, maps:merge(maps:get(Key, Spec0, #{}),  maps:get(Key, Spec, #{})), Spec0)).
 
@@ -1178,6 +1223,11 @@ compile_term(#{ <<"list">> := Spec }, Index) when is_map(Spec) ->
        spec => compile_term(Spec, Index)
      };
 
+compile_term(#{ <<"flatten">> := Specs }, Index) ->
+    #{ type => flatten,
+       spec => compile_term(Specs, Index)
+     };
+
 compile_term(#{ <<"merged_list">> := Specs }, Index) when is_list(Specs) ->
     #{ type => merged_list,
        spec => compile_terms(Specs, Index)
@@ -1417,6 +1467,8 @@ compile_term(#{ <<"key">> := KeySpec } = Spec, Index) ->
                  compile_key_path(KeySpec)
          end,
 
+
+
     E2 = case maps:get(<<"in">>, Spec, undef) of 
              undef -> 
                  E1;
@@ -1435,7 +1487,7 @@ compile_term(#{ <<"key">> := KeySpec } = Spec, Index) ->
                  end
          end,
 
-    with_required(Spec, with_default(Spec, E2, Index), Index);
+    with_default(Spec, E2, Index);
 
 compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
     #{ one_of => lists:map(fun(S) when is_map(S) ->
@@ -2640,12 +2692,6 @@ with_default(#{ <<"default">> := Default }, Compiled, Index) ->
 
 
 with_default(_, Compiled, _) -> Compiled.
-
-with_required(#{ <<"required">> := <<"false">> }, Compiled, _) ->
-    Compiled#{ required => false };
-
-with_required(_, Compiled, _) ->
-    Compiled.
 
 with_debug(#{ <<"debug">> := Debug}, Compiled, Index) ->
     Compiled#{ debug => compile_term(Debug, Index) };

@@ -1,6 +1,0 @@
-version: 1.0
-type: task
-name: ci_update 
-spec:
-  - git: pull
-    dir: "/opt/ci"

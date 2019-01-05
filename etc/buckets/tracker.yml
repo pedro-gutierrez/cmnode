@@ -1,8 +1,0 @@
-version: 1.0
-type: bucket
-name: tracker
-spec:
-  storage: disc
-  consistency: strong
-  replication: none
-  debug: false

@@ -1,6 +1,0 @@
-version: 1.0
-type: queue
-name: backups 
-spec:
-  concurrency: 1
-  max: 10

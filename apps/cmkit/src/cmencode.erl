@@ -73,13 +73,10 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
     end;
 
 
-encode(#{ key := Key, in := At } = Spec, In, Config) when is_atom(Key) or is_binary(Key) -> 
-    Required = maps:get(required, Spec, true),
-    case encode(#{ key => At, 
-                   required => Required }, In, Config) of 
+encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
+    case encode(#{ key => At }, In, Config) of 
         {ok, In2} ->
-            encode(#{ key => Key, 
-                      required => Required }, In2, Config);
+            encode(#{ key => Key }, In2, Config);
         Other -> 
             Other
     end;
@@ -89,18 +86,10 @@ encode(#{ key := Key } = Spec, In, Config) when is_binary(Key) or is_atom(Key) a
         undef ->
             case maps:get(default, Spec, undef) of 
                 undef ->
-                    Required = maps:get(required, Spec, true),
-                    E = #{ status => missing_key,
-                           required => Required,
+                    E = #{ error => missing_key,
                            key => Key,
                            keys => maps:keys(In) },
-                    case Required of 
-                        true -> 
-                            cmkit:danger({cmencode, E}),
-                            {error, E};
-                        false ->
-                            {error, E}
-                    end;
+                    {error, E};
                 Default ->
                     encode(Default, In, Config)
             end;
@@ -327,6 +316,20 @@ encode(#{ type := keyword,
 encode(#{ type := list,
           value := List }, In, Config) when is_list(List)->
     encode_list(List, In, Config);
+
+
+encode(#{ type := flatten,
+          spec := Items } = S, In, Config) -> 
+    case encode(Items, In, Config) of 
+        {ok, EncodedItems} when is_list(EncodedItems) -> 
+            {ok, lists:flatten(EncodedItems)};
+        {ok, Other} ->
+            {error, #{ error => not_a_list,
+                       spec => S,
+                       value => Other }};
+        Other2 ->
+            Other2
+    end;
 
 
 encode(#{ type := config,

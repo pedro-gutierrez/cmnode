@@ -1,25 +1,21 @@
-version: 1.0
+version: 2
 type: module
-category: server
 name: hello 
 spec:
   decoders:
-    hello:
-      object:
-        method: "GET"
+    web:
+      hello:
+        any: object
   update:
     hello:
-      model:
-        msg: "Rajoy"
       cmds:
         - effect: notify
           encoder: hello
-        - effect: terminate
   encoders:
     hello:
       object:
         status: 200
         headers:
-          content-type: "application/json; charset=utf-8"
+          content-type: "application/json"
         body:
-          key: msg
+          msg: "Hello World!"

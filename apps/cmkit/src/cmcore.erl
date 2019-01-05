@@ -5,13 +5,14 @@
 init(Pid, #{ name := App, 
              spec := Spec,
              config := Config0 }, Log, Effects) ->
-    Log({App, Pid, init}),
     Config = case maps:get(encoders, Spec, undef) of
                  undef -> Config0;
                  Encs -> Config0#{ encoders => Encs }
              end,
 
     case init(Spec, Config) of
+        {ok, Model, []} ->
+            {ok, Model, Config};
         {ok, Model, Cmds} ->
             cmds(Cmds, Model, Config, Pid, Log, Effects),
             {ok, Model, Config};

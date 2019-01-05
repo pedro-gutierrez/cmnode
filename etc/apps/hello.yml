@@ -1,11 +1,8 @@
-version: 1.0
+version: 2
 type: app
-category: api
-name: hello 
+name: hello
 spec:
-  debug: false 
   modules:
     - hello
-  config:
-    timeout:
-      number: 30
+  settings:
+    - i18n
