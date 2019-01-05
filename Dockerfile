@@ -7,6 +7,7 @@ ENV CODE_LOADING_MODE interactive
 WORKDIR /opt/cmnode
 ADD rebar.config .
 ADD config config
+ADD apps apps
 RUN mkdir etc
 RUN rebar3 release
 CMD ["/opt/cmnode/_build/default/rel/cmnode/bin/cmnode", "console"]
