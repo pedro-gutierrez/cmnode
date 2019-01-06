@@ -1,0 +1,8 @@
+type: settings
+name: cluster 
+spec:
+  name: cm
+  size: 2
+  contact:
+    - cm1@Pedros-MacBook-Pro
+    - cm2@Pedros-MacBook-Pro

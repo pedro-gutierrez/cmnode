@@ -16,11 +16,17 @@ open(#{ name := Name,
         apps := Apps }, Effects) ->
 
     Dispatch = cowboy_router:compile([{'_', routes(Name, Port, Apps, Effects)}]),
-    {ok, _} = cowboy:start_clear(Name, 
-                                 [{port, Port}, {num_acceptors, Acceptors}],
-                                 #{env => #{dispatch => Dispatch},
-                                  stream_handlers => [cowboy_stream_h]}),
-    cmkit:log({cmweb, Name, Port, ok});
+
+    case cowboy:start_clear(Name, 
+                            [{port, Port}, {num_acceptors, Acceptors}],
+                            #{env => #{dispatch => Dispatch},
+                              stream_handlers => [cowboy_stream_h]}) of 
+        {ok, _} ->
+            cmkit:log({cmweb, Name, Port, ok});
+        {error, E} ->
+            cmkit:warning({cmweb, Name, Port, E})
+    end,
+    ok;
 
 open(_, _) -> ok.
 

@@ -1,4 +1,4 @@
--sname cmnode
+-sname ${CMNODE}
 -setcookie cm
 -smp enable
 +pc unicode

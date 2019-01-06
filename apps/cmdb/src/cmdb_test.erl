@@ -1,96 +1,71 @@
 -module(cmdb_test).
--export([test_cases/0,
-         test/0,
-         stress/4]).
+-export([f/0, s/0, s/1, s/4]).
+-export([distinct/1, 
+         bag/1, 
+         update/1,
+         sorted_keys1/1,
+         sorted_keys2/1]).
+
+all() -> [distinct, bag, sorted_keys1, sorted_keys2].
 
 
-test_cases() ->[
-                {[{a, a, a, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, a, a0, 2, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}],
-                 [ {a, a, a, a0, 1, <<"v1">>},
-                   {a, a, a, a1, 1, <<"v1">>} 
-                 ]},
-                {[{a, a, a, <<"v1">>},
-                    {a, a, a, <<"v2">>}],
-                 [ {a, a, a, a0, 1, <<"v1">>},
-                   {a, a, a, a1, 1, <<"v1">>},
-                   {a, a, a, a2, 1, <<"v2">>}
-                 ]},
-                {[], []},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a0, 2, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a0, 2, <<"v1">>},
-                    {a, a, b, a1, 1, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v1">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a1, 1, <<"v1">>},
-                    {a, a, b, a1, 2, <<"v1">>}
-                  ]},
-                {[{a, a, a, <<"v1">>}, 
-                  {a, a, b, <<"v2">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, b, a1, 1, <<"v1">>},
-                    {a, a, b, a1, 2, <<"v2">>}
-                  ]},
-                {[{a, a, a, <<"v3">>},
-                  {a, a, b, <<"v2">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, a, a0, 1, <<"v3">>},
-                    {a, a, b, a1, 2, <<"v2">>}
-                  ]},
-                {[{a, a, a, <<"v1">>},
-                  {a, a, a, <<"v3">>},
-                  {a, a, b, <<"v2">>}],
-                  [ {a, a, a, a0, 1, <<"v1">>},
-                    {a, a, a, a1, 1, <<"v3">>},
-                    {a, a, b, a1, 2, <<"v2">>}
-                  ]},
-                {[{a, b, a, <<"v1">>},
-                  {a, c, a, <<"v2">>}],
-                  [ {a, b, a, a0, 1, <<"v1">>},
-                    {a, c, a, a0, 1, <<"v2">>}]},
-                {[{a, b, a, <<"v1">>},
-                  {a, c, a, <<"v2">>},
-                  {a, c, a, <<"v3">>}],
-                  [ {a, b, a, a0, 1, <<"v1">>},
-                    {a, c, a, a0, 1, <<"v2">>},
-                    {a, c, a, a1, 1, <<"v3">>}]},
-                {[{a, b, a, <<"v1">>},
-                  {a, c, a, <<"v2">>},
-                  {b, a, a, <<"v1">>}],
-                  [ {a, b, a, a0, 1, <<"v1">>},
-                    {a, c, a, a0, 1, <<"v2">>},
-                    {b, a, a, a0, 1, <<"v1">>}]}
-               ].
+f() ->
+    f(test).
 
-    
-test() ->
-    lists:map(fun({O, I}) ->
-                      O = cmdb_util:merge(I)
-              end, test_cases()).
+f(Name) ->
+    lists:foreach(fun(T) ->
+                          ok = cmdb:reset(Name),
+                          ?MODULE:T(Name)
+                  end, all()).
+
+distinct(Name) ->
+    E = {a, b, c, 1},
+    Entries = [E, E],
+    ok = cmdb:put(Name, Entries),
+    {ok, [E]} = cmdb:get(Name, a, b, c).
+
+update(Name) ->
+    E1 = {a, b, c, 1},
+    E2 = {a, b, c, 2},
+    ok = cmdb:put(Name, [E1]),
+    {ok, [E1]} = cmdb:get(Name, a, b, c),
+    ok = cmdb:put(Name, [E2]),
+    {ok, [E2]} = cmdb:get(Name, a, b, c).
+
+bag(Name) ->
+    E1 = {a, b, c, 1},
+    E2 = {a, b, c, 2},
+    ok = cmdb:put(Name, [E2, E1, E2]),
+    {ok, [E2, E1]} = cmdb:get(Name, a, b, c).
 
 
+sorted_keys1(Name) ->
+    E1 = {a, b, 1, 0},
+    E2 = {a, b, 2, 0},
+    ok = cmdb:put(Name, [E1, E2]),
+    {ok, [E1, E2]} = cmdb:get(Name, a, b),
+    ok = cmdb:put(Name, [E2, E1]),
+    {ok, [E1, E2]} = cmdb:get(Name, a, b).
 
 
-% 100M entries
-% 4 threads = 25 M entries/thread
-% Batches of 100 =
-% Sleep 1s
-% Time to write 1M = 100s * time to write 10K
-%
-%
-stress(Name, N, C, I) ->
+sorted_keys2(Name) ->
+    E1 = {a, b, c, 0},
+    E2 = {a, c, b, 0},
+    ok = cmdb:put(Name, [E1, E2]),
+    {ok, [E1, E2]} = cmdb:get(Name, a),
+    ok = cmdb:put(Name, [E2, E1]),
+    {ok, [E1, E2]} = cmdb:get(Name, a).
+
+s() -> s(test).
+
+s(Name) ->
+    s(Name, 500, 100, 10).
+
+%% N = Batch Size
+%% C = Concurrency
+%% I = Iterations per Batch
+s(Name, N, C, I) ->
+    ok = cmdb:reset(Name),
     Collector = spawn(fun() ->
                     loop(0, 0, C, cmkit:micros())
                  end),
