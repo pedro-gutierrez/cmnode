@@ -1,24 +1,29 @@
 -module(cmdb_sup).
 -behaviour(supervisor).
--export([start_link/0]).
+-export([start_link/1]).
 -export([init/1]).
--define(SERVER, ?MODULE).
 
-start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+start_link(Buckets) ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [Buckets]).
 
-init([]) ->
+init([Buckets]) ->
+
     
-    WriterSup = cmkit:child_spec(cmdb_writer_sup,
-                                 cmdb_writer_sup,
-                                 [],
-                                 permanent,
-                                 supervisor),
-    
-    CompilerSup = cmkit:child_spec(cmdb_compiler_sup,
-                                   cmdb_compiler_sup,
-                                   [],
-                                   permanent,
-                                   supervisor),
+    Writers = [cmkit:child_spec(spec_id(B, writer),
+                                cmdb_writer,
+                                [B],
+                                permanent,
+                                worker) || B <- Buckets],
 
-    {ok, { {one_for_one, 0, 1}, [WriterSup, CompilerSup]} }.
+    Replicators = [cmkit:child_spec(spec_id(B, replicator),
+                                    cmdb_replicator,
+                                    [B],
+                                    permanent,
+                                    worker) || #{ cluster := State } = B <- Buckets, State =/= offline],
+
+
+    {ok, { {one_for_one, 0, 1}, Writers ++ Replicators }}.
+
+
+spec_id(#{ name := Name }, Type) ->
+    cmkit:to_atom(cmkit:bin_join([ cmkit:to_bin(Name), cmkit:to_bin(Type) ], <<"_">>)).

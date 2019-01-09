@@ -17,7 +17,7 @@ start_link(#{ name := Name }=Bucket) ->
     gen_server:start_link({local, Writer}, ?MODULE, [Bucket], []).
 
 init([#{ name := Name,
-         debug := Debug }=Bucket]) ->
+         debug := Debug }=B]) ->
 
     Log = cmkit:log_fun(Debug),
     Storage = cmdb_config:storage(Name),
@@ -26,13 +26,20 @@ init([#{ name := Name,
     {ok, Header, _} = cbt_file:read_header(Pid),
     {_, Root} = Header,
     {ok, Tree} = cbt_btree:open(Root, Pid),
-    Log({cmdb, writer, self(), Name, Storage, Pid, node()}),
-    {ok, Bucket#{ host => cmdb_config:host(),
-                  timestamp_fun => timestamp_fun(Bucket),
-                  log => Log, 
-                  tree => Tree, 
-                  pid => Pid, 
-                  ref => Ref }}.
+    Log({cmdb,  Name, Storage}),
+    B2 = B#{ host => node(),
+             timestamp_fun => timestamp_fun(B),
+             log => Log, 
+             tree => Tree, 
+             pid => Pid, 
+             ref => Ref },
+    {ok, with_replicator(B2)}.
+
+with_replicator(#{ cluster := offline } = B) ->
+    B;
+
+with_replicator(#{ name := Name }=B) ->
+    B#{ replicator => cmdb_config:replicator(Name)}.
 
 handle_call(reset, _, #{ log := Log,
                          name := Name,
@@ -46,13 +53,22 @@ handle_call(reset, _, #{ log := Log,
     Log({Name, resetted}),
     {reply, ok, Data2};
 
+
+handle_call({replicate, Entries}, _, #{ pid := Pid, 
+                                        tree := Tree }=Data) ->
+    case write_entries(Pid, Tree, Entries) of 
+        {ok, Tree2} -> 
+            {reply, ok, Data#{ tree => Tree2}};
+        Other ->
+            {reply, Other, Data}
+    end;
+
+
 handle_call({put, Entries}, _, #{ host := Host, 
                                   pid := Pid, 
                                   tree := Tree,
                                   timestamp_fun := TFun }=Data) ->
-    Now = TFun(),
-    Entries2 = [{{S, P, O, Host, Now}, V}|| {S, P, O, V} <- Entries],
-    case write_entries(Pid, Tree, cmkit:distinct(Entries2), Data) of 
+    case write_entries(Pid, Tree, unique_entries(Entries, Host, TFun()), Data) of 
         {ok, Tree2} -> 
             {reply, ok, Data#{ tree => Tree2}};
         Other ->
@@ -123,12 +139,19 @@ terminate(Reason, Bucket) ->
     cmkit:warning({cmdb, writer, node(), Bucket, terminated, Reason}),
     ok.
 
+unique_entries(E, H, T) ->
+    maps:to_list(lists:foldl(fun({S, P, O, V}, Idx) ->
+                                 Idx#{ {S, P, O, H, T} => V};
+                            (_, Idx) -> 
+                                 Idx
+                         end, #{}, E)).
+
+
 map_entries(Pid, Tree, Entries, Match, Merge, #{ name := Name,
                                                  log := Log,
                                                  host := Host,
                                                  timestamp_fun := TFun } = Data) ->
 
-    Merged = cmdb_util:merge(Entries),
     ValueSpec = #{ type => object,
                    spec => Match },
 
@@ -143,8 +166,8 @@ map_entries(Pid, Tree, Entries, Match, Merge, #{ name := Name,
                                    end;
                               (_, Acc) ->
                                    Acc
-                           end, [], Merged),
-    Log({Name, map, Match, Merge, Merged, ToUpdate}),
+                           end, [], Entries),
+    Log({Name, map, Match, Merge, Entries, ToUpdate}),
     case ToUpdate of 
         [] -> 
             {ok, Tree};
@@ -161,14 +184,28 @@ timestamp_fun(_) ->
 
 
 write_entries(Pid, Tree, Entries, #{ name := Name, 
-                                     log := Log }) -> 
+                                     log := Log }=B) -> 
     T0 = cmkit:micros(),
+    {ok, Tree2} = write_entries(Pid, Tree, Entries),
+    replicate(Entries, B),
+    Log({Name, written, length(Entries), Entries, cmkit:elapsed(T0)}),
+    {ok, Tree2}.
+
+write_entries(Pid, Tree, Entries) ->
     {ok, Tree2} = cbt_btree:add(Tree, Entries),
     Root2 = cbt_btree:get_state(Tree2),
     Header2 = {1, Root2},
     cbt_file:write_header(Pid, Header2),
-    Log({Name, written, length(Entries), Entries, cmkit:elapsed(T0)}),
     {ok, Tree2}.
+
+
+replicate(Entries, #{ replicator := R}) ->
+    cmdb_replicator:replicate(R, out, Entries);
+
+replicate(_, _) -> ok.
+
+
+
 
 
 pipeline( _, _, [], _, Entries) -> {ok, lists:reverse(Entries)};
@@ -195,14 +232,8 @@ pipeline_item(Tree, Context, #{ subject := S,
                                 as := As }, _) ->
     
     case cmdb_util:get(disc, Tree, S, P, O) of
-        {ok, []} -> {ok, Context};
-        {ok, Entries} ->
-            case cmdb_util:merge(Entries) of 
-                [{S, P, O, V}] ->
-                    {ok, Context#{ As => V }};
-                _Other ->
-                    {ok, Context}
-            end;
+        {ok, [{S, P, O, V}]} ->
+            {ok, Context#{ As => V }};
         _Other ->
             {ok, Context}
     end;

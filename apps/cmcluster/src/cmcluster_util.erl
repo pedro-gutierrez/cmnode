@@ -3,8 +3,8 @@
 
 
 ping(Nodes, N) ->
-    lists:foreach(fun(N0) when N0 =/= N ->
-                          net_adm:ping(N0);
-                     (_) -> 
-                          ok
-                  end, Nodes).
+    lists:map(fun(N0) when N0 =/= N ->
+                      net_adm:ping(N0);
+                 (_) -> 
+                      self
+              end, Nodes).

@@ -4,6 +4,8 @@ RUN apt-get update; apt-get install -y libgd-dev libwebp-dev inotify-tools vim t
 RUN mkdir -p /opt/cmnode/apps; mkdir ~/.ssh; ssh-keyscan github.com >> ~/.ssh/known_hosts
 ENV CMHOME /opt/cmnode
 ENV CODE_LOADING_MODE interactive
+ENV RELX_REPLACE_OS_VARS true
+ENV CMNODE cmnode
 WORKDIR /opt/cmnode
 ADD rebar.config .
 ADD config config

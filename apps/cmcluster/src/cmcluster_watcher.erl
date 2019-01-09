@@ -22,29 +22,36 @@ init([]) ->
             case cmencode:encode(Spec) of 
                 {ok, #{ name := Name,
                         size := Size,
-                        contact := Nodes }} ->
+                        contact := Nodes } = Spec0} ->
+                    Log = cmkit:log_fun(Spec0),
+                    Log({cmcluster, monitoring}),
                     global_group:monitor_nodes(true),
-                    ClusterName = {cluster, cmkit:to_atom(Name)},
-                    cmbus:create(ClusterName),
-                    cmbus:sub(ClusterName),
+                    Log({cmcluster, topic}),
+                    Cluster = {cluster, cmkit:to_atom(Name)},
+                    cmbus:create_sub(Cluster),
                     NodeNames = cmkit:node_names(Nodes, cmkit:host()),
-                    cmcluster_util:ping(NodeNames, node()),
-                    cmkit:log({cmcluster, node(), connecting}),
-                    {ok, connecting, #{ cluster => ClusterName,
-                                        size => Size,
-                                        up => 0,
-                                        contact => Nodes}};
-                {ok, _} ->
-                    cmkit:log({cmcluster, node(), offline}),
-                    {ok, offline, #{}}
+                    Log({cmcluster, pinging, NodeNames}),
+                    Pings = cmcluster_util:ping(NodeNames, node()),
+                    Log({cmcluster, [P||P<-Pings, P =/= self]}),
+                    State = set_state(connecting, Log),
+                    {ok, State, #{ cluster => Cluster,
+                                   size => Size,
+                                   up => 0,
+                                   log => Log,
+                                   contact => Nodes}};
+                {ok, Spec0} ->
+                    Log = cmkit:log_fun(Spec0),
+                    State = set_state(offline, Log),
+                    {ok, State, #{ log => Log}}
             end;
         {error, not_found} ->
-            cmkit:log({cmcluster, node(), offline}),
-            {ok, offline, #{}}
+            Log = cmkit:log_fun(false),
+            State = set_state(offline, Log),
+            {ok, State, #{ log => Log}}
     end.
 
 offline(info, Msg, Data) ->
-    cmkit:log({cmcluster, node(), info, Msg}),
+    cmkit:log({cmcluster, info, Msg}),
     {keep_state, Data}.
 
 online(info, {nodeup, N}, Data) ->
@@ -56,7 +63,7 @@ online(info, {nodedown, N}, Data) ->
     {next_state, State, Data2};
 
 online(info, Msg, Data) ->
-    cmkit:log({cmcluster, node(), info, Msg}),
+    cmkit:log({cmcluster, info, Msg}),
     {keep_state, Data}.
 
 connecting(info, {nodeup, N}, Data) ->
@@ -68,24 +75,34 @@ connecting(info, {nodedown, N}, Data) ->
     {next_state, State, Data2};
 
 connecting(info, Msg, Data) ->
-    cmkit:log({cmcluster, node(), info, Msg}),
+    cmkit:log({cmcluster, info, Msg}),
     {keep_state, Data}.
 
 terminate(Reason, _, _) ->
     cmkit:log({cmcluster, terminate, Reason}),
     ok.
 
-node_down(N, #{ size := Size, up := Up0} = Data) ->
+node_down(N, #{ size := Size, 
+                up := Up0,
+                log := Log} = Data) ->
     Up = Up0 -1,
-    State = state(Size, Up),
-    cmkit:warning({cmcluster, State, down, N}),
+    Log({cmcluster, down, N}),
+    State = set_state(state(Size, Up), Log),
     {State, Data#{ up => Up }}.
 
-node_up(N, #{ size := Size, up := Up0} = Data) ->
+node_up(N, #{ size := Size, 
+              up := Up0,
+              log := Log} = Data) ->
     Up = Up0 +1,
-    State = state(Size, Up),
-    cmkit:success({cmcluster, State, up, N}),
+    State = set_state(state(Size, Up), Log),
+    Log({cmcluster, up, N}),
+    cmkit:set_app_env(cmcluster, cluster, State),
     {State, Data#{ up => Up }}.
+
+set_state(State, Log) ->
+    cmkit:set_app_env(cmcluster, state, State),
+    Log({cmcluster, State}),
+    State.
 
 state(Size, Up) when Up + 1 =:= Size -> online;
 state(_, _) -> connecting.

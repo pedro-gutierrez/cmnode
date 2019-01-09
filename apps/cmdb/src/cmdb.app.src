@@ -6,8 +6,10 @@
   {applications,
    [kernel,
     stdlib,
+    cbt,
     cmkit,
-    cbt
+    cmconfig,
+    cmcluster
    ]},
   {env,[]},
   {modules, []},

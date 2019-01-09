@@ -1,8 +1,9 @@
 type: settings
 name: cluster 
 spec:
+  debug: true
   name: cm
   size: 2
   contact:
-    - cm1@Pedros-MacBook-Pro
-    - cm2@Pedros-MacBook-Pro
+    - cmnode1
+    - cmnode2

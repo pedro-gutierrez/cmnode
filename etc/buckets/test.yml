@@ -2,4 +2,4 @@ type: bucket
 name: test 
 spec:
   storage: disc
-  debug: true 
+  debug: false 

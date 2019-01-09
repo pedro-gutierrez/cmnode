@@ -16,10 +16,10 @@
          inspect/3,
          inspect/4,
          pipeline/3,
-         merge/1,
+         m2/8,
+         maybe_keep/6,
          fold/3
         ]).
--record(acc, {h, v, s, p, o, r}).
 
 -define(ETS_OPTS, [
                    public, 
@@ -50,19 +50,28 @@ reload(Buckets) ->
                                                                   <<"_writer">>])) 
                                   }
                        } || #{ name := Name} <- Buckets ],
+    
+    ReplicatorClauses = [ #{ vars => [#{ atom => Name }],
+                            body => #{ abstract => 
+                                       cmkit:to_atom(cmkit:bin_join([ 
+                                                                     cmkit:to_bin(Name), 
+                                                                     <<"_replicator">>])) 
+                                     }
+                          } || #{ name := Name} <- Buckets ],
 
     HostClauses = [ #{ vars => [],
                        body => #{ abstract => cmkit:node_host_short(node()) }}],
 
-    Res = cmcode:compile(#{ module => cmdb_config,
+    _Res = cmcode:compile(#{ module => cmdb_config,
                       functions => #{ host => #{ arity => 0,
                                                  clauses => HostClauses },
                                       storage => #{ arity => 1,
                                                     clauses => StorageClauses },
                                       writer => #{ arity => 1,
-                                                   clauses => WriterClauses }}}),
+                                                   clauses => WriterClauses },
+                                      replicator => #{ arity => 1,
+                                                     clauses => ReplicatorClauses }}}),
 
-    cmkit:log({cmdb, config, Res}),
 
     _Res2 = [open(Storage, Name) ||
         #{ name := Name, storage := Storage } <- Buckets ],
@@ -77,8 +86,7 @@ compiled(#{ <<"name">> := Name,
 
     #{ name => cmkit:to_atom(Name),
        storage => cmkit:to_atom(Storage),
-       consistency => cmkit:to_atom(maps:get(<<"consistency">>, Spec, <<"strong">>)),
-       replication => cmkit:to_atom(maps:get(<<"replication">>, Spec, <<"none">>)),
+       cluster => cmcluster:state(),
        debug => cmkit:to_atom(maps:get(<<"debug">>, Spec, <<"false">>))}.
     
 
@@ -289,91 +297,49 @@ fold(Name, Start, Fun) when is_atom(Name) ->
                   end);
   
 fold(Tree, Start, Fun) ->
-    case cbt_btree:fold(Tree, fun({K, V}, Acc) ->
+    case cbt_btree:fold(Tree, fun({K, V}, {{S0, P0, O0, H0}, V0, Seen, Out} = Acc) ->
                                       case Fun(K, V) of 
                                           {ok, V2} ->
-                                              {ok, [V2|Acc]};
+                                              {ok, m2(V2, S0, P0, O0, H0, V0, Seen, Out)};
                                           skip ->
                                               {ok, Acc};
                                           _ ->
                                               {stop, Acc}
                                       end
-                              end, [], [{start_key, Start}]) of
-        {ok, _, Values} -> {ok, Values};
+                              end, {{n, n, n, n}, n, n, []}, [{start_key, Start}]) of
+        {ok, _, {{n, n, n, n}, _, _, _}} ->
+            {ok, []};
+        {ok, _, {{S0, P0, O0, _}, V0, Seen, Out}} -> 
+            {_, Out2} = cmdb_util:maybe_keep(S0, P0, O0, V0, Seen, Out),
+            {ok, lists:reverse(Out2)};
         Other ->
             Other
     end.
 
 
 
-merge(Entries) ->
-    #acc{ r = R } = lists:foldl(fun({S, P, O, H, _, V}, #acc{ h = undef, 
-                                              v = undef, 
-                                              s = undef, 
-                                              p = undef, 
-                                              o = undef, 
-                                              r = R} = Acc) ->
-                        Acc#acc{ h = H, 
-                                 v = [V], 
-                                 s = S, 
-                                 p = P, 
-                                 o = O,
-                                 r = [{S, P, O, V}|R]};
+m2({S, P, O, H, _, V}, n, n, n, n, n, n, F) ->
+    {{S, P, O, H}, V, [], F};
 
-                   ({S, P, O, H, _, _}, #acc{ s = S,
-                                              p = P,
-                                              o = O,
-                                              h = H}=Acc) -> 
-                        Acc;
-                   ({S, P, O, H, _, V}, #acc{ s = S,
-                                              p = P,
-                                              o = O,
-                                              h = H0,
-                                              v = Values,
-                                              r = R}=Acc) when H =/= H0 ->
-                        case lists:member(V, Values) of 
-                            true ->
-                                Acc#acc{ h = H };
-                            false ->
-                                Acc#acc{ h = H,
-                                         v = [V|Values],
-                                         r = [{ S, P, O, V}|R]}
-                        end;
-                   ({S, P, O, H, _, V}, #acc{ s = S,
-                                              p = P,
-                                              o = O0,
-                                              r = R}=Acc) when O =/= O0 ->
-                        Acc#acc{ h = H,
-                                 o = O,
-                                 v = [V],
-                                 r = [{ S, P, O, V}|R] };
+m2({S0, P0, O0, H0, _, V}, S0, P0, O0, H0, _, Seen, F) ->
+    {{S0, P0, O0, H0}, V, Seen, F};
 
-                   ({S, P, O, H, _, V}, #acc{ s = S,
-                                              p = P0,
-                                              r = R}=Acc) when P =/= P0 ->
-                        Acc#acc{ h = H,
-                                 o = O,
-                                 p = P,
-                                 v = [V],
-                                 r = [{ S, P, O, V}|R] };
+m2({S0, P0, O0, H, _, V}, S0, P0, O0, _, Prev, Seen, F) ->
+    {C2, F2} = maybe_keep(S0, P0, O0, Prev, Seen, F),
+    {{S0, P0, O0, H}, V, C2, F2};
 
-                   ({S, P, O, H, _, V}, #acc{ s = S0,
-                                              r = R}=Acc) when S =/= S0 ->
-                        Acc#acc{ h = H,
-                                 s = S,
-                                 o = O,
-                                 p = P,
-                                 v = [V],
-                                 r = [{S, P, O, V}|R] }
+m2({S, P, O, H, T, V}, S0, P0, O0, _, Prev, Seen, F) ->
+    {_, F2} = maybe_keep(S0, P0, O0, Prev, Seen, F),
+    m2({S, P, O, H, T, V}, n, n, n, n, n, n, F2).
 
-                end, #acc{h = undef,
-                          v = [], 
-                          s = undef,
-                          p = undef,
-                          o = undef,
-                          r = []}, Entries),
-    R.
 
+maybe_keep(S, P, O, V, Seen, F) ->
+    case lists:member(V, Seen) of
+        false ->
+            {[V|Seen], [{S, P, O, V}|F]};
+        true ->
+            {Seen, F}
+    end.
 
 inspect(Name, S) ->
     get(cmdb_config:storage(Name), Name, S).

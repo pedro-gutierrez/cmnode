@@ -22,13 +22,13 @@ put(Name, Entries) ->
     cmdb_util:put(cmdb_config:storage(Name), Name, Entries).
 
 get(Name, S, P) -> 
-    merge(cmdb_util:inspect(Name, S, P)).
+    cmdb_util:inspect(Name, S, P).
 
 get(Name, S) -> 
-    merge(cmdb_util:inspect(Name, S)).
+    cmdb_util:inspect(Name, S).
 
 get(Name, S, P, O) ->
-    merge(cmdb_util:inspect(Name, S, P, O)).
+    cmdb_util:inspect(Name, S, P, O).
 
 between(Name, S, P, O1, O2) ->
     EndFun = fun({S0, P0, O0, H, T}, V) when S0 =:= S andalso
@@ -37,7 +37,7 @@ between(Name, S, P, O1, O2) ->
                 (_, _) -> stop
              end,
 
-    merge(cmdb_util:fold(Name, {S, P, O1, 0, 0}, EndFun)).
+    cmdb_util:fold(Name, {S, P, O1, 0, 0}, EndFun).
 
 map(Name, S, Match, Merge) ->
     cmdb_util:map(cmdb_config:storage(Name), Name, S, Match, Merge).
@@ -47,6 +47,3 @@ map(Name, S, P, Match, Merge) ->
 
 pipeline(Name, P) ->
     cmdb_util:pipeline(cmdb_config:storage(Name), Name, P).
-
-merge({ok, Entries}) -> {ok, cmdb_util:merge(Entries)};
-merge(Other) -> Other.
