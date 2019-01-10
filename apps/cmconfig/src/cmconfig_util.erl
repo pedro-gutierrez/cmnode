@@ -1141,8 +1141,8 @@ compile_term(#{ <<"os">> := Var }, Index) ->
 compile_term(#{ <<"perf">> := <<"stats">> }, _) ->
     #{ type => perf };
 
-compile_term(#{ <<"object">> := Object}, Index) ->
-    compile_object(Object, Index);
+compile_term(#{ <<"object">> := Object} = Spec, Index) ->
+    with_where(Spec, compile_object(Object, Index), Index);
 
 compile_term(#{ <<"without_keys">> := Keys }, Index) when is_list(Keys) ->
     #{ type => without_keys,
@@ -2686,6 +2686,12 @@ compile_effect(Name, #{ <<"type">> := Type, <<"settings">> := Settings}, Index) 
      };
 
 compile_effect(Name, #{ <<"type">> := _ }=Effect, Index) -> compile_effect(Name, Effect#{ <<"settings">> => #{}}, Index).
+
+
+with_where(#{ <<"where">> := Where }, Compiled, Index) ->
+    Compiled#{ where => compile_term(Where, Index) };
+
+with_where(_, Compiled, _) -> Compiled.
 
 with_default(#{ <<"default">> := Default }, Compiled, Index) ->
     Compiled#{ default => compile_term(Default, Index) };

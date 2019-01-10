@@ -26,8 +26,13 @@ encode(#{ maybe := Spec}, In, Config) ->
 encode(Map, _, _) when is_map(Map) andalso map_size(Map) =:= 0 -> 
     {ok, #{}};
 
-encode(#{ type := object, spec := Spec}, In, Config) ->
-    encode_object(Spec, In, Config);
+encode(#{ type := object, spec := Spec} = Spec0, In, Config) ->
+    case with_where(Spec0, In, Config) of 
+        {ok, In2} ->
+            encode_object(Spec, In2, Config);
+        Other ->
+            Other
+    end;
     
 encode(#{ type := object }, _, _) ->
     {ok, #{}};
@@ -1570,9 +1575,19 @@ with_where(#{ where := WhereSpec }, In, Config) ->
 with_where(_, In, _) -> {ok, In}.
 
 
+encode_case_clause(Map, Expr, In, Config) when is_map(Map) ->
+    case maps:get(Expr, Map, undef) of 
+        undef ->
+            {error, #{ error => encode_error,
+               reason => no_clause_matches }};
+        Found ->
+            encode(Found, In, Config)
+    end;
+
 encode_case_clause([], _, _, _) -> 
     {error, #{ error => encode_error,
                reason => no_clause_matches }};
+
 
 encode_case_clause([#{ condition := Condition,
                        spec := Spec} |Rem], Expr, In, Config) ->
