@@ -857,19 +857,35 @@ encode(#{ type := 'or',
 
 encode(#{ type := sum,
           spec := Specs } = Spec, In, Config) ->
-    Res = lists:foldl(fun({ok, V}, Total) when is_number(V) -> 
-                        Total + V;
-                   (Other, _) -> 
-                        {error, #{ status => encode_error,
-                                   spec => Spec,
-                                   data => Other,
-                                   reason => not_a_number }}
-                end, 0, lists:map(fun(S) ->
-                                       encode(S, In, Config)
-                               end, Specs)),
+
+    Res = foldl(Specs, In, Config, 0, fun(V, Acc) when is_number(V) ->
+                                              {ok, Acc +V};
+                                         (Other, _) ->
+                                              nan(Other, Spec)
+                                      end), 
+    
     case Res of 
         N when is_number(N) -> {ok, N};
         Other -> Other
+    end;
+
+encode(#{ type := difference,
+          spec := [First|Rem] } = Spec, In, Config) ->
+
+    Res = case encode(First, In, Config) of 
+              {ok, Encoded} when is_number(Encoded) ->
+                  foldl(Rem, In, Config, Encoded, fun(V, Acc) when is_number(V) ->
+                                                          {ok, Acc - V};
+                                                     (Other, _) ->
+                                                          nan(Other, Spec)
+                                                  end);
+              Other ->
+                  nan(Other, Spec)
+          end,
+
+    case Res of 
+        N when is_number(N) -> {ok, N};
+        Other2 -> Other2
     end;
 
 encode(#{ type := join,
@@ -1032,6 +1048,10 @@ encode(#{ type := utc,
         Other -> 
             Other
     end;
+
+encode(#{ type := now,
+          resolution := seconds }, _, _) ->
+    {ok, cmkit:seconds()};
 
 encode(#{ type := now,
           resolution := millis }, _, _) ->
@@ -1731,3 +1751,25 @@ all_equal([V|Rem]) -> all_equal(Rem, V).
 all_equal([], _) -> true;
 all_equal([V|Rem], V) -> all_equal(Rem, V);
 all_equal(_, _) -> false.
+
+
+
+foldl([], _, _, Acc, _) -> {ok, Acc};
+foldl([S|Rem], In, Config, Acc, Fun) ->
+    case encode(S, In, Config) of 
+        {ok, Encoded} ->
+            case Fun(Encoded, Acc) of 
+                {ok, Acc2} ->
+                    foldl(Rem, In, Config, Acc2, Fun);
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
+nan(Value, Spec) ->
+    {error, #{ status => encode_error,
+               spec => Spec,
+               data => Value,
+               reason => not_a_number }}.

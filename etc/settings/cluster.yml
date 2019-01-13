@@ -1,9 +1,0 @@
-type: settings
-name: cluster 
-spec:
-  debug: true
-  name: cm
-  size: 2
-  contact:
-    - cmnode1
-    - cmnode2

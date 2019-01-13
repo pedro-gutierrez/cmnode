@@ -64,13 +64,15 @@ handle_call({replicate, Entries}, _, #{ pid := Pid,
     end;
 
 
-handle_call({put, Entries}, _, #{ host := Host, 
-                                  pid := Pid, 
-                                  tree := Tree,
-                                  timestamp_fun := TFun }=Data) ->
-    case write_entries(Pid, Tree, unique_entries(Entries, Host, TFun()), Data) of 
-        {ok, Tree2} -> 
-            {reply, ok, Data#{ tree => Tree2}};
+handle_call({put, ToAdd}, _, #{ host := Host, 
+                                pid := Pid, 
+                                tree := Tree,
+                                timestamp_fun := TFun }=Data) ->
+    
+    ToAdd2 = unique_entries(ToAdd, Host, TFun()),
+    case with_entries(Tree, ToAdd2) of 
+        {ok, Tree3} ->
+            write_and_reply(Tree3, Pid, Data);
         Other ->
             {reply, Other, Data}
     end;
@@ -105,6 +107,34 @@ handle_call({put, S, P, Match, Merge}, _, #{ pid := Pid,
     end;
 
 
+handle_call({delete, Keys}, _, #{ pid := Pid,
+                                  tree := Tree }=Data) ->
+
+    case without_keys(Tree, Keys) of 
+        {ok, Tree2} ->
+            write_and_reply(Tree2, Pid, Data);
+        Other ->
+            {reply, Other, Data}
+    end;
+
+handle_call({put_delete, ToAdd, ToDelete}, _, #{ pid := Pid,
+                                                 host := Host,
+                                                 timestamp_fun := TFun,
+                                                 tree := Tree }=Data) when is_list(ToAdd) andalso is_list(ToDelete) ->
+
+    case without_keys(Tree, ToDelete) of 
+        {ok, Tree2} ->
+            ToAdd2 = unique_entries(ToAdd, Host, TFun()),
+            case with_entries(Tree2, ToAdd2) of 
+                {ok, Tree3} ->
+                    write_and_reply(Tree3, Pid, Data);
+                Other ->
+                    {reply, Other, Data}
+            end;
+        Other ->
+            {reply, Other, Data}
+    end;
+
 handle_call({pipeline, #{ context := Context,
                           items := #{ type := list,
                                       value := Items}}}, _, #{ pid := Pid, 
@@ -138,6 +168,24 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(Reason, Bucket) ->
     cmkit:warning({cmdb, writer, node(), Bucket, terminated, Reason}),
     ok.
+
+
+without_keys(Tree, Keys) ->
+    cmdb_util:reduce(Tree,
+                     fun cmdb_util:keys_for/2,
+                     fun cmdb_util:without_keys/2, Keys).
+
+
+with_entries(Tree, Entries) ->
+   cbt_btree:add(Tree, Entries).
+
+write_and_reply(Tree, Pid, Data) ->
+    case write_tree(Pid, Tree) of 
+        {ok, Tree2} ->
+            {reply, ok, Data#{ tree => Tree2}};
+        Other ->
+            {reply, Other, Data}
+    end.
 
 unique_entries(E, H, T) ->
     maps:to_list(lists:foldl(fun({S, P, O, V}, Idx) ->
@@ -192,21 +240,20 @@ write_entries(Pid, Tree, Entries, #{ name := Name,
     {ok, Tree2}.
 
 write_entries(Pid, Tree, Entries) ->
-    {ok, Tree2} = cbt_btree:add(Tree, Entries),
-    Root2 = cbt_btree:get_state(Tree2),
-    Header2 = {1, Root2},
-    cbt_file:write_header(Pid, Header2),
-    {ok, Tree2}.
+    {ok, Tree2} = with_entries(Tree, Entries),
+    write_tree(Pid, Tree2).
+
+write_tree(Pid, Tree) ->
+    Root = cbt_btree:get_state(Tree),
+    Header = {1, Root},
+    cbt_file:write_header(Pid, Header),
+    {ok, Tree}.
 
 
 replicate(Entries, #{ replicator := R}) ->
     cmdb_replicator:replicate(R, out, Entries);
 
 replicate(_, _) -> ok.
-
-
-
-
 
 pipeline( _, _, [], _, Entries) -> {ok, lists:reverse(Entries)};
 pipeline(Tree, Context, [I|Rem], #{ name := Name }=Data, Entries) ->

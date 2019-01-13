@@ -12,6 +12,7 @@
          deps/1
         ]).
 -define(TYPES, [effect,
+                metrics,
                 port,
                 template,
                 module,
@@ -171,6 +172,7 @@ compile(#{ <<"type">> := <<"cron">> }=Spec, Index) -> {ok, compile_cron(Spec, In
 compile(#{ <<"type">> := <<"task">> }=Spec, Index) -> {ok, compile_task(Spec, Index)};
 compile(#{ <<"type">> := <<"theme">> }=Spec, Index) -> {ok, compile_theme(Spec, Index)};
 compile(#{ <<"type">> := <<"topic">> }=Spec, Index) -> {ok, compile_topic(Spec, Index)};
+compile(#{ <<"type">> := <<"metrics">> }=Spec, Index) -> {ok, compile_metrics(Spec, Index)};
 
 compile(Spec, _) ->
     cmkit:danger({cmconfig, unknown_spec, Spec}),
@@ -393,6 +395,32 @@ compile_topic(#{ <<"name">> := Name,
          name => cmkit:to_atom(Name),
          spec => #{}}.
 
+compile_metrics(#{ <<"name">> := Name,
+                   <<"rank">> := Rank,
+                   <<"spec">> := Spec }, Index) ->
+
+    #{   type => metrics,
+         rank => Rank,
+         name => cmkit:to_atom(Name),
+         spec => compile_metric_specs(Spec, Index) }.
+
+
+compile_metric_specs(Specs, Index) ->
+    maps:fold(fun(K, V, Acc) ->
+                      MetricName = cmkit:to_atom(K),
+                      Acc#{ MetricName => compile_metric_spec(V, Index) }
+              end, #{}, Specs).
+
+compile_metric_spec(#{ <<"type">> := T,
+                       <<"groups">> := Groups }, _) ->
+
+    #{ type => cmkit:to_atom(T),
+       groups => cmkit:to_atom(Groups) };
+
+compile_metric_spec(#{ <<"type">> := T }, _) ->
+
+    #{ type => cmkit:to_atom(T) }.
+
 compile_module(#{ <<"name">> := Name,
                   <<"rank">> := Rank,
                   <<"spec">> := Spec } = Mod, Index) ->
@@ -565,6 +593,8 @@ compile_scenarios(Specs, Index) ->
 
 compile_scenario(#{ <<"title">> := Title }=Spec, Index) ->
 
+    
+    Debug = cmkit:to_atom(maps:get(<<"debug">>, Spec, false)),
     Tags = maps:get(<<"tags">>, Spec, []),
     Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
     Steps =  maps:get(<<"steps">>, Spec, []),
@@ -572,8 +602,10 @@ compile_scenario(#{ <<"title">> := Title }=Spec, Index) ->
     #{ title => Title,
        tags => compile_tags(Tags),
        backgrounds => Backgrounds,
-       steps => compile_steps(Steps, Index)
+       steps => compile_steps(Steps, Index),
+       debug => Debug
      }.
+    
 
 compile_background(#{ <<"title">> := Title,
                       <<"steps">> := Steps }=Spec, Scenarios, Index) ->
@@ -972,6 +1004,11 @@ compile_term(#{ <<"now">> := <<"microseconds">> }, _Index) ->
     #{ type => now,
        resolution => micros };
 
+compile_term(#{ <<"now">> := <<"seconds">> }, _Index) ->
+
+    #{ type => now,
+       resolution => seconds };
+
 compile_term(#{ <<"now">> := <<"milliseconds">> }, _Index) ->
 
     #{ type => now,
@@ -983,7 +1020,6 @@ compile_term(#{ <<"calendar">> := <<"now">> }, _Index) ->
        amount => 0, 
        factor => 0,
        tense => past };
-
 
 compile_term(#{ <<"calendar">> := #{ 
                     <<"days">> := #{ <<"ago">> := Days }}}, Index) -> 
@@ -1000,6 +1036,7 @@ compile_term(#{ <<"calendar">> := #{
        amount => compile_term(Days, Index),
        factor => 3600*24,
        tense  => future };
+
 
 compile_term(#{ <<"encrypt">> := #{ <<"method">> := Method,
                                     <<"key">> := Key,
@@ -1562,32 +1599,30 @@ compile_term(#{ <<"other_than">> := Spec }, Index) ->
     #{ type => other_than,
        spec => compile_term(Spec, Index) };
 
-compile_term(#{ <<"gt">> := Specs }, Index) when is_list(Specs) ->
+compile_term(#{ <<"gt">> := S}, Index)  ->
     #{ type => greater_than,
-       spec => lists:map(fun(S) ->
-                            compile_term(S, Index)     
-                         end, Specs)};
+       spec => compile_term(S, Index) };
 
-compile_term(#{ <<"greater_than">> := Specs }, Index) when is_list(Specs) ->
+compile_term(#{ <<"greater_than">> := S }, Index) ->
     #{ type => greater_than,
-       spec => lists:map(fun(S) ->
-                            compile_term(S, Index)     
-                         end, Specs)};
+       spec => compile_term(S, Index) };
 
-compile_term(#{ <<"lt">> := Specs }, Index) when is_list(Specs) ->
+compile_term(#{ <<"lt">> := S}, Index) ->
     #{ type => lower_than,
-       spec => lists:map(fun(S) ->
-                            compile_term(S, Index)     
-                         end, Specs)};
+       spec => compile_term(S, Index) };
 
-compile_term(#{ <<"lower_than">> := Specs }, Index) when is_list(Specs) ->
+compile_term(#{ <<"lower_than">> := S }, Index)  ->
     #{ type => lower_than,
-       spec => lists:map(fun(S) ->
-                            compile_term(S, Index)     
-                         end, Specs)};
+       spec => compile_term(S, Index) };
 
 compile_term(#{ <<"sum">> := Specs }, Index) when is_list(Specs) ->
     #{ type => sum,
+       spec => lists:map(fun(S) ->
+                            compile_term(S, Index)     
+                         end, Specs)};
+
+compile_term(#{ <<"difference">> := Specs }, Index) when is_list(Specs) ->
+    #{ type => difference,
        spec => lists:map(fun(S) ->
                             compile_term(S, Index)     
                          end, Specs)};

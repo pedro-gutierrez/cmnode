@@ -12,7 +12,7 @@ effect_apply(#{ context := Context,
                 url := UrlSpec } = Spec, SessionId) ->
 
     Data = case with_url(#{ debug => maps:get(debug, Spec, false),
-                     method => Method}, UrlSpec) of 
+                            method => Method}, UrlSpec) of 
         {ok, Http0} ->
             case with_headers(Http0, Spec) of 
                 {ok, Http1} ->
@@ -35,7 +35,9 @@ effect_apply(#{ context := Context,
     end,
         
     Data2 = case Data of 
-                {ok, D} -> D#{ context => Context };
+                {ok, D} ->
+                    record_metric(Method, Spec, D, cmmetrics:enabled()),
+                    D#{ context => Context };
                 {error, E} ->
                     #{ error => E,
                        context => Context }
@@ -87,3 +89,10 @@ with_body(Http, #{ body := B }) ->
     {ok, Http#{ body => B }};
 
 with_body(Http, _) -> {ok, Http}.
+
+
+
+record_metric(_, _, _, false) -> ok;
+record_metric(Method, #{ metric := Metric }, #{ status := Status,
+                                                millis := Millis }, true) ->
+    cmmetrics:record_http_duration(Metric, Method, Status, Millis).

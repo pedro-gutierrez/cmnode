@@ -3,6 +3,7 @@
          reset/1,
          del/2,
          put/2,
+         put_del/3,
          get/2,
          get/3,
          get/4,
@@ -15,11 +16,14 @@
 reset(Name) -> 
     cmdb_util:reset(cmdb_config:storage(Name), Name).
 
-del(Name, Entries) ->
-    cmdb_util:del(cmdb_config:storage(Name), Name, Entries).
+del(Name, Keys) ->
+    put_del(Name, [], Keys).
 
 put(Name, Entries) -> 
-    cmdb_util:put(cmdb_config:storage(Name), Name, Entries).
+    put_del(Name, Entries, []).
+
+put_del(Name, ValuesToAdd, KeysToDelete) ->
+    cmdb_util:put_del(cmdb_config:storage(Name), Name, ValuesToAdd, KeysToDelete).
 
 get(Name, S, P) -> 
     cmdb_util:inspect(Name, S, P).

@@ -10,6 +10,7 @@
          get/3,
          get/4,
          get/5,
+         put_del/4,
          map/5,
          map/6,
          inspect/2,
@@ -18,7 +19,10 @@
          pipeline/3,
          m2/8,
          maybe_keep/6,
-         fold/3
+         fold/3,
+         reduce/4,
+         keys_for/2,
+         without_keys/2
         ]).
 
 -define(ETS_OPTS, [
@@ -159,6 +163,7 @@ del(disc, Name, S, P) ->
                end).
 
 
+
 del(memory, Name, S, P, O) ->
     case get(memory, Name, S, P, O) of 
         {ok, Entries} ->
@@ -218,6 +223,13 @@ put(disc, Name, Entries) ->
     resolve(Writer, fun(Pid) ->
                        gen_server:call(Pid, {put, Entries})
                end).
+
+
+put_del(disc, Name, ToAdd, ToDelete) ->
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                            gen_server:call(Pid, {put_delete, ToAdd, ToDelete})
+                    end).
 
 get(memory, Name, S) -> 
     {ok, [ {S, P, O, H, T, V} 
@@ -295,7 +307,9 @@ fold(Name, Start, Fun) when is_atom(Name) ->
     resolve(Name, fun(Fd) ->
                           fold(Fd, Start, Fun)
                   end);
-  
+
+
+
 fold(Tree, Start, Fun) ->
     case cbt_btree:fold(Tree, fun({K, V}, {{S0, P0, O0, H0}, V0, Seen, Out} = Acc) ->
                                       case Fun(K, V) of 
@@ -315,6 +329,12 @@ fold(Tree, Start, Fun) ->
         Other ->
             Other
     end.
+
+
+
+
+
+
 
 
 
@@ -339,6 +359,74 @@ maybe_keep(S, P, O, V, Seen, F) ->
             {[V|Seen], [{S, P, O, V}|F]};
         true ->
             {Seen, F}
+    end.
+
+
+
+
+first_key({S, P, O}) -> {S, P, O, 0, 0};
+first_key({S, P}) -> {S, P, 0, 0, 0};
+first_key({S}) -> {S, 0, 0, 0, 0};
+first_key(_) -> {0, 0, 0, 0, 0}.
+
+
+is_same_key_fun({S, P, O}) ->
+    fun({S0, P0, O0, _, _}, _) when S0 =:= S andalso P0 =:= P andalso O0 =:= O -> true;
+       (_, _) -> false
+    end;
+
+is_same_key_fun({S, P}) ->
+    fun({S0, P0, _, _, _}, _) when S0 =:= S andalso P0 =:= P -> true;
+       (_, _) -> false
+    end;
+
+is_same_key_fun({S}) ->
+    fun({S0, _, _, _, _}, _) when S0 =:= S -> true;
+       (_, _) -> false
+    end;
+
+is_same_key_fun(_) ->
+    fun(_, _) -> stop end.
+
+
+keys_for(K, Tree) ->
+    filter_map(Tree, first_key(K), is_same_key_fun(K), fun(K0, _) -> K0 end).
+
+
+without_keys(Keys, Tree) ->
+    cbt_btree:add_remove(Tree, [], Keys).
+
+reduce(Tree, _, _, []) ->
+    {ok, Tree};
+
+reduce(Tree, Map, Reduce, [K|Rem]) ->
+    case Map(K, Tree) of 
+        {ok, Mapped} ->
+            case Reduce(Mapped, Tree) of 
+                {ok, Tree2} ->
+                    reduce(Tree2, Map, Reduce, Rem);
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
+filter_map(Tree, Start, Filter, Map) ->
+    case cbt_btree:fold(Tree, fun({K, V}, Acc) ->
+                                      case Filter(K, V) of
+                                          true  ->
+                                              {ok, [Map(K, V)|Acc]};
+                                          false ->
+                                              {ok, Acc};
+                                          stop ->
+                                              {stop, Acc}
+                                      end
+                              end, [], [{start_key, Start}]) of
+        {ok, _, Acc} ->
+            {ok, Acc};
+        Other ->
+            Other
     end.
 
 inspect(Name, S) ->

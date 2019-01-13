@@ -1,0 +1,7 @@
+type: port
+name: hello
+spec:
+  port: 8080
+  apps:
+    hello:
+	  http: /

@@ -4,7 +4,7 @@
 
 
 
-init(Req, #{app := App, effects := Effects}=State) ->
+init(#{ method := Method }=Req, #{app := App, effects := Effects}=State) ->
     Start = cmkit:micros(),
     case cmconfig:app(App) of
         {ok, #{ debug := Debug } = Spec} -> 
@@ -27,6 +27,7 @@ init(Req, #{app := App, effects := Effects}=State) ->
                         {ok, Model2} ->
                             UpdateTime = cmkit:elapsed(Start),
                             {cowboy_loop, Req2, State#{ log => Log, 
+                                                        method => Method,
                                                         spec => Spec2,
                                                         model => Model2,
                                                         start => Start,
@@ -82,12 +83,14 @@ info({stream, 'end', Headers}, Req, State) ->
 
 
 info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
+                                                                    method := Method,
                                                                     start := Start,
                                                                     body_time := BodyTime,
                                                                     session_time := SessionTime,
                                                                     init_time := InitTime,
                                                                     update_call_time := UpdateTime,
-                                                                    log := Log
+                                                                    log := Log,
+                                                                    record_metric_fun := RecordFun
                                                                   }=State) ->
     Headers2 = binary_headers(Headers),
     Body2 = encoded_body(Headers2, Body),
@@ -104,6 +107,11 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
                                   update_call => UpdateTime - InitTime,
                                   update_other  => Elapsed - UpdateTime,
                                   render => Elapsed2 - Elapsed }}}),
+
+    RecordFun(App, Method, Code, Elapsed2/1000),
+    
+    
+    
     {stop, Req2, State};
     
 info(#{ status := Status } = Body, Req, State) when is_map(Body) ->

@@ -1,8 +1,5 @@
-version: 2
 type: app
 name: hello
 spec:
   modules:
     - hello
-  settings:
-    - i18n

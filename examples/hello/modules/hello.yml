@@ -1,0 +1,21 @@
+type: module
+name: hello
+spec:
+  decoders:
+  	hello:
+      any: object
+  update:
+    hello:
+      model:
+        message: "Hello World"
+      cmds:
+        - effect: notify
+          encoder: hello
+  encoders:
+    hello:
+      status: 200
+      headers:
+        content-type: "application/json"
+      body:
+        msg:
+          key: message

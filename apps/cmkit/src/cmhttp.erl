@@ -1,5 +1,6 @@
 -module(cmhttp).
 -export([stream/1,
+         method/1,
          do/1,
          get/1, 
          get/2,
@@ -13,6 +14,7 @@
          put/3, 
          encodedQs/1]).
 -define(EMPTY_BODY, <<>>).
+-define(EMPTY_OPTS, #{}).
 -define(DEFAULT_MIME, <<"application/octect-stream">>).
 
 
@@ -83,20 +85,25 @@ do(Req0) ->
             {error, E}
     end.
 
-with_method(#{ method := V }=S) when V =:= <<"get">> orelse V =:= <<"GET">> -> 
-    S#{ method => get };
+method(get) -> get;
+method(<<"get">>) -> get;
+method(<<"GET">>) -> get;
 
-with_method(#{ method := V }=S) when V =:= <<"post">> orelse V =:= <<"POST">> -> 
-    S#{ method => post };
+method(post) -> post;
+method(<<"post">>) -> post;
+method(<<"POST">>) -> post;
 
-with_method(#{ method := V }=S) when V =:= <<"delete">> orelse V =:= <<"DELETE">> -> 
-    S#{ method => delete };
+method(delete)-> delete;
+method(<<"delete">>) -> delete;
+method(<<"DELETE">>) -> delete;
 
-with_method(#{ method := V }=S) when V =:= <<"put">> orelse V =:= <<"PUT">> -> 
-    S#{ method => put };
+method(put)-> put;
+method(<<"put">>) -> put;
+method(<<"PUT">>) -> put.
 
-with_method(#{ method := M }=S) when is_atom(M) ->
-    S;
+
+with_method(#{ method := V }=S) -> 
+    S#{ method => method(V) };
 
 with_method(S) ->
     S#{ method => get }.
@@ -133,7 +140,7 @@ get(Url) ->
 get(Url, Headers) ->
     Url2 = encoded_url(Url),
     Headers2 = encoded_headers(Headers),
-    handle(httpc:request(get, {Url2, Headers2},[],[])).
+    handle(httpc:request(get, {Url2, Headers2},[],[]), ?EMPTY_OPTS).
 
 delete(Url) ->
     delete(Url, #{}).
@@ -141,7 +148,7 @@ delete(Url) ->
 delete(Url, Headers) ->
     Url2 = encoded_url(Url),
     Headers2 = encoded_headers(Headers),
-    handle(httpc:request(delete, {Url2, Headers2},[],[])).
+    handle(httpc:request(delete, {Url2, Headers2},[],[]), ?EMPTY_OPTS).
 
 put(Url) ->
     cmhttp:put(Url, #{}).
@@ -150,7 +157,7 @@ put(Url, Headers) ->
     cmhttp:put(Url, Headers, ?EMPTY_BODY).
 
 put(Url, #{ 'content-type' := _}=Headers, Data) ->
-    send_body(put, Url, Headers, Data);
+    send_body(put, Url, Headers, Data, ?EMPTY_OPTS);
 
 put(Url, Headers, Data) ->
     cmhttp:put(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
@@ -162,29 +169,32 @@ post(Url, Headers) ->
     post(Url, Headers, ?EMPTY_BODY).
 
 post(Url, #{ 'content-type' := _}=Headers, Data) ->
-    send_body(post, Url, Headers, Data);
-
+    post(Url, Headers, Data, ?EMPTY_OPTS);
+    
 post(Url, Headers, Data) ->
-    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data).
+    post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data, ?EMPTY_OPTS).
+
+post(Url, Headers, Data, Opts) ->
+    send_body(post, Url, Headers, Data, Opts).
 
 
-send_body(Method, Url, #{ 'content-type' := CT }=Headers, Data) ->
+send_body(Method, Url, #{ 'content-type' := CT }=Headers, Data, Opts) ->
     Url2 = encoded_url(Url),
     Headers2 = encoded_headers(Headers),
     Mime = cmkit:to_list(CT),
     Encoded = encoded_body(Mime, Data),
-    handle(httpc:request(Method, { Url2, Headers2, Mime, Encoded},[],[])).
+    handle(httpc:request(Method, { Url2, Headers2, Mime, Encoded},[],[]), Opts).
 
-handle({error,socket_closed_remotely}) ->
+handle({error,socket_closed_remotely}, _) ->
     {error, closed};
 
-handle({error,{failed_connect, _}}) ->
+handle({error,{failed_connect, _}}, _) ->
     {error, failed_connect};
 
-handle({error,E}) ->
+handle({error,E}, _) ->
     {error, E};
 
-handle({ok, {{_, Code, _}, Headers, Body}}) ->
+handle({ok, {{_, Code, _}, Headers, Body}}, Opts) ->
     DecodedMime = decoded_mime(Headers),
     DecodedBody = case DecodedMime of
         missing -> Body;
@@ -196,11 +206,17 @@ handle({ok, {{_, Code, _}, Headers, Body}}) ->
         _ -> Body
     end,
 
-    {ok, #{ status => Code,
-            headers => decoded_headers(Headers, #{}), 
-            mime => DecodedMime,
-            body => DecodedBody,
-            raw => Body }}.
+    {ok, with_raw_body(Body, #{ status => Code,
+                                headers => decoded_headers(Headers, #{}), 
+                                mime => DecodedMime,
+                                body => DecodedBody }, Opts)}.
+
+
+with_raw_body(Body,  Res, #{ raw := true }) ->
+    Res#{ raw => Body };
+
+with_raw_body(_, Res, _) -> Res.
+
 
 decoded_mime(Headers) ->
     case lists:keyfind("content-type", 1, Headers) of 

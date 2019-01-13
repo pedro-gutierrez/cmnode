@@ -91,14 +91,28 @@ hash(Test, Scenario) -> cmkit:hash(cmkit:bin_join([cmkit:to_bin(Test), Scenario]
 hash(Test, Scenario, Step) -> cmkit:hash(cmkit:bin_join([cmkit:to_bin(Test), Scenario, Step])).
 
 
+with_debug(Debug, Steps) when is_list(Steps)->
+    lists:map(fun(S) -> 
+                      with_debug(Debug, S)
+              end, Steps);
+
+with_debug(Debug, #{ spec := S1 } = S0) ->
+    S0#{ debug => Debug,
+         spec => with_debug(Debug, S1) };
+
+with_debug(Debug, S) when is_map(S) ->
+    S#{ debug => Debug };
+
+with_debug(_, S) -> S.
 
 
 
 
-start(Test, Scenario, Facts, Settings, Runner) ->
+start(Test, #{ debug := Debug }=Scenario, Facts, Settings, Runner) ->
     case cmtest_util:steps(Scenario, Test) of 
         {ok, Steps} -> 
-            case cmtest_scenario_sup:start(Test, Scenario, Steps, Facts, Settings, Runner) of 
+            Steps2 = with_debug(Debug, Steps),
+            case cmtest_scenario_sup:start(Test, Scenario, Steps2, Facts, Settings, Runner) of 
                 {ok, Pid} ->
                     {ok, Pid};
                 Other ->

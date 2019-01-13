@@ -1,7 +1,0 @@
-type: port
-name: hello 
-spec:
-  port: 4000
-  apps:
-    hello:
-      http: "/"
