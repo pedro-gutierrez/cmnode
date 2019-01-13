@@ -84,7 +84,7 @@ type: module
 name: hello
 spec:
   decoders:
-  	hello:
+    hello:
       any: object
   update:
     hello:
@@ -115,11 +115,11 @@ There are quite a few things going on here, so let's go through of all, that ste
 
 ## Authors
 
-* **Pedro Gutiérrez** - *Initial work* - [Pedro Gutierrez](https://github.com/pedro-gutierrez)
+* **Pedro Gutiérrez** - *Initial work* - [Pedro Gutiérrez](https://github.com/pedro-gutierrez)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details
 
 ## Inspiration
 
