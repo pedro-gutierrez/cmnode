@@ -985,6 +985,9 @@ merge_maps([K|Rem], M1, M2, Res) ->
     V = merge(maps:get(K, M1), maps:get(K, M2)),
     merge_maps(Rem, M1, M2, Res#{ K => V }).
 
+merge(M, M) when is_map(M) ->
+    M;
+
 merge(MA, MB) when is_map(MA) andalso is_map(MB) ->
     KeySetA = sets:from_list(maps:keys(MA)),
     KeySetB = sets:from_list(maps:keys(MB)),
@@ -997,12 +1000,9 @@ merge(MA, MB) when is_map(MA) andalso is_map(MB) ->
 merge(L1, L2) when is_list(L1) andalso is_list(L2) ->
     L1++L2;
 
-merge(A, A) ->
-    A;
+merge(A, A) -> A;
 
-merge(A, B) ->
-    cmkit:warning({cmkit, merge, A, B, discarding, A}),
-    B.
+merge(_, B) -> B.
 
 app_env(App, Ns, K) when is_atom(K) ->
     case application:get_env(App,{Ns, K}) of 

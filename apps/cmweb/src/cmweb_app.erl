@@ -42,38 +42,60 @@ routes(PortName, PortNumber, Apps, Effects) ->
     ].
 
 port_routes(Port, #{ name := Name, mounts := Mounts }, Effects) ->
-    port_routes_with_metrics(
-      lists:map(fun(Mount) ->
-                        mount_route(Name, Mount, Port, Effects)
-                end, Mounts), cmmetrics:enabled()).
+    port_routes_with_metrics( lists:map(fun(Mount) ->
+                                                mount_route(Name, Mount, Port, Effects)
+                                        end, Mounts)).
 
-mount_route(App, #{ path := Path, transport := http }, Port, Effects) ->
-    mount_route_with_metrics({ Path, cmweb_http, #{app => App, 
-                                                   port => Port, 
-                                                   transport => http, 
-                                                   effects => Effects}}, cmmetrics:enabled());
+mount_route(App, #{ path := Path, transport := Transport }, Port, Effects) ->
+    State = with_instruments(#{ app => App,
+                                port => Port,
+                                transport => Transport,
+                                effects => Effects }),
+    {Path, handler(Transport), State}.
     
-mount_route(App, #{ path := Path, transport := ws }, Port, Effects ) ->
-    { Path, cmweb_ws, #{ app => App, port => Port, transport => ws, effects => Effects }}.
+handler(http) -> cmweb_http;
+handler(ws) -> cmweb_ws.
 
 
-port_routes_with_metrics(Mounts, false) -> Mounts;
-port_routes_with_metrics(Mounts, true) ->
+port_routes_with_metrics(Mounts) ->
     [{"/metrics", cmweb_http_metrics, none}|Mounts].
 
 
-mount_route_with_metrics(R, false) -> R;
-mount_route_with_metrics({Path, Handler, #{ app := App }=State}, true) ->
-    cmmetrics:define_http_duration(App),
-    RecordFun = fun(App0, Method, Code, Elapsed) ->
-                        cmmetrics:record_http_duration(cmkit:to_bin(App0), 
-                                                        Method, Code, Elapsed)
-                end,
-    {Path, Handler, State#{ record_metric_fun => RecordFun }}.
+with_instruments(#{ transport := Transport,
+                    app := App }=State) ->
+    {IncrFun, DurFun, DecrFun} = instruments(App, Transport),
+    State#{ instruments => #{ increment => IncrFun,
+                              duration => DurFun,
+                              decrement => DecrFun }}.
+
+instruments(App, http) ->
+    {ok, DMetric} = cmmetrics:define_http_duration(http_duration_metric_name(App)),
+    {ok, CMetric} = cmmetrics:define_http_count(http_count_metric_name(App)),
+    { fun() -> cmmetrics:increment_http_count(CMetric) end,
+      fun(M, S, D) -> cmmetrics:record_http_duration(DMetric, M, S, D) end,
+      fun() -> cmmetrics:decrement_http_count(CMetric) end 
+    };
+
+instruments(App, ws) ->
+    {ok, DMetric} = cmmetrics:define_ws_duration(ws_duration_metric_name(App)),
+    {ok, CMetric} = cmmetrics:define_ws_count(ws_count_metric_name(App)),
+    { fun() -> cmmetrics:increment_ws_count(CMetric) end,
+      fun(R, D) -> cmmetrics:record_ws_duration(DMetric, R, D) end,
+      fun() -> cmmetrics:decrement_ws_count(CMetric) end 
+    }.
 
 
+http_duration_metric_name(App) ->
+    <<(cmkit:to_bin(App))/binary, "_http_request_duration">>.
 
+http_count_metric_name(App) ->
+    <<(cmkit:to_bin(App))/binary, "_http_active_requests">>.
 
+ws_duration_metric_name(App) ->
+    <<(cmkit:to_bin(App))/binary, "_ws_connection_duration">>.
+
+ws_count_metric_name(App) ->
+    <<(cmkit:to_bin(App))/binary, "_ws_active_connections">>.
 
 
 

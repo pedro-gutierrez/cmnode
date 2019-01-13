@@ -14,7 +14,7 @@ record_perf() ->
        mem := #{ total := TotalMem, 
                  used := UsedMem }} = cmperf:stats(),
 
-    cmmetrics:set(cmnode_cpu, Cpu),
-    cmmetrics:set(cmnode_memory_used, UsedMem),
-    cmmetrics:set(cmnode_memory_available, TotalMem).
+    cmmetrics:set(<<"cmnode_cpu">>, Cpu),
+    cmmetrics:set(<<"cmnode_memory_used">>, UsedMem),
+    cmmetrics:set(<<"cmnode_memory_available">>, TotalMem).
     

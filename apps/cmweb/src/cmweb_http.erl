@@ -1,10 +1,9 @@
 -module(cmweb_http).
 -export([init/2,
          info/3]).
-
-
-
-init(#{ method := Method }=Req, #{app := App, effects := Effects}=State) ->
+init(#{ method := Method }=Req, #{ instruments := #{ increment := IncrFun },
+                                   app := App, effects := Effects}=State) ->
+    IncrFun(),
     Start = cmkit:micros(),
     case cmconfig:app(App) of
         {ok, #{ debug := Debug } = Spec} -> 
@@ -64,9 +63,6 @@ info({update, Data}, Req, #{ app := App,
             reply_and_stop(error, json, #{}, Req, State)
     end;
 
-info(terminate, Req, State) ->
-    {stop, Req, State};
-
 info({stream, start, Headers}, Req, State) ->
     Headers2 = binary_headers(Headers),
     Req2 = cowboy_req:stream_reply(200, Headers2, Req),
@@ -90,7 +86,8 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
                                                                     init_time := InitTime,
                                                                     update_call_time := UpdateTime,
                                                                     log := Log,
-                                                                    record_metric_fun := RecordFun
+                                                                    instruments := #{ duration := DurationFun,
+                                                                                      decrement := DecrFun }
                                                                   }=State) ->
     Headers2 = binary_headers(Headers),
     Body2 = encoded_body(Headers2, Body),
@@ -108,23 +105,25 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
                                   update_other  => Elapsed - UpdateTime,
                                   render => Elapsed2 - Elapsed }}}),
 
-    RecordFun(App, Method, Code, Elapsed2/1000),
-    
-    
+    DurationFun(Method, Code, Elapsed2/1000),
+    DecrFun(),
     
     {stop, Req2, State};
     
-info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
-    reply_and_ok(Status, json, Body, Req, State);
-
-info(Body, Req, State) when is_binary(Body) ->
-    reply_and_ok(ok, binary, Body, Req, State);
+%%info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
+%%    reply_and_ok(Status, json, Body, Req, State);
+%%
+%%info(Body, Req, State) when is_binary(Body) ->
+%%    reply_and_ok(ok, binary, Body, Req, State);
 
 info(Data, Req, State) ->
     reply_and_stop(error, json, #{ error => Data }, Req, State).
 
-reply_and_stop(Status, Type, Body, Req, #{ log := Log,
+reply_and_stop(Status, Type, Body, Req, #{ method := Method, 
+                                           log := Log,
                                            start := Start,
+                                           instruments := #{ duration := DurationFun,
+                                                             decrement := DecrFun },
                                            app := App }=State) ->
     {Code, Headers, EncodedBody} = reply(Status, Type, Body),
     Elapsed = cmkit:elapsed(Start),
@@ -133,18 +132,22 @@ reply_and_stop(Status, Type, Body, Req, #{ log := Log,
     Elapsed2 = cmkit:elapsed(Start),
     Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
                                                   render_time => Elapsed2 - Elapsed}}),
+
+    DurationFun(Method, Code, Elapsed2/1000),
+    DecrFun(),
     {stop, Req2, State}.
 
-reply_and_ok(Status, Type, Body, Req, #{ log := Log,
-                                         start := Start,
-                                         app := App }=State) ->
-    Elapsed = cmkit:elapsed(Start),
-    {Code, Headers, EncodedBody} = reply(Status, Type, Body),
-    Req2 = cowboy_req:reply(Code, Headers, EncodedBody, Req),
-    Elapsed2 = cmkit:elapsed(Start),
-    Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
-                                           render_time => Elapsed2 - Elapsed}}),
-    {ok, Req2, State}.
+
+%%reply_and_ok(Status, Type, Body, Req, #{ log := Log,
+%%                                         start := Start,
+%%                                         app := App }=State) ->
+%%    Elapsed = cmkit:elapsed(Start),
+%%    {Code, Headers, EncodedBody} = reply(Status, Type, Body),
+%%    Req2 = cowboy_req:reply(Code, Headers, EncodedBody, Req),
+%%    Elapsed2 = cmkit:elapsed(Start),
+%%    Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
+%%                                           render_time => Elapsed2 - Elapsed}}),
+%%    {ok, Req2, State}.
 
 reply(Status, Type, Body) ->
     {status(Status), headers(Type), response_body(Type, Body)}.

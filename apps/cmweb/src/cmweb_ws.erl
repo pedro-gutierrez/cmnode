@@ -5,11 +5,15 @@
          websocket_handle/2,
          websocket_info/2
         ]).
-
 init(Req, State) ->
-    {cowboy_websocket, Req, State }.
+    {cowboy_websocket, Req, State}.
 
-websocket_init(#{app := App, port := Port, effects := Effects }=State) ->
+websocket_init(#{ app := App, 
+                  port := Port, 
+                  effects := Effects,
+                  instruments := #{ increment := IncrFun }}=State) ->
+    IncrFun(),
+    Start = cmkit:micros(),
     case cmconfig:app(App) of
         {ok, #{ debug := Debug }=Spec} -> 
             Pid = self(),
@@ -18,10 +22,13 @@ websocket_init(#{app := App, port := Port, effects := Effects }=State) ->
             {ok, Model, Config} = cmcore:init(Pid, Spec, Log, Effects),
             Spec2 = Spec#{ config => Config },
             Log({ws, new, App, Port, Pid}),
-            {ok, State#{ spec => Spec2, model => Model, log => Log }};
+            {ok, State#{ start => Start,
+                         spec => Spec2, 
+                         model => Model, 
+                         log => Log }};
        {error, E} -> 
             cmkit:warning({ws, new, unknown_app, App, Port, E}),
-            {stop, E}
+            stop(State#{ start => Start }, E)
     end.
 
 websocket_handle({binary, Data}, State) ->
@@ -30,12 +37,9 @@ websocket_handle({binary, Data}, State) ->
 websocket_handle({text, Data}, State) -> 
     handle_data(Data, State).
 
+websocket_info(terminate = R, State) -> 
+    stop(State, R);
 
-websocket_info(terminate, #{ app := App,
-                             port := Port,
-                             log := Log }=State) ->
-    Log({App, Port, self(), terminate}),
-    {stop, State};
 
 websocket_info({update, Data}, #{ app := App,
                                   port := Port,
@@ -49,7 +53,7 @@ websocket_info({update, Data}, #{ app := App,
             {ok, State#{ model => Model2 }};
         {error, E} ->
             cmkit:danger({App, Port, self(), E}),
-            {stop, State}
+            stop(State, E)
     end;
 
 websocket_info(Data, #{ app := App, 
@@ -57,6 +61,23 @@ websocket_info(Data, #{ app := App,
                         log := Log }=State) ->
     Log({ws, out, App, Port, self(), Data}),
     {reply, {text, cmkit:jsone(Data)}, State}.
+
+
+stop(#{ start := Start,
+        app := App, 
+        log := Log, 
+        port := Port,
+        instruments := #{ duration := DurationFun,
+                          decrement := DecrFun }} = State, Reason) ->
+    
+    Elapsed = cmkit:elapsed(Start),
+    Log({App, Port, self(), Elapsed, stop}),
+    DurationFun(reason(Reason), trunc(Elapsed/1000000)),
+    DecrFun(),
+    {stop, State}.
+
+reason(terminate) -> normal;
+reason(_) -> error.
 
 
 handle_data(<<>>, State) -> {ok, State};
@@ -71,7 +92,7 @@ handle_data(Data, #{ app := App,
     case cmkit:jsond(Data) of
         {error, _} -> 
             Log({ws, in, App, Port, self(), invalid, Data}),
-            {stop, State};
+            {ok, State};
         {ok, Decoded} ->
             Log({ws, in, App, Port, self(), Decoded}),
             {ok, Model2} = cmcore:update(self(), Spec, #{ effect => web,

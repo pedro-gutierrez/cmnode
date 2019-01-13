@@ -1,61 +1,91 @@
 -module(cmmetrics).
--export([enabled/0, 
+-export([
          define_gauge/2,
          define_counter/2,
          define_http_duration/1, 
          define_http_duration/2,
+         define_http_count/1, 
+         define_ws_duration/1, 
+         define_ws_count/1, 
          http_duration_groups/1,
+         ws_duration_groups/1,
          set/2,
          increment/2,
+         increment_http_count/1,
+         decrement_http_count/1,
+         increment_ws_count/1,
+         decrement_ws_count/1,
          record_http_duration/4,
-         http_duration_name/1]).
-
--define(HTTP_DURATION, <<"http_request_duration">>).
--define(MS, <<"millisecond">>).
-
-
-enabled() ->
-    is_application_started(prometheus).
-
+         record_ws_duration/3
+        ]).
 
 define_gauge(Name, Help) ->
-    prometheus_gauge:new([{name, to_bin(Name)}, 
-                          {help, Help}]).
+    MetricName = to_bin(Name),
+    Res = prometheus_gauge:declare([{name, MetricName}, 
+                               {help, Help}]),
+    cmkit:log({cmmetric, MetricName, gauge, Res}),
+    {ok, MetricName}.
 
 define_counter(Name, Help) ->
-    prometheus_counter:new([{name, to_bin(Name)}, 
-                            {help, Help}]).
+    MetricName = to_bin(Name),
+    Res = prometheus_counter:declare([{name, MetricName}, 
+                            {help, Help}]),
+    cmkit:log({cmmetric, MetricName, counter, Res}),
+    {ok, MetricName}.
 
+define_histogram(Name, Labels, Buckets, Help) ->
+    MetricName = to_bin(Name), 
+    Res = prometheus_histogram:declare([{name, MetricName},
+                                   {labels, Labels},
+                                   {buckets, Buckets},
+                                   {help, Help}]),
+    cmkit:log({cmmetric, MetricName, histogram, Res}),
+    {ok, MetricName}.
 
 define_http_duration(Name, Buckets) ->
-    prometheus_histogram:new([{name, name(Name, ?HTTP_DURATION, ?MS)},
-                              {labels, [method, status]},
-                              {buckets, Buckets},
-                              {help, "Http Request execution time"}]).
+    define_histogram(Name, [method, status], Buckets, "Http Request execution time in milliseconds").
+
 define_http_duration(Name) ->
     define_http_duration(Name, http_duration_groups(internal)).
 
+define_ws_duration(Name, Buckets) ->
+    define_histogram(Name, [termination], Buckets, "Websocket lifetime in seconds").
+    
+define_ws_duration(Name) ->
+    define_ws_duration(Name, ws_duration_groups(internal)).
+
+define_http_count(Name) ->
+    define_gauge(Name, "Active Http requests").
+
+define_ws_count(Name) ->
+    define_gauge(Name, "Active Websocket connections").
+
 record_http_duration(Name, Method, Status, Value) ->
-    prometheus_histogram:observe(name(Name, ?HTTP_DURATION, ?MS), [cmhttp:method(Method), Status], Value).
+    prometheus_histogram:observe(Name, [cmhttp:method(Method), Status], Value).
+
+record_ws_duration(Name, Reason, Value) ->
+    prometheus_histogram:observe(Name, [Reason], Value).
 
 set(Name, Value) ->
-    prometheus_gauge:set(to_bin(Name), Value).
+    prometheus_gauge:set(Name, Value).
 
 increment(Name, Value) ->
-    prometheus_counter:inc(to_bin(Name), Value).
+    prometheus_counter:inc(Name, Value).
 
-http_duration_name(Name) ->
-    name(Name, ?HTTP_DURATION, ?MS).
+increment_ws_count(Name) ->
+    prometheus_gauge:inc(Name).
 
-name(App, Kind, Unit) when is_binary(App) ->
-    <<App/binary, "_", Kind/binary, "_", Unit/binary>>;
+decrement_ws_count(Name) ->
+    prometheus_gauge:dec(Name).
 
-name(Name, Kind, Unit) ->
-    name(to_bin(Name), Kind, Unit).
+increment_http_count(Name) ->
+    prometheus_gauge:inc(Name).
 
+decrement_http_count(Name) ->
+    prometheus_gauge:dec(Name).
 
 to_bin(V) -> cmkit:to_bin(V).
-is_application_started(App) -> cmkit:is_application_started(App).
 
+ws_duration_groups(internal) -> [30, 60, 300, 600, 1800, 3600].
 http_duration_groups(external) -> [50, 100, 150, 300, 500, 750, 1000];
-http_duration_groups(internal) -> [0, 0.5, 1, 10, 25, 50, 100, 150, 300, 500, 1000].
+http_duration_groups(internal) -> [0.5, 1, 10, 25, 50, 100, 150, 300, 500, 1000].

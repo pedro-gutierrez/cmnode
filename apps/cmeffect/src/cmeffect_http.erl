@@ -36,7 +36,7 @@ effect_apply(#{ context := Context,
         
     Data2 = case Data of 
                 {ok, D} ->
-                    record_metric(Method, Spec, D, cmmetrics:enabled()),
+                    record_metric(Method, Spec, D),
                     D#{ context => Context };
                 {error, E} ->
                     #{ error => E,
@@ -91,11 +91,9 @@ with_body(Http, #{ body := B }) ->
 with_body(Http, _) -> {ok, Http}.
 
 
-
-record_metric(_, _, _, false) -> ok;
 record_metric(Method, #{ metric := Metric }, #{ status := Status,
-                                                millis := Millis }, true) ->
+                                                millis := Millis }) ->
     cmmetrics:record_http_duration(Metric, Method, Status, Millis);
 
-record_metric(_, _, _, _) -> ok. 
+record_metric(_, _, _) -> ok. 
 
