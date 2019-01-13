@@ -12,10 +12,10 @@ The following command runs the hello world app from the ``examples`` folder.
 
 ```
 $ docker run -it \
-		   --name hello \
-	       -v "$(pwd)"/examples/hello:/opt/cmnode/etc \
-       	   -p 8000:8000 \
-       	   pedrogutierrez/cmnode:latest
+    --name hello \
+    -v "$(pwd)"/examples/hello:/opt/cmnode/etc \
+    -p 8000:8000 \
+    pedrogutierrez/cmnode:latest
 ```
 
 Then check everything is working fine:
@@ -70,7 +70,7 @@ In general, an app can be made of one, or many modules. During startup, all apps
 
 #### Modules
 
-A module defines a discrete piece of application logic. This application logic is modeled after a state machine made of:
+A module defines a discrete, reusable piece of application logic. This application logic is modeled after a state machine made of:
 
 - **Decoders** expressions: we use them to decode, validate and bind input data.
 - **Update** expressions: we use them to express both state transitions of our model and interactions with the outside world as **commands** sent to **effect** managers.
