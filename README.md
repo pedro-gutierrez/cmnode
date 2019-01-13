@@ -4,7 +4,7 @@
 
 
 
-## Docker quickstart
+## Quickstart
 
 The easiest and quickest way to get started is by running a node locally from Docker. 
 
@@ -12,19 +12,20 @@ The following command runs the hello world app from the ``examples`` folder.
 
 ```
 $ docker run -it \
-       	   -v examples/hello:/opt/cmnode/etc
-       	   -p 8080:8080
+		   --name hello \
+	       -v "$(pwd)"/examples/hello:/opt/cmnode/etc \
+       	   -p 8000:8000 \
        	   pedrogutierrez/cmnode:latest
 ```
 
 Then check everything is working fine:
 
 ```
-$ curl http://localhost:8080/ -i
+$ curl http://localhost:8000/ -i
 HTTP/1.1 200 OK
-content-length: 22
+content-length: 21
 content-type: application/json
-date: Sat, 12 Jan 2019 00:44:42 GMT
+date: Sun, 13 Jan 2019 12:58:30 GMT
 elapsed: 88
 server: Cowboy
 
@@ -33,7 +34,7 @@ server: Cowboy
 
 
 
-## Hello World explained
+## Hello World
 
 The hello world app you'll find in the examples folders is probably the simplest, smallest and less useful web service you can built with cmnode. Still, it shares the same foundation and structure of far more complex apps.
 
@@ -53,9 +54,9 @@ spec:
 
 #### Apps
 
-Apps are a composition of modules. This provides with a great way of quickly composing apps and reusing logic between them. 
+Apps are made of modules. This provides with convenient way of quickly composing apps and reusing logic between them. 
 
-The following snippet simply indicates the app ```hello``` is composed of one module with name ```hello```. 
+The following snippet indicates the app ```hello``` is made of a single module named ```hello```. 
 
 ```
 type: app
@@ -65,7 +66,7 @@ spec:
     - hello
 ```
 
-An app can be made of 1, or many modules. During startup, all apps are compiled and the logic contained in their modules gets merged in a smart way.
+In general, an app can be made of one, or many modules. During startup, all apps are compiled and the logic contained in their modules gets merged in a smart way.
 
 #### Modules
 
@@ -103,15 +104,17 @@ spec:
           key: message
 ```
 
-There are quite a few things going on here, so let's go through of all, that step by step:
+There are quite a few things going on here, so let's go through of all them, step by step:
 
-- When data comes in (in this case, an http request) we look into our list of decoders for one that matches the request. In our example, the HTTP request is represented as an object. It will match the decoder defined at key ```hello```. Similarly to what Erlang does, we will pattern match and bind values, then we pass them on the next stage.
-- Once our input data is matched, validated, and bound, we apply our state management logic. Here we select the ```hello``` update expression, simply because the decoder that matched was the ```hello``` decoder. 
-- The ```hello``` update expression is quite straightfoward. First, it defines a variable in our model named ```message``` to the value ```Hello World```. It also expresses that a command (defined by an effect and encoder) should be scheduled and executed.
-- Our application logic interacts with the outside world only via effects. An effect is just like a bit of Erlang code that takes parameters. Those parameters are defined by an encoder.
-- In this simple example, we are using the ```notify``` effect.  This indicates the application framework to send a http response back to the client. There is a registry of well-know effects the framework is aware of, but it is also easy to write your own.
-- The response is defined by the outcome of the ``hello`` encoder. I believe it is quite self-explanatory, what this encoder does. But have a look at how the content of the response body is built: It reads the value at key `message` from our model, and sets it in the field ``msg``of the final response. This is how we can produce dynamic content.
-- Finally, the application framework nows, from the content-type, it should serialize it as JSON in order to produce the expected, final and super fancy result.
+- When data comes in we look into our list of decoders for one that matches the request. In our example, an incoming HTTP request is represented as an object. It will therefore match the decoder defined at key ```hello```. Similarly to what Erlang does, we will pattern match and bind values, then we pass them on the next stage.
+- Once our input data is matched, validated, and bound, we apply our state management logic. Here we select the ```hello``` update expression, simply because the decoder that matched was the ```hello``` decoder. The ```hello``` update expression is quite straightfoward. First, it defines a variable in our model named ```message``` to the value ```Hello World```. It also expresses that a command (defined by an effect and encoder) should be scheduled and executed.
+- Our application logic interacts with the outside world via effect managers. Effect managers are implemented in Erlang. The data we send to effect managers as parameters are generated by encoders. In this simple example, we are using the ```notify``` effect.  This instructs the application framework to send a http response back to the client. There is a registry of effect managers known by the app server, and it is also easy to write your own.
+- The response is defined by the outcome of the ``hello`` encoder. Have a look at how the content of the response body is built: It reads the value at key `message` from our model, and sets it in the field ``msg``of the final response. This is how we can produce dynamic content.
+- Finally, the application framework knows, from the content-type, it should serialize it as JSON in order to produce the expected, final and super fancy result.
+
+## Next
+
+This is just the beginning. Much more to come...
 
 ## Authors
 

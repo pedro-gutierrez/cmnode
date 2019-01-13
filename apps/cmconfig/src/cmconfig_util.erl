@@ -251,13 +251,18 @@ compile_port_apps(Apps) ->
 
 compile_port_app(Name, Mounts) ->
     #{ name => compile_keyword(Name),
-       mounts => compile_port_app_mounts(Mounts) }.
+       mounts => compile_port_app_mounts(Name, Mounts) }.
 
-compile_port_app_mounts(Mounts) when is_map(Mounts) ->
+compile_port_app_mounts(_, Mounts) when is_map(Mounts) ->
     maps:fold(fun(Transport, Path, List) ->
                       [#{ transport => compile_keyword(Transport),
                           path => cmkit:to_list(Path) }|List]
-              end, [], Mounts).
+              end, [], Mounts);
+
+compile_port_app_mounts(App, Other) ->
+    cmkit:warning({cmconfig, invalid_app_mounts, App, Other}),
+    [].
+
 
 compile_settings(#{ <<"name">> := Name,
                     <<"rank">> := Rank,

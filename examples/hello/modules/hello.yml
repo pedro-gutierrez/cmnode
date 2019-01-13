@@ -2,7 +2,7 @@ type: module
 name: hello
 spec:
   decoders:
-  	hello:
+    hello:
       any: object
   update:
     hello:
