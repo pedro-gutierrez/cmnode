@@ -17,9 +17,16 @@ start_link() ->
 
 init([]) ->
     Dir = cmkit:etc(),
-    {ok, Pid} = cmkit:watch(Dir),
-    cmkit:log({cmconfig, watching, Pid}),
-    {ok, ready, #data{dir=Dir, watcher=Pid}}.
+    case filelib:is_dir(Dir) of
+        true ->
+            {ok, Pid} = cmkit:watch(Dir),
+            cmkit:log({cmconfig, watching, Pid}),
+            {ok, ready, #data{dir=Dir, watcher=Pid}};
+        false ->
+            E = {cmconfig, Dir, no_such_dir},
+            cmkit:danger(E),
+            {stop, E}
+    end.
 
 ready(info, {_, {fs, file_event}, {File, Events}}, Data) ->
     Ext = filename:extension(File),

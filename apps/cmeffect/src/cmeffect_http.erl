@@ -95,4 +95,7 @@ with_body(Http, _) -> {ok, Http}.
 record_metric(_, _, _, false) -> ok;
 record_metric(Method, #{ metric := Metric }, #{ status := Status,
                                                 millis := Millis }, true) ->
-    cmmetrics:record_http_duration(Metric, Method, Status, Millis).
+    cmmetrics:record_http_duration(Metric, Method, Status, Millis);
+
+record_metric(_, _, _, _) -> ok. 
+
