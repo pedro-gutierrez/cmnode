@@ -21,25 +21,22 @@
 
 define_gauge(Name, Help) ->
     MetricName = to_bin(Name),
-    Res = prometheus_gauge:declare([{name, MetricName}, 
+    prometheus_gauge:declare([{name, MetricName}, 
                                {help, Help}]),
-    cmkit:log({cmmetric, MetricName, gauge, Res}),
     {ok, MetricName}.
 
 define_counter(Name, Help) ->
     MetricName = to_bin(Name),
-    Res = prometheus_counter:declare([{name, MetricName}, 
+    prometheus_counter:declare([{name, MetricName}, 
                             {help, Help}]),
-    cmkit:log({cmmetric, MetricName, counter, Res}),
     {ok, MetricName}.
 
 define_histogram(Name, Labels, Buckets, Help) ->
     MetricName = to_bin(Name), 
-    Res = prometheus_histogram:declare([{name, MetricName},
+    prometheus_histogram:declare([{name, MetricName},
                                    {labels, Labels},
                                    {buckets, Buckets},
                                    {help, Help}]),
-    cmkit:log({cmmetric, MetricName, histogram, Res}),
     {ok, MetricName}.
 
 define_http_duration(Name, Buckets) ->
