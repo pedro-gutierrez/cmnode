@@ -23,6 +23,7 @@
                 cron,
                 test,
                 bucket,
+                service,
                 task,
                 topic]).
 
@@ -43,6 +44,7 @@ filenames() ->
 
 compile_plan(module) -> [settings, module, app, port];
 compile_plan(app) -> [settings, module, app, port];
+compile_plan(service) -> [settings, module];
 compile_plan(settings) -> [settings, module, app, port];
 compile_plan(T) when is_atom(T) -> [T];
 compile_plan(B) when is_binary(B) -> compile_plan(cmkit:to_atom(B)).
@@ -173,6 +175,7 @@ compile(#{ <<"type">> := <<"task">> }=Spec, Index) -> {ok, compile_task(Spec, In
 compile(#{ <<"type">> := <<"theme">> }=Spec, Index) -> {ok, compile_theme(Spec, Index)};
 compile(#{ <<"type">> := <<"topic">> }=Spec, Index) -> {ok, compile_topic(Spec, Index)};
 compile(#{ <<"type">> := <<"metrics">> }=Spec, Index) -> {ok, compile_metrics(Spec, Index)};
+compile(#{ <<"type">> := <<"service">> }=Spec, Index) -> {ok, compile_service(Spec, Index)};
 
 compile(Spec, _) ->
     cmkit:danger({cmconfig, unknown_spec, Spec}),
@@ -425,6 +428,16 @@ compile_metric_spec(#{ <<"type">> := T,
 compile_metric_spec(#{ <<"type">> := T }, _) ->
 
     #{ type => cmkit:to_atom(T) }.
+
+compile_service(#{ <<"name">> := Name,
+                   <<"rank">> := Rank,
+                   <<"spec">> := Spec }, Index) ->
+
+    #{ type => service,
+       rank => Rank,
+       name => cmkit:to_atom(Name),
+       spec => compile_term(Spec, Index) 
+     }.
 
 compile_module(#{ <<"name">> := Name,
                   <<"rank">> := Rank,

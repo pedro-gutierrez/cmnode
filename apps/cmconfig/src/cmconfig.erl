@@ -27,7 +27,9 @@
          effects/0,
          effect/1,
          metrics/0,
-         metrics/1
+         metrics/1,
+         services/0,
+         service/1
         ]).
 
 apps() -> {ok, V} = cmkit:app_env(cmconfig, app), V.
@@ -56,6 +58,8 @@ topics() -> {ok, V} = cmkit:app_env(cmconfig, topic), V.
 topic(N) -> cmkit:app_env(cmconfig, topic, N).
 metrics() -> {ok, V} = cmkit:app_env(cmconfig, metrics), V.
 metrics(N) -> cmkit:app_env(cmconfig, metrics, N).
+services() -> {ok, V} = cmkit:app_env(cmconfig, service), V.
+service(N) -> cmkit:app_env(cmconfig, service, N).
 
 effects() -> cmeffect:effects().
 

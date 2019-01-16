@@ -7,8 +7,7 @@
 effect_info() -> http.
 
 
-effect_apply(#{ context := Context,
-                method := Method, 
+effect_apply(#{ method := Method, 
                 url := UrlSpec } = Spec, SessionId) ->
 
     Data = case with_url(#{ debug => maps:get(debug, Spec, false),
@@ -33,6 +32,7 @@ effect_apply(#{ context := Context,
         Other ->
             Other
     end,
+    Context = maps:get(context, Spec, undefined),
         
     Data2 = case Data of 
                 {ok, D} ->

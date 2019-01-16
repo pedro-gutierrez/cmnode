@@ -25,11 +25,10 @@ load_metrics_group(Name, {Key, Spec, I2}) ->
     load_metrics_group(Name, maps:next(I2)).
 
 
-load_metric(Prefix, Name, #{ type := http_request_duration,
-                             groups := Groups }) ->
+load_metric(Prefix, Name, #{ type := http_request_duration }) ->
 
     MetricName = metric_name(Prefix, Name),
-    cmmetrics:define_http_duration(MetricName, cmmetrics:http_duration_groups(Groups));
+    cmmetrics:define_http_duration(MetricName, cmmetrics:http_duration_groups());
 
 load_metric(Prefix, Name, #{ type := counter }) ->
 

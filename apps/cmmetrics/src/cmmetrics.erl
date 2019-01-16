@@ -7,8 +7,9 @@
          define_http_count/1, 
          define_ws_duration/1, 
          define_ws_count/1, 
-         http_duration_groups/1,
-         ws_duration_groups/1,
+         define_duration/1,
+         http_duration_groups/0,
+         ws_duration_groups/0,
          set/2,
          increment/2,
          increment_http_count/1,
@@ -16,7 +17,8 @@
          increment_ws_count/1,
          decrement_ws_count/1,
          record_http_duration/4,
-         record_ws_duration/3
+         record_ws_duration/3,
+         record_duration/3
         ]).
 
 define_gauge(Name, Help) ->
@@ -43,13 +45,16 @@ define_http_duration(Name, Buckets) ->
     define_histogram(Name, [method, status], Buckets, "Http Request execution time in milliseconds").
 
 define_http_duration(Name) ->
-    define_http_duration(Name, http_duration_groups(internal)).
+    define_http_duration(Name, http_duration_groups()).
 
 define_ws_duration(Name, Buckets) ->
     define_histogram(Name, [termination], Buckets, "Websocket lifetime in seconds").
     
 define_ws_duration(Name) ->
-    define_ws_duration(Name, ws_duration_groups(internal)).
+    define_ws_duration(Name, ws_duration_groups()).
+
+define_duration(Name) ->
+    define_histogram(Name, [status], http_duration_groups(), "Duration in milliseconds").
 
 define_http_count(Name) ->
     define_gauge(Name, "Active Http requests").
@@ -61,6 +66,9 @@ record_http_duration(Name, Method, Status, Value) ->
     prometheus_histogram:observe(Name, [cmhttp:method(Method), Status], Value).
 
 record_ws_duration(Name, Reason, Value) ->
+    prometheus_histogram:observe(Name, [Reason], Value).
+
+record_duration(Name, Reason, Value) ->
     prometheus_histogram:observe(Name, [Reason], Value).
 
 set(Name, Value) ->
@@ -83,6 +91,5 @@ decrement_http_count(Name) ->
 
 to_bin(V) -> cmkit:to_bin(V).
 
-ws_duration_groups(internal) -> [30, 60, 300, 600, 1800, 3600].
-http_duration_groups(external) -> [50, 100, 150, 300, 500, 750, 1000];
-http_duration_groups(internal) -> [0.5, 1, 10, 25, 50, 100, 150, 300, 500, 1000].
+ws_duration_groups() -> [30, 60, 300, 600, 1800, 3600].
+http_duration_groups() -> [0.5, 1, 10, 25, 50, 100, 150, 300, 500, 1000, 2500, 5000].
