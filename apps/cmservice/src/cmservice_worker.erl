@@ -86,11 +86,12 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 terminate(Reason, #{ app := App, 
+                     log := Log,
                      status := Status,
                      duration_metric := DurationMetric,
                      start := Start}) ->
     Elapsed = cmkit:elapsed(Start),
     cmmetrics:record_duration(DurationMetric, Status, Elapsed/1000),
-    cmkit:log({cmservice, App, terminate, Reason, Elapsed}).
+    Log({cmservice, App, terminate, Reason, Elapsed}).
 
 

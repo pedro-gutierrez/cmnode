@@ -20,6 +20,9 @@
          record_ws_duration/3,
          record_duration/3
         ]).
+-define(HISTOGRAM_TABLE, prometheus_histogram_table).
+-define(COUNTER_TABLE, prometheus_counter_table).
+-define(GAUGE_TABLE, prometheus_gauge_table).
 
 define_gauge(Name, Help) ->
     MetricName = to_bin(Name),
@@ -63,31 +66,49 @@ define_ws_count(Name) ->
     define_gauge(Name, "Active Websocket connections").
 
 record_http_duration(Name, Method, Status, Value) ->
-    prometheus_histogram:observe(Name, [cmhttp:method(Method), Status], Value).
+    spawn(fun() ->
+                  prometheus_histogram:observe(Name, [cmhttp:method(Method), Status], Value)
+          end).
 
 record_ws_duration(Name, Reason, Value) ->
-    prometheus_histogram:observe(Name, [Reason], Value).
+    spawn(fun() ->
+                  prometheus_histogram:observe(Name, [Reason], Value)
+          end).
 
 record_duration(Name, Reason, Value) ->
-    prometheus_histogram:observe(Name, [Reason], Value).
+    spawn(fun() ->
+                  prometheus_histogram:observe(Name, [Reason], Value)
+          end).
 
 set(Name, Value) ->
-    prometheus_gauge:set(Name, Value).
+    spawn(fun() ->        
+        prometheus_gauge:set(Name, Value)
+    end).
 
 increment(Name, Value) ->
-    prometheus_counter:inc(Name, Value).
+    spawn(fun() -> 
+                  prometheus_counter:inc(Name, Value)
+          end).
 
 increment_ws_count(Name) ->
-    prometheus_gauge:inc(Name).
+    spawn(fun() ->
+            prometheus_gauge:inc(Name)
+    end).
 
 decrement_ws_count(Name) ->
-    prometheus_gauge:dec(Name).
+    spawn(fun() ->
+                  prometheus_gauge:dec(Name)
+          end).
 
 increment_http_count(Name) ->
-    prometheus_gauge:inc(Name).
+    spawn(fun() ->
+                  prometheus_gauge:inc(Name)
+          end).
 
 decrement_http_count(Name) ->
-    prometheus_gauge:dec(Name).
+    spawn(fun() ->
+                  prometheus_gauge:dec(Name)
+          end).
 
 to_bin(V) -> cmkit:to_bin(V).
 

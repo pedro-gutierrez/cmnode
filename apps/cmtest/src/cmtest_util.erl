@@ -96,6 +96,8 @@ with_debug(Debug, Steps) when is_list(Steps)->
                       with_debug(Debug, S)
               end, Steps);
 
+with_debug(_, #{ type := object }=S0) -> S0;
+
 with_debug(Debug, #{ spec := S1 } = S0) ->
     S0#{ debug => Debug,
          spec => with_debug(Debug, S1) };

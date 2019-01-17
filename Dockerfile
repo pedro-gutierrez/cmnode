@@ -1,4 +1,4 @@
-FROM erlang:21
+FROM erlang:21.2.2
 MAINTAINER Pedro Gutiérrez <pedrogutierrez@mac.com>
 RUN apt-get update; apt-get install -y libgd-dev libwebp-dev inotify-tools vim tree
 RUN mkdir -p /opt/cmnode/apps; mkdir ~/.ssh; ssh-keyscan github.com >> ~/.ssh/known_hosts
