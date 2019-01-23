@@ -44,7 +44,6 @@ filenames() ->
 
 compile_plan(module) -> [settings, module, app, port];
 compile_plan(app) -> [settings, module, app, port];
-compile_plan(service) -> [settings, module];
 compile_plan(settings) -> [settings, module, app, port];
 compile_plan(T) when is_atom(T) -> [T];
 compile_plan(B) when is_binary(B) -> compile_plan(cmkit:to_atom(B)).
@@ -175,7 +174,6 @@ compile(#{ <<"type">> := <<"task">> }=Spec, Index) -> {ok, compile_task(Spec, In
 compile(#{ <<"type">> := <<"theme">> }=Spec, Index) -> {ok, compile_theme(Spec, Index)};
 compile(#{ <<"type">> := <<"topic">> }=Spec, Index) -> {ok, compile_topic(Spec, Index)};
 compile(#{ <<"type">> := <<"metrics">> }=Spec, Index) -> {ok, compile_metrics(Spec, Index)};
-compile(#{ <<"type">> := <<"service">> }=Spec, Index) -> {ok, compile_service(Spec, Index)};
 
 compile(Spec, _) ->
     cmkit:danger({cmconfig, unknown_spec, Spec}),
@@ -429,16 +427,6 @@ compile_metric_spec(#{ <<"type">> := T }, _) ->
 
     #{ type => cmkit:to_atom(T) }.
 
-compile_service(#{ <<"name">> := Name,
-                   <<"rank">> := Rank,
-                   <<"spec">> := Spec }, Index) ->
-
-    #{ type => service,
-       rank => Rank,
-       name => cmkit:to_atom(Name),
-       spec => compile_term(Spec, Index) 
-     }.
-
 compile_module(#{ <<"name">> := Name,
                   <<"rank">> := Rank,
                   <<"spec">> := Spec } = Mod, Index) ->
@@ -533,6 +521,7 @@ compile_app(#{ <<"name">> := Name,
     Spec2 = #{ name => AppName,
               type => app,
               rank => Rank,
+              tags => compile_tags(maps:get(<<"tags">>, Spec, [])), 
               modules => lists:map(fun(#{ status := unknown }=M) ->
                                            M;
                                       (#{ name := ModName }) ->
@@ -575,6 +564,7 @@ compile_test(#{ <<"name">> := Name,
     Backgrounds = maps:get(<<"backgrounds">>, Spec, []),
     Procedures = maps:get(<<"procedures">>, Spec, []),
     Steps = maps:get(<<"steps">>, Spec, []),
+    Include = maps:get(<<"include">>, Spec, []),
 
     #{ type => test,
        rank => Rank,
@@ -584,8 +574,19 @@ compile_test(#{ <<"name">> := Name,
        steps => compile_steps(Steps, Index),
        procedures => compile_procedures(Procedures, Index),
        backgrounds => compile_backgrounds(Backgrounds, Scenarios, Index),
-       facts => compile_term(Facts, Index)
+       facts => compile_term(Facts, Index),
+       include => compile_includes(compile_term(Include, Index))
      }.
+
+compile_includes([]) -> [];
+compile_includes(Spec) ->
+    case cmencode:encode(Spec) of 
+        {ok, Includes} ->
+            lists:map(fun cmkit:to_atom/1, Includes);
+        Other ->
+            cmkit:warning({cmconfig, include, Other}),
+            []
+    end.
 
 compile_procedures(Specs, Index) ->
     lists:map(fun(S) -> 
@@ -1639,6 +1640,12 @@ compile_term(#{ <<"sum">> := Specs }, Index) when is_list(Specs) ->
                             compile_term(S, Index)     
                          end, Specs)};
 
+compile_term(#{ <<"multiply">> := Specs }, Index) when is_list(Specs) ->
+    #{ type => multiply,
+       spec => lists:map(fun(S) ->
+                            compile_term(S, Index)     
+                         end, Specs)};
+
 compile_term(#{ <<"difference">> := Specs }, Index) when is_list(Specs) ->
     #{ type => difference,
        spec => lists:map(fun(S) ->
@@ -1708,25 +1715,33 @@ compile_term(#{ <<"all">> := Conds }, Index) ->
                          end, Conds) 
      };
 
-compile_term(#{ <<"connect">> := Spec,
-                <<"as">> := As } = Spec0, Index) ->
+compile_term(#{ <<"connect">> := Spec } = Spec0, Index) ->
+    
     Expr = #{ type => connect,
-              as => compile_term(As, Index),
               spec => compile_term(Spec, Index) },
 
     Expr2 = case maps:get(<<"protocol">>, Spec0, undef) of 
                 undef -> 
                     Expr;
                 ProtocolSpec -> 
-                    Expr#{ protocol => compile_term(ProtocolSpec, Index) }
+                    Expr#{ protocol => compile_term(ProtocolSpec, Index)}
             end,
 
-    Expr2;
+    Expr3 = case maps:get(<<"timeout">>, Spec0, undef) of 
+                undef -> 
+                    Expr2#{ timeout => 1000 };
+                T -> 
+                    Expr2#{ timeout => compile_term(T, Index)}
+            end,
 
-
-compile_term(#{ <<"connect">> := Spec }, Index) ->
-    #{ type => connect,
-       spec => compile_term(Spec, Index) };
+    Expr4 = case maps:get(<<"as">>, Spec0, undef) of 
+                undef -> 
+                    Expr3#{ as => undef };
+                As -> 
+                    Expr3#{ as => compile_term(As, Index)}
+            end,
+              
+    Expr4;
 
 compile_term(#{ <<"probe">> := Spec }, Index) ->
 
@@ -1992,6 +2007,9 @@ compile_term(#{ <<"shell">> :=
        cmd => compile_term(Cmd, Index) };
 
 
+compile_term(#{ <<"uuid">> := _ }, _) ->
+    #{ type => uuid };
+
 compile_term(#{ <<"kube">> := Spec}, Index) ->
     #{ type => kube,
        spec => compile_kube_spec(Spec, Index) };
@@ -2204,17 +2222,17 @@ compile_term(#{ <<"iterate">> := SourceSpec,
              end,
 
     #{ type => iterate,
-       source => compile_term(SourceSpec, Index),
-       filter => FilterSpec,
-       as => maybe_compile_as(Spec, Index),
-       dest => compile_term(DestSpec, Index) };
+       spec => #{ source => compile_term(SourceSpec, Index),
+                  filter => FilterSpec,
+                  as => maybe_compile_as(Spec, Index),
+                  dest => compile_term(DestSpec, Index) }};
 
 compile_term(#{ <<"filter">> := SourceSpec,
                 <<"with">> := FilterSpec }, Index) ->
     
     #{ type => filter,
-       source => compile_term(SourceSpec, Index),
-       filter => compile_term(FilterSpec, Index) };
+       spec => #{ source => compile_term(SourceSpec, Index),
+                  filter => compile_term(FilterSpec, Index) }};
 
 compile_term(#{ <<"error">> := Spec }, Index) ->
     #{ type => error,
@@ -2310,6 +2328,13 @@ compile_term(#{ <<"queue">> := #{ <<"name">> := Name,
                   name => compile_keyword(Name),
                   id => compile_term(Id, Index) }};
 
+compile_term(#{ <<"prefix">> := Expr,
+                <<"with">> := Prefix }, Index) ->
+    
+    #{ type => prefix,
+       spec => compile_term(Expr, Index),
+       with => compile_term(Prefix, Index) };
+
 compile_term(#{ <<"with">> := Spec}, Index) -> 
     #{ with => compile_object(Spec, Index) };
 
@@ -2322,6 +2347,8 @@ compile_term(Num, _) when is_number(Num) ->
 compile_term(Text, _) when is_binary(Text) -> 
 
     #{ type => text, spec => Text };
+
+
 
 compile_term(#{ <<"sequence">> := #{ <<"from">> := From,
                                      <<"to">> := To }}, Index) ->

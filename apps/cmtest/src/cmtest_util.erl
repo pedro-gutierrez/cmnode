@@ -9,6 +9,7 @@
          close/2, 
          report_entries/1,
          report_sort_fun/2,
+         with_includes/1,
          printable/1]).
 
 report_entries(#{ id := Id, 
@@ -108,7 +109,44 @@ with_debug(Debug, S) when is_map(S) ->
 with_debug(_, S) -> S.
 
 
+with_includes(#{ include := Includes } = Spec) ->
+    with_includes(Includes, Spec);
 
+with_includes(Spec) -> Spec.
+
+with_includes([], Spec) -> Spec;
+with_includes([T|Rem], Spec) ->
+    case cmconfig:test(T) of 
+        {ok, Spec0} ->
+            with_includes(Rem, merged_specs(Spec0, Spec));
+        {error, E} ->
+            cmkit:warning({cmtest, include, T, E}),
+            with_includes(Rem, Spec)
+    end.
+
+merged_specs(Spec0, Spec) ->
+    lists:foldl(fun(MergeFun, TmpSpec) ->
+                        MergeFun(Spec0, TmpSpec)
+                end, Spec, [ fun merged_backgrounds/2,
+                             fun merged_procedures/2,
+                             fun merged_steps/2,
+                             fun merged_facts/2 ]).
+
+merged_backgrounds(#{ backgrounds := B0 }, #{ backgrounds := B} = Spec) ->
+    Spec#{ backgrounds => maps:merge(B0, B) };
+merged_backgrounds(_, Spec) -> Spec.
+
+merged_procedures(#{ procedures := P0 }, #{ procedures := P} = Spec) ->
+    Spec#{ procedures => lists:append(P, P0) };
+merged_procedures(_, Spec) -> Spec.
+
+merged_steps(#{ steps := S0 }, #{ steps := S} = Spec) ->
+    Spec#{ steps => lists:append(S, S0) };
+merged_steps(_, Spec) -> Spec.
+
+merged_facts(#{ facts := F0 }, #{ facts := F} = Spec) ->
+    Spec#{ facts => cmkit:merge(F0, F) };
+merged_facts(_, Spec) -> Spec.
 
 start(Test, #{ debug := Debug }=Scenario, Facts, Settings, Runner) ->
     case cmtest_util:steps(Scenario, Test) of 
@@ -123,7 +161,6 @@ start(Test, #{ debug := Debug }=Scenario, Facts, Settings, Runner) ->
         Other -> 
             Other
     end.
-
 
 scenarios_by_tag(Tag, Scenarios) ->
     {ok, lists:filter(fun(#{ tags := Tags}) ->
@@ -332,28 +369,181 @@ world_with_conn(App, Props, #{ conns := Conns }=World) ->
                                                  app => App })},
     World#{ conns => Conns2 }.
 
+
+connect([], _, World) -> {ok, World};
+connect([S|Rem], In, World) when is_map(S)->
+    case connect(S, In, World) of 
+        {ok, World2} ->
+            connect(Rem, In, World2);
+        Other ->
+            Other
+    end;
+
+connect(Spec, In, World) when is_map(Spec) ->
+    case connection_with_protocol(Spec, In) of 
+        {ok, Spec2} ->
+            case cmencode:encode(Spec2,  In) of
+                {ok, #{ connection := #{ name := Name } = Conn}} ->
+                    {ok, world_with_conn(Name, Conn, World)};
+                {ok, Other} -> 
+                    {error, #{ error => not_a_connection,
+                               info => Other }};
+                Other -> 
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+   
+
+connection_with_protocol(#{ protocol := #{ spec := _ }} = Spec, _) -> {ok, Spec};
+
+connection_with_protocol(#{ protocol := ProtocolSpec } = Spec, In) ->
+    case cmencode:encode(ProtocolSpec, In) of
+        {ok, P} ->
+            {ok, Spec#{ protocol => #{ spec => P} }};
+        Other ->
+            Other
+    end;
+
+connection_with_protocol(Spec, _) -> {ok, Spec}.
+
+
+
+
+probe([], _, World) -> {ok, World};
+probe([Name|Rem], Status, World) ->
+    case probe(Name, Status, World) of 
+        {ok, _} ->
+            probe(Rem, Status, World);
+        Other ->
+            Other
+    end;
+
+probe(Name, Status, #{ conns := Conns } = World) when is_atom(Name) orelse is_binary(Name) ->
+    case maps:get(Name, Conns, undef) of
+        undef ->
+            {error, #{ error => not_such_connection,
+                       info => Name}};
+        #{ status := Status } ->
+            {ok, World};
+        _ ->
+            retry
+    end.
+
+
+send([], _, World) -> {ok, World};
+send([Spec|Rem], In, World) ->
+    case send(Spec, In, World) of 
+        {ok, World2} ->
+            send(Rem, In, World2);
+        Other ->
+            Other
+    end;
+
+send(#{ spec := #{ to := Name }} = Spec, In, World) ->
+    case cmencode:encode(Spec, In#{ connection => Name }) of
+        {ok, #{ connection := #{ name := Name } = Conn}} ->
+            {ok, world_with_conn(Name, Conn, World)};
+        {ok, Other} -> 
+            {error, #{ error => not_a_connection,
+                       info => Other }};
+        Other -> 
+            Other
+    end.
+
+recv([], _, World) -> {ok, World};
+recv([S|Rem], In, World) ->
+    case recv(S, In, World) of 
+        {ok, World2} ->
+            recv(Rem, In, World2);
+        Other ->
+            Other
+    end;
+
+recv(#{ from := Name,
+        spec := Spec } = RecvSpec, In, #{ data := Data,
+                               conns := Conns }=World) ->
+    case maps:get(Name, Conns, undef) of 
+        undef -> 
+            {error, #{ error => no_such_connection,
+                       info => Name}};
+        #{ inbox := Inbox } ->
+            Spec0 = #{ type => first,
+                       spec => Spec },
+            case cmdecode:decode(Spec0, Inbox, In) of 
+                {ok, Decoded} ->
+                    case maps:get(as, RecvSpec, undef) of 
+                        undef -> 
+                            {ok, World };
+                        Key when is_atom(Key) ->
+                            {ok, World#{ data => maps:merge(Data, #{ Key => Decoded})}};
+
+                        RememberSpec when is_map(RememberSpec) -> 
+                            case cmencode:encode(RememberSpec, Decoded) of 
+                                {ok, Data2} ->
+                                    {ok, World#{ data => maps:merge(Data, Data2) }};
+
+                                {error, E} ->
+                                    {error, #{ error => encode_error,
+                                               info => E }} 
+                            end
+                    end;
+                no_match -> 
+                    retry
+            end
+    end.
+
+
+iterate([], _, _, _, World) -> {ok, World};
+iterate([I|Rem], As, DestSpec, Settings, #{ data := Data} = World) ->
+    case run(DestSpec, Settings, World#{ data => Data#{ As => I }}) of 
+        {ok, World2} ->
+            iterate(Rem, As, DestSpec, Settings, World2);
+        Other ->
+            {error, #{ error => unexpected_step_result,
+                       info => iterate,
+                       spec => DestSpec,
+                       value => Other }}
+    end.
+
+
+run_specs([], _, World) -> {ok, World}; 
+run_specs([S|Rem]=Specs, Settings, #{ retries := #{ wait := Wait,
+                                                    left := Left,
+                                                    max := Max } = Retries} = World) when is_map(S) ->
+    case run(S, Settings, World) of 
+        retry ->
+            timer:sleep(Wait),
+            run_specs(Specs, Settings, World#{ retries => Retries#{ left => Left -1}});
+        {ok, World2} ->
+            run_specs(Rem, Settings, World2#{ retries => Retries#{ left => Max}});
+        Other ->
+            Other
+    end.
+
 run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
     {error, #{ error => max_retries_reached, 
                info => none }};
 
-run(#{ type := probe, 
-       spec := #{ connection := ConnSpec,
-                  status := Status  }}, Settings, #{ conns := Conns }=World) ->
-    
-    case cmencode:encode(ConnSpec, World#{ settings => Settings}) of 
-        {ok, Name} -> 
-            case maps:get(Name, Conns, undef) of
-                undef ->
-                    {error, #{ error => not_such_connection,
-                               info => Name}};
-                #{ status := Status } ->
-                    {ok, World};
-                _ ->
-                    retry
+run(#{ type := iterate,
+       spec := #{ as := AsSpec,
+                  dest := DestSpec,
+                  source := SourceSpec }}, Settings, World) ->
+
+    In = World#{ settings => Settings },
+    case cmencode:encode(SourceSpec, In) of 
+        {ok, Source} ->
+            case cmencode:encode(AsSpec, In) of 
+                {ok, As} ->
+                    iterate(Source, As, DestSpec, Settings, World);
+                Other ->
+                    Other
             end;
-        Other -> 
+        Other ->
             Other
     end;
+
 
 run(#{ type := disconnect, 
        spec := Spec }, Settings, #{ conns := Conns }=World) ->
@@ -390,46 +580,6 @@ run(#{ type := expect,
             Other
     end;
 
-run(#{ type := recv, 
-       from := ConnSpec,
-       spec := Spec } = RecvSpec, Settings, #{ data := Data,
-                                               conns := Conns } = World ) ->
-
-    In = World#{ settings => Settings },
-    case cmencode:encode(ConnSpec, In) of
-        {ok, Name} ->
-            case maps:get(Name, Conns, undef) of 
-                undef -> 
-                    {error, #{ error => no_such_connection,
-                               info => Name}};
-                #{ inbox := Inbox } ->
-                    Spec0 = #{ type => first,
-                               spec => Spec },
-                    case cmdecode:decode(Spec0, Inbox, In) of 
-                        {ok, Decoded} ->
-                            case maps:get(as, RecvSpec, undef) of 
-                                undef -> 
-                                    {ok, World };
-                                Key when is_atom(Key) ->
-                                    {ok, World#{ data => maps:merge(Data, #{ Key => Decoded})}};
-
-                                RememberSpec when is_map(RememberSpec) -> 
-                                    case cmencode:encode(RememberSpec, Decoded) of 
-                                        {ok, Data2} ->
-                                            {ok, World#{ data => maps:merge(Data, Data2) }};
-
-                                        {error, E} ->
-                                            {error, #{ error => encode_error,
-                                                       info => E }} 
-                                    end
-                            end;
-                        no_match -> 
-                            retry
-                    end
-            end;
-        Other -> 
-            Other
-    end;
 
 run(#{ type := kube } = Spec,  Settings, #{ data := Data }=World ) ->
 
@@ -480,26 +630,74 @@ run(#{ type := procedure,
                            info => E }}
         end;
 
-run(#{ type := connect } = Spec, Settings, World ) ->
-    case cmencode:encode(Spec,  World#{ settings => Settings }) of
-        {ok, #{ connection := #{ name := Name } = Conn}} ->
-            {ok, world_with_conn(Name, Conn, World)};
-        {ok, Other} -> 
-            {error, #{ error => not_a_connection,
-                       info => Other }};
+run(#{ type := connect,
+       as := As } = Spec, Settings, World ) ->
+    In = World#{ settings => Settings },
+    case cmencode:encode(As, In) of 
+        {ok, Name} when is_atom(Name) orelse is_binary(Name) ->
+            connect(Spec#{ as => Name }, In, World);
+        {ok, Names} when is_list(Names) ->
+            ConnSpecs = lists:map(fun(N) ->
+                                          Spec#{ as => N }
+                                  end, Names),
+            connect(ConnSpecs, In, World);
+        Other ->
+            {error, #{ error => invalid_connection_id,
+                       spec => Spec,
+                       connection_id  => Other }}
+    end;
+
+run(#{ type := probe, 
+       spec := #{ connection := ConnSpec,
+                  status := Status  }}, Settings, World) ->
+    
+    In = World#{ settings => Settings},
+    case cmencode:encode(ConnSpec, In) of 
+        {ok, NameOrNames} -> 
+            probe(NameOrNames, Status, World);
         Other -> 
             Other
     end;
 
-run(#{ type := send } = Spec, Settings, World ) ->
-    case cmencode:encode(Spec, World#{ settings => Settings }) of
-        {ok, #{ connection := #{ name := Name } = Conn}} ->
-            {ok, world_with_conn(Name, Conn, World)};
-        {ok, Other} -> 
-            {error, #{ error => not_a_connection,
-                       info => Other }};
-        Other -> 
-            Other
+run(#{ type := send,
+       spec := #{ to := Conn,
+                  spec := Spec} } = Spec0, Settings, World ) ->
+
+    In = World#{ settings => Settings},
+    case cmencode:encode(Conn, In) of 
+        {ok, Name} when is_atom(Name) orelse is_binary(Name) ->
+            send(Spec0#{ spec => #{ to => Name,
+                                    spec => Spec }}, In, World);
+        {ok, Names} when is_list(Names) ->
+            SendSpecs = lists:map(fun(N) ->
+                                    Spec0#{ spec => #{ to => N, 
+                                                       spec => Spec}}
+                                  end, Names),
+            send(SendSpecs, In, World);
+    
+        Other ->
+            {error, #{ error => invalid_connection_id,
+                       spec => Conn,
+                       connection_id  => Other }}
+    end;
+
+run(#{ type := recv, 
+       from := Conn } = RecvSpec, Settings, World) ->
+
+    In = World#{ settings => Settings },
+    case cmencode:encode(Conn, In) of 
+        {ok, Name} when is_atom(Name) orelse is_binary(Name) ->
+            recv(RecvSpec#{ from => Name}, In, World);
+        {ok, Names} when is_list(Names) ->
+            RecvSpecs= lists:map(fun(N) ->
+                                    RecvSpec#{ from => N}
+                                  end, Names),
+            recv(RecvSpecs, In, World);
+    
+        Other ->
+            {error, #{ error => invalid_connection_id,
+                       spec => Conn,
+                       connection_id  => Other }}
     end;
 
 run(#{ type := merge, 
@@ -534,6 +732,11 @@ run(#{ type := parallel,
             Other
     end;
 
+
+run(#{ type := list,
+       value := Specs } , Settings, World) when is_list(Specs) ->
+    run_specs(Specs, Settings, World);
+
 run(Spec, Settings, #{ data := Data }=World) ->
     In = World#{ settings => Settings },
     case encode_alias(Spec, In) of 
@@ -547,7 +750,6 @@ run(Spec, Settings, #{ data := Data }=World) ->
         Other ->
             Other
     end.
-
 
 encode_alias(#{ as := AliasSpec }, In) ->
     case cmencode:encode(AliasSpec, In) of 

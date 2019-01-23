@@ -27,50 +27,72 @@ start_link(Name, Config, Owner) ->
     gen_statem:start_link(?MODULE, [Name, Config, Owner], []).
 
 init([Name, #{ debug := Debug, 
+               timeout := Timeout,
                url := Url,
                host := _,
                port := _,
                path := _} = Config, Owner]) ->
     Log = cmkit:log_fun(Debug),
-    Log({cmwsc, Name, starting, Url}),
-    {Conn, MRef} = connect(Config),
-    {ok, connecting, #{ name => Name,
-                        log => Log,
-                        config => Config,
-                        owner => Owner,
-                        conn => Conn,
-                        monitor => MRef,
-                        state => #{} },
-        [{{timeout,connecting},1000,connecting}]}.
+    Log({cmwsc, Name, starting, Url, Timeout}),
+    Data = connect(#{ name => Name,
+                      timeout => Timeout,
+                      log => Log,
+                      config => Config,
+                      owner => Owner,
+                      buffer => queue:new(),
+                      state => #{}}),
+    {ok, connecting, Data, 
+        [{{timeout,connecting}, Timeout ,connecting}]}.
 
-disconnected(info, Msg, #{ log := Log, name := Name, config := Config }=Data) ->
-    Log({cmwsc, Name, disconnected, Config, ignoring, Msg}),
-    {next_state, disconnected, Data};
+disconnected(info, {gun_down, _, _}, Data) ->
+    {keep_state, Data};
+
+disconnected(info, {gun_up, Conn, _}, #{ log := Log, 
+                                         name := Name, 
+                                         config := #{ path := Path} 
+                                       }=Data) ->
+    Data2 = maybe_monitor(Conn, Data),
+    Res = gun:ws_upgrade(Conn, Path),
+    Log({cmwsc, Name, disconnected, upgrading, Path, Res}),
+    {next_state, upgrading, Data2};
+
+disconnected({call, _}, {out, Msg}, Data) ->
+    Data2 = buffer(Msg, disconnected, Data),
+    {keep_state, Data2};
 
 disconnected(From, stop, Data) -> 
-    handle_stop(From, Data).
+    handle_stop(From, Data);
+
+disconnected(Ev, Other, #{ log := Log,
+                           name := Name }=Data) ->
+    Log({cmwsc, Name, disconnected, ignored, Ev, Other}),
+    {keep_state, Data}.
 
 connecting(From, stop, Data) -> 
     handle_stop(From, Data);
 
-connecting({timeout, connecting}, _, #{ log := Log, 
-                                        name := Name,
-                                        config := Config}=Data) ->
-    Log({cmwsc, Name, connecting, Config, timeout}),
+connecting({timeout, connecting}, _, #{ name := Name}=Data) ->
+    cmkit:warning({cmwsc, Name, connecting, timeout}),
     {next_state, disconnected, Data};
 
 connecting(info, {gun_up, _, _}, #{ log :=Log,
                                     name := Name,
                                     conn := Conn,
                                     config := #{ path := Path }}=Data) -> 
-    Log({cmwsc, Name, connected, upgrading, Path}),
-    gun:ws_upgrade(Conn, Path),
+    Res = gun:ws_upgrade(Conn, Path),
+    Log({cmwsc, Name, connecting, upgrading, Path, Res}),
     {next_state, upgrading, Data};
 
+connecting({call, _}, {out, Msg}, Data) ->
+    Data2 = buffer(Msg, connecting, Data),
+    {keep_state, Data2};
+
+connecting(From, stop, Data) -> 
+    handle_stop(From, Data);
+
 connecting(Event, Msg, #{ log := Log, 
-                     name := Name,
-                     config := Config}=Data) ->
-    Log({cmwsc, Name, connecting, Config, ignored, Event, Msg}),
+                          name := Name }=Data) ->
+    Log({cmwsc, Name, connecting, ignored, Event, Msg}),
     {keep_state, Data}.
 
 connected(From, stop, Data) -> 
@@ -79,16 +101,26 @@ connected(From, stop, Data) ->
 connected(info, {gun_down, _, _, closed, _, _}, Data) ->
    apply_reconnection_strategy(connected, Data); 
 
-connected(Event, Msg, #{ log := Log, name := Name, config := Config}=Data) ->
-    Log({cmwsc, Name, connected, Config, ignored, Event, Msg}),
+connected({call, _}, {out, Msg}, Data) ->
+    Data2 = buffer(Msg, connected, Data),
+    {keep_state, Data2};
+
+connected({timeout, connecting}, _, #{ name := Name}=Data) ->
+    cmkit:warning({cmwsc, Name, connected, timeout}),
+    {next_state, disconnected, Data};
+
+connected(Event, Msg, #{ log := Log, 
+                         name := Name}=Data) ->
+    Log({cmwsc, Name, connected, ignored, Event, Msg}),
     {next_state, connected, Data}.
 
 upgrading(info, {gun_upgrade, _, _, _, _}, #{ log := Log,
-                                               owner := Owner,
-                                               name := Name }=Data) ->
+                                              owner := Owner,
+                                              name := Name }=Data) ->
     Log({cmwsc, Name, upgraded}),
+    Data2 = flush(Data),
     Owner ! {ws, Name, up},
-    {next_state, ready, Data};
+    {next_state, ready, Data2};
 
 upgrading(info, {gun_response, _, _, _, Status, Headers}, #{ log := Log, 
                                                              name := Name,
@@ -116,10 +148,17 @@ upgrading(info, {gun_down, _, _, closed, _, _}, Data) ->
 upgrading(From, stop, Data) -> 
     handle_stop(From, Data);
 
+upgrading({call, _}, {out, Msg}, Data) ->
+    Data2 = buffer(Msg, upgrading, Data),
+    {keep_state, Data2};
+
+upgrading({timeout, connecting}, _, #{ name := Name}=Data) ->
+    cmkit:warning({cmwsc, Name, upgrading, timeout}),
+    {next_state, disconnected, Data};
+
 upgrading(Event, Msg, #{ log := Log, 
-                     name := Name,
-                     config := Config}=Data) ->
-    Log({cmwsc, Name, upgrading, Config, ignored, Event, Msg}),
+                         name := Name }=Data) ->
+    Log({cmwsc, Name, upgrading, ignored, Event, Msg}),
     {next_state, upgrading, Data}.
 
 ready({call, From}, {out, Msg}, Data) -> 
@@ -134,7 +173,7 @@ ready(info, {gun_ws, _, _, {text, Raw}}, #{ log := Log,
         {error, E} -> E
     end,
     
-    Log({cmwsc, Name, in, {decoded, Msg}, {raw, Raw}}),
+    Log({cmwsc, Name, in, Msg}),
     
     apply_protocol(Msg, Data),
 
@@ -157,10 +196,7 @@ ready(Event, Msg, #{ log := Log,
     Log({cmwsc, Name, ready, Config, ignored, Event, Msg}),
     {next_state, ready, Data}.
 
-handle_stop({call, From}, #{ log := Log, 
-                             name := Name
-                           }) ->
-    Log({cmwsc, Name, stopping}),
+handle_stop({call, From}, _) ->
     {stop_and_reply, normal, ok(From)}.
 
 terminate(Reason, _, #{ log := Log, name := Name, conn := Conn}) ->
@@ -168,25 +204,65 @@ terminate(Reason, _, #{ log := Log, name := Name, conn := Conn}) ->
     Log({cmwsc, Name, terminated, Reason}),
     ok.
 
-connect(#{ host := Host,
-           port := Port}) ->
+maybe_monitor(Conn, #{ conn := Conn }=Data) -> Data;
+maybe_monitor(Conn, #{ conn := OldConn,
+                       monitor := OldRef }=Data) -> 
+    erlang:demonitor(OldRef),
+    NewRef = erlang:monitor(process, Conn),
+    gun:close(OldConn),
+    Data#{ conn => Conn,
+           monitor => NewRef }.
+
+connect(#{ config := #{ host := Host,
+                        port := Port },
+           monitor := OldRef,
+           conn := OldConn } = Data) ->
+    demonitor(OldRef),
+    ok = gun:close(OldConn),
+
     {ok, Conn} = gun:open(cmkit:to_list(Host), Port, #{protocols => [http]}),
     MRef = monitor(process, Conn),
-    {Conn, MRef}.
+    Data#{ conn => Conn,
+           monitor => MRef };
+
+connect(#{ config := #{ host := Host,
+                        port := Port}} = Data) ->
+    
+    {ok, Conn} = gun:open(cmkit:to_list(Host), Port, #{protocols => [http]}),
+    MRef = monitor(process, Conn),
+    Data#{ conn => Conn,
+           monitor => MRef }.
 
 ok(From) -> [{reply, From, ok}].
+
+buffer(Msg, State, #{ name := Name,
+                      buffer := Buffer }=Data) ->
+    B2 = queue:in(Msg, Buffer),
+    cmkit:warning({cmwsc, Name, State, buffered, Msg}),
+    Data#{ buffer => B2 }.
+
+flush(#{ buffer := Q }=Data) ->
+    Q2 = flush(queue:out(Q), Data),
+    Data#{ buffer => Q2 }.
+
+flush({{value, Msg}, Q}, #{ name := Name} = Data) ->
+    cmkit:warning({cmwsc, Name, flush, Msg}),
+    ws_send(Msg, Data),
+    flush(queue:out(Q), Data);
+
+flush({empty, Q}, _) -> Q.
 
 apply_reconnection_strategy(State, #{ log := Log, 
                                       owner := Owner,
                                       name := Name,
-                                      config := Config }=Data ) ->
+                                      config := #{ url := Url} = Config}=Data ) ->
     case maps:get(persistent, Config, true) of 
         true -> 
-            Log({cmwsc, Name, State, Config, closed, reconnecting}),
+            Log({cmwsc, Name, Url, State, closed, reconnecting}),
             {next_state, connecting, Data};
         false ->
             Owner ! {ws, Name, down},
-            Log({cmwsc, Name, State, Config, closed, terminating}),
+            Log({cmwsc, Name, Url, State, closed, terminating}),
             {stop, normal}
     end.
 
@@ -274,5 +350,5 @@ ws_send(Msg, #{ name := Name,
                 log := Log,
                 conn := Conn}) -> 
     Raw = cmkit:jsone(Msg),
-    Log({cmwsc, Name, out, {encoded, Msg}, {raw, Raw}}),
+    Log({cmwsc, Name, out, Msg}),
     gun:ws_send(Conn, {text, Raw}).

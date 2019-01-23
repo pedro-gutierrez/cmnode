@@ -2,6 +2,7 @@
 -export([
          reset/1,
          del/2,
+         insert/2,
          put/2,
          put_del/3,
          get/2,
@@ -18,6 +19,9 @@ reset(Name) ->
 
 del(Name, Keys) ->
     put_del(Name, [], Keys).
+
+insert(Name, Entries) -> 
+    cmdb_util:insert(cmdb_config:storage(Name), Name, Entries).
 
 put(Name, Entries) -> 
     put_del(Name, Entries, []).

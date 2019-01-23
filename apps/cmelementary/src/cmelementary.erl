@@ -674,10 +674,10 @@ term(#{ type := merge, spec := Specs }, Settings) ->
     end;
 
 term(#{ type := iterate,
-        source := Source,
-        filter := Filter,
-        dest := Dest,
-        as := As }, Settings) -> 
+        spec := #{ source := Source,
+                   filter := Filter,
+                   dest := Dest,
+                   as := As }}, Settings) -> 
     case term(Source, Settings) of 
         {ok, S} ->
             case term(Filter, Settings) of 

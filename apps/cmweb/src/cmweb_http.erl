@@ -63,6 +63,9 @@ info({update, Data}, Req, #{ app := App,
             reply_and_stop(error, json, #{}, Req, State)
     end;
 
+info({terminate, Data}, Req, State) ->
+    info(Data, Req, State);
+
 info({stream, start, Headers}, Req, State) ->
     Headers2 = binary_headers(Headers),
     Req2 = cowboy_req:stream_reply(200, Headers2, Req),

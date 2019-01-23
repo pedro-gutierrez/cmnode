@@ -193,7 +193,6 @@ close_conns(#{ conns := Conns }) ->
 close_conns(_) ->
     ok.
    
-close_conn({Name, Pid}) ->
-    Res = cmtest_ws_sup:stop(Pid),
-    cmkit:log({cmtest, conn, Name, Pid, close, Res}).
+close_conn({_, Pid}) ->
+    cmtest_ws_sup:stop(Pid).
 

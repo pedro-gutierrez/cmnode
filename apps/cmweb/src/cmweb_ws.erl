@@ -37,7 +37,7 @@ websocket_handle({binary, Data}, State) ->
 websocket_handle({text, Data}, State) -> 
     handle_data(Data, State).
 
-websocket_info(terminate = R, State) -> 
+websocket_info({terminate = R, _}, State) -> 
     stop(State, R);
 
 

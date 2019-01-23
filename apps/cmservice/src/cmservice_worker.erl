@@ -54,8 +54,9 @@ handle_info(timeout, #{ data := Data }=State) ->
 handle_info({update, Data}, State) ->
     update(Data, State);
 
-handle_info(terminate, State) ->
-    {stop, normal, State#{ status => normal }};
+handle_info({terminate, #{ status := Status}=Data}, #{ from := From }=State) ->
+    cmcore:update(From, Data),
+    {stop, normal, State#{ reason => Status }};
 
 handle_info(Data, #{ from := From }=State) ->
     cmcore:update(From, Data),
@@ -85,13 +86,13 @@ handle_cast(_, Data) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(Reason, #{ app := App, 
-                     log := Log,
-                     status := Status,
-                     duration_metric := DurationMetric,
-                     start := Start}) ->
+terminate(_, #{ app := App, 
+                log := Log,
+                duration_metric := DurationMetric,
+                start := Start,
+                reason:= Reason}) ->
     Elapsed = cmkit:elapsed(Start),
-    cmmetrics:record_duration(DurationMetric, Status, Elapsed/1000),
+    cmmetrics:record_duration(DurationMetric, Reason, Elapsed/1000),
     Log({cmservice, App, terminate, Reason, Elapsed}).
 
 

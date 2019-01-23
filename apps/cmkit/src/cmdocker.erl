@@ -55,7 +55,9 @@ build(#{ dir := Dir,
                             Url = <<?BASE_URL/binary, "/build?nocache=true&t=", Tag/binary>>,
                             Headers = #{ 'content-type' => <<"application/x-tar">> },
                             cmkit:log({cmdocker, building, Tag}),
-                            case cmhttp:post(Url, Headers, Data, #{ raw => true}) of 
+                            cmkit:log({post, Url, Headers, size(Data)}),
+                            case cmhttp:post(Url, Headers, Data, #{ debug => true, 
+                                                                    raw => true}) of 
                                 {ok, #{ status := 200, raw := R, mime := Mime } } ->
                                     case has_errors(cmkit:to_bin(R), Errors) of 
                                         {true, E} ->
@@ -78,6 +80,7 @@ build(#{ dir := Dir,
                                             end
                                     end;
                                 Other -> 
+                                    cmkit:danger({cmdocker, Tag, error, Other}),
                                     Other
                             end;
                         Other ->

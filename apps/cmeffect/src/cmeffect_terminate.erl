@@ -5,5 +5,5 @@
 
 effect_info() -> terminate.
 
-effect_apply(_, SessionId) ->
-    cmcore:terminate(SessionId).
+effect_apply(Data, Id) ->
+    cmcore:terminate(Id, Data).

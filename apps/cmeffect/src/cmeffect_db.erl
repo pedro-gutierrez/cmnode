@@ -12,15 +12,21 @@ effect_apply(#{ context := C,
     R = reply_from(put_del(by_bucket(ToPut, ToDelete))),
     cmcore:update(Id, R#{ context => C });
 
-
-
 effect_apply(#{ context := C,
                 bucket := B,
-                put := ToPut,
-                delete := ToRemove }, Id)  ->
+                insert := ToInsert }, Id)  ->
 
-    R = reply_from(cmdb:put_del(B, values(ToPut), keys(ToRemove))),
+    R = reply_from(cmdb:insert(B, values(ToInsert))),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B } = Spec, Id)  ->
+
+    ToPut = values(maps:get(put, Spec, [])),
+    ToRemove = keys(maps:get(delete, Spec, [])),
+    R = reply_from(cmdb:put_del(B, ToPut, ToRemove)),
     cmcore:update(Id, R#{ context => C }).
+
 
 key(#{ subject := S,
        predicate := P,

@@ -34,7 +34,8 @@ run(#{ id := Id,
     case cmconfig:settings(Settings) of 
         {ok, SettingsSpec} -> 
             case cmconfig:test(Test) of
-                {ok, Spec} -> 
+                {ok, Spec0} -> 
+                    Spec = cmtest_util:with_includes(Spec0),
                     cmtest_runner:run(Spec#{ id => Id,
                                              opts => Opts }, SettingsSpec);
                 Other -> Other
@@ -47,7 +48,8 @@ run(Test, Settings) ->
     case cmconfig:settings(Settings) of 
         {ok, SettingsSpec } -> 
             case cmconfig:test(Test) of
-                {ok, Spec} -> 
+                {ok, Spec0} -> 
+                    Spec = cmtest_util:with_includes(Spec0),
                     cmtest_runner:run(Spec, SettingsSpec);
                 Other -> Other
             end;
@@ -58,7 +60,8 @@ run(Test, Settings, Tag) ->
     case cmconfig:settings(Settings) of 
         {ok, SettingsSpec } -> 
             case cmconfig:test(Test) of
-                {ok, #{ scenarios := Scenarios }=Spec} ->
+                {ok, #{ scenarios := Scenarios }=Spec0} ->
+                    Spec = cmtest_util:with_includes(Spec0),
                     {ok, SSpecs} = cmtest_util:scenarios_by_tag(Tag, Scenarios),
                     cmtest_runner:run(Spec, SSpecs, SettingsSpec);
                 Other -> Other

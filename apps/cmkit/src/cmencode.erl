@@ -559,6 +559,8 @@ encode(#{ type := basic_auth,
             }
     end;
 
+encode(#{ type := uuid }, _, _) ->
+    {ok, cmkit:uuid()};
 
 encode(#{ type := slack,
           spec := #{ enabled := Enabled,
@@ -853,7 +855,20 @@ encode(#{ type := greater_than,
 encode(#{ type := 'or',
           spec := Exprs }, In, Config) ->
     first_true(Exprs, In, Config);
-        
+
+encode(#{ type := multiply,
+          spec := Specs } = Spec, In, Config) ->
+
+    Res = foldl(Specs, In, Config, 1 , fun(V, Acc) when is_number(V) ->
+                                              {ok, Acc*V};
+                                         (Other, _) ->
+                                              nan(Other, Spec)
+                                      end), 
+    
+    case Res of 
+        N when is_number(N) -> {ok, N};
+        Other -> Other
+    end;
 
 encode(#{ type := sum,
           spec := Specs } = Spec, In, Config) ->
@@ -1181,10 +1196,10 @@ encode(#{ type := encode,
     end;
 
 encode(#{ type := iterate, 
-          source := SourceSpec,
-          filter := FilterSpec,
-          as := AsSpec,
-          dest := DestSpec }, In, Config) -> 
+          spec := #{ source := SourceSpec,
+                     filter := FilterSpec,
+                     as := AsSpec,
+                     dest := DestSpec }}, In, Config) -> 
 
     case cmencode:encode(SourceSpec, In, Config) of 
         {ok, Source} when is_list(Source) -> 
@@ -1226,13 +1241,14 @@ encode(#{ type := iterate,
     end;
 
 encode(#{ type := iterate, 
-          source := _,
-          dest := _ } = Spec, In, Config) ->
-    encode(Spec#{ filter => none }, In, Config);
+          spec := #{
+            source := _,
+            dest := _ } = S0} = Spec, In, Config) ->
+    encode(Spec#{ spec => S0#{ filter => none }}, In, Config);
 
 encode(#{ type := filter,
-          source := SourceSpec,
-          filter := FilterSpec }, In, Config) ->
+          spec := #{ source := SourceSpec,
+                     filter := FilterSpec }}, In, Config) ->
     
     EncodedFilterSpec = case FilterSpec of 
                       #{ type := object } -> 
@@ -1275,49 +1291,56 @@ encode(#{ type := merge,
 
 encode(#{ type := connect,
           as := As,
+          timeout := TimeoutSpec,
           spec := Spec }=Spec0, In, Config) -> 
     case encode(As, In, Config) of 
         {ok, Name} ->
-            case encode(Spec, In, Config) of 
-                {ok, #{ host := _,
-                        port := _,
-                        transport := Transport,
-                        path := _ } = Config0 } ->
-                    
-                    Config1 = Config0#{ debug => true,
-                                        persistent => false },
-                    
-                    Config2 = case maps:get(protocol, Spec0, undef) of
-                                  undef -> Config1;
-                                  Protocol ->
-                                      Config1#{ protocol => Protocol }
-                              end,
+            case encode(TimeoutSpec, In, Config) of
+                {ok, Timeout} ->
+                    case encode(Spec, In, Config) of 
+                        {ok, #{ host := _,
+                                port := _,
+                                transport := Transport,
+                                path := _ } = Config0 } ->
 
-                    case cmkit:to_bin(Transport) of 
-                        T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
-                            Url = cmkit:url(Config2),
-                            {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
-                            {ok, #{ connection => Config2#{ name => Name,
-                                                            transport => Transport,
-                                                            class => websocket,
-                                                            pid => Pid,
-                                                            status => undef,
-                                                            inbox => [],
-                                                            url => Url }}};
+                            Config1 = Config0#{ debug => true,
+                                                timeout => Timeout,
+                                                persistent => false },
 
-                        T when T =:= <<"http">> orelse T =:= <<"https">> ->
-                            Url = cmkit:url(Config2),
-                            Res = cmhttp:get(Url),
-                            Status = case Res of
-                                         {ok, _} -> up;
-                                         {error, S} -> S
-                                     end,
-                            {ok, #{ connection => Config2#{ name => Name,
-                                                            transport => Transport,
-                                                            class => http,
-                                                            status => Status,
-                                                            inbox => [],
-                                                            url => Url }}}
+                            Config2 = case maps:get(protocol, Spec0, undef) of
+                                          undef -> Config1;
+                                          Protocol ->
+                                              Config1#{ protocol => Protocol }
+                                      end,
+
+                            case cmkit:to_bin(Transport) of 
+                                T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
+                                    Url = cmkit:url(Config2),
+                                    {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
+                                    {ok, #{ connection => Config2#{ name => Name,
+                                                                    transport => Transport,
+                                                                    class => websocket,
+                                                                    pid => Pid,
+                                                                    status => undef,
+                                                                    inbox => [],
+                                                                    url => Url }}};
+
+                                T when T =:= <<"http">> orelse T =:= <<"https">> ->
+                                    Url = cmkit:url(Config2),
+                                    Res = cmhttp:get(Url),
+                                    Status = case Res of
+                                                 {ok, _} -> up;
+                                                 {error, S} -> S
+                                             end,
+                                    {ok, #{ connection => Config2#{ name => Name,
+                                                                    transport => Transport,
+                                                                    class => http,
+                                                                    status => Status,
+                                                                    inbox => [],
+                                                                    url => Url }}}
+                            end;
+                        Other ->
+                            Other
                     end;
                 Other ->
                     Other
@@ -1442,7 +1465,28 @@ encode(#{ encoder := NameSpec } = Spec, In, #{ encoders := Encs }=Config) ->
 
 encode(#{ value := V}, _, _) -> {ok, V};
 
-encode(#{ spec := Spec }, _, _) -> {ok, Spec};
+
+encode(#{ type := prefix,
+          spec := Spec,
+          with := Prefix}, In, Config) ->
+    case encode(Prefix, In, Config) of 
+        {ok, P} ->
+            PBin = cmkit:to_bin(P),
+            case encode(Spec, In, Config) of 
+                {ok, Items} when is_list(Items) ->
+                    {ok, lists:map(fun(I) ->
+                                           <<PBin/binary, (cmkit:to_bin(I))/binary>>
+                                   end, Items)};
+                {ok, S} ->
+                    {ok, <<PBin/binary, (cmkit:to_bin(S))/binary>>};
+                Other ->
+                    {error, #{ error => encode,
+                               spec => Spec,
+                               reason => Other }}
+            end;
+        Other ->
+            Other
+    end;
 
 encode(#{ type := sequence,
           from := From,
@@ -1467,6 +1511,7 @@ encode(#{ type := pipe,
 
     pipe(Specs, As, In, Config);
 
+encode(#{ spec := Spec }, _, _) -> {ok, Spec};
 
 
 encode(List, In, Config) when is_list(List) ->

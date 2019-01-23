@@ -11,6 +11,7 @@
          get/4,
          get/5,
          put_del/4,
+         insert/3,
          map/5,
          map/6,
          inspect/2,
@@ -229,6 +230,12 @@ put_del(disc, Name, ToAdd, ToDelete) ->
     Writer = cmdb_config:writer(Name),
     resolve(Writer, fun(Pid) ->
                             gen_server:call(Pid, {put_delete, ToAdd, ToDelete})
+                    end).
+
+insert(disc, Name, ToInsert) ->
+    Writer = cmdb_config:writer(Name),
+    resolve(Writer, fun(Pid) ->
+                            gen_server:call(Pid, {insert, ToInsert})
                     end).
 
 get(memory, Name, S) -> 

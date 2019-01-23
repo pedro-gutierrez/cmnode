@@ -9,6 +9,7 @@
          post/1,
          post/2,
          post/3,
+         post/4,
          put/1,
          put/2,
          put/3, 
@@ -183,7 +184,19 @@ send_body(Method, Url, #{ 'content-type' := CT }=Headers, Data, Opts) ->
     Headers2 = encoded_headers(Headers),
     Mime = cmkit:to_list(CT),
     Encoded = encoded_body(Mime, Data),
+    debug(Method, Url2, Headers2, Mime, Encoded, Opts),
     handle(httpc:request(Method, { Url2, Headers2, Mime, Encoded},[],[]), Opts).
+
+debug(Method, Url, Headers, Mime, Encoded, #{ debug := true }) ->
+    cmkit:log({http, #{ method => Method, 
+                          url => Url, 
+                          mime => Mime,
+                          headers => Headers,
+                          body_size => size(Encoded)}});
+
+debug(_, _, _, _, _, _) ->
+    ok.
+
 
 handle({error,socket_closed_remotely}, _) ->
     {error, closed};

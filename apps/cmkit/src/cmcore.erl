@@ -1,5 +1,5 @@
 -module(cmcore).
--export([init/4, update/2, update/6, notify/2, terminate/1]).
+-export([init/4, update/2, update/6, notify/2, terminate/2]).
 
 
 init(Pid, #{ name := App, 
@@ -104,7 +104,7 @@ cmds([#{ effect := Effect,
     cmds(Rem, Model, Config, Pid, Log, Effects);
 
 cmds([#{ effect := Effect}|Rem], Model, Config, Pid, Log, Effects) ->
-    apply_effect(Effect, nothing, Pid, Log, Effects),
+    apply_effect(Effect, #{}, Pid, Log, Effects),
     cmds(Rem, Model, Config, Pid, Log, Effects).
 
 apply_effect(Effect, Data, Pid, _Log, Effects) ->
@@ -224,8 +224,8 @@ update(Pid, Data) when is_pid(Pid) ->
 notify(Pid, Data) when is_pid(Pid) ->
     Pid ! Data.
 
-terminate(Pid) when is_pid(Pid) ->
-    Pid ! terminate.
+terminate(Pid, Data) when is_pid(Pid) ->
+    Pid ! {terminate, Data}.
 
 
 err(App, Pid, Phase, Info) ->

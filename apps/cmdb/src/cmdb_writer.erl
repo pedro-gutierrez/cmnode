@@ -135,6 +135,26 @@ handle_call({put_delete, ToAdd, ToDelete}, _, #{ pid := Pid,
             {reply, Other, Data}
     end;
 
+
+handle_call({insert, ToInsert}, _, #{ pid := Pid,
+                                      host := Host,
+                                      timestamp_fun := TFun,
+                                      tree := Tree }=Data) when is_list(ToInsert) ->
+    case all_new(Tree, ToInsert) of 
+        true ->
+            ToInsert2 = unique_entries(ToInsert, Host, TFun()),
+            case with_entries(Tree, ToInsert2) of
+                {ok, Tree2} ->
+                    write_and_reply(Tree2, Pid, Data);
+                Other ->
+                    {reply, Other, Data}
+            end;
+        false ->
+            {reply, {error, conflict}, Data};
+        Other ->
+            {reply, Other, Data}
+    end;
+
 handle_call({pipeline, #{ context := Context,
                           items := #{ type := list,
                                       value := Items}}}, _, #{ pid := Pid, 
@@ -169,6 +189,17 @@ terminate(Reason, Bucket) ->
     cmkit:warning({cmdb, writer, node(), Bucket, terminated, Reason}),
     ok.
 
+
+all_new(_, []) -> true;
+all_new(Tree, [{S, P, O, _}|Rem]) ->
+    case cmdb_util:keys_for({S, P, O}, Tree) of 
+        {ok, []} ->
+            all_new(Tree, Rem);
+        {ok, _} ->
+            false;
+        Other ->
+            Other
+    end.
 
 without_keys(Tree, Keys) ->
     cmdb_util:reduce(Tree,

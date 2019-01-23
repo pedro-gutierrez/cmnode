@@ -58,10 +58,44 @@ topics() -> {ok, V} = cmkit:app_env(cmconfig, topic), V.
 topic(N) -> cmkit:app_env(cmconfig, topic, N).
 metrics() -> {ok, V} = cmkit:app_env(cmconfig, metrics), V.
 metrics(N) -> cmkit:app_env(cmconfig, metrics, N).
-services() -> {ok, V} = cmkit:app_env(cmconfig, service), V.
-service(N) -> cmkit:app_env(cmconfig, service, N).
+services() ->
+    name_from(having_tag(service, apps())).
 
+service(N) -> 
+    name_from(having_tag(service, app(N))).
+    
 effects() -> cmeffect:effects().
 
 effect(N) ->
   cmeffect:effect(N).
+
+
+having_tag(T, Items) when is_list(Items) ->
+    lists:filter(fun(I) ->
+                         has_tag(T, I)
+                 end, Items);
+
+having_tag(T, {ok, Item}) when is_map(Item) ->
+    case has_tag(T, Item) of 
+        false ->
+            {error, not_found};
+        true ->
+            {ok, Item}
+    end;
+
+having_tag(_, _) -> {error, not_found}.
+
+has_tag(T, #{ tags := Tags }) ->
+    lists:member(T, Tags);
+
+has_tag(_, _) -> false.
+
+
+name_from(Items) when is_list(Items) ->
+    [ #{ name =>  Name } || #{ name := Name } <- Items ];
+
+name_from({ok, Item}) ->
+    {ok, name_from(Item)};
+
+name_from(Item) when is_map(Item) ->
+    maps:with([name], Item).
