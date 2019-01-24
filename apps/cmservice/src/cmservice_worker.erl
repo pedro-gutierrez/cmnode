@@ -86,13 +86,15 @@ handle_cast(_, Data) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(_, #{ app := App, 
+terminate(R, #{ app := App, 
                 log := Log,
                 duration_metric := DurationMetric,
-                start := Start,
-                reason:= Reason}) ->
+                start := Start} = Data) ->
+    Reason = reason(Data),
     Elapsed = cmkit:elapsed(Start),
     cmmetrics:record_duration(DurationMetric, Reason, Elapsed/1000),
-    Log({cmservice, App, terminate, Reason, Elapsed}).
+    Log({cmservice, App, terminate, R, Reason, Elapsed}).
 
 
+reason(#{ reason := R}) -> R;
+reason(_) -> error.

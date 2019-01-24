@@ -8,7 +8,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
-    {ok, load_crons() }.
+    {ok, load_crons(cmkit:to_atom(cmkit:env("CMCRON"))) }.
 
 handle_call(reload, _, Data) ->
     cancel_existing_jobs(Data),
@@ -39,6 +39,13 @@ cancel_existing_jobs(Data) ->
                                       end, Refs)
                    end, maps:values(Data)).
 
+
+load_crons(false) ->
+    cmkit:log({cmcron, disabled}),
+    #{};
+
+load_crons(true) ->
+    load_crons().
 
 load_crons() ->
     load_crons(cmconfig:crons(), #{}).

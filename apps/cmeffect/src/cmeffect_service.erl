@@ -9,7 +9,8 @@ effect_apply(#{ service := Service,
 
     case cmservice:run(Service, Pid, Params) of 
         {ok, _} -> 
-            ok;
+            cmcore:update(Pid, #{ service => Service,
+                                  status => ok });
         {error, E} ->
             cmcore:update(Pid, #{ service => Service,
                                   status => error,
