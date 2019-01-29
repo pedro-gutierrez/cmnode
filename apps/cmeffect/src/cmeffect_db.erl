@@ -20,13 +20,40 @@ effect_apply(#{ context := C,
     cmcore:update(Id, R#{ context => C });
 
 effect_apply(#{ context := C,
-                bucket := B } = Spec, Id)  ->
+                bucket := B,
+                put := ToPut,
+                delete := ToDelete}, Id)  ->
 
-    ToPut = values(maps:get(put, Spec, [])),
-    ToRemove = keys(maps:get(delete, Spec, [])),
-    R = reply_from(cmdb:put_del(B, ToPut, ToRemove)),
+    R = reply_from(cmdb:put_del(B, values(ToPut), keys(ToDelete))),
+    cmcore:update(Id, R#{ context => C });
+
+
+effect_apply(#{ context := C,
+                bucket := B,
+                put := ToPut }, Id)  ->
+
+    R = reply_from(cmdb:put_del(B, values(ToPut), [])),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                delete := ToDelete }, Id)  ->
+
+    R = reply_from(cmdb:put_del(B, [], keys(ToDelete))),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                get := ToGet }, Id)  ->
+
+    R = reply_from(cmdb:get(B, keys(ToGet))),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                reset := Bucket }, Id) ->
+ 
+    R = reply_from(cmdb:reset(Bucket)),
     cmcore:update(Id, R#{ context => C }).
-
 
 key(#{ subject := S,
        predicate := P,
@@ -43,6 +70,11 @@ value(#{ subject:= S,
          object := O,
          value := V}) -> {S, P, O, V}.
 
+map({S, P, O, V}) -> #{ subject => S,
+                        predicate => P,
+                        object => O,
+                        value => V }.
+
 keys(K) when is_list(K) -> lists:map(fun key/1, K);
 keys(K) when is_map(K) -> [key(K)].
 
@@ -51,8 +83,9 @@ values(V) when is_list(V) -> lists:map(fun value/1, V);
 values(V) when is_map(V) -> [value(V)].
 
 reply_from(ok) -> #{ status => ok };
-reply_from({ok, Data}) -> #{ status => ok,
-                              data => Data };
+reply_from({ok, Items}) when is_list(Items) -> #{ status => ok,
+                                                data => lists:map(fun map/1, Items) };
+
 reply_from({error, E}) -> #{ status => error,
                             error => E };
 reply_from(Other) -> #{ status => unknown,

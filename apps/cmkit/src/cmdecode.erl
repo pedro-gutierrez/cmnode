@@ -103,10 +103,10 @@ decode_term(#{ type := other_than, spec := #{ type := regexp, value := _ } = Spe
             {ok, Data}
     end;
 
-decode_term(#{ type := other_than, spec := Spec }, Data, Config) -> 
-    case cmencode:encode(Spec, Data, Config) of 
+decode_term(#{ type := other_than, spec := Spec }, Data, Context) -> 
+    case cmencode:encode(Spec, Context) of 
         {ok, Value} ->
-            case decode_term(Value, Data, Config) of 
+            case decode_term(Value, Data, Context) of 
                 no_match -> 
                     {ok, Data};
                 {ok, _} ->

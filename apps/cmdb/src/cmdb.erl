@@ -32,11 +32,15 @@ put_del(Name, ValuesToAdd, KeysToDelete) ->
 get(Name, S, P) -> 
     cmdb_util:inspect(Name, S, P).
 
+get(Name, Keys) when is_list(Keys) ->
+    cmdb_util:get(cmdb_config:storage(Name), Name, Keys);
+
 get(Name, S) -> 
     cmdb_util:inspect(Name, S).
 
 get(Name, S, P, O) ->
     cmdb_util:inspect(Name, S, P, O).
+
 
 between(Name, S, P, O1, O2) ->
     EndFun = fun({S0, P0, O0, H, T}, V) when S0 =:= S andalso

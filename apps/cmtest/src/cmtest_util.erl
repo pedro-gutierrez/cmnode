@@ -394,7 +394,27 @@ connect(Spec, In, World) when is_map(Spec) ->
         Other ->
             Other
     end.
-   
+
+disconnect([], _, World) -> {ok, World};
+disconnect([N|Rem], In, World) ->
+    case disconnect(N, In, World) of 
+        {ok, World2} ->
+            disconnect(Rem, In, World2);
+        Other ->
+            Other
+    end;
+  
+disconnect(Name, _, #{ conns := Conns }=World) ->
+    case maps:get(Name, Conns, undef) of
+        undef ->
+            {error, #{ error => not_such_connection,
+                       conns => maps:keys(Conns),
+                       info => Name}};
+
+        #{ class := websocket, pid := Pid } ->
+            cmwsc:stop(Pid),
+            {ok, World}
+    end.
 
 connection_with_protocol(#{ protocol := #{ spec := _ }} = Spec, _) -> {ok, Spec};
 
@@ -545,27 +565,6 @@ run(#{ type := iterate,
     end;
 
 
-run(#{ type := disconnect, 
-       spec := Spec }, Settings, #{ conns := Conns }=World) ->
-    
-    case cmencode:encode(Spec, #{ settings => Settings,
-                                  world => World}) of 
-        {ok, #{ app := Conn }} ->
-            case maps:get(Conn, Conns, undef) of
-                undef ->
-                    {error, #{ error => not_such_connection,
-                               info => Conn}};
-
-                #{ class := websocket, pid := Pid } ->
-                    cmkit:log({cmtest, disconnecting, Conn, Pid}),
-                    ok = cmwsc:stop(Pid),
-                    cmkit:log({cmtest, disconnected, Conn, Pid}),
-                    {ok, World}
-            end;
-        Other -> 
-            {error, #{ error => encode_error,
-                       info => Other}}
-    end;
 
 run(#{ type := expect, 
        spec := Spec }, Settings, #{ data := Data }=World) ->
@@ -646,6 +645,22 @@ run(#{ type := connect,
                        spec => Spec,
                        connection_id  => Other }}
     end;
+
+run(#{ type := disconnect, 
+       spec := Spec }, Settings, World) ->
+    
+    In = World#{ settings => Settings },
+    case cmencode:encode(Spec, In) of 
+        {ok, Name} when is_atom(Name) orelse is_binary(Name) ->
+            disconnect(Name, In, World);
+        {ok, Names} when is_list(Names) ->
+            disconnect(Names, In, World);
+        Other ->
+            {error, #{ error => invalid_connection_id,
+                       spec => Spec,
+                       connection_id  => Other }}
+    end;
+    
 
 run(#{ type := probe, 
        spec := #{ connection := ConnSpec,

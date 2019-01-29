@@ -54,8 +54,9 @@ handle_info(timeout, #{ data := Data }=State) ->
 handle_info({update, Data}, State) ->
     update(Data, State);
 
-handle_info({terminate, #{ status := Status}=Data}, #{ from := From }=State) ->
-    cmcore:update(From, Data),
+handle_info({terminate, #{ status := Status}=Data}, #{ app := Name,
+                                                       from := From }=State) ->
+    cmcore:update(From, Data#{ service => Name }),
     {stop, normal, State#{ reason => Status }};
 
 handle_info(Data, #{ from := From }=State) ->

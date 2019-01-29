@@ -5,10 +5,11 @@
          bag/1, 
          update/1,
          sorted_keys1/1,
-         sorted_keys2/1]).
+         sorted_keys2/1,
+         multiple_get/1 ]).
 -export([m1/0, m2/0, m3/0, m4/0, m5/0, m6/0, m7/0, m8/0, m9/0, m10/0, m11/0, m12/0]).
 
-all_f() -> [empty, distinct, bag, sorted_keys1, sorted_keys2].
+all_f() -> [empty, distinct, bag, sorted_keys1, sorted_keys2, multiple_get].
 all_m() -> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12].
 
 f() ->
@@ -61,6 +62,12 @@ sorted_keys2(Name) ->
     {ok, [E1, E2]} = cmdb:get(Name, a),
     ok = cmdb:put(Name, [E2, E1]),
     {ok, [E1, E2]} = cmdb:get(Name, a).
+
+multiple_get(Name) ->
+    E1 = {a, b, c, 0},
+    E2 = {a, c, b, 0},
+    ok = cmdb:put(Name, [E1, E2]),
+    {ok, [E1, E2]} = cmdb:get(Name, [{a, b, c}, {a, c, b}]).
 
 s() -> s(test).
 

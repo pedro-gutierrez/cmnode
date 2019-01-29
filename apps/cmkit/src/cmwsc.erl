@@ -14,8 +14,7 @@ send(Pid, Msg) ->
 check_and_send(Pid, Msg) ->
     case erlang:is_process_alive(Pid) of
         false ->
-                cmkit:log({cmwcs, Pid, dead, cannot_send, Msg}),
-                process_dead;
+            process_dead;
         true ->
             gen_statem:call(Pid, Msg)
     end.

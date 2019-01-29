@@ -37,17 +37,20 @@ init(#{ method := Method }=Req, #{ instruments := #{ increment := IncrFun },
                         {error, E} ->
                             cmkit:danger({http, App, update, E}),
                             reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1,
+                                                                          method => Method,
                                                                           start => Start })
                     end;
                 {error, E} ->
                     cmkit:danger({http, App, init, E}),
-                    reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1, 
+                    reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1,
+                                                                  methos => Method,
                                                                   start => Start })
             end;
         {error, E} -> 
             cmkit:danger({http, new, no_such_app, App, E}),
             reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1, 
-                                                        start => Start })
+                                                          method => Method,
+                                                          start => Start })
     end.
 
 info({update, Data}, Req, #{ app := App,
@@ -113,12 +116,6 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
     
     {stop, Req2, State};
     
-%%info(#{ status := Status } = Body, Req, State) when is_map(Body) ->
-%%    reply_and_ok(Status, json, Body, Req, State);
-%%
-%%info(Body, Req, State) when is_binary(Body) ->
-%%    reply_and_ok(ok, binary, Body, Req, State);
-
 info(Data, Req, State) ->
     reply_and_stop(error, json, #{ error => Data }, Req, State).
 
@@ -138,19 +135,8 @@ reply_and_stop(Status, Type, Body, Req, #{ method := Method,
 
     DurationFun(Method, Code, Elapsed2/1000),
     DecrFun(),
-    {stop, Req2, State}.
+    {ok, Req2, State}.
 
-
-%%reply_and_ok(Status, Type, Body, Req, #{ log := Log,
-%%                                         start := Start,
-%%                                         app := App }=State) ->
-%%    Elapsed = cmkit:elapsed(Start),
-%%    {Code, Headers, EncodedBody} = reply(Status, Type, Body),
-%%    Req2 = cowboy_req:reply(Code, Headers, EncodedBody, Req),
-%%    Elapsed2 = cmkit:elapsed(Start),
-%%    Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
-%%                                           render_time => Elapsed2 - Elapsed}}),
-%%    {ok, Req2, State}.
 
 reply(Status, Type, Body) ->
     {status(Status), headers(Type), response_body(Type, Body)}.

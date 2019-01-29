@@ -33,7 +33,7 @@ update(App, #{ model := M, cmds := C } = Spec, Config, In, {Model, Cmds}) ->
             case cmencode:encode(M, In2, Config) of
                 {ok, M2} ->
                     M3 = maps:merge(Model, M2),
-                    case resolve_cmds(App, C) of
+                    case resolve_cmds(App, C, M3) of
                         {ok, C2} ->
                             {ok, M3, Cmds ++ C2};
                         {error, E} ->
@@ -59,18 +59,18 @@ data_with_where(#{ where := WhereSpec }, Data, Model, Config) ->
         
 data_with_where(_, Data, Model, _) -> {ok, maps:merge(Model, Data)}.
 
-resolve_cmds(App, Cmds) ->
-    resolve_cmds(App, Cmds, []).
+resolve_cmds(App, Cmds, Model) ->
+    resolve_cmds(App, Cmds, Model, []).
 
-resolve_cmds(_, [], Out) -> {ok, lists:reverse(Out)};
-resolve_cmds(App, [Cmd|Rem], Out) ->
-    case resolve_cmd(App, Cmd) of
+resolve_cmds(_, [], _, Out) -> {ok, lists:reverse(Out)};
+resolve_cmds(App, [Cmd|Rem], Model, Out) ->
+    case resolve_cmd(App, Cmd, Model) of
         {ok, Cmd2} ->
-            resolve_cmds(App, Rem, [Cmd2|Out]);
+            resolve_cmds(App, Rem, Model, [Cmd2|Out]);
         {error, E} -> {error, E}
     end.
 
-resolve_cmd(#{ encoders := Encoders }, #{ encoder := Enc }=Cmd) ->
+resolve_cmd(#{ encoders := Encoders }, #{ encoder := Enc }=Cmd, _) ->
     case maps:get(Enc, Encoders, undef) of
         undef ->
             {error, unknown_encoder(Enc) };
@@ -78,14 +78,29 @@ resolve_cmd(#{ encoders := Encoders }, #{ encoder := Enc }=Cmd) ->
             {ok, Cmd#{ encoder => Encoder }}
     end;
 
-resolve_cmd(_, #{ encoder := Enc }) ->
+resolve_cmd(_, #{ encoder := Enc }, _) ->
     {error, unknown_encoder(Enc)};
 
-resolve_cmd(_, #{ effect := _ }=Cmd) ->
+resolve_cmd(_, #{ effect := _ }=Cmd, _) ->
     {ok, Cmd };
 
-resolve_cmd(_, Cmd) ->
-    {error, {invalid_cmd, Cmd}}.
+resolve_cmd(Encoders, CmdSpec, Model) ->
+    case cmencode:encode(CmdSpec, Model) of 
+        {ok, #{ encoder := _,
+                effect:= _ } = Spec} ->
+            resolve_cmd(Encoders, Spec, Model);
+
+        {ok, #{ effect := _ } = Spec} ->
+            resolve_cmd(Encoders, Spec, Model);
+        {ok, Other} ->
+            {error, #{ error => invalid_cmd,
+                       spec => CmdSpec,
+                       reason => Other }};
+        Other ->
+            {error, #{ error => invalid_cmd,
+                       spec => CmdSpec,
+                       reason => Other }}
+    end.
 
 unknown_encoder(Enc) ->
     #{ encoder => Enc,
@@ -148,49 +163,49 @@ first_clause([Spec|_], _, _, _) ->
 
 
 decode(#{ decoders := Decoders }, #{ effect := default,
-                                     data :=  Data }, Config) ->
+                                     data :=  Data }, Model, Config) ->
     
     DefaultDecoders = maps:get(default, Decoders, []),
-    decode_with(DefaultDecoders, Data, Config);
+    decode_with(DefaultDecoders, Data, Model, Config);
     
 decode(#{ decoders := Decoders }, #{ effect := Effect,
-                                     data :=  Data }, Config) ->
+                                     data :=  Data }, Model, Config) ->
     case maps:get(Effect, Decoders, undef) of 
         undef ->
             DefaultDecoders = maps:get(default, Decoders, []),
-            decode_with(DefaultDecoders, Data, Config);
+            decode_with(DefaultDecoders, Data, Model, Config);
         EffectDecoders ->
-            case decode_with(EffectDecoders, Data, Config) of 
+            case decode_with(EffectDecoders, Data, Model, Config) of 
                 {ok, Msg, Decoded} ->
                     {ok, Msg, Decoded};
                 {error, no_match} ->
                     DefaultDecoders = maps:get(default, Decoders, []),
-                    decode_with(DefaultDecoders, Data, Config)
+                    decode_with(DefaultDecoders, Data, Model, Config)
             end
     end;
 
-decode(#{ decoders := Decoders }, Data, Config) ->
+decode(#{ decoders := Decoders }, Data, Model, Config) ->
     DefaultDecoders = maps:get(default, Decoders, []),
-    decode_with(DefaultDecoders, Data, Config).
+    decode_with(DefaultDecoders, Data, Model, Config).
 
-decode_with([], _, _) -> {error, no_match};
+decode_with([], _, _, _) -> {error, no_match};
 
-decode_with([#{ msg := Msg, spec := Spec}|Rem], Data, Config) ->
-    case cmdecode:decode(Spec, Data, Config) of
+decode_with([#{ msg := Msg, spec := Spec}|Rem], Data, Model, Config) ->
+    case cmdecode:decode(Spec, Data, maps:merge(Config, Model)) of
         no_match ->
-            decode_with(Rem, Data, Config);
+            decode_with(Rem, Data, Model, Config);
         {ok, Decoded} ->
             {ok, Msg, Decoded}
     end;
 
-decode_with(_, _, _) -> {error, no_match}.
+decode_with(_, _, _, _) -> {error, no_match}.
 
 
 update(Pid, #{ name := App,
                spec := Spec,
                config := Config } = AppSpec, Data, Model, Log, Effects) ->
     Log({App, Pid, in, Data}),
-    case decode(Spec, Data, Config) of
+    case decode(Spec, Data, Model, Config) of
         {ok, Msg, Decoded} ->
             Log({App, Pid, decoded, Msg}),
             update(Pid, AppSpec,  Msg, Decoded, Model, Log, Effects);

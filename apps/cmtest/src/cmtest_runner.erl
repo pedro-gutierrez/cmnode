@@ -250,7 +250,6 @@ report(#{ settings := #{ name := SettingsName }=Settings,
           success := Success,
           fail := Fail 
         }=Data) -> 
-
     Result = lists:reverse(R),
     S = severity(Fail, Success, Total),
 
@@ -279,7 +278,7 @@ report(#{ settings := #{ name := SettingsName }=Settings,
                                                status := fail } <- R ],
 
     cmkit:S({cmtest, Q, SettingsName, Stats, Failures, Secs}),
-    save_report(Report),
+    save_report(Report, Data),
     finish(Data),
     
     Summary = #{ test => Q,
@@ -329,7 +328,11 @@ severity(_, _, _) -> warning.
 query(#{ query := all }) -> all;
 query(#{ query := test, test := #{ name := Name}}) -> Name.
 
-save_report(#{ query := Query } = R) -> 
+
+save_report(_, #{ test := #{ config := #{ report := false }}}) ->
+    cmkit:log({cmtest, report, skipped});
+
+save_report(#{ query := Query } = R, _) -> 
     Id = cmkit:uuid(),
     Pairs = cmtest_util:report_entries(R#{ id => Id }), 
     Res = cmdb:put(tests, Pairs),

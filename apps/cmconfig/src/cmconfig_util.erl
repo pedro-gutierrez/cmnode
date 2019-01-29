@@ -1056,7 +1056,6 @@ compile_term(#{ <<"calendar">> := #{
        factor => 3600*24,
        tense  => future };
 
-
 compile_term(#{ <<"encrypt">> := #{ <<"method">> := Method,
                                     <<"key">> := Key,
                                     <<"value">> := Value }}, Index) -> 
@@ -1741,7 +1740,7 @@ compile_term(#{ <<"connect">> := Spec } = Spec0, Index) ->
                     Expr3#{ as => compile_term(As, Index)}
             end,
               
-    Expr4;
+    with_debug(Spec, Expr4, Index);
 
 compile_term(#{ <<"probe">> := Spec }, Index) ->
 
@@ -1923,7 +1922,7 @@ compile_term(#{ <<"url">> := Url,
 
     Expr = #{ type => http,
               url => compile_term(Url, Index),
-              method => cmkit:to_atom(Method)
+              method => compile_term(Method, Index)
             },
 
     Expr2 = case maps:get(<<"headers">>, Spec, undef) of 

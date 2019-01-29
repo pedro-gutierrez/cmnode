@@ -41,8 +41,10 @@ run(#{ id := Id,
                 Other -> Other
             end;
         Other -> Other
-    end.
+    end;
 
+run(Test) ->
+    run(Test, local).
 
 run(Test, Settings) ->
     case cmconfig:settings(Settings) of 

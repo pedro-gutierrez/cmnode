@@ -310,8 +310,8 @@ encode(#{ type := keyword,
     {ok, Value};
 
 encode(#{ type := keyword,
-          spec :=  Other}, In, Config) ->
-    case encode(Other, In, Config) of 
+          spec := Spec}, In, Config) ->
+    case encode(Spec, In, Config) of 
         {ok, V} ->
             {ok, cmkit:to_atom(V)};
         Other ->
@@ -448,9 +448,13 @@ encode(#{ type := http,
         end,
 
     D = maps:get(debug, Spec, false),
-            
-
-    encode_http(Method, Url, Q, H, D, Body, In, Config);
+    
+    case encode(Method, In, Config) of 
+        {ok, M} ->
+            encode_http(M, Url, Q, H, D, Body, In, Config);
+        Other ->
+            Other
+    end;
 
 
 encode(#{ type := http,
@@ -469,7 +473,12 @@ encode(#{ type := http,
     
     D = maps:get(debug, Spec, false),
     
-    encode_http(Method, Url, Q, H, D, In, Config);
+    case encode(Method, In, Config) of 
+        {ok, M} ->
+            encode_http(M, Url, Q, H, D, In, Config);
+        Other ->
+            Other
+    end;
 
 
 encode(#{ type := http } = Spec, _, _) ->
@@ -804,6 +813,7 @@ encode(#{ type := encrypt,
             Other
     end;
 
+
 encode(#{ type := pub,
           topic := Topic,
           spec := Msg }, In, Config) ->
@@ -982,6 +992,16 @@ encode(#{ type := tail,
             Other
     end;
 
+encode(#{ type := lowercase,
+          spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, Bin} when is_binary(Bin) ->
+            {ok, cmkit:lower_bin(Bin)};
+        {ok, Other} ->
+            fail(Other, In, Other);
+        Other ->
+            Other
+    end;
 
 encode(#{ type := format, 
           pattern := PatternSpec,
@@ -1291,53 +1311,59 @@ encode(#{ type := merge,
 
 encode(#{ type := connect,
           as := As,
+          debug := Debug,
           timeout := TimeoutSpec,
           spec := Spec }=Spec0, In, Config) -> 
     case encode(As, In, Config) of 
         {ok, Name} ->
             case encode(TimeoutSpec, In, Config) of
                 {ok, Timeout} ->
-                    case encode(Spec, In, Config) of 
-                        {ok, #{ host := _,
-                                port := _,
-                                transport := Transport,
-                                path := _ } = Config0 } ->
+                    case encode(Debug, In, Config) of 
+                        {ok, D} ->
+                            case encode(Spec, In, Config) of 
+                                {ok, #{ host := _,
+                                        port := _,
+                                        transport := Transport,
+                                        path := _ } = Config0 } ->
 
-                            Config1 = Config0#{ debug => true,
-                                                timeout => Timeout,
-                                                persistent => false },
+                                    Config1 = Config0#{ debug => D,
+                                                        timeout => Timeout,
+                                                        persistent => false },
 
-                            Config2 = case maps:get(protocol, Spec0, undef) of
-                                          undef -> Config1;
-                                          Protocol ->
-                                              Config1#{ protocol => Protocol }
-                                      end,
+                                    Config2 = case maps:get(protocol, Spec0, undef) of
+                                                  undef -> Config1;
+                                                  Protocol ->
+                                                      Config1#{ protocol => Protocol }
+                                              end,
 
-                            case cmkit:to_bin(Transport) of 
-                                T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
-                                    Url = cmkit:url(Config2),
-                                    {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
-                                    {ok, #{ connection => Config2#{ name => Name,
-                                                                    transport => Transport,
-                                                                    class => websocket,
-                                                                    pid => Pid,
-                                                                    status => undef,
-                                                                    inbox => [],
-                                                                    url => Url }}};
+                                    case cmkit:to_bin(Transport) of 
+                                        T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
+                                            Url = cmkit:url(Config2),
+                                            {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
+                                            {ok, #{ connection => Config2#{ name => Name,
+                                                                            transport => Transport,
+                                                                            class => websocket,
+                                                                            pid => Pid,
+                                                                            status => undef,
+                                                                            inbox => [],
+                                                                            url => Url }}};
 
-                                T when T =:= <<"http">> orelse T =:= <<"https">> ->
-                                    Url = cmkit:url(Config2),
-                                    Res = cmhttp:get(Url),
-                                    Status = case Res of
-                                                 {ok, _} -> up;
-                                                 {error, S} -> S
-                                             end,
-                                    {ok, #{ connection => Config2#{ name => Name,
-                                                                    transport => Transport,
-                                                                    class => http,
-                                                                    status => Status,
-                                                                    inbox => [],
-                                                                    url => Url }}}
+                                        T when T =:= <<"http">> orelse T =:= <<"https">> ->
+                                            Url = cmkit:url(Config2),
+                                            Res = cmhttp:get(Url),
+                                            Status = case Res of
+                                                         {ok, _} -> up;
+                                                         {error, S} -> S
+                                                     end,
+                                            {ok, #{ connection => Config2#{ name => Name,
+                                                                            transport => Transport,
+                                                                            class => http,
+                                                                            status => Status,
+                                                                            inbox => [],
+                                                                            url => Url }}}
+                                    end;
+                                Other ->
+                                    Other
                             end;
                         Other ->
                             Other
@@ -1441,7 +1467,8 @@ encode(#{ type := hash,
           spec := Hash }, In, Config) -> 
     case encode(Hash, In, Config) of 
         {ok, Encoded} -> 
-            {ok, cmkit:hash(Encoded)};
+            Hashed =  cmkit:hash(Encoded),
+            {ok, Hashed};
         Other -> 
             Other
     end;

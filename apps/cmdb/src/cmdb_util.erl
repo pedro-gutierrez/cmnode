@@ -242,6 +242,9 @@ get(memory, Name, S) ->
     {ok, [ {S, P, O, H, T, V} 
            || [P, O, H, T, V] <- ets:match(Name, {{S, '$1', '$2', '$3', '$4'}, '$5'})]}; 
 
+get(disc, Name, Keys) when is_list(Keys) ->
+    get_all(disc, Name, Keys, []);
+
 get(disc, Name, S) ->
     fold(Name, {S, 0, 0, 0, 0}, fun({S0, P, O, H, M}, V) 
                                       when S0 =:= S ->
@@ -249,6 +252,19 @@ get(disc, Name, S) ->
                                    (_, _) ->
                                         stop
                                 end).
+
+get_all(disc, _, [], Out) -> 
+    {ok, lists:flatten(lists:reverse(Out))};
+get_all(disc, Name, [{S}|Rem], Out) ->
+    {ok, Entries} = get(disc, Name, S),
+    get_all(disc, Name, Rem, [Entries|Out]);
+get_all(disc, Name, [{S, P}|Rem], Out) ->
+    {ok, Entries} = get(disc, Name, S, P),
+    get_all(disc, Name, Rem, [Entries|Out]);
+
+get_all(disc, Name, [{S, P, O}|Rem], Out) ->
+    {ok, Entries} = get(disc, Name, S, P, O),
+    get_all(disc, Name, Rem, [Entries|Out]).
 
 get(memory, Name, S, P) -> 
     {ok, [ {S, P, O, H, T, V} 
