@@ -1,0 +1,73 @@
+type: module
+name: login_api
+spec:
+  decoders:
+    login:
+      object:
+        method: POST
+        headers:
+          app:
+            any: text
+        body:
+          object:
+            email:
+              any: email
+            password:
+              non_empty: text
+    success:
+      object:
+        status:
+          keyword: ok
+        user:
+          any: object
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    login:
+      model:
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+        email:
+          key: body.email
+        passwd:
+          key: body.password
+      cmds:
+        - effect: service
+          encoder: login
+    error:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    success:
+      model:
+        user:
+          key: user
+      cmds:
+        - effect: terminate
+          encoder: success
+  encoders:
+    login:
+      object:
+        service: login
+        params:
+          object:
+            email:
+              key: email
+            passwd:
+              key: passwd
+            bucket:
+              keyword:
+                key: app.db
+    success:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body:
+          key: user

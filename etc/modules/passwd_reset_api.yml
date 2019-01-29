@@ -1,0 +1,73 @@
+type: module
+name: passwd_reset_api 
+spec:
+  decoders:
+    init:
+      object:
+        method: POST
+        headers:
+          app:
+            any: text
+        body:
+          object:
+            email:
+              any: email
+            token:
+              any: text
+            password:
+              non_empty: text
+    forbidden:
+      object:
+        status: 
+          keyword: error
+    success:
+      object:
+        status:
+          keyword: ok
+  update:
+    init:
+      model:
+        uid:
+          hash:
+            lowercase:
+              key: body.email
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+        details:
+          key: body
+      cmds:
+        - effect: service
+          encoder: passwd_reset
+    forbidden:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    success:
+      cmds:
+        - effect: terminate
+          encoder: created
+  encoders:
+    passwd_reset:
+      object:
+        service: passwd_reset
+        params:
+          object:
+            bucket:
+              keyword:
+                key: app.db
+            account:
+              key: app.emails
+            email:
+              key: details.email
+            token:
+              key: details.token
+            passwd:
+              key: details.password
+            uid:
+              key: uid
+            token_key:
+              key: app.password.reset.sign_key

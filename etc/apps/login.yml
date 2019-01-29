@@ -1,0 +1,9 @@
+type: app
+name: login 
+spec: 
+  debug: true
+  tags:
+    - service
+  modules:
+    - common_service
+    - login

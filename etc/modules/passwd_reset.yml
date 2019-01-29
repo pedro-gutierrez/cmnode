@@ -1,0 +1,159 @@
+type: module
+name: passwd_reset 
+spec:
+  decoders:
+    reset:
+      object:
+        bucket:
+          any: keyword
+        account:
+          object:
+            id:
+              non_empty: text
+            enabled:
+              any: keyword
+        email:
+          any: email
+        passwd:
+          non_empty: text
+        token:
+          non_empty: text
+        uid:
+          any: number
+        token_key:
+          non_empty: text
+    token_success:
+      object:
+        jwt:
+          object:
+            uid:
+              key: uid
+            acl: 0
+    token_error:
+      object:
+        jwt:
+          object:
+            uid:
+              other_than:
+                key: uid
+    password_success:
+      object:
+        context:
+          keyword: password
+        status:
+          keyword: ok
+    email_success:
+      object:
+        service: email 
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          other_than:
+            keyword: ok
+  update:
+    reset:
+      model:
+        object:
+          account:
+            key: account
+          email:
+            key: email
+          passwd:
+            key: passwd
+          token:
+            key: token
+          bucket:
+            key: bucket
+          uid:
+            key: uid
+          token_key:
+            key: token_key
+      cmds:
+        - effect: jwt
+          encoder: token_verification
+    token_success:
+      cmds:
+        - effect: db
+          encoder: password
+    password_success:
+      - when:
+          eq:
+            - keyword: true
+            - key: account.enabled
+        cmds:
+          - effect: service 
+            encoder: confirmation
+      - cmds:
+          - effect: terminate
+            encoder: success
+    email_success:
+      cmds:
+        - effect: terminate
+          encoder: success
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+    token_error:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+  encoders:
+    success:
+      object:
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          keyword: error
+    forbidden:
+      object:
+        status:
+          keyword: error
+        error:
+          keyword: forbidden
+    token_verification:
+      object:
+        context:
+          keyword: token
+        verify:
+          key: token
+        key:
+          key: token_key
+    password:
+      object:
+        context:
+          keyword: password
+        bucket:
+          key: bucket
+        put:
+          object:
+            subject: passwd
+            predicate: for
+            object:
+              key: uid
+            value:
+              key: passwd
+    confirmation:
+      object:
+        service: email
+        params:
+          account:
+            key: account.id
+          to:
+            key: email
+          subject: "Password confirmation"
+          body:
+            format: |+
+              The password for {{email}} was succesfully updated.
+
+              If you think you received this message by mistake, you can ignore it or contact support at support@{{account}}.
+            params:
+              object:
+                account:
+                  key: account.id
+                email:
+                  key: email

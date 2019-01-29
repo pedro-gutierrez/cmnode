@@ -1,0 +1,13 @@
+type: port
+name: api 
+spec:
+  port: 4000
+  apps:
+    init:
+      http: "/api/init"
+    register_api:
+      http: "/api/register"
+    login_api:
+      http: "/api/login"
+    passwd_reset_api:
+      http: "/api/password/reset"

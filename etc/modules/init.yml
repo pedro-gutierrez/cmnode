@@ -1,0 +1,60 @@
+type: module 
+name: init 
+spec:
+  decoders:
+    init:
+      object:
+        method: POST
+        headers:
+          app:
+            any: text
+    success:
+      object:
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          other_than:
+            keyword: ok
+  update:
+    init:
+      model:
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+      cmds:
+        - effect: db
+          encoder: init
+    success:
+      cmds:
+        - effect: notify
+          encoder: success
+    error:
+      cmds:
+        - effect: notify
+          encoder: error
+  encoders:
+    init:
+      context: init
+      reset:
+        keyword:
+          key: app.db
+    error:
+      object:
+        status: 500
+        headers:
+          content-type: application/json
+        body:
+          object: {}
+    success:
+      object:
+        status: 201
+        headers:
+          content-type: application/json
+        body:
+          object: {}
+

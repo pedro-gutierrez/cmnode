@@ -1,0 +1,57 @@
+type: module
+name: email 
+spec:
+  decoders:
+    send:
+      object:
+        account:
+          non_empty: text 
+        to:
+          any: email
+        subject:
+          non_empty: text
+        body:
+          non_empty: text
+  update:
+    send:
+      model:
+        object:
+          account:
+            key: account 
+          to:
+            key: to
+          subject:
+            key: subject
+          body:
+            key: body
+      cmds:
+        - effect: http
+          encoder: email
+  encoders:
+    email:
+      object:
+        debug: true
+        context: email
+        method: post
+        url:
+          config:
+            key: url
+            in:
+              key: account
+        headers:
+          config:
+            key: headers
+            in:
+              key: account
+        body:
+          From:
+            config:
+              key: from
+              in:
+                key: account
+          To:
+            key: to
+          Subject:
+            key: subject
+          TextBody:
+            key: body

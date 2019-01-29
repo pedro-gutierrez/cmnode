@@ -1,0 +1,165 @@
+type: module
+name: login 
+spec:
+  decoders:
+    login:
+      object:
+        bucket:
+          any: keyword
+        email:
+          any: email
+        passwd:
+          any: text
+    password_success:
+      object:
+        context:
+          keyword: passwd 
+        status:
+          keyword: ok
+        data:
+          list:
+            object:
+              value:
+                key: passwd
+
+    user_success:
+      object:
+        context:
+          keyword: user
+        status:
+          keyword: ok
+        data:
+          list:
+            object:
+              value:
+                object:
+                  first:
+                    any: text
+                  last:
+                    any: text
+                  uid:
+                    key: uid
+                  email:
+                    any: email
+    token_success:
+      object:
+        context:
+          keyword: token
+        status:
+          keyword: ok
+        jwt:
+          any: data
+    error:
+      one_of:
+        - object:
+            context:
+              keyword: passwd 
+            status:
+              keyword: ok
+            data:
+              list:
+                object:
+                  value:
+                    other_than:
+                      key: passwd
+        - object:
+            context:
+              keyword: user 
+            status:
+              keyword: ok
+            data:
+              empty: list
+        - object:
+            status:
+              keyword: error
+  update:
+    login:
+      model:
+        object:
+          uid:
+            hash:
+              lowercase:
+                key: email
+          bucket:
+            key: bucket
+          email:
+            key: email
+          passwd:
+            key: passwd
+      cmds:
+        - effect: db
+          encoder: query_for_passwd
+    password_success:
+      cmds:
+        - effect: db
+          encoder: query_for_user
+    user_success:
+      model:
+        object:
+          user:
+            key: value
+            in:
+              head:
+                key: data
+      cmds:
+        - effect: jwt
+          encoder: token
+    token_success:
+      model:
+        object:
+          user:
+            merge:
+              - key: user
+              - object:
+                  token:
+                    key: jwt
+      cmds:
+        - effect: terminate
+          encoder: profile
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    query_for_passwd:
+      object:
+        context:
+          keyword: passwd
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject: passwd
+            predicate: for
+            object:
+              key: uid
+    query_for_user:
+      object:
+        context:
+          keyword: user
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject: user 
+            predicate: is
+            object:
+              key: uid
+    token:
+      object:
+        context:
+          keyword: token
+        ttl: 6480000
+        key: key1
+        sign:
+          uid:
+            key: user.uid
+          acls: 
+            - profile
+    profile:
+      object:
+        status:
+          keyword: ok
+        user:
+          key: user
+

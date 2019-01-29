@@ -1,0 +1,258 @@
+type: test 
+name: api 
+spec:
+  config:
+    retries: 50
+    wait: 10
+  facts:
+    baseUrl: "http://localhost:4000/api"
+    app: test
+    baseHeaders:
+      object:
+        content-type: application/json
+  scenarios:
+    - title: "Should not register twice"
+      tags:
+        - register
+      steps:
+        - "Given an empty database"
+        - "Given user details for alice"
+        - "Given that user is registered"
+        - "Register that user"
+        - "Expect a 409 Conflict"
+
+    - title: "Should reset passwords"
+      tags: 
+        - register
+        - passwd_reset
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given a fake email"
+        - "When I reset that password"
+        - "Then I should expect a forbidden error"
+        - "Given alice's email"
+        - "Given a fake token"
+        - "When I reset that password"
+        - "Then I should expect a forbidden error"
+
+    - title: "Should expire reset password tokens"
+      tags: 
+        - expire
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I reset that password"
+        - "Expect a 201 Created"
+        - "When I wait 1 second"
+        - "When I reset that password"
+        - "Then I should expect a forbidden error"
+       
+    - title: "Should login"
+      tags:
+        - login
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I login"
+        - "Then I should expect a uid"
+        - "Then I should expect a token"
+        - "Given a fake password"
+        - "When I login"
+        - "Then I should expect a forbidden error"
+        - "Given password foo"
+        - "Given a fake email"
+        - "Then I should expect a forbidden error"
+         
+  backgrounds:
+    - title: "Given an empty database"
+      steps:
+        - "Reset the database"
+        - "Expect a 201 Created"
+    - title: "Given that user is registered"
+      steps:
+        - "Register that user"
+        - "Expect a 201 Created"
+    - title: "Given user alice with password foo"
+      steps:
+        - "Given user details for alice"
+        - "Register that user"
+        - "Expect a 201 Created"
+        - "Then I should expect a token"
+        - "Given alice's email"
+        - "Given password foo"
+        - "When I reset that password"
+        - "Expect a 201 Created"
+
+  steps:
+    - title: "Reset the database"
+      procedure: api
+      params:
+        method: post
+        path: "/init"
+    - title: "Register that user"
+      procedure: api
+      params:
+        method: post
+        path: "/register"
+        headers:
+          object:
+            app:
+              key: facts.app
+        body:
+          key: data.details
+    - title: "When I reset that password"
+      procedure: api
+      params:
+        method: post
+        path: "/password/reset"
+        body:
+          email:
+            key: data.email
+          password:
+            key: data.password
+          token:
+            key: data.token
+    - title: "When I login"
+      procedure: api
+      params:
+        debug: true
+        method: post
+        path: "/login"
+        body:
+          email:
+            key: data.email
+          password:
+            key: data.password
+    - title: "Given user details for alice"
+      set:
+        details:
+          first: "Alice"
+          last: "In Chains"
+          email: "alice@mail.com"
+          lang: "en"
+    - title: "When I wait 1 second"
+      wait:
+        seconds: 1
+    - title: "Given alice's email"
+      set:
+        email: "alice@mail.com"
+    - title: "Given a fake email"
+      set:
+        email: "fake@mail.com"
+    - title: "Given a fake token"
+      set:
+        token: "fake"
+    - title: "Given a fake password"
+      set:
+        password: "fake"
+    - title: "Given password foo"
+      set:
+        password: "foo"
+    - title: "Expect a 201 Created"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            status: 201
+    - title: "Expect a 409 Conflict"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            status: 409
+    - title: "Then I should expect a forbidden error"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            status: 401
+    - title: "Then I should expect a token"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            body:
+              token:
+                any: text
+        remember:
+          token:
+            key: body.token
+    - title: "Then I should expect a uid"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            body:
+              uid:
+                any: number
+        remember:
+          uid:
+            key: body.uid
+  procedures:
+    - name: api
+      spec:
+        either:
+          - when:
+              is_set:
+                key: params.body
+            http:
+              method:
+                keyword: 
+                  one_of:
+                    - key: params.method
+                    - get
+              url:
+                format: "~s~s"
+                params:
+                  - key: facts.baseUrl
+                  - key: params.path
+              headers:
+                merge:
+                  - key: facts.baseHeaders
+                  - object:
+                      app:
+                        key: facts.app
+                  - one_of:
+                      - key: params.headers
+                      - object: {}
+              body:
+                key: params.body
+            debug:
+              one_of:
+                - key: params.debug
+                - false
+          - http:
+              method:
+                keyword: 
+                  one_of:
+                    - key: params.method
+                    - get
+              url:
+                format: "~s~s"
+                params:
+                  - key: facts.baseUrl
+                  - key: params.path
+              headers:
+                merge:
+                  - key: facts.baseHeaders
+                  - object:
+                      app:
+                        key: facts.app
+                  - one_of:
+                      - key: params.headers
+                      - object: {}
+            debug:
+              one_of:
+                - key: params.debug
+                - false
+      as:
+        keyword:
+          one_of:
+            - key: params.as
+            - latest

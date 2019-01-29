@@ -1,0 +1,9 @@
+type: app
+name: passwd_remind
+spec: 
+  debug: true
+  tags:
+    - service
+  modules:
+    - common_service
+    - passwd_remind

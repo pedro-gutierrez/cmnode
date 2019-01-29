@@ -1,0 +1,5 @@
+type: bucket
+name: tests
+spec:
+  storage: disc
+  debug: false 

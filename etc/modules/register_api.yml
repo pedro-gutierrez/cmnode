@@ -1,0 +1,122 @@
+type: module
+name: register_api
+spec:
+  decoders:
+    register:
+      object:
+        method: POST
+        headers:
+          app:
+            any: text
+        body:
+          object:
+            first:
+              non_empty: text
+            last:
+              non_empty: text
+            email:
+              any: email
+            lang:
+              any: text
+    registered:
+      object:
+        service: register
+        status:
+          keyword: ok
+        uid:
+          any: number
+    conflict:
+      object:
+        service: register
+        status:
+          keyword: conflict
+    passwd_remind_token:
+      object:
+        service: passwd_remind
+        status:
+          keyword: ok
+        token:
+          any: text
+    passwd_remind_sent:
+      all:
+        - object:
+            service: passwd_remind
+            status:
+              keyword: ok
+        - without_keys:
+            - token
+  update:
+    register:
+      model:
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+        details:
+          key: body
+      cmds:
+        - effect: service
+          encoder: registration
+    registered:
+      model:
+        uid:
+          key: uid
+      cmds:
+        - effect: service
+          encoder: passwd_remind
+    conflict:
+      cmds:
+        - effect: terminate
+          encoder: conflict
+    passwd_remind_token:
+      model:
+        token:
+          key: token
+      cmds:
+        - effect: terminate
+          encoder: success_with_token
+    passwd_remind_sent:
+      cmds:
+        - effect: terminate
+          encoder: created
+  encoders:
+    registration:
+      object:
+        service: register
+        params:
+          merge:
+            - key: details
+            - object:
+                bucket:
+                  keyword:
+                    key: app.db
+    passwd_remind:
+      object:
+        service: passwd_remind
+        params:
+          object:
+            bucket:
+              keyword:
+                key: app.db
+            account:
+              key: app.emails
+            email:
+              key: details.email
+            lang:
+              key: details.lang
+            uid:
+              key: uid
+            token_ttl:
+              key: app.password.reset.ttl
+            token_key:
+              key: app.password.reset.sign_key
+    success_with_token:
+      object:
+        status: 201
+        headers:
+          content-type: application/json
+        body:
+          token:
+            key: token

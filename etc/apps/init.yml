@@ -1,0 +1,7 @@
+type: app
+name: init 
+spec:
+  modules:
+    - init
+  settings:
+    - apps

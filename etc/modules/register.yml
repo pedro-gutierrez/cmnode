@@ -1,0 +1,101 @@
+type: module
+name: register
+spec:
+  decoders:
+    register:
+      object:
+        bucket:
+          any: keyword
+        first:
+          non_empty: text
+        last:
+          non_empty: text
+        email:
+          any: email
+        lang:
+          one_of:
+            - en
+            - fr
+            - es
+    success:
+      object: 
+        context: registration
+        status: 
+          keyword: ok
+    error:
+      object:
+        status:
+          keyword: error
+        error:
+          other_than:
+            keyword: conflict
+    conflict:
+      object: 
+        context: registration
+        status:
+          keyword: error
+        error: 
+          keyword: conflict
+  update:
+    register:
+      model:
+        object:
+          uid:
+            hash:
+              lowercase:
+                key: email
+          bucket:
+            key: bucket
+          first:
+            key: first
+          last:
+            key: last
+          email:
+            key: email
+          lang:
+            key: lang
+      cmds:
+        - effect: db
+          encoder: registration
+    success:
+      cmds:
+        - effect: terminate
+          encoder: success
+    conflict:
+      cmds:
+        - effect: terminate
+          encoder: conflict
+  encoders:
+    success:
+      object:
+        status:
+          keyword: ok
+        uid:
+          key: uid
+    conflict:
+      object:
+        status:
+          keyword: conflict
+    registration:
+      object:
+        context: registration
+        bucket:
+          key: bucket
+        insert:
+          object:
+            subject: user 
+            predicate: is 
+            object:
+              key: uid
+            value:
+              object:
+                first:
+                  key: first
+                last:
+                  key: last
+                uid:
+                  key: uid
+                email:
+                  key: email
+                lang:
+                  key: lang

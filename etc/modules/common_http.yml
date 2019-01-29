@@ -1,0 +1,29 @@
+type: module
+name: common_http
+spec:
+  decoders:
+    error:
+      object:
+        status:
+          other_than: 200
+    success:
+      object:
+        status: 200
+  update:
+    success:
+      cmds:
+        - effect: terminate
+          encoder: success
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    success:
+      object:
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          keyword: error

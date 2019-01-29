@@ -1,0 +1,8 @@
+type: app
+name: passwd_reset_api
+spec:
+  modules:
+    - common_api
+    - passwd_reset_api
+  settings:
+    - apps

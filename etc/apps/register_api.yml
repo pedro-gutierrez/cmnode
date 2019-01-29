@@ -1,0 +1,8 @@
+type: app
+name: register_api
+spec:
+  modules:
+    - common_api
+    - register_api
+  settings:
+    - apps

@@ -1,0 +1,24 @@
+type: module 
+name: app 
+spec:
+  decoders:
+    app:
+      object:
+        headers:
+          app:
+            any: text
+    missing_app:
+      object:
+        headers:
+          without_keys:
+            - app
+  update:
+    app:
+      model:
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+  encoders: {}

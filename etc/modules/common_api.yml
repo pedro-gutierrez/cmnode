@@ -1,0 +1,26 @@
+type: module
+name: common_api
+spec:
+  encoders:
+    created:
+      object:
+        status: 201
+        headers:
+          content-type: application/json
+        body: {}
+    internal_error:
+        status: 500
+        headers:
+          content-type: application/json
+        body: {}
+    conflict:
+        status: 409
+        headers:
+          content-type: application/json
+        body: {}
+    forbidden:
+      object:
+        status: 401
+        headers:
+          content-type: application/json
+        body: {}

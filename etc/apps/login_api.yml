@@ -1,0 +1,8 @@
+type: app
+name: login_api
+spec:
+  modules:
+    - common_api
+    - login_api
+  settings:
+    - apps

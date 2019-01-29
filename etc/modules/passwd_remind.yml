@@ -1,0 +1,136 @@
+type: module
+name: passwd_remind
+spec:
+  decoders:
+    init:
+      object:
+        bucket:
+          any: keyword
+        account:
+          object:
+            id:
+              non_empty: text
+            enabled:
+              any: keyword
+        email:
+          any: email
+        lang:
+          any: text
+        uid:
+          any: number
+        token_ttl:
+          any: number
+        token_key:
+          non_empty: text
+    token_success:
+      object:
+        jwt:
+          any: data
+    email_success:
+      object:
+        service: email
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    init:
+      model:
+        object:
+          token_ttl:
+            key: token_ttl
+          token_key:
+            key: token_key
+          bucket:
+            key: bucket
+          account:
+            key: account
+          email:
+            key: email
+          lang:
+            key: lang
+          uid:
+            key: uid
+      cmds:
+        - effect: jwt
+          encoder: token
+    token_success:
+      model:
+        object:
+          token:
+            key: jwt
+      cmds:
+        - either:
+            - when:
+                eq:
+                  - keyword: true
+                  - key: account.enabled
+              effect: service
+              encoder: email_remind
+            - effect: terminate
+              encoder: success_with_token
+    email_success:
+      cmds:
+        - effect: terminate
+          encoder: success
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    success:
+      object:
+        status:
+          keyword: ok
+    success_with_token:
+      object:
+        status:
+          keyword: ok
+        token:
+          key: token
+    error:
+      object:
+        status:
+          keyword: error
+    token:
+      object:
+        context:
+          keyword: token
+        ttl:
+          key: token_ttl
+        key:
+          key: token_key
+        sign:
+          uid:
+            key: uid
+          acl: 0
+    email_remind:
+      object:
+        service: email
+        params:
+          account:
+            key: account.id
+          to:
+            key: email
+          subject: "Password request"
+          body:
+            format: |+
+              A password reset was requested on Postmark using your email address.
+              
+              To reset the password for {{email}}, follow the link below.
+              
+              https://{{account}}/#reset={{token}}
+              
+              P.S. The password reset links are only valid for next 30 minutes.
+              
+              If you think you received this message by mistake, you can ignore it or contact support at support@{{account}}.
+            params:
+              object:
+                email:
+                  key: email
+                account:
+                  key: account.id
+                token:
+                  key: token

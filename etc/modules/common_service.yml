@@ -1,0 +1,17 @@
+type: module
+name: common_service 
+spec:
+  update:
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    success:
+      object:
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          keyword: error
