@@ -1,10 +1,8 @@
 type: port
 name: api 
 spec:
-  port: 4000
+  port: 4001
   apps:
-    init:
-      http: "/api/init"
     register_api:
       http: "/api/register"
     login_api:

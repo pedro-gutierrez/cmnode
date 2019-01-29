@@ -1,0 +1,7 @@
+type: app
+name: dns 
+spec:
+  modules:
+    - dns
+  settings:
+    - namecheap
