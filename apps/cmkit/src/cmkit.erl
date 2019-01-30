@@ -1,5 +1,5 @@
 -module(cmkit).
--export([is_true/1, log/1, log_fun/1, print/2, home/0, env/1, etc/0, data/0, data/1, data/2, assets/0, asset/1, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, fmt_named/2, jsone/1, jsone/2, jsond/1, yamld/1, millis_since/1, micros_since/1, elapsed/1, seconds/0, micros/0, millis/0, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_float/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, sname/1, node_names/2, node_name/2, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, node_for_host/2, node_for_host/3, intersection/2, closest_node/1, uniconvert/1, map_join/3, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, to_list/3, date_as_map/1, format_date/1, format_date/2, parse_date/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1, to_millis/1, find_by/3, top/2, is_string/1, read_file/1, tar/2, prefix/2, file_info/1, stream_error/4, stream_file/1, printable/1, printable/2, cast/4, encrypt/2, decrypt/2, hex/1, reregister/2, is_json/1, replace/3, merge/2, app_env/2, set_app_env/3, app_env/3, set_app_env/4, capitalize/1, is_application_started/1, ipv4/0]).
+-export([is_true/1, log/1, log_fun/1, print/2, home/0, env/1, etc/0, data/0, data/1, data/2, assets/0, asset/1, yamls/0, yamls/1, yamls/2, yaml/1, files/2, config/2, config/3, err/1, fmt/2, fmt_named/2, xmld/1, jsone/1, jsone/2, jsond/1, yamld/1, millis_since/1, micros_since/1, elapsed/1, seconds/0, micros/0, millis/0, now/0, uuid/0, ret/1, child_spec/2, child_spec/3, child_spec/4, child_spec/5, worker_child_specs/1, worker_child_spec/1, parse/2, diff_mins/2, diff_secs/2, mins_since/1, match_map/2, search_map/2, search_map/3, implements/2, lower_bin/1, list_without/2, to_float/2, to_number/1, to_number/2, bin_to_number/1, distinct/1, ip_str/1, to_atom/1, to_bin/1, sname/0, sname/1, node_names/2, node_name/2, node_host/1, node_host_short/1,  hosts_to_nodes/1, node_for_host/1, node_for_host/2, node_for_host/3, intersection/2, closest_node/1, uniconvert/1, map_join/3, bin_join/1, bin_join/2, bin_split/2, bin_trim/1, to_list/1, to_list/3, date_as_map/1, format_date/1, format_date/2, parse_date/1, fmt_date/0, mkdirp/1, host/0, value_at/2, is_email/1, has_all_keys/2, watch/1, to_lower/1, hash/1, url/3, url/1, print/3, success/1, danger/1, warning/1, to_millis/1, find_by/3, top/2, is_string/1, read_file/1, tar/2, prefix/2, file_info/1, stream_error/4, stream_file/1, printable/1, printable/2, cast/4, encrypt/2, decrypt/2, hex/1, reregister/2, is_json/1, replace/3, merge/2, app_env/2, set_app_env/3, app_env/3, set_app_env/4, capitalize/1, is_application_started/1, ipv4/0]).
 -include_lib("kernel/include/file.hrl").
 -define(NOT_FOUND, {error, not_found}).
 
@@ -115,6 +115,17 @@ yamld(Str) when is_list(Str) ->
     catch
         _:Error ->
             {error, Error}
+    end.
+
+xmld(Str) when is_list(Str) ->
+    try  
+        {Element, _} = xmerl_scan:string(Str, [{space, normalize}]),
+        [Clean] = xmerl_lib:remove_whitespace([Element]),
+        Clean2 = xmerl_lib:simplify_element(Clean),
+        {ok, Clean2}
+    catch
+        _:_ ->
+            {error, Str}
     end.
 
 jsond(Bin) when is_binary(Bin) ->

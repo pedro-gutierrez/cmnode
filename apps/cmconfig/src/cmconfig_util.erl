@@ -1775,6 +1775,10 @@ compile_term(#{ <<"send">> := Spec }, Index) ->
      };
 
 
+compile_term(#{ <<"fail">> := Spec }, Index) ->
+    #{ type => fail,
+       spec => compile_term(Spec, Index) };
+
 compile_term(#{ <<"receive">> := 
                 #{ <<"from">> := From,
                    <<"spec">> := Spec,

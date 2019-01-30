@@ -216,6 +216,12 @@ handle({ok, {{_, Code, _}, Headers, Body}}, Opts) ->
                 {ok, Term} -> Term;
                 _ -> Body
             end;
+        xml ->
+            case cmkit:xmld(Body) of 
+                {ok, Term} -> Term;
+                _ -> 
+                    Body
+            end;
         _ -> Body
     end,
 
@@ -236,7 +242,13 @@ decoded_mime(Headers) ->
         false -> missing;
         {"content-type", CT} ->
             case string:str(CT, "json") of 
-                0 -> CT;
+                0 -> 
+                    case string:str(CT, "xml") of 
+                        0 -> 
+                            CT;
+                        _ -> 
+                            xml
+                    end;
                 _ -> json
             end
     end.

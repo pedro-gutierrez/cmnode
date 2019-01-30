@@ -90,24 +90,18 @@ run_steps(#{ test := #{ name := Name },
             StepStarted = step_started(Data),
             Res = cmtest_util:run(Step, Settings, World),
             case Res of 
-                retry ->
+                {retry, World2} ->
                     Elapsed = cmkit:millis_since(ScenarioStarted),
-                    World2 = retried(World#{ elapsed => Elapsed }),
-                    %cmkit:warning({cmtest, #{ test => Name,
-                    %                          scenario => Title,
-                    %                          step => StepTitle,
-                    %                          step_started => StepStarted,
-                    %                          step_elapsed => cmkit:millis_since(StepStarted),
-                    %                          retries => Retries,
-                    %                          pid => self()}}),
+                    World3 = retried(World2#{ elapsed => Elapsed }),
                     {keep_state, Data#{ step_started => StepStarted,
-                                        world => World2  }, 
+                                        world => World3 }, 
                         [{state_timeout, Wait, retry}]};
                 
                 {ok, World2} ->
                     Elapsed = cmkit:millis_since(ScenarioStarted),
                     StepMillis = cmkit:millis_since(StepStarted),
-                    World3 = World2#{ retries => Retries#{ left => MaxRetries },
+                    World3 = World2#{ inverse => false,
+                                      retries => Retries#{ left => MaxRetries },
                                       elapsed => Elapsed },
 
                     PrintableWorld = printable_world(World3),

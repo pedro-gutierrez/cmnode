@@ -448,7 +448,7 @@ probe(Name, Status, #{ conns := Conns } = World) when is_atom(Name) orelse is_bi
         #{ status := Status } ->
             {ok, World};
         _ ->
-            retry
+            {retry, World}
     end.
 
 
@@ -483,7 +483,7 @@ recv([S|Rem], In, World) ->
 
 recv(#{ from := Name,
         spec := Spec } = RecvSpec, In, #{ data := Data,
-                               conns := Conns }=World) ->
+                                          conns := Conns }=World) ->
     case maps:get(Name, Conns, undef) of 
         undef -> 
             {error, #{ error => no_such_connection,
@@ -493,27 +493,36 @@ recv(#{ from := Name,
                        spec => Spec },
             case cmdecode:decode(Spec0, Inbox, In) of 
                 {ok, Decoded} ->
-                    case maps:get(as, RecvSpec, undef) of 
-                        undef -> 
-                            {ok, World };
-                        Key when is_atom(Key) ->
-                            {ok, World#{ data => maps:merge(Data, #{ Key => Decoded})}};
+                    case is_inverse(World) of 
+                        false ->
+                            case maps:get(as, RecvSpec, undef) of 
+                                undef -> 
+                                    {ok, World };
+                                Key when is_atom(Key) ->
+                                    {ok, World#{ data => maps:merge(Data, #{ Key => Decoded})}};
 
-                        RememberSpec when is_map(RememberSpec) -> 
-                            case cmencode:encode(RememberSpec, Decoded) of 
-                                {ok, Data2} ->
-                                    {ok, World#{ data => maps:merge(Data, Data2) }};
+                                RememberSpec when is_map(RememberSpec) -> 
+                                    case cmencode:encode(RememberSpec, Decoded) of 
+                                        {ok, Data2} ->
+                                            {ok, World#{ data => maps:merge(Data, Data2) }};
 
-                                {error, E} ->
-                                    {error, #{ error => encode_error,
-                                               info => E }} 
-                            end
+                                        {error, E} ->
+                                            {error, #{ error => encode_error,
+                                                       info => E }} 
+                                    end
+                            end;
+                        true ->
+                            {error, #{ error => unexpected_received_message,
+                                       spec => Spec0,
+                                       connection => Name }}
                     end;
                 no_match -> 
-                    retry
+                    {retry, World}
             end
     end.
 
+is_inverse(#{ inverse := true }) -> true;
+is_inverse(_) -> false.
 
 iterate([], _, _, _, World) -> {ok, World};
 iterate([I|Rem], As, DestSpec, Settings, #{ data := Data} = World) ->
@@ -533,18 +542,23 @@ run_specs([S|Rem]=Specs, Settings, #{ retries := #{ wait := Wait,
                                                     left := Left,
                                                     max := Max } = Retries} = World) when is_map(S) ->
     case run(S, Settings, World) of 
-        retry ->
+        {retry, World2} ->
             timer:sleep(Wait),
-            run_specs(Specs, Settings, World#{ retries => Retries#{ left => Left -1}});
+            run_specs(Specs, Settings, World2#{ retries => Retries#{ left => Left -1}});
         {ok, World2} ->
             run_specs(Rem, Settings, World2#{ retries => Retries#{ left => Max}});
         Other ->
             Other
     end.
 
-run(#{ type := _ }, _, #{ retries := #{ left := 0}}) ->
-    {error, #{ error => max_retries_reached, 
+run(#{ type := _ }, _, #{ retries := #{ left := 0}} = World) ->
+    case is_inverse(World) of 
+        false ->
+            {error, #{ error => max_retries_reached, 
                info => none }};
+        true ->
+            {ok, World}
+    end;
 
 run(#{ type := iterate,
        spec := #{ as := AsSpec,
@@ -570,7 +584,8 @@ run(#{ type := expect,
        spec := Spec }, Settings, #{ data := Data }=World) ->
     In = World#{ settings => Settings },
     case cmencode:encode(Spec, In) of 
-        {ok, false} -> retry;
+        {ok, false} -> 
+            {retry, World};
         {ok, true} -> 
             {ok, World};
         {ok, Encoded} ->
@@ -695,6 +710,10 @@ run(#{ type := send,
                        spec => Conn,
                        connection_id  => Other }}
     end;
+
+run(#{ type := fail,
+       spec := Spec }, Settings, World) ->
+    run(Spec, Settings, World#{ inverse => true }); 
 
 run(#{ type := recv, 
        from := Conn } = RecvSpec, Settings, World) ->
