@@ -21,7 +21,7 @@ set_hosts(Hosts, Config) ->
                     end, {#{}, 1}, Hosts),
     case cmd(post, 'namecheap.domains.dns.setHosts', 'DomainDNSSetHostsResult', Q, Config) of 
         {ok, Attrs, _} ->
-            case lists:key_find('IsSuccess', 1, Attrs) of 
+            case lists:keyfind('IsSuccess', 1, Attrs) of 
                 false ->
                     unknown_err();
                 {_, Value} ->
@@ -72,6 +72,7 @@ cmd(Method, Command, Resp, _Extra, #{ sld := Sld,
                                 key := ApiKey }) -> 
     
     extract(cmhttp:do(#{ method => Method,
+                         debug => true,
                  url => <<"https://api.namecheap.com/xml.response">>,
                  query => #{ 'ApiUser' => User,
                              'UserName' => User,
