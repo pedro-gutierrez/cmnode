@@ -1,6 +1,8 @@
 -module(cmweb_http).
 -export([init/2,
          info/3]).
+-export([default_headers/0]).
+
 init(#{ method := Method }=Req, #{ instruments := #{ increment := IncrFun },
                                    app := App, effects := Effects}=State) ->
     IncrFun(),
@@ -151,14 +153,14 @@ status(401) -> 401;
 status(_) -> 500.
 
 headers(json) -> 
-    H = headers(),
+    H = default_headers(),
     H#{ <<"content-type">> => <<"application/json">> };
 
 headers(_) ->
-    H = headers(),
+    H = default_headers(),
     H#{ <<"content-type">> => <<"text/plain">> }.
 
-headers() ->
+default_headers() ->
     #{ <<"server">> => <<"cmnode">>, 
        <<"connection">> => <<"close">>,
        <<"hostname">> => cmkit:host() }.

@@ -100,7 +100,6 @@ cmd(Method, Command, Resp, Extra, #{ sld := Sld,
                                 key := ApiKey }) -> 
     
     extract(cmhttp:do(#{ method => Method,
-                         debug => true,
                          url => <<"https://api.namecheap.com/xml.response">>,
                          query => maps:merge(Extra, #{ 'ApiUser' => User,
                                                        'UserName' => User,

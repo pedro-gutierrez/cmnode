@@ -3,7 +3,8 @@
 
 init(Req0, State) ->
     record_perf(),
-    Req = cowboy_req:reply(200, #{
+    Headers = cmweb_http: default_headers(),
+    Req = cowboy_req:reply(200, Headers#{
         <<"content-type">> => <<"text/plain">>
     }, prometheus_text_format:format() , Req0),
     {ok, Req, State}.
