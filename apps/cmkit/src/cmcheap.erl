@@ -19,7 +19,14 @@ set_hosts(Hosts, #{ sld := Sld,
 
 
 hosts(Config) ->
-    cmd(get, <<"namecheap.domains.dns.getHosts">>, 'DomainDNSGetHostsResult', #{}, Config).
+    case cmd(get, 'namecheap.domains.dns.getHosts', 'DomainDNSGetHostsResult', #{}, Config) of 
+        {ok, Hosts} ->
+            {ok, lists:map(fun({host, Attrs, _}) ->
+                        maps:from_list(Attrs)
+                           end, Hosts)};
+        Other ->
+            Other
+    end.
 
 cmd(Method, Command, Resp, _Extra, #{ sld := Sld,
                                 tld := Tld,
