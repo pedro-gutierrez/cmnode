@@ -16,7 +16,7 @@ add_host(#{ 'Name' := _,
 add_host(_, _) -> err(invalid_host).
  
 set_hosts(Hosts, Config) ->
-    Q = lists:foldl(fun(H, {Acc, Idx}) ->
+    {Q, _} = lists:foldl(fun(H, {Acc, Idx}) ->
                         {replace_host(H, Acc, Idx), Idx+1}
                     end, {#{}, 1}, Hosts),
     case cmd(post, 'namecheap.domains.dns.setHosts', 'DomainDNSSetHostsResult', Q, Config) of 
