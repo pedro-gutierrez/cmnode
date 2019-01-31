@@ -1,19 +1,47 @@
 -module(cmcheap).
--export([add_host/2, hosts/1]).
+-export([add/2, replace/2, hosts/1]).
 
-add_host(#{ 'Name' := _,
+
+replace(#{ 'Name' := Name,
+           'Type' := _,
+           'Address' := _,
+           'TTL' := _ }=H, Config) ->
+
+    case hosts(Config) of 
+        {ok, Hosts} ->
+            case set_hosts([H|hosts_without(Name, Hosts)], Config) of 
+                {ok, "true"} ->
+                    ok;
+                {ok, Other} ->
+                    {error, Other};
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end.
+
+
+add(#{ 'Name' := _,
             'Type' := _,
             'Address' := _,
             'TTL' := _ }=H, Config) ->
 
     case hosts(Config) of 
         {ok, Hosts} ->
-            set_hosts([H|Hosts], Config);
+            case set_hosts([H|Hosts], Config) of 
+                {ok, "true"} ->
+                    ok;
+                {ok, Other} ->
+                    {error, Other};
+                Other ->
+                    Other
+            end;
         Other ->
             Other
     end;
 
-add_host(_, _) -> err(invalid_host).
+add(_, _) -> err(invalid_host).
  
 set_hosts(Hosts, Config) ->
     {Q, _} = lists:foldl(fun(H, {Acc, Idx}) ->
@@ -134,4 +162,7 @@ unknown_err() ->
 
 err(E) ->
     {error, E}.
-    
+   
+
+hosts_without(N, Hosts) ->
+    [ H || #{'Name' := Name} = H <- Hosts, cmkit:to_bin(Name) =/= cmkit:to_bin(N) ].

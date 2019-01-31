@@ -5,5 +5,5 @@ spec:
   apps:
     init:
       http: "/api/init"
-    dns:
-      http: "/api/dns/:domain/:value"
+    acme:
+      http: "/api/acme/:domain/:value"

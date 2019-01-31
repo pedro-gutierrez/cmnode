@@ -33,7 +33,7 @@ init(#{ method := Method }=Req, #{ instruments := #{ increment := IncrFun },
                                                         body_time => BodyTime,
                                                         session_time => SessionTime,
                                                         init_time => InitTime,
-                                                        update_call_time => UpdateTime }};
+                                                        update_call_time => UpdateTime }, hibernate};
                         {error, E} ->
                             cmkit:danger({http, App, update, E}),
                             reply_and_stop(error, json, #{}, Req, State#{ log => fun cmkit:log/1,

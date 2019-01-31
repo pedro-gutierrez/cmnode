@@ -1,0 +1,75 @@
+type: module 
+name: acme 
+spec:
+  decoders:
+    challenge:
+      object:
+        method: POST
+        params:
+          object:
+            domain:
+              any: text
+            value:
+              any: text
+    success:
+      object:
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          other_than:
+            keyword: ok
+  update:
+    challenge:
+      model:
+        object:
+          domain:
+            key: params.domain
+          tld:
+            head:
+              tail:
+                key: domainParts
+          sld:
+            head:
+              key: domainParts
+          value:
+            key: params.value
+        where:
+          domainParts:
+            split:
+              key: params.domain
+            using: "."
+      cmds:
+        - effect: namecheap
+          encoder: challenge
+    success:
+      cmds:
+        - effect: notify
+          encoder: created
+    error:
+      cmds:
+        - effect: notify
+          encoder: internal_error
+  encoders:
+    challenge:
+      object:
+        context: "namecheap"
+        config:
+          object:
+            tld:
+              key: tld
+            sld:
+              key: sld
+            user:
+              config:
+                key: namecheap.username
+            key:
+              config:
+                key: namecheap.api_key
+        replace:
+          name: "_acme-challenge"
+          type: "TXT"
+          value:
+            key: value
+          ttl: "300"

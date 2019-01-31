@@ -1,7 +1,8 @@
 type: app
-name: dns 
+name: acme 
 spec:
   modules:
-    - dns
+    - common_api
+    - acme
   settings:
     - namecheap
