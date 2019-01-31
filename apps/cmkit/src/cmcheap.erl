@@ -73,8 +73,8 @@ extract_response(Resp, RespName) ->
     case lists:keyfind('CommandResponse', 1, Resp) of 
         false ->
             unknown_err();
-        {_, _, Resp} ->
-            case lists:keyfind(RespName, 1, Resp) of 
+        {_, _, Data} ->
+            case lists:keyfind(RespName, 1, Data) of 
                 false ->
                     unknown_err();
                 {_, _, Payload} ->
