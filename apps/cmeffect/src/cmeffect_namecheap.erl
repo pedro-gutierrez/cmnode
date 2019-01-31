@@ -5,8 +5,8 @@
 
 effect_info() -> namecheap.
 effect_apply(#{ context := Context,
-                config := #{ tld := Tld,
-                             sld := Sld,
+                config := #{ tld := _,
+                             sld := _,
                              user := _,
                              key := _ } = Config,
                 replace := #{ name := Name,
@@ -19,15 +19,8 @@ effect_apply(#{ context := Context,
                                    'Type' => Type,
                                    'TTL' => TTL }, Config) of 
               ok ->
-                    case await(Name, Sld, Tld, Type, Value) of 
-                        true ->
-                            #{ context => Context,
-                                status => ok };
-
-                        false ->
-                            #{ context => Context,
-                               status => timeout }
-                    end;
+                  #{ context => Context,
+                     status => ok };
 
               {error, E} ->
                   #{ context => Context,
@@ -36,25 +29,3 @@ effect_apply(#{ context := Context,
           end,
     
     cmcore:update(Pid, Res).
-
-
-dns_name(Name, Sld, Tld) ->
-    cmkit:to_list(<<Name/binary, ".",
-                    Sld/binary, ".",
-                    Tld/binary>>).
-
-inet_type(<<"TXT">>) -> txt;
-inet_type("TXT") -> txt.
-
-await(Name, Sld, Tld, Type, Expected) ->
-    cmkit:await(fun() ->
-                        Current = inet_res:lookup(dns_name(Name, Sld, Tld),
-                                             in, inet_type(Type)),
-                        case Current of
-                            [[V]] ->
-                                cmkit:to_bin(V) =:= Expected;
-                            _->
-                                false
-                        end
-                end, #{ retries => 40,
-                        sleep => 1000 }).
