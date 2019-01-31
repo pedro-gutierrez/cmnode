@@ -1,26 +1,64 @@
 -module(cmcheap).
 -export([add_host/2, hosts/1]).
 
-add_host(H, Config) ->
+add_host(#{ 'Name' := _,
+            'Type' := _,
+            'Address' := _,
+            'TTL' := _ }=H, Config) ->
 
     case hosts(Config) of 
         {ok, Hosts} ->
             set_hosts([H|Hosts], Config);
         Other ->
             Other
-    end.
- 
-set_hosts(Hosts, #{ sld := Sld,
-                    tld := Tld,
-                    user := User,
-                    key := ApiKey }) ->
+    end;
 
-    ok.
+add_host(_, _) -> err(invalid_host).
+ 
+set_hosts(Hosts, Config) ->
+    Q = lists:foldl(fun(H, {Acc, Idx}) ->
+                        {replace_host(H, Acc, Idx), Idx+1}
+                    end, {#{}, 1}, Hosts),
+    case cmd(post, 'namecheap.domains.dns.setHosts', 'DomainDNSSetHostsResult', Q, Config) of 
+        {ok, Attrs, _} ->
+            case lists:key_find('IsSuccess', 1, Attrs) of 
+                false ->
+                    unknown_err();
+                {_, Value} ->
+                    {ok, Value}
+            end;
+        Other ->
+            Other
+    end.
+
+replace_host(#{ 'Name' := Name,
+                'Type' := Type,
+                'Address' := Address,
+                'TTL' := TTL }= Host, Hosts, Idx) ->
+
+    IdxBin = (cmkit:to_bin(Idx)),
+    NameKey = <<"HostName", IdxBin/binary>>,
+    RecordTypeKey = <<"RecordType", IdxBin/binary>>,
+    AddressKey = <<"Address", IdxBin/binary>>,
+    TTLKey = <<"TTL", IdxBin/binary>>,
+
+    Hosts2 = Hosts#{ NameKey => Name,
+                     RecordTypeKey => Type,
+                     AddressKey => Address,
+                     TTLKey => TTL },
+
+    case maps:get('MXPref', Host, undef) of 
+        undef ->
+            Hosts2;
+        MXPref ->
+            MXPrefKey = <<"MXPref", IdxBin/binary>>,
+            Hosts2#{ MXPrefKey => MXPref }
+    end.
 
 
 hosts(Config) ->
     case cmd(get, 'namecheap.domains.dns.getHosts', 'DomainDNSGetHostsResult', #{}, Config) of 
-        {ok, Hosts} ->
+        {ok, _, Hosts} ->
             {ok, lists:map(fun({host, Attrs, _}) ->
                         maps:from_list(Attrs)
                            end, Hosts)};
@@ -84,8 +122,8 @@ extract_response(Resp, RespName) ->
             case lists:keyfind(RespName, 1, Data) of 
                 false ->
                     unknown_err();
-                {_, _, Payload} ->
-                    {ok, Payload}
+                {_, Attrs, Payload} ->
+                    {ok, Attrs, Payload}
             end              
     end.
 
