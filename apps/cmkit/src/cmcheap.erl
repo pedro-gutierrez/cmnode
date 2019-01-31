@@ -66,21 +66,22 @@ hosts(Config) ->
             Other
     end.
 
-cmd(Method, Command, Resp, _Extra, #{ sld := Sld,
+cmd(Method, Command, Resp, Extra, #{ sld := Sld,
                                 tld := Tld,
                                 user := User,
                                 key := ApiKey }) -> 
     
     extract(cmhttp:do(#{ method => Method,
                          debug => true,
-                 url => <<"https://api.namecheap.com/xml.response">>,
-                 query => #{ 'ApiUser' => User,
-                             'UserName' => User,
-                             'ApiKey' => ApiKey,
-                             'Command' => Command,
-                             'ClientIp' => client_ip(),
-                             'SLD' => Sld,
-                             'TLD' => Tld }}), Resp).
+                         url => <<"https://api.namecheap.com/xml.response">>,
+                         query => maps:merge(Extra, #{ 'ApiUser' => User,
+                                                       'UserName' => User,
+                                                       'ApiKey' => ApiKey,
+                                                       'Command' => Command,
+                                                       'ClientIp' => client_ip(),
+                                                       'SLD' => Sld,
+                                                       'TLD' => Tld })
+                       }), Resp).
 
 client_ip() ->
     cmkit:to_bin(cmkit:ip_str(cmkit:ipv4())).
