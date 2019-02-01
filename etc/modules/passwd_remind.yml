@@ -20,11 +20,9 @@ spec:
           any: number
         token_ttl:
           any: number
-        token_key:
-          non_empty: text
     token_success:
       object:
-        jwt:
+        token:
           any: data
     email_success:
       object:
@@ -41,8 +39,6 @@ spec:
         object:
           token_ttl:
             key: token_ttl
-          token_key:
-            key: token_key
           bucket:
             key: bucket
           account:
@@ -54,13 +50,13 @@ spec:
           uid:
             key: uid
       cmds:
-        - effect: jwt
+        - effect: service
           encoder: token
     token_success:
       model:
         object:
           token:
-            key: jwt
+            key: token 
       cmds:
         - either:
             - when:
@@ -96,16 +92,16 @@ spec:
           keyword: error
     token:
       object:
-        context:
-          keyword: token
-        ttl:
-          key: token_ttl
-        key:
-          key: token_key
-        sign:
-          uid:
-            key: uid
-          acl: 0
+        service: token_create
+        params:
+          object:
+            bucket:
+              key: bucket
+            acl: passwd_reset
+            uid:
+              key: uid
+            ttl:
+              key: token_ttl
     email_remind:
       object:
         service: email

@@ -1,0 +1,54 @@
+type: module
+name: logout_api
+spec:
+  decoders:
+    logout:
+      object:
+        method: POST
+        headers:
+          authorization:
+            any: text
+          app:
+            any: text
+    success:
+      object:
+        status:
+          keyword: ok
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    logout:
+      model:
+        token:
+          key: headers.authorization
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+      cmds:
+        - effect: service
+          encoder: logout
+    error:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    success:
+      cmds:
+        - effect: terminate
+          encoder: ok
+  encoders:
+    logout:
+      object:
+        service: token_consume
+        params:
+          object:
+            acl: access
+            token:
+              key: token
+            bucket:
+              keyword:
+                key: app.db

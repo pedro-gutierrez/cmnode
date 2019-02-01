@@ -20,22 +20,16 @@ spec:
           non_empty: text
         uid:
           any: number
-        token_key:
-          non_empty: text
     token_success:
       object:
-        jwt:
-          object:
-            uid:
-              key: uid
-            acl: 0
+        service: token_consume
+        status:
+          keyword: ok
     token_error:
       object:
-        jwt:
-          object:
-            uid:
-              other_than:
-                key: uid
+        service: token_consume
+        status:
+          keyword: error
     password_success:
       object:
         context:
@@ -68,11 +62,9 @@ spec:
             key: bucket
           uid:
             key: uid
-          token_key:
-            key: token_key
       cmds:
-        - effect: jwt
-          encoder: token_verification
+        - effect: service
+          encoder: token_consume
     token_success:
       cmds:
         - effect: db
@@ -115,14 +107,16 @@ spec:
           keyword: error
         error:
           keyword: forbidden
-    token_verification:
+    token_consume:
       object:
-        context:
-          keyword: token
-        verify:
-          key: token
-        key:
-          key: token_key
+        service: token_consume
+        params:
+          object:
+            bucket:
+              key: bucket
+            token:
+              key: token
+            acl: passwd_reset
     password:
       object:
         context:

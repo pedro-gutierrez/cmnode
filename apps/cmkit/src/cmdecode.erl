@@ -117,6 +117,36 @@ decode_term(#{ type := other_than, spec := Spec }, Data, Context) ->
             no_match
     end;
 
+
+decode_term(#{ type := lower_than, spec := Spec}, Data, Context) ->
+    case cmencode:encode(Spec, Context) of
+        {ok, Value} ->
+            case Data < Value of 
+                true ->
+                    {ok, Data};
+                false ->
+                    no_match
+            end;
+        Other ->
+            cmkit:danger({cmdecode, lower_than, Spec, Other}),
+            no_match
+    end;
+
+decode_term(#{ type := greater_than, spec := Spec}, Data, Context) ->
+    case cmencode:encode(Spec, Context) of
+        {ok, Value} ->
+            case Data > Value of 
+                true ->
+                    {ok, Data};
+                false ->
+                    no_match
+            end;
+        Other ->
+            cmkit:danger({cmdecode, lower_than, Spec, Other}),
+            no_match
+    end;
+
+
 decode_term(#{ type := regexp, value := Spec}, Data, Config) -> 
     case cmencode:encode(Spec, Data, Config) of 
         {ok, EncodedRegex} ->
@@ -344,8 +374,11 @@ decode_term(#{ type := member,
 
 decode_term(#{ type := 'not', spec := Spec }, In, Config) ->
     case decode(Spec, In, Config) of 
-        {ok, _} -> no_match;
-        no_match -> {ok, In}
+        {ok, _} -> 
+            no_match;
+        no_match -> 
+            cmkit:warning({decode, 'not', Spec, In, no_match}),
+            {ok, In}
     end;
 
 decode_term(Spec, Data, Context) when is_map(Spec) -> 

@@ -8,6 +8,9 @@ spec:
         headers:
           app:
             any: text
+          authorization:
+            config:
+              key: admin.secret
     success:
       object:
         status:

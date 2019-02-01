@@ -1633,6 +1633,10 @@ compile_term(#{ <<"lower_than">> := S }, Index)  ->
     #{ type => lower_than,
        spec => compile_term(S, Index) };
 
+compile_term(#{ <<"less_than">> := S }, Index)  ->
+    #{ type => lower_than,
+       spec => compile_term(S, Index) };
+
 compile_term(#{ <<"sum">> := Specs }, Index) when is_list(Specs) ->
     #{ type => sum,
        spec => lists:map(fun(S) ->

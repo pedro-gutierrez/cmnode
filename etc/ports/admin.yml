@@ -1,9 +1,0 @@
-type: port
-name: admin
-spec:
-  port: 4000
-  apps:
-    init:
-      http: "/api/init"
-    acme:
-      http: "/api/acme/:domain/:value"

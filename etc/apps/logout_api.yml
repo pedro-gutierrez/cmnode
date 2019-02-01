@@ -1,0 +1,8 @@
+type: app
+name: logout_api
+spec:
+  modules:
+    - common_api
+    - logout_api
+  settings:
+    - apps

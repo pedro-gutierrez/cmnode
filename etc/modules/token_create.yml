@@ -1,0 +1,79 @@
+type: module
+name: token_create
+spec:
+  decoders:
+    create:
+      object:
+        bucket:
+          any: keyword
+        uid:
+          any: number
+        ttl:
+          any: number
+        acl:
+          non_empty: text
+    success:
+      status:
+        keyword: ok
+    error:
+      status:
+        keyword: error
+  update:
+    create:
+      model:
+        object:
+          bucket:
+            key: bucket
+          token:
+            uuid: {}
+          ttl:
+            key: ttl
+          acl:
+            key: acl
+          uid:
+            key: uid
+      cmds:
+        - effect: db
+          encoder: create
+    success:
+      cmds:
+        - effect: terminate
+          encoder: token
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    create:
+      object:
+        context: create
+        bucket:
+          key: bucket
+        put:
+          object:
+            subject: token
+            predicate:
+              key: token
+            object:
+              key: acl
+            value:
+              object:
+                created:
+                  now: seconds
+                status: 0
+                uid:
+                  key: uid
+                ttl:
+                  key: ttl
+                acl:
+                  key: acl
+                expires:
+                  sum:
+                    - key: ttl
+                    - now: seconds
+    token:
+      object:
+        status:
+          keyword: ok
+        token:
+          key: token

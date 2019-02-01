@@ -1,0 +1,9 @@
+type: app
+name: token_create
+spec: 
+  debug: true
+  tags:
+    - service
+  modules:
+    - common_service
+    - token_create

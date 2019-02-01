@@ -5,11 +5,12 @@ spec:
     retries: 50
     wait: 10
   facts:
-    baseUrl: "http://localhost:4000/api"
+    baseUrl: "http://localhost:4001/api"
     app: test
     baseHeaders:
       object:
         content-type: application/json
+    admin: c93a2af4-e82e-44f2-8034-a72a42440341
   scenarios:
     - title: "Should not register twice"
       tags:
@@ -36,15 +37,12 @@ spec:
         - "When I reset that password"
         - "Then I should expect a forbidden error"
 
-    - title: "Should expire reset password tokens"
+    - title: "Should consume password reset tokens"
       tags: 
-        - expire
+        - consume 
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
-        - "When I reset that password"
-        - "Expect a 201 Created"
-        - "When I wait 1 second"
         - "When I reset that password"
         - "Then I should expect a forbidden error"
        
@@ -63,7 +61,18 @@ spec:
         - "Given password foo"
         - "Given a fake email"
         - "Then I should expect a forbidden error"
-         
+
+    - title: "Should logout"
+      tags:
+        - logout
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I login"
+        - "Then I should expect a token"
+        - "When I logout"
+        - "Then I should receive a 200 OK"
+
   backgrounds:
     - title: "Given an empty database"
       steps:
@@ -90,15 +99,14 @@ spec:
       params:
         method: post
         path: "/init"
+        headers:
+          authorization: 
+            key: facts.admin
     - title: "Register that user"
       procedure: api
       params:
         method: post
         path: "/register"
-        headers:
-          object:
-            app:
-              key: facts.app
         body:
           key: data.details
     - title: "When I reset that password"
@@ -124,6 +132,16 @@ spec:
             key: data.email
           password:
             key: data.password
+    - title: "When I logout"
+      procedure: api
+      params:
+        debug: true
+        method: post
+        path: "/logout"
+        headers:
+          object:
+            authorization:
+              key: data.token
     - title: "Given user details for alice"
       set:
         details:
@@ -156,6 +174,13 @@ spec:
         with:
           object:
             status: 201
+    - title: "Then I should receive a 200 OK"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            status: 200
     - title: "Expect a 409 Conflict"
       expect:
         match:
@@ -210,7 +235,9 @@ spec:
               url:
                 format: "~s~s"
                 params:
-                  - key: facts.baseUrl
+                  - one_of:
+                      - key: params.baseUrl
+                      - key: facts.baseUrl
                   - key: params.path
               headers:
                 merge:
@@ -226,7 +253,7 @@ spec:
             debug:
               one_of:
                 - key: params.debug
-                - false
+                - true
           - http:
               method:
                 keyword: 
@@ -236,7 +263,9 @@ spec:
               url:
                 format: "~s~s"
                 params:
-                  - key: facts.baseUrl
+                  - one_of:
+                      - key: params.baseUrl
+                      - key: facts.baseUrl
                   - key: params.path
               headers:
                 merge:
@@ -250,7 +279,7 @@ spec:
             debug:
               one_of:
                 - key: params.debug
-                - false
+                - true
       as:
         keyword:
           one_of:

@@ -43,12 +43,8 @@ spec:
                     any: email
     token_success:
       object:
-        context:
-          keyword: token
-        status:
-          keyword: ok
-        jwt:
-          any: data
+        token:
+          non_empty: text
     error:
       one_of:
         - object:
@@ -102,7 +98,7 @@ spec:
               head:
                 key: data
       cmds:
-        - effect: jwt
+        - effect: service
           encoder: token
     token_success:
       model:
@@ -112,7 +108,7 @@ spec:
               - key: user
               - object:
                   token:
-                    key: jwt
+                    key: token
       cmds:
         - effect: terminate
           encoder: profile
@@ -147,15 +143,14 @@ spec:
               key: uid
     token:
       object:
-        context:
-          keyword: token
-        ttl: 6480000
-        key: key1
-        sign:
+        service: token_create
+        params:
+          bucket:
+            key: bucket
           uid:
             key: user.uid
-          acls: 
-            - profile
+          ttl: 1000 
+          acl: access
     profile:
       object:
         status:

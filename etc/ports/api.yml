@@ -3,9 +3,15 @@ name: api
 spec:
   port: 4001
   apps:
+    init:
+      http: "/api/init"
+    acme:
+      http: "/api/acme/:domain/:value"
     register_api:
       http: "/api/register"
     login_api:
       http: "/api/login"
+    logout_api:
+      http: "/api/logout"
     passwd_reset_api:
       http: "/api/password/reset"

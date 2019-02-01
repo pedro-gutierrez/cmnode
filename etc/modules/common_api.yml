@@ -24,3 +24,10 @@ spec:
         headers:
           content-type: application/json
         body: {}
+    ok:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body: {}
+
