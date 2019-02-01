@@ -5,7 +5,6 @@ spec:
     retries: 50
     wait: 10
   facts:
-    baseUrl: "http://localhost:4001/api"
     app: test
     baseHeaders:
       object:
@@ -24,7 +23,6 @@ spec:
 
     - title: "Should reset passwords"
       tags: 
-        - register
         - passwd_reset
       steps:
         - "Given an empty database"
@@ -237,7 +235,7 @@ spec:
                 params:
                   - one_of:
                       - key: params.baseUrl
-                      - key: facts.baseUrl
+                      - key: settings.baseUrl
                   - key: params.path
               headers:
                 merge:
@@ -265,7 +263,7 @@ spec:
                 params:
                   - one_of:
                       - key: params.baseUrl
-                      - key: facts.baseUrl
+                      - key: settings.baseUrl
                   - key: params.path
               headers:
                 merge:

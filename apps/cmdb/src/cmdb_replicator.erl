@@ -17,6 +17,12 @@ start_link(#{ name := Name }=Bucket) ->
     Replicator = cmdb_config:replicator(Name),
     gen_server:start_link({local, Replicator}, ?MODULE, [Bucket], []).
 
+replicate(Name, in, reset) ->
+    gen_server:call(Name, {reset, in});
+
+replicate(Name, out, reset) ->
+    gen_server:call(Name, {reset, out});
+
 replicate(Name, out, Entries) ->
     gen_server:call(Name, {replicate, Entries});
 
@@ -36,6 +42,23 @@ init([#{ name := Name,
                   log => Log }}.
 
 
+handle_call({reset, out}, _, #{ topic := Topic }=Data) ->
+
+    Peers = cmbus:peers(Topic),
+    Results = lists:map(fun(Pid) ->
+                                replicate(Pid, in, reset)
+                        end, Peers),
+    Reply = case cmkit:distinct(Results) of 
+                [ok] -> ok;
+                _ -> error
+            end,
+
+    {reply, Reply, Data};
+
+handle_call({reset, in}, _, #{ name := Name }=Data) ->
+
+    {reply, cmdb:reset(Name), Data};
+
 handle_call({replicate, Entries}, _, #{ log := Log,
                                         topic := Topic,
                                         name := Name}=Data) ->
@@ -46,6 +69,8 @@ handle_call({replicate, Entries}, _, #{ log := Log,
                   end, Peers),
     Log({Name, self(), replicate, Entries, Peers}),
     {reply, ok, Data};
+
+
 
 handle_call(Msg, _, #{ log := Log,
                        name := Name}=Data) ->
