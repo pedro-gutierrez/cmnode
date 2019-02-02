@@ -42,13 +42,14 @@ init([#{ name := Name,
                   log => Log }}.
 
 
-handle_call({reset, out}, _, #{ topic := Topic }=Data) ->
+handle_call({reset, out}, _, #{ name := Name,
+                                topic := Topic }=Data) ->
 
     case cmbus:peers(Topic) of 
         [] ->
             {reply, ok, Data};
         Peers ->
-
+            cmkit:warning({Name, replicate, reset, Peers}),
             Results = lists:map(fun(Pid) ->
                                         replicate(Pid, in, reset)
                                 end, Peers),
@@ -60,7 +61,7 @@ handle_call({reset, out}, _, #{ topic := Topic }=Data) ->
     end;
 
 handle_call({reset, in}, _, #{ name := Name }=Data) ->
-
+    cmkit:warning({Name, replicate, reset}),
     {reply, cmdb:reset(Name), Data};
 
 handle_call({replicate, Entries}, _, #{ log := Log,
