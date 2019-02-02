@@ -44,16 +44,20 @@ init([#{ name := Name,
 
 handle_call({reset, out}, _, #{ topic := Topic }=Data) ->
 
-    Peers = cmbus:peers(Topic),
-    Results = lists:map(fun(Pid) ->
-                                replicate(Pid, in, reset)
-                        end, Peers),
-    Reply = case cmkit:distinct(Results) of 
-                [ok] -> ok;
-                _ -> error
-            end,
+    case cmbus:peers(Topic) of 
+        [] ->
+            {reply, ok, Data};
+        Peers ->
 
-    {reply, Reply, Data};
+            Results = lists:map(fun(Pid) ->
+                                        replicate(Pid, in, reset)
+                                end, Peers),
+            Reply = case cmkit:distinct(Results) of 
+                        [ok] -> ok;
+                        _ -> error
+                    end,
+            {reply, Reply, Data}
+    end;
 
 handle_call({reset, in}, _, #{ name := Name }=Data) ->
 

@@ -45,13 +45,18 @@ handle_call(reset, _, #{ log := Log,
                          name := Name,
                          pid := Fd,
                          ref := Ref }=Data) ->
-    erlang:demonitor(Ref),
-    ok = cbt_file:close(Fd),
-    Storage = cmdb_config:storage(Name),
-    cmdb_util:delete(Storage, Name),
-    {ok, Data2} = init([Data]),
-    Log({Name, resetted}),
-    {reply, ok, Data2};
+    case replicate(reset, Data) of 
+        ok ->
+            erlang:demonitor(Ref),
+            ok = cbt_file:close(Fd),
+            Storage = cmdb_config:storage(Name),
+            cmdb_util:delete(Storage, Name),
+            {ok, Data2} = init([Data]),
+            Log({Name, resetted}),
+            {reply, ok, Data2};
+        Other ->
+            {reply, Other, Data}
+    end;
 
 
 handle_call({replicate, Entries}, _, #{ pid := Pid, 
@@ -280,9 +285,8 @@ write_tree(Pid, Tree) ->
     cbt_file:write_header(Pid, Header),
     {ok, Tree}.
 
-
-replicate(Entries, #{ replicator := R}) ->
-    cmdb_replicator:replicate(R, out, Entries);
+replicate(Action, #{ replicator := R}) ->
+    cmdb_replicator:replicate(R, out, Action);
 
 replicate(_, _) -> ok.
 
