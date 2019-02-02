@@ -41,23 +41,19 @@ with_replicator(#{ cluster := offline } = B) ->
 with_replicator(#{ name := Name }=B) ->
     B#{ replicator => cmdb_config:replicator(Name)}.
 
-handle_call(reset, _, #{ log := Log,
-                         name := Name,
-                         pid := Fd,
-                         ref := Ref }=Data) ->
+handle_call(reset, _, Data) ->
     case replicate(reset, Data) of 
         ok ->
-            erlang:demonitor(Ref),
-            ok = cbt_file:close(Fd),
-            Storage = cmdb_config:storage(Name),
-            cmdb_util:delete(Storage, Name),
-            {ok, Data2} = init([Data]),
-            Log({Name, resetted}),
+            {ok, Data2} = reset(Data),
             {reply, ok, Data2};
         Other ->
             {reply, Other, Data}
     end;
 
+handle_call({local, reset}, _, Data) ->
+    
+    {ok, Data2} = reset(Data),
+    {reply, ok, Data2};
 
 handle_call({replicate, Entries}, _, #{ pid := Pid, 
                                         tree := Tree }=Data) ->
@@ -194,6 +190,17 @@ terminate(Reason, Bucket) ->
     cmkit:warning({cmdb, writer, node(), Bucket, terminated, Reason}),
     ok.
 
+reset(#{ log := Log,
+         name := Name,
+         pid := Fd,
+         ref := Ref} = Data) ->
+    erlang:demonitor(Ref),
+    ok = cbt_file:close(Fd),
+    Storage = cmdb_config:storage(Name),
+    cmdb_util:delete(Storage, Name),
+    {ok, Data2} = init([Data]),
+    Log({Name, resetted}),
+    {ok, Data2}.
 
 all_new(_, []) -> true;
 all_new(Tree, [{S, P, O, _}|Rem]) ->

@@ -60,9 +60,9 @@ handle_call({reset, out}, _, #{ name := Name,
             {reply, Reply, Data}
     end;
 
-handle_call({reset, in}, _, #{ name := Name }=Data) ->
-    cmkit:warning({Name, replicate, reset}),
-    {reply, cmdb:reset(Name), Data};
+handle_call({reset, in}, _, #{ writer := Writer }=Data) ->
+    Reply = gen_server:call(Writer, {local, reset}),
+    {reply, Reply, Data};
 
 handle_call({replicate, Entries}, _, #{ log := Log,
                                         topic := Topic,
