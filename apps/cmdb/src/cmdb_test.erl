@@ -11,11 +11,29 @@
          merge2/1,
          merge3/1,
          merge4/1,
-         multiple_get/1
+         merge5/1,
+         multiple_get/1,
+         match1/1,
+         delete1/1
         ]).
 -export([m1/0, m2/0, m3/0, m4/0, m5/0, m6/0, m7/0, m8/0, m9/0, m10/0, m11/0, m12/0]).
 
-all_f() -> [empty, insert1, distinct, bag, sorted_keys1, sorted_keys2, merge1, merge2, merge3, merge4, multiple_get].
+all_f() -> [
+            empty, 
+            insert1, 
+            distinct, 
+            bag, 
+            sorted_keys1, 
+            sorted_keys2, 
+            merge1, 
+            merge2, 
+            merge3, 
+            merge4, 
+            merge5,
+            multiple_get,
+            match1,
+            delete1
+           ].
 all_m() -> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12].
 
 f() ->
@@ -111,11 +129,41 @@ merge4(Name) ->
     [{a, b, c, #{ a := b, 
                   c :=  d }}] = cmdb:get(Name, a, b, c).
 
+merge5(Name) ->
+    E1 = {a, b, c, #{ a => b}},
+    E2 = {a, b, d, #{ a => b}},
+    ok = cmdb:put(Name, [E1, E2]),
+    ok = cmdb:merge(Name, a, b, c, #{ type => object,
+                                      spec => #{ a => #{ type => keyword,
+                                                         value => b } }},
+                                   #{ a => c }),
+    [{a, b, c, #{ a := c}}] = cmdb:get(Name, a, b, c),
+    [{a, b, d, #{ a := b}}] = cmdb:get(Name, a, b, d).
+
 multiple_get(Name) ->
     E1 = {a, b, c, 0},
     E2 = {a, c, b, 0},
     ok = cmdb:put(Name, [E1, E2]),
     [E1, E2] = cmdb:get(Name, [{a, b, c}, {a, c, b}]).
+
+
+match1(Name) ->
+    E1 = {a, b, c, 0},
+    E2 = {a, d, b, 1},
+    ok = cmdb:put(Name, [E1, E2]),
+    [{a, b, c, 0}] = cmdb:match(Name, a, #{ type => number, 
+                                            value => 0 }),
+
+    [{a, d, b, 1}] = cmdb:match(Name, a, #{ type => number, 
+                                            value => 1 }).
+
+delete1(Name) ->
+    E1 = {a, b, c, 0},
+    E2 = {a, b, d, 0},
+    E3 = {a, d, b, 1},
+    ok = cmdb:put(Name, [E1, E2, E3]),
+    ok = cmdb:delete(Name, [{a, b}, {a, d, b}]),
+    [] = cmdb:get(Name, a).
 
 s() -> s(test).
 

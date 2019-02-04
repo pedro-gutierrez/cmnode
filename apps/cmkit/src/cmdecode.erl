@@ -377,7 +377,6 @@ decode_term(#{ type := 'not', spec := Spec }, In, Config) ->
         {ok, _} -> 
             no_match;
         no_match -> 
-            cmkit:warning({decode, 'not', Spec, In, no_match}),
             {ok, In}
     end;
 

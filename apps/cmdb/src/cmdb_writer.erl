@@ -29,6 +29,11 @@ handle_call({put, Entries}, _, Data) ->
     
     write_and_reply(distinct(Entries), Data);
 
+handle_call({delete, Specs}, _, #{ tree := Tree} = Data) ->
+    
+    Entries = cmdb_util:read_all(Tree, Specs),
+    write_and_reply([], [{S, P, O} || {S, P, O, _} <- Entries], Data);
+
 handle_call({insert, Entries}, _, #{ tree := Tree }=Data) ->
     
     case cmdb_util:all_new(Tree, Entries) of 
@@ -140,20 +145,26 @@ unwind_merge(Tree, Match, Merge) ->
                       end, Items)
     end.
 
-write_and_reply(Entries, #{ pid := Pid,
-                            tree := Tree}=Data) ->
-    case write_entries(Pid, Tree, Entries) of 
+write_and_reply(ToAdd, Data) ->
+    write_and_reply(ToAdd, [], Data).
+
+write_and_reply(ToAdd, ToRemove, #{ pid := Pid,
+                                    tree := Tree}=Data) ->
+    case write_entries(Pid, Tree, ToAdd, ToRemove) of 
         {ok, Tree2} ->
             {reply, ok, Data#{ tree => Tree2}};
         Other ->
             {reply, Other, Data}
     end.
 
-write_entries(_, Tree, []) -> {ok, Tree};
+write_entries(Pid, Tree, ToAdd) ->
+    write_entries(Pid, Tree, ToAdd, []).
 
-write_entries(Pid, Tree, Entries) -> 
+write_entries(_, Tree, [], []) -> {ok, Tree};
+
+write_entries(Pid, Tree, ToAdd, ToRemove) -> 
     
-    {ok, Tree2} = cbt_btree:add(Tree, Entries),
+    {ok, Tree2} = cbt_btree:add_remove(Tree, ToAdd, ToRemove),
     Root = cbt_btree:get_state(Tree2),
     Header = {1, Root},
     case cbt_file:write_header(Pid, Header) of 

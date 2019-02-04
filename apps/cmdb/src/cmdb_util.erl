@@ -5,6 +5,8 @@
          writer/1,
          write/2,
          read/2,
+         read_all/2,
+         read/3,
          fold/3,
          unwind/2,
          all_new/2 ]).
@@ -39,20 +41,30 @@ write(Name, Msg) ->
             end
     end.
 
-read(Name, Spec) when is_atom(Name) ->
-    case cmbus:closest(reader(Name)) of 
+with_reader_pid(Name, Fun) ->
+    case cmbus:closest(reader(Name)) of
         Pid when is_pid(Pid) ->
-            read(Pid, Spec);
+            Fun(Pid);
         {error, E} ->
             cmkit:danger({Name, reader, E}),
             {error, E}
-    end;
+    end.
 
-read(Pid, Spec) when is_pid(Pid) ->
+with_tree(Pid, Fun) ->
     {ok, Header, _} = cbt_file:read_header(Pid),
     {_, Root} = Header,
     {ok, Tree} = cbt_btree:open(Root, Pid),
-    read(Tree, Spec);
+    Fun(Tree).
+
+read(Name, Spec) when is_atom(Name) ->
+    with_reader_pid(Name, fun(Pid) ->
+                            read(Pid, Spec)
+                          end);
+
+read(Pid, Spec) when is_pid(Pid) ->
+    with_tree(Pid, fun(T) ->
+                           read(T, Spec)
+                   end);
 
 read(Tree, Keys) when is_list(Keys) ->
     filter(cbt_btree:lookup(Tree, Keys));
@@ -62,6 +74,25 @@ read(Tree, {_, _, _}=K) ->
 
 read(Tree, Spec) ->
     fold(Tree, start_key(Spec), match_fun(Spec)).
+
+read_all(Tree, Specs) ->
+    lists:flatten(lists:foldl(fun(S, Acc) ->
+                        [read(Tree, S)|Acc]
+                end, [], Specs)).
+
+
+read(Name, KSpec, VSpec) when is_atom(Name) ->
+    with_reader_pid(Name, fun(Pid) ->
+                            read(Pid, KSpec, VSpec)
+                          end);
+
+read(Pid, KSpec, VSpec) when is_pid(Pid) ->
+    with_tree(Pid, fun(T) ->
+                           read(T, KSpec, VSpec)
+                   end);
+    
+read(Tree, KSpec, VSpec)  ->
+    unwind(Tree, KSpec, VSpec).
 
 filter(Kvs) ->
     lists:foldr(fun({ok, {{S, P, O}, V}}, Acc) ->
@@ -81,6 +112,8 @@ unwind(Tree, {S, P, O, Decoder}) ->
 
 unwind(Tree, Spec, Decoder) ->
     fold(Tree, start_key(Spec), match_fun(Spec, Decoder)).
+
+
 
 fold(Tree, Start, Fun) ->
     {ok, _, Res} = cbt_btree:fold(Tree, fun({{S, P, O} = K, V}, Acc) ->

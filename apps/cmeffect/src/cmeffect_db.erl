@@ -10,41 +10,74 @@ effect_apply(#{ context := C,
                 reset := _ }=Spec, Id) ->
     
     R = reply_from(cmdb:reset(B), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
                 put := Values }=Spec, Id) ->
 
     R = reply_from(cmdb:put(B, values(Values)), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                delete := Keys }=Spec, Id) ->
+
+    R = reply_from(cmdb:delete(B, keys(Keys)), Spec),
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
                 insert := Values }=Spec, Id) ->
 
     R = reply_from(cmdb:insert(B, values(Values)), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
-                subject := S,
-                predicate := P,
-                match := Match,
+                match := #{ subject := S,
+                            predicate := P,
+                            object := O,
+                            value := Match },
+                merge := Merge } = Spec, Id) ->
+
+    R = reply_from(cmdb:merge(B, S, P, O, decoder(Match), Merge), Spec),
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                match := #{ subject := S,
+                            predicate := P,
+                            value := Match },
                 merge := Merge } = Spec, Id) ->
 
     R = reply_from(cmdb:merge(B, S, P, decoder(Match), Merge), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
-                subject := S,
-                match := Match,
+                match := #{ subject := S,
+                            value := Match }, 
                 merge := Merge }=Spec, Id) ->
 
     R = reply_from(cmdb:merge(B, S, decoder(Match), Merge), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
+effect_apply(#{ context := C,
+                bucket := B,
+                match := #{ subject := S,
+                            value := Match }}=Spec, Id) ->
+
+    R = reply_from(cmdb:match(B, S, decoder(Match)), Spec),
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
@@ -52,8 +85,9 @@ effect_apply(#{ context := C,
                           predicate := P,
                           object := O}}=Spec, Id)  ->
 
-    R = reply_from(cmdb:get(B, S, P, O), Spec),
-    cmcore:update(Id, R#{ context => C });
+    R = reply_from(cmdb:get(B, S, P, O), Spec#{ single => true }),
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
@@ -61,14 +95,16 @@ effect_apply(#{ context := C,
                           predicate := P}}=Spec, Id)  ->
 
     R = reply_from(cmdb:get(B, S, P), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
                 get := #{ subject := S }}=Spec, Id)  ->
 
     R = reply_from(cmdb:get(B, S), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
@@ -79,7 +115,8 @@ effect_apply(#{ context := C,
                                 end, S)),
     
     R2 = reply_from(R, Spec),
-    cmcore:update(Id, R2#{ context => C });
+    cmcore:update(Id, R2#{ bucket => B,
+                           context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
@@ -88,14 +125,16 @@ effect_apply(#{ context := C,
                           between := [O1, O2]}} = Spec, Id)  ->
 
     R = reply_from(cmdb:get(B, S, P, O1, O2), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
                 get := Keys} = Spec, Id) when is_list(Keys) ->
 
     R = reply_from(cmdb:get(B, keys(Keys)), Spec),
-    cmcore:update(Id, R#{ context => C });
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
 
 effect_apply(#{ context := C} = Spec, Id) ->
     cmkit:danger({cmeffect, db, unsupported, Spec}),
@@ -146,7 +185,7 @@ values(V) when is_map(V) -> [value(V)].
 
 reply_from(ok, _) -> #{ status => ok };
 
-reply_from([Item], Spec) -> 
+reply_from([Item], #{ single := true }=Spec) -> 
     #{ status => ok,
        data => map(Item, Spec) };
 
