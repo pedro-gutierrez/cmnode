@@ -109,9 +109,9 @@ queue_job(T, S, Opts) ->
 
 report_scenario(Id, Title) ->
     case cmdb:get(tests, scenario, Id, Title) of 
-        {ok, [{_, _, _, S}]} ->
+        [{_, _, _, S}] ->
             {ok, S};
-        {ok, []}->
+        [] ->
             {error, not_found};
         Other -> 
             {error, Other}
@@ -121,9 +121,9 @@ reports() -> reports(1).
 
 report_summary(Id) ->
     case cmdb:get(tests, report, ?REL, Id) of 
-        {ok, [{_, _, _, R}]} ->
+        [{_, _, _, R}] ->
             {ok, R};
-        {ok, []}->
+        []->
             {error, not_found};
         Other -> 
             {error, Other}
@@ -131,9 +131,9 @@ report_summary(Id) ->
 
 report_scenarios_summary(Id) ->
     case cmdb:get(tests, scenarios, all, Id) of 
-        {ok, [{_, _, _, S}]} ->
+        [{_, _, _, S}] ->
             {ok, S};
-        {ok, []}->
+        []->
             {error, not_found};
         Other -> 
             {error, Other}
@@ -154,8 +154,8 @@ report(Id) ->
 
 reports(Days) ->
     Since = cmcalendar:to_epoch(cmcalendar:back({Days, days})) *1000,
-    case cmdb:between(tests, reports, all, Since, cmkit:now()) of 
-        {ok, Entries} ->
+    case cmdb:get(tests, reports, all, Since, cmkit:now()) of 
+        Entries when is_list(Entries) ->
             Ids = [Id || {_, _, _, Id} <- Entries],
             Reports = lists:foldl(fun(Id, R0) ->
                                           case report_summary(Id) of 
@@ -194,8 +194,8 @@ step_history(Test, Scenario, Step, Days) ->
 
 history(Query, Days, Series) ->
     Since = cmcalendar:to_epoch(cmcalendar:back({Days, days})) *1000,
-    case cmdb:between(tests, history, Query, Since, cmkit:now()) of
-        {ok, Entries} ->
+    case cmdb:get(tests, history, Query, Since, cmkit:now()) of
+        Entries when is_list(Entries) ->
             Acc = lists:foldl(fun(S, Acc0) ->
                                       Acc0#{ S => []}
                               end, #{}, Series),

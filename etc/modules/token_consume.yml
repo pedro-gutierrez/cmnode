@@ -16,27 +16,25 @@ spec:
         status:
           keyword: ok
         data:
-          list:
-            object:
-              value:
-                status: 0
-                expires:
-                  greater_than:
-                    now: seconds
-                uid:
-                  any: number
+          object:
+            value:
+              status: 0
+              expires:
+                greater_than:
+                  now: seconds
+              uid:
+                any: number
     expired:
       object:
         context: find
         status:
           keyword: ok
         data:
-          list:
-            object:
-              value:
-                expires:
-                  less_than:
-                    now: seconds
+          object:
+            value:
+              expires:
+                less_than:
+                  now: seconds
     not_found:
       object:
         context: find
@@ -50,10 +48,9 @@ spec:
         status:
           keyword: ok
         data:
-          list:
-            object:
-              value:
-                status: 1
+          object:
+            value:
+              status: 1
     revoked:
       object:
         context: revoke

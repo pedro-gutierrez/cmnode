@@ -15,14 +15,7 @@ init([Buckets]) ->
                                 permanent,
                                 worker) || B <- Buckets],
 
-    Replicators = [cmkit:child_spec(spec_id(B, replicator),
-                                    cmdb_replicator,
-                                    [B],
-                                    permanent,
-                                    worker) || #{ cluster := State } = B <- Buckets, State =/= offline],
-
-
-    {ok, { {one_for_one, 0, 1}, Writers ++ Replicators }}.
+    {ok, { {one_for_one, 0, 1}, Writers}}.
 
 
 spec_id(#{ name := Name }, Type) ->

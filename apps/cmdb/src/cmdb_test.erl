@@ -1,15 +1,21 @@
 -module(cmdb_test).
 -export([f/0, s/0, s/1, s/4, m/0]).
 -export([empty/1,
+         insert1/1,
          distinct/1, 
          bag/1, 
          update/1,
          sorted_keys1/1,
          sorted_keys2/1,
-         multiple_get/1 ]).
+         merge1/1,
+         merge2/1,
+         merge3/1,
+         merge4/1,
+         multiple_get/1
+        ]).
 -export([m1/0, m2/0, m3/0, m4/0, m5/0, m6/0, m7/0, m8/0, m9/0, m10/0, m11/0, m12/0]).
 
-all_f() -> [empty, distinct, bag, sorted_keys1, sorted_keys2, multiple_get].
+all_f() -> [empty, insert1, distinct, bag, sorted_keys1, sorted_keys2, merge1, merge2, merge3, merge4, multiple_get].
 all_m() -> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12].
 
 f() ->
@@ -22,52 +28,94 @@ f(Name) ->
                   end, all_f()).
 
 empty(Name) ->
-    {ok, []} = cmdb:get(Name, a, b, c),
-    {ok, []} = cmdb:get(Name, a, b),
-    {ok, []} = cmdb:get(Name, a).
+    [] = cmdb:get(Name, a, b, c),
+    [] = cmdb:get(Name, a, b),
+    [] = cmdb:get(Name, a).
+
+insert1(Name) ->
+    E = {a, b, c, 1},
+    Entries = [E],
+    ok = cmdb:insert(Name, Entries),
+    conflict = cmdb:insert(Name, Entries).
 
 distinct(Name) ->
     E = {a, b, c, 1},
     Entries = [E, E],
     ok = cmdb:put(Name, Entries),
-    {ok, [E]} = cmdb:get(Name, a, b, c).
+    [E] = cmdb:get(Name, a, b, c).
 
 update(Name) ->
     E1 = {a, b, c, 1},
     E2 = {a, b, c, 2},
     ok = cmdb:put(Name, [E1]),
-    {ok, [E1]} = cmdb:get(Name, a, b, c),
+    [E1] = cmdb:get(Name, a, b, c),
     ok = cmdb:put(Name, [E2]),
-    {ok, [E2]} = cmdb:get(Name, a, b, c).
+    [E2] = cmdb:get(Name, a, b, c).
 
 bag(Name) ->
     E1 = {a, b, c, 1},
     E2 = {a, b, c, 2},
     ok = cmdb:put(Name, [E2, E1, E2]),
-    {ok, [E2]} = cmdb:get(Name, a, b, c).
+    [E2] = cmdb:get(Name, a, b, c).
 
 
 sorted_keys1(Name) ->
     E1 = {a, b, 1, 0},
     E2 = {a, b, 2, 0},
     ok = cmdb:put(Name, [E1, E2]),
-    {ok, [E1, E2]} = cmdb:get(Name, a, b),
+    [E1, E2] = cmdb:get(Name, a, b),
     ok = cmdb:put(Name, [E2, E1]),
-    {ok, [E1, E2]} = cmdb:get(Name, a, b).
+    [E1, E2] = cmdb:get(Name, a, b).
 
 sorted_keys2(Name) ->
     E1 = {a, b, c, 0},
     E2 = {a, c, b, 0},
     ok = cmdb:put(Name, [E1, E2]),
-    {ok, [E1, E2]} = cmdb:get(Name, a),
+    [E1, E2] = cmdb:get(Name, a),
     ok = cmdb:put(Name, [E2, E1]),
-    {ok, [E1, E2]} = cmdb:get(Name, a).
+    [E1, E2] = cmdb:get(Name, a).
+
+
+merge1(Name) ->
+    E1 = {a, b, c, 0},
+    ok = cmdb:put(Name, [E1]),
+    ok = cmdb:merge(Name, a, b, #{ type => number,
+                                   value => 0 }, 1),
+    [{a, b, c, 1}] = cmdb:get(Name, a, b, c).
+
+merge2(Name) ->
+    E1 = {a, b, c, 0},
+    E2 = {a, b, d, 0},
+    ok = cmdb:put(Name, [E1, E2]),
+    ok = cmdb:merge(Name, a, b, #{ type => number,
+                                   value => 0 }, 1),
+    [{a, b, c, 1}] = cmdb:get(Name, a, b, c),
+    [{a, b, d, 1}] = cmdb:get(Name, a, b, d).
+
+merge3(Name) ->
+    E1 = {a, b, c, 0},
+    E2 = {a, b, d, a},
+    ok = cmdb:put(Name, [E1, E2]),
+    ok = cmdb:merge(Name, a, b, #{ type => number,
+                                   value => 0 }, 1),
+    [{a, b, c, 1}] = cmdb:get(Name, a, b, c),
+    [{a, b, d, a}] = cmdb:get(Name, a, b, d).
+
+merge4(Name) ->
+    E1 = {a, b, c, #{ a => b}},
+    ok = cmdb:put(Name, [E1]),
+    ok = cmdb:merge(Name, a, b, #{ type => object,
+                                   spec => #{ a => #{ type => keyword,
+                                                      value => b } }},
+                                   #{ c => d }),
+    [{a, b, c, #{ a := b, 
+                  c :=  d }}] = cmdb:get(Name, a, b, c).
 
 multiple_get(Name) ->
     E1 = {a, b, c, 0},
     E2 = {a, c, b, 0},
     ok = cmdb:put(Name, [E1, E2]),
-    {ok, [E1, E2]} = cmdb:get(Name, [{a, b, c}, {a, c, b}]).
+    [E1, E2] = cmdb:get(Name, [{a, b, c}, {a, c, b}]).
 
 s() -> s(test).
 

@@ -6,54 +6,105 @@
 effect_info() -> db.
 
 effect_apply(#{ context := C,
-                put := ToPut,
-                delete := ToDelete }, Id) ->
-
-    R = reply_from(put_del(by_bucket(ToPut, ToDelete))),
+                bucket := B,
+                reset := _ }=Spec, Id) ->
+    
+    R = reply_from(cmdb:reset(B), Spec),
     cmcore:update(Id, R#{ context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
-                insert := ToInsert }, Id)  ->
+                put := Values }=Spec, Id) ->
 
-    R = reply_from(cmdb:insert(B, values(ToInsert))),
+    R = reply_from(cmdb:put(B, values(Values)), Spec),
     cmcore:update(Id, R#{ context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
-                put := ToPut,
-                delete := ToDelete}, Id)  ->
+                insert := Values }=Spec, Id) ->
 
-    R = reply_from(cmdb:put_del(B, values(ToPut), keys(ToDelete))),
+    R = reply_from(cmdb:insert(B, values(Values)), Spec),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                subject := S,
+                predicate := P,
+                match := Match,
+                merge := Merge } = Spec, Id) ->
+
+    R = reply_from(cmdb:merge(B, S, P, decoder(Match), Merge), Spec),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                subject := S,
+                match := Match,
+                merge := Merge }=Spec, Id) ->
+
+    R = reply_from(cmdb:merge(B, S, decoder(Match), Merge), Spec),
     cmcore:update(Id, R#{ context => C });
 
 
 effect_apply(#{ context := C,
                 bucket := B,
-                put := ToPut }, Id)  ->
+                get := #{ subject := S,
+                          predicate := P,
+                          object := O}}=Spec, Id)  ->
 
-    R = reply_from(cmdb:put_del(B, values(ToPut), [])),
+    R = reply_from(cmdb:get(B, S, P, O), Spec),
     cmcore:update(Id, R#{ context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
-                delete := ToDelete }, Id)  ->
+                get := #{ subject := S,
+                          predicate := P}}=Spec, Id)  ->
 
-    R = reply_from(cmdb:put_del(B, [], keys(ToDelete))),
+    R = reply_from(cmdb:get(B, S, P), Spec),
     cmcore:update(Id, R#{ context => C });
 
 effect_apply(#{ context := C,
                 bucket := B,
-                get := ToGet }, Id)  ->
+                get := #{ subject := S }}=Spec, Id)  ->
 
-    R = reply_from(cmdb:get(B, keys(ToGet))),
+    R = reply_from(cmdb:get(B, S), Spec),
     cmcore:update(Id, R#{ context => C });
 
 effect_apply(#{ context := C,
-                reset := Bucket }, Id) ->
- 
-    R = reply_from(cmdb:reset(Bucket)),
-    cmcore:update(Id, R#{ context => C }).
+                bucket := B,
+                get := #{ subjects := S }}=Spec, Id)  ->
+    
+    R = lists:flatten(lists:map(fun(Subject) ->
+                                    cmdb:get(B, Subject)
+                                end, S)),
+    
+    R2 = reply_from(R, Spec),
+    cmcore:update(Id, R2#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                get := #{ subject := S,
+                          predicate := P,
+                          between := [O1, O2]}} = Spec, Id)  ->
+
+    R = reply_from(cmdb:get(B, S, P, O1, O2), Spec),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C,
+                bucket := B,
+                get := Keys} = Spec, Id) when is_list(Keys) ->
+
+    R = reply_from(cmdb:get(B, keys(Keys)), Spec),
+    cmcore:update(Id, R#{ context => C });
+
+effect_apply(#{ context := C} = Spec, Id) ->
+    cmkit:danger({cmeffect, db, unsupported, Spec}),
+    R = reply_from({error, Spec }, Spec),
+    cmcore:update(Id, R#{ context => C}).
+
+decoder(Spec) ->
+    #{ type => object,
+       spec => Spec }.
 
 key(#{ subject := S,
        predicate := P,
@@ -70,10 +121,21 @@ value(#{ subject:= S,
          object := O,
          value := V}) -> {S, P, O, V}.
 
-map({S, P, O, V}) -> #{ subject => S,
-                        predicate => P,
-                        object => O,
-                        value => V }.
+
+map({S, P, O, V}, #{ labels := #{ subject := SLabel,
+                                  predicate := PLabel,
+                                  object := OLabel,
+                                  value := VLabel }}) ->
+    #{ SLabel => S,
+       PLabel => P,
+       OLabel => O,
+       VLabel => V };
+
+map({S, P, O, V}, _) -> 
+    #{ subject => S,
+       predicate => P,
+       object => O,
+       value => V }.
 
 keys(K) when is_list(K) -> lists:map(fun key/1, K);
 keys(K) when is_map(K) -> [key(K)].
@@ -82,49 +144,22 @@ keys(K) when is_map(K) -> [key(K)].
 values(V) when is_list(V) -> lists:map(fun value/1, V);
 values(V) when is_map(V) -> [value(V)].
 
-reply_from(ok) -> #{ status => ok };
-reply_from({ok, Items}) when is_list(Items) -> #{ status => ok,
-                                                data => lists:map(fun map/1, Items) };
+reply_from(ok, _) -> #{ status => ok };
 
-reply_from({error, E}) -> #{ status => error,
-                            error => E };
-reply_from(Other) -> #{ status => unknown,
-                    data => Other }.
+reply_from([Item], Spec) -> 
+    #{ status => ok,
+       data => map(Item, Spec) };
 
+reply_from(Items, Spec) when is_list(Items) -> 
+    #{ status => ok,
+       data => lists:map(fun(I) ->
+                                 map(I, Spec)
+                         end, Items) };
 
-by_bucket(ToAdd, ToDelete) ->
-    to_put(ToAdd, to_delete(ToDelete, #{})).
+reply_from({error, E}, _) -> 
+    #{ status => error,
+       error => E };
 
-to_delete([], ByBucket) -> ByBucket;
-to_delete([K|Rem], ByBucket) ->
-    to_delete(Rem, to_delete(K, ByBucket));
-
-to_delete(#{ bucket := B}=K, ByBucket) ->
-    #{ delete := Keys } = BucketIndex = bucket_index(B, ByBucket),
-    ByBucket#{ B => BucketIndex#{ delete => [key(K)|Keys]}}.
-
-to_put([], ByBucket) -> ByBucket;
-to_put([K|Rem], ByBucket) ->
-    to_put(Rem, to_put(K, ByBucket));
-
-to_put(#{ bucket := B}=V, ByBucket) ->
-    #{ put := Values} = BucketIndex = bucket_index(B, ByBucket),
-    ByBucket#{ B => BucketIndex#{ put=> [value(V)|Values]}}.
-
-bucket_index(B, ByBucket) ->
-    maps:get(B, ByBucket, #{ delete => [],
-                             put => []}).
-
-put_del(Buckets) ->
-    put_del(maps:keys(Buckets), Buckets).
-
-put_del([], _) -> ok;
-put_del([B|Rem], Buckets) ->
-    #{ put := ToPut,
-       delete := ToDelete } = maps:get(B, Buckets),
-    case cmdb:put_del(B, ToPut, ToDelete) of 
-        ok ->
-            put_del(Rem, Buckets);
-        Other ->
-            Other
-    end.
+reply_from(Other, _) -> 
+    #{ status => error,
+       error => Other }.

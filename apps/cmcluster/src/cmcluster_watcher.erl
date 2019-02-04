@@ -20,9 +20,15 @@ init([]) ->
     case cmconfig:settings(cluster) of 
         {ok, #{ spec := Spec }} ->
             case cmencode:encode(Spec) of 
+                {ok, #{ contact := []}} ->
+                    Log = cmkit:log_fun(false),
+                    State = set_state(offline, Log),
+                    {ok, State, #{ log => Log}};
+                
                 {ok, #{ name := Name,
                         size := Size,
                         contact := Nodes } = Spec0} ->
+
                     Log = cmkit:log_fun(Spec0),
                     Log({cmcluster, monitoring}),
                     global_group:monitor_nodes(true),

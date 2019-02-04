@@ -1,6 +1,7 @@
 type: app
 name: init 
 spec:
+  debug: true
   modules:
     - init
   settings:

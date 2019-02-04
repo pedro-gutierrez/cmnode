@@ -43,9 +43,10 @@ spec:
   encoders:
     init:
       context: init
-      reset:
+      bucket:
         keyword:
           key: app.db
+      reset: {}
     error:
       object:
         status: 500

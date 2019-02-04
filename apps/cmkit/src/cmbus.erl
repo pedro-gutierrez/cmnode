@@ -4,6 +4,7 @@
          delete/1,
          members/1,
          peers/1,
+         closest/1,
          sub/1, 
          sub/2, 
          unsub/1, 
@@ -47,6 +48,9 @@ unsub(T) ->
 
 unsub(T, Pid) ->
     pg2:leave(T, Pid).
+
+closest(T) ->
+    pg2:get_closest_pid(T).
 
 members(T) -> 
     case pg2:get_members(T) of 

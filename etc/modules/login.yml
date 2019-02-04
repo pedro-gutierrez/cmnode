@@ -17,11 +17,9 @@ spec:
         status:
           keyword: ok
         data:
-          list:
-            object:
-              value:
-                key: passwd
-
+          object:
+            value:
+              key: passwd
     user_success:
       object:
         context:
@@ -29,18 +27,17 @@ spec:
         status:
           keyword: ok
         data:
-          list:
-            object:
-              value:
-                object:
-                  first:
-                    any: text
-                  last:
-                    any: text
-                  uid:
-                    key: uid
-                  email:
-                    any: email
+          object:
+            value:
+              object:
+                first:
+                  any: text
+                last:
+                  any: text
+                uid:
+                  key: uid
+                email:
+                  any: email
     token_success:
       object:
         token:
@@ -53,11 +50,10 @@ spec:
             status:
               keyword: ok
             data:
-              list:
-                object:
-                  value:
-                    other_than:
-                      key: passwd
+              object:
+                value:
+                  other_than:
+                    key: passwd
         - object:
             context:
               keyword: user 
@@ -93,10 +89,7 @@ spec:
       model:
         object:
           user:
-            key: value
-            in:
-              head:
-                key: data
+            key: data.value
       cmds:
         - effect: service
           encoder: token
