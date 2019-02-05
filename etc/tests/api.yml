@@ -56,20 +56,38 @@ spec:
         - "When I reset that password"
         - "Then I should expect a forbidden error"
        
-    - title: "Should login"
+    - title: "Should login with email"
       tags:
         - login
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
-        - "When I login"
+        - "When I login with email"
         - "Then I should expect a uid"
         - "Then I should expect a token"
         - "Given a fake password"
-        - "When I login"
+        - "When I login with email"
         - "Then I should expect a forbidden error"
         - "Given password foo"
         - "Given a fake email"
+        - "When I login with email"
+        - "Then I should expect a forbidden error"
+
+    - title: "Should login with username"
+      tags:
+        - login
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I login with username"
+        - "Then I should expect a uid"
+        - "Then I should expect a token"
+        - "Given a fake password"
+        - "When I login with username"
+        - "Then I should expect a forbidden error"
+        - "Given password foo"
+        - "Given a fake username"
+        - "When I login with username"
         - "Then I should expect a forbidden error"
 
     - title: "Should logout"
@@ -78,7 +96,7 @@ spec:
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
-        - "When I login"
+        - "When I login with email"
         - "Then I should expect a token"
         - "When I logout"
         - "Then I should receive a 200 OK"
@@ -100,6 +118,7 @@ spec:
         - "Then I should expect a token"
         - "Given alice's email"
         - "Given password foo"
+        - "Given alice's username"
         - "When I reset that password"
         - "Expect a 201 Created"
 
@@ -131,7 +150,7 @@ spec:
             key: data.password
           token:
             key: data.token
-    - title: "When I login"
+    - title: "When I login with email"
       procedure: api
       params:
         debug: true
@@ -140,6 +159,17 @@ spec:
         body:
           email:
             key: data.email
+          password:
+            key: data.password
+    - title: "When I login with username"
+      procedure: api
+      params:
+        debug: true
+        method: post
+        path: "/login"
+        body:
+          username:
+            key: data.username
           password:
             key: data.password
     - title: "When I logout"
@@ -180,9 +210,15 @@ spec:
     - title: "Given alice's email"
       set:
         email: "alice@mail.com"
+    - title: "Given alice's username"
+      set:
+        username: "alice"
     - title: "Given a fake email"
       set:
         email: "fake@mail.com"
+    - title: "Given a fake username"
+      set:
+        username: "fake"
     - title: "Given a fake token"
       set:
         token: "fake"

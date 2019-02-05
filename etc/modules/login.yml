@@ -6,8 +6,8 @@ spec:
       object:
         bucket:
           any: keyword
-        email:
-          any: email
+        uid:
+          any: number
         passwd:
           any: text
     password_success:
@@ -69,13 +69,9 @@ spec:
       model:
         object:
           uid:
-            hash:
-              lowercase:
-                key: email
+            key: uid
           bucket:
             key: bucket
-          email:
-            key: email
           passwd:
             key: passwd
       cmds:

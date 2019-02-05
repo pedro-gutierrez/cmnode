@@ -2,7 +2,7 @@ type: module
 name: login_api
 spec:
   decoders:
-    login:
+    login_with_email:
       object:
         method: POST
         headers:
@@ -14,6 +14,30 @@ spec:
               any: email
             password:
               non_empty: text
+    login_with_username:
+      object:
+        method: POST
+        headers:
+          app:
+            any: text
+        body:
+          object:
+            username:
+              any: text
+            password:
+              non_empty: text
+    uid_found:
+      object:
+        context: uid_lookup
+        data:
+          object:
+            value:
+              any: number
+    uid_not_found:
+      object:
+        context: uid_lookup
+        data:
+          empty: list
     success:
       object:
         status:
@@ -25,7 +49,7 @@ spec:
         status:
           keyword: error
   update:
-    login:
+    login_with_email:
       model:
         app:
           key: 
@@ -33,14 +57,42 @@ spec:
           in:
             config:
               key: apps
-        email:
-          key: body.email
+        uid:
+          hash:
+            lowercase:
+              key: body.email
         passwd:
           key: body.password
       cmds:
         - effect: service
           encoder: login
+    login_with_username:
+      model:
+        app:
+          key: 
+            key: headers.app
+          in:
+            config:
+              key: apps
+        username:
+          key: body.username
+        passwd:
+          key: body.password
+      cmds:
+        - effect: db
+          encoder: uid_lookup
+    uid_found:
+      model:
+        uid:
+          key: data.value
+      cmds:
+        - effect: service
+          encoder: login
     error:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    uid_not_found:
       cmds:
         - effect: terminate
           encoder: forbidden
@@ -52,13 +104,25 @@ spec:
         - effect: terminate
           encoder: success
   encoders:
+    uid_lookup:
+      object:
+        context: uid_lookup
+        bucket:
+          keyword:
+            key: app.db
+        get:
+          object:
+            subject: username
+            predicate: is
+            object:
+              key: username
     login:
       object:
         service: login
         params:
           object:
-            email:
-              key: email
+            uid:
+              key: uid 
             passwd:
               key: passwd
             bucket:
