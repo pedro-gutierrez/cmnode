@@ -1778,6 +1778,9 @@ compile_term(#{ <<"send">> := Spec }, Index) ->
        spec => compile_term(Spec, Index)
      };
 
+compile_term(#{ <<"fail">> := Spec}, _) when is_binary(Spec) ->
+    #{ type => fail,
+       spec => Spec };
 
 compile_term(#{ <<"fail">> := Spec }, Index) ->
     #{ type => fail,

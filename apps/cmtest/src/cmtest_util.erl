@@ -351,6 +351,15 @@ resolve_steps([#{ type := parallel,
             Other
     end;
 
+resolve_steps([#{ type := fail, 
+                  spec := Title }=Spec|Rem], ReusableSteps, Procs, Out) when is_binary(Title) ->
+    case resolve_step(Title, ReusableSteps, Procs) of 
+        {ok, S} ->
+            resolve_steps(Rem, ReusableSteps, Procs, [Spec#{ spec => S }|Out]);
+        Other ->
+            Other
+    end;
+
 resolve_steps([#{ spec := _ }=Spec|Rem], ReusableSteps, Procs, Out) ->
     resolve_steps(Rem, ReusableSteps, Procs, [Spec|Out]).
 

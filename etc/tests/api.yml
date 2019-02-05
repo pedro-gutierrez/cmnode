@@ -11,13 +11,25 @@ spec:
         content-type: application/json
     admin: c93a2af4-e82e-44f2-8034-a72a42440341
   scenarios:
-    - title: "Should not register twice"
+    - title: "Should not register email twice"
       tags:
         - register
       steps:
         - "Given an empty database"
         - "Given user details for alice"
         - "Given that user is registered"
+        - "Given another username"
+        - "Register that user"
+        - "Expect a 409 Conflict"
+
+    - title: "Should not register username twice"
+      tags:
+        - register
+      steps:
+        - "Given an empty database"
+        - "Given user details for alice"
+        - "Given that user is registered"
+        - "Given another email"
         - "Register that user"
         - "Expect a 409 Conflict"
 
@@ -147,6 +159,21 @@ spec:
           last: "In Chains"
           email: "alice@mail.com"
           lang: "en"
+          username: "alice"
+    - title: "Given another email"
+      set:
+        details:
+          merge:
+            - key: data.details
+            - object:
+                email: "another@mail.com"
+    - title: "Given another username"
+      set:
+        details:
+          merge:
+            - key: data.details
+            - object:
+                username: "another"
     - title: "When I wait 1 second"
       wait:
         seconds: 1

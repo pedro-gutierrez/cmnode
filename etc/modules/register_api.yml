@@ -18,6 +18,8 @@ spec:
               any: email
             lang:
               any: text
+            username:
+              non_empty: text
     registered:
       object:
         service: register
