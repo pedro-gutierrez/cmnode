@@ -268,7 +268,7 @@ decode_term(#{ type := list, spec := Spec }, Data, Config) when is_list(Data) ->
 
 
 decode_term(#{ type := list, with := Spec}, Data, Config) when is_list(Data)  ->
-    case cmencode:encode(Spec, Data, Config) of 
+    case cmencode:encode(Spec, Config) of 
         {ok, Member} when is_map(Member) ->
             case decode_first_item(#{ type => object,
                                       spec => Member }, Data, Config) of 
