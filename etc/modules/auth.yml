@@ -1,0 +1,28 @@
+type: module 
+name: auth
+spec:
+  decoders:
+    with_token:
+      object:
+        headers:
+          authorization:
+            non_empty: text
+    anonymous:
+      one_of:
+        - object:
+            headers:
+              authorization:
+                empty: text
+        - object:
+            headers:
+              without_keys:
+                - authorization
+  update:
+    with_token:
+      model:
+        token:
+          key: headers.authorization
+    anonymous:
+      cmds:
+        - effect: terminate
+          encoder: forbidden

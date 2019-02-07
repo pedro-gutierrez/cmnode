@@ -25,15 +25,16 @@ init(_, _) -> {ok, #{}, []}.
 
 update(App, Spec, Config) -> update(App, Spec, Config, #{}).
 
-update(App, Spec, Config, In) -> update(App, Spec, Config, In, {#{}, []}).
+update(#{ encoders := Encs }, Spec, Config, In) -> 
+    apply_update_spec(Encs, Spec, Config, In, {#{}, []}).
 
-update(App, #{ model := M, cmds := C } = Spec, Config, In, {Model, Cmds}) ->
+apply_update_spec(Encs, #{ model := M, cmds := C } = Spec, Config, In, {Model, Cmds}) ->
     case data_with_where(Spec, In, Model, Config) of 
         {ok, In2} ->
             case cmencode:encode(M, In2, Config) of
                 {ok, M2} ->
                     M3 = maps:merge(Model, M2),
-                    case resolve_cmds(App, C, M3) of
+                    case resolve_cmds(Encs, C, M3) of
                         {ok, C2} ->
                             {ok, M3, Cmds ++ C2};
                         {error, E} ->
@@ -46,7 +47,7 @@ update(App, #{ model := M, cmds := C } = Spec, Config, In, {Model, Cmds}) ->
             Other
     end;
 
-update(_, Spec, _, _, _) -> {error, {invalid_update, Spec}}.
+apply_update_spec( _, Spec, _, _, _) -> {error, {invalid_update, Spec}}.
 
 data_with_where(#{ where := WhereSpec }, Data, Model, Config) ->
     In = maps:merge(Model, Data),
@@ -59,27 +60,24 @@ data_with_where(#{ where := WhereSpec }, Data, Model, Config) ->
         
 data_with_where(_, Data, Model, _) -> {ok, maps:merge(Model, Data)}.
 
-resolve_cmds(App, Cmds, Model) ->
-    resolve_cmds(App, Cmds, Model, []).
+resolve_cmds(Encoders, Cmds, Model) ->
+    resolve_cmds(Encoders, Cmds, Model, []).
 
 resolve_cmds(_, [], _, Out) -> {ok, lists:reverse(Out)};
-resolve_cmds(App, [Cmd|Rem], Model, Out) ->
-    case resolve_cmd(App, Cmd, Model) of
+resolve_cmds(Encoders, [Cmd|Rem], Model, Out) ->
+    case resolve_cmd(Encoders, Cmd, Model) of
         {ok, Cmd2} ->
-            resolve_cmds(App, Rem, Model, [Cmd2|Out]);
+            resolve_cmds(Encoders, Rem, Model, [Cmd2|Out]);
         {error, E} -> {error, E}
     end.
 
-resolve_cmd(#{ encoders := Encoders }, #{ encoder := Enc }=Cmd, _) ->
+resolve_cmd(Encoders, #{ encoder := Enc }=Cmd, _) ->
     case maps:get(Enc, Encoders, undef) of
         undef ->
             {error, unknown_encoder(Enc) };
         Encoder ->
             {ok, Cmd#{ encoder => Encoder }}
     end;
-
-resolve_cmd(_, #{ encoder := Enc }, _) ->
-    {error, unknown_encoder(Enc)};
 
 resolve_cmd(_, #{ effect := _ }=Cmd, _) ->
     {ok, Cmd };
@@ -133,7 +131,7 @@ apply_effect(Effect, Data, Pid, _Log, Effects) ->
     end,
     ok.
 
-update_spec(#{ update := Updates, encoders := Encoders }, Msg, Data, Model, Config) ->
+update_spec(#{ update := Updates }, Encoders, Msg, Data, Model, Config) ->
     case maps:get(Msg, Updates, undef) of
         undef ->
             {error, #{  update => not_implemented, msg => Msg }};
@@ -148,7 +146,7 @@ update_spec(#{ update := Updates, encoders := Encoders }, Msg, Data, Model, Conf
             end
     end;
 
-update_spec(_, Msg, _, _, _) ->
+update_spec(_, _, Msg, _, _, _) ->
     {error, #{ update => not_implemented, msg => Msg }}.
 
 first_clause([], _, _, _) -> none;
@@ -201,9 +199,47 @@ decode_with([#{ msg := Msg, spec := Spec}|Rem], Data, Model, Config) ->
 decode_with(_, _, _, _) -> {error, no_match}.
 
 
+
+
+update(Pid, #{ name := App,
+               filters := [Filter|RemFilters], 
+               spec := #{ encoders := Encs },
+               config := Config } = AppSpec, Data, Model, Log, Effects) ->
+    Log({App, Pid, in, Data}),
+    case decode(Filter, Data, Model, Config) of
+        {ok, Msg, Decoded} ->
+            Log({App, Pid, decoded, Msg}),
+            case update_spec(Filter, Encs, Msg, Decoded, Model, Config) of
+                {ok, UpdateSpec} ->
+                    case apply_update_spec(Encs, UpdateSpec, Config, Decoded, {Model, []}) of
+                        {ok, Model2, []} ->
+                            Data0 = maps:get(data, AppSpec, Data),
+                            AppSpec2 = AppSpec#{ data => Data0,
+                                                 filters => RemFilters },
+                            update(Pid, AppSpec2, Data0, Model2, Log, Effects);  
+                        {ok, Model2, Cmds} ->
+                            cmds(Cmds, Model2, Config, Pid, Log, Effects),
+                            Data0 = maps:get(data, AppSpec, Data),
+                            AppSpec2 = AppSpec#{ data => Data0 },
+                            {ok, Model2, AppSpec2}; 
+                        {error, E} ->
+                            err(App, Pid, update, #{ data => Data, reason => E})
+                    end;
+                {error, E} ->
+                    err(App, Pid, update, #{ data => Data, reason => E})
+            end;
+        {error, no_match} ->
+            cmkit:warning({App, Pid, no_match, cmkit:printable(Data)}),
+            err(App, Pid, filter, #{ data => Data, reason => no_match });
+        {error, E} ->
+            err(App, Pid, filter, #{ data => Data, reason => E })
+    end;
+
+
 update(Pid, #{ name := App,
                spec := Spec,
-               config := Config } = AppSpec, Data, Model, Log, Effects) ->
+               config := Config } = AppSpec, Data0, Model, Log, Effects) ->
+    Data = maps:get(data, AppSpec, Data0),
     Log({App, Pid, in, Data}),
     case decode(Spec, Data, Model, Config) of
         {ok, Msg, Decoded} ->
@@ -217,15 +253,15 @@ update(Pid, #{ name := App,
     end.
 
 update(Pid, #{ name := App,
-               spec := Spec,
-               config := Config }, Msg, Data, Model, Log, Effects) ->
+               spec := #{ encoders := Encs }=Spec,
+               config := Config } = AppSpec, Msg, Data, Model, Log, Effects) ->
     
-    case update_spec(Spec, Msg, Data, Model, Config) of
+    case update_spec(Spec, Encs, Msg, Data, Model, Config) of
         {ok, UpdateSpec} ->
-            case update(Spec, UpdateSpec, Config, Data, {Model, []}) of
+            case apply_update_spec(Encs, UpdateSpec, Config, Data, {Model, []}) of
                 {ok, Model2, Cmds } ->
                     cmds(Cmds, Model2, Config, Pid, Log, Effects),
-                    {ok, Model2};
+                    {ok, Model2, AppSpec};
                 {error, E} ->
                     err(App, Pid, update, #{ data => Data, reason => E})
             end;

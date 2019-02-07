@@ -1,0 +1,12 @@
+type: app
+name: spaces 
+spec:
+  debug: true
+  filters:
+    - app
+    - auth 
+  modules:
+    - common_api
+    - spaces
+  settings:
+    - apps

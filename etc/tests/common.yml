@@ -1,5 +1,5 @@
 type: test 
-name: api 
+name: common 
 spec:
   config:
     retries: 50
@@ -10,97 +10,7 @@ spec:
       object:
         content-type: application/json
     admin: c93a2af4-e82e-44f2-8034-a72a42440341
-  scenarios:
-    - title: "Should not register email twice"
-      tags:
-        - register
-      steps:
-        - "Given an empty database"
-        - "Given user details for alice"
-        - "Given that user is registered"
-        - "Given another username"
-        - "Register that user"
-        - "Expect a 409 Conflict"
-
-    - title: "Should not register username twice"
-      tags:
-        - register
-      steps:
-        - "Given an empty database"
-        - "Given user details for alice"
-        - "Given that user is registered"
-        - "Given another email"
-        - "Register that user"
-        - "Expect a 409 Conflict"
-
-    - title: "Should reset passwords"
-      tags: 
-        - passwd_reset
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given a fake email"
-        - "When I reset that password"
-        - "Then I should expect a forbidden error"
-        - "Given alice's email"
-        - "Given a fake token"
-        - "When I reset that password"
-        - "Then I should expect a forbidden error"
-
-    - title: "Should consume password reset tokens"
-      tags: 
-        - consume 
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "When I reset that password"
-        - "Then I should expect a forbidden error"
-       
-    - title: "Should login with email"
-      tags:
-        - login
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "When I login with email"
-        - "Then I should expect a uid"
-        - "Then I should expect a token"
-        - "Given a fake password"
-        - "When I login with email"
-        - "Then I should expect a forbidden error"
-        - "Given password foo"
-        - "Given a fake email"
-        - "When I login with email"
-        - "Then I should expect a forbidden error"
-
-    - title: "Should login with username"
-      tags:
-        - login
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "When I login with username"
-        - "Then I should expect a uid"
-        - "Then I should expect a token"
-        - "Given a fake password"
-        - "When I login with username"
-        - "Then I should expect a forbidden error"
-        - "Given password foo"
-        - "Given a fake username"
-        - "When I login with username"
-        - "Then I should expect a forbidden error"
-
-    - title: "Should logout"
-      tags:
-        - logout
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "When I login with email"
-        - "Then I should expect a token"
-        - "When I logout"
-        - "Then I should receive a 200 OK"
-
+  scenarios: []
   backgrounds:
     - title: "Given an empty database"
       steps:
@@ -121,7 +31,15 @@ spec:
         - "Given alice's username"
         - "When I reset that password"
         - "Expect a 201 Created"
-
+    - title: "Given I am logged in"
+      steps:
+        - "When I login with email"
+        - "Then I should expect a token"
+    - title: "Given a space"
+      steps:
+        - "When I create a space"
+        - "Expect a 201 Created"
+        - "Then I should expect a space id" 
   steps:
     - title: "Reset the database"
       procedure: api
@@ -280,6 +198,36 @@ spec:
         remember:
           uid:
             key: body.uid
+    - title: "When I create a space"
+      procedure: api
+      params:
+        debug: true
+        method: post
+        path: "/spaces"
+        headers:
+          object:
+            authorization:
+              one_of:
+                - key: data.token
+                - ""
+    - title: "Then I should expect a space id"
+      expect:
+        match:
+          key: data.latest
+        with:
+          object:
+            body:
+              space:
+                object:
+                  owner:
+                    any: text
+                  title: 
+                    any: text
+                  id:
+                    any: text 
+        remember:
+          spaceId:
+            key: body.space.id
   procedures:
     - name: api
       spec:

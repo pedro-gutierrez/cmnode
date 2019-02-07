@@ -515,25 +515,27 @@ compile_app(#{ <<"name">> := Name,
 
     AppName = cmkit:to_atom(Name),
     ResolvedModules = resolve_modules(Modules, Mods),
-    
+    Filters = maps:get(<<"filters">>, Spec, []),
+    ResolvedFilters = resolve_modules(Filters, Mods),
+
     AppConfig = compile_app_settings(AppName, Spec, Index),
 
     Spec2 = #{ name => AppName,
-              type => app,
-              rank => Rank,
-              tags => compile_tags(maps:get(<<"tags">>, Spec, [])), 
-              modules => lists:map(fun(#{ status := unknown }=M) ->
-                                           M;
-                                      (#{ name := ModName }) ->
-                                           #{ name => ModName,
-                                              status => resolved
-                                            }
-                                   end, ResolvedModules),
-              config => AppConfig,
-              debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
-              timeout => cmkit:to_number(maps:get(<<"timeout">>, Spec, <<"10000">>)),
-              spec => compile_modules(ResolvedModules, #{})
-            },
+               type => app,
+               rank => Rank,
+               tags => compile_tags(maps:get(<<"tags">>, Spec, [])), 
+               modules => lists:map(fun(#{ status := unknown }=M) ->
+                                            M;
+                                       (#{ name := ModName }) ->
+                                            #{ name => ModName,
+                                               status => resolved
+                                             }
+                                    end, ResolvedModules),
+               filters => ResolvedFilters,
+               config => AppConfig,
+               debug => compile_keyword(maps:get(<<"debug">>, Spec, <<"false">>)),
+               timeout => cmkit:to_number(maps:get(<<"timeout">>, Spec, <<"10000">>)),
+               spec => compile_modules(ResolvedModules, #{})},
 
     Debug = app_debug(Spec2),
     Spec2#{ debug => Debug }.

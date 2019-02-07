@@ -1,0 +1,28 @@
+type: module
+name: spaces 
+spec:
+  decoders:
+    create:
+      object:
+        method: POST
+        headers:
+          authorization:
+            any: text
+          app:
+            any: text
+  update:
+    create:
+      cmds:
+        - effect: terminate
+          encoder: space
+  encoders:
+    space:
+      object:
+        status: 201
+        headers:
+          content-type: application/json
+        body:
+          space:
+            owner: "dummy"
+            title: "dumy"
+            id: "dummy"

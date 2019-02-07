@@ -25,11 +25,11 @@ init(#{ method := Method }=Req, #{ instruments := #{ increment := IncrFun },
                                query => maps:from_list(cowboy_req:parse_qs(Req2)) },
                     case cmcore:update(Pid, Spec2, #{ effect => web,
                                                       data => Data2 }, Model, Log, Effects) of 
-                        {ok, Model2} ->
+                        {ok, Model2, Spec3} ->
                             UpdateTime = cmkit:elapsed(Start),
                             {cowboy_loop, Req2, State#{ log => Log, 
                                                         method => Method,
-                                                        spec => Spec2,
+                                                        spec => Spec3,
                                                         model => Model2,
                                                         start => Start,
                                                         body_time => BodyTime,
@@ -61,8 +61,9 @@ info({update, Data}, Req, #{ app := App,
                              log := Log,
                              effects := Effects } = State) ->
     case cmcore:update(self(), Spec, Data, Model, Log, Effects) of 
-        {ok, Model2} ->
-            {ok, Req, State#{ model => Model2 }};
+        {ok, Model2, Spec2} ->
+            {ok, Req, State#{ model => Model2, 
+                              spec => Spec2 }};
         {error, E} ->
             cmkit:danger({http, App, update, E}),
             reply_and_stop(error, json, #{}, Req, State)

@@ -25,9 +25,11 @@ callback_mode() ->
 start_link(Test, Scenario, Steps, Facts, Settings, Runner) ->
     gen_statem:start_link(?MODULE, [Test, Scenario, Steps, Facts, Settings, Runner], []).
 
-
-init([#{ config := #{ retries := Retries,
-                      wait := Wait } = Config }=Test, Scenario, Steps, Facts, Settings, Runner]) ->
+init([#{ config := Config }=Test, Scenario, Steps, Facts, Settings, Runner]) ->
+    
+    Retries = maps:get(retries, Config, 10),
+    Wait = maps:get(wait, Config, 25),
+    
     Data = #{ log => cmkit:log_fun(Config),
               test => Test,
               scenario => Scenario,

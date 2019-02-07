@@ -49,8 +49,9 @@ websocket_info({update, Data}, #{ app := App,
                                   effects := Effects }=State) ->
 
     case cmcore:update(self(), Spec, Data, Model, Log, Effects) of 
-        {ok, Model2} ->
-            {ok, State#{ model => Model2 }};
+        {ok, Model2, Spec2} ->
+            {ok, State#{ spec => Spec2,
+                         model => Model2 }};
         {error, E} ->
             cmkit:danger({App, Port, self(), E}),
             stop(State, E)
@@ -95,7 +96,13 @@ handle_data(Data, #{ app := App,
             {ok, State};
         {ok, Decoded} ->
             Log({ws, in, App, Port, self(), Decoded}),
-            {ok, Model2} = cmcore:update(self(), Spec, #{ effect => web,
-                                                          data => Decoded }, Model, Log, Effects),
-            {ok, State#{ model => Model2 }}
+            case cmcore:update(self(), Spec, #{ effect => web,
+                                                data => Decoded }, Model, Log, Effects) of 
+                {ok, Model2, Spec2} ->
+                    {ok, State#{ spec => Spec2,
+                                 model => Model2 }};
+                {error, E} ->
+                    Log({ws, App, Port, self(), E}),
+                    {ok, State}
+            end
     end.

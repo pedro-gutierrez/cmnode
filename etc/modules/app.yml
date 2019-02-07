@@ -7,7 +7,7 @@ spec:
         headers:
           app:
             any: text
-    missing_app:
+    missing:
       object:
         headers:
           without_keys:
@@ -21,4 +21,7 @@ spec:
           in:
             config:
               key: apps
-  encoders: {}
+    missing:
+      cmds:
+        - effect: terminate
+          encoder: forbidden

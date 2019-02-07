@@ -1,0 +1,24 @@
+type: test 
+name: spaces 
+spec:
+  include:
+    - common
+  scenarios:
+
+    - title: "Anonymous users should not create spaces"
+      tags:
+        - spaces
+        - anonymous
+      steps:
+        - "Given an empty database"
+        - "When I create a space"
+        - "Then I should expect a forbidden error"
+    
+    - title: "Authenticated users should create spaces"
+      tags:
+        - spaces
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in"
+        - "Given a space"

@@ -70,8 +70,9 @@ update(Data, #{ spec := Spec,
                 effects := Effects,
                 app := App}=State) -> 
     case cmcore:update(self(), Spec, Data, Model, Log, Effects) of
-        {ok, Model2} ->
-            {noreply, State#{ model => Model2 }};
+        {ok, Model2, Spec2} ->
+            {noreply, State#{ spec => Spec2,
+                              model => Model2 }};
         {error, E} ->
             cmkit:danger({App, E}),
             cmcore:update(From, E),
