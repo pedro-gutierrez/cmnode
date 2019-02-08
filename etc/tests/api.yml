@@ -1,0 +1,165 @@
+type: test 
+name: api 
+spec:
+  include:
+    - common
+  scenarios:
+    
+    - title: "Should not allow anonymous users to create spaces"
+      tags:
+        - spaces
+        - anonymous
+      steps:
+        - "Given an empty database"
+        - "When I create a space"
+        - "Then I should expect a forbidden error"
+    
+    - title: "Should not allow users to create spaces without a proper app"
+      tags:
+        - spaces
+        - forbidden 
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in"
+        - "Given no app"
+        - "When I create a space"
+        - "Then I should expect a forbidden error"
+        - "Given a wrong app"
+        - "Then I should expect a forbidden error"
+    
+    - title: "Unauthorized users should not create spaces"
+      tags:
+        - spaces
+        - forbidden 
+        - current
+      steps:
+        - "Given an empty database"
+        - "Given a fake token"
+        - "When I create a space"
+        - "Then I should expect a forbidden error"
+
+    - title: "Users should be able to create spaces in a valid app"
+      tags:
+        - spaces
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in"
+        - "Given a space"
+    
+    - title: "Should not allow to init without a proper app"
+      tags:
+        - register
+        - forbidden
+      steps:
+        - "Given no app"
+        - "When I init"        
+        - "Then I should expect a forbidden error"
+        - "Given a wrong app"
+        - "When I init"        
+        - "Then I should expect a forbidden error"
+    
+    - title: "Should not allow to register without a proper app"
+      tags:
+        - register
+        - forbidden
+      steps:
+        - "Given an empty database"
+        - "Given user details for alice"
+        - "Given no app"
+        - "Register that user"
+        - "Then I should expect a forbidden error"
+        - "Given a wrong app"
+        - "Register that user"
+        - "Then I should expect a forbidden error"
+
+    - title: "Should not register email twice"
+      tags:
+        - register
+      steps:
+        - "Given an empty database"
+        - "Given user details for alice"
+        - "Given that user is registered"
+        - "Given another username"
+        - "Register that user"
+        - "Expect a 409 Conflict"
+
+    - title: "Should not register username twice"
+      tags:
+        - register
+      steps:
+        - "Given an empty database"
+        - "Given user details for alice"
+        - "Given that user is registered"
+        - "Given another email"
+        - "Register that user"
+        - "Expect a 409 Conflict"
+
+    - title: "Should reset passwords"
+      tags: 
+        - passwd_reset
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given a fake email"
+        - "When I reset that password"
+        - "Then I should expect a forbidden error"
+        - "Given alice's email"
+        - "Given a fake token"
+        - "When I reset that password"
+        - "Then I should expect a forbidden error"
+
+    - title: "Should consume password reset tokens"
+      tags: 
+        - consume 
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I reset that password"
+        - "Then I should expect a forbidden error"
+       
+    - title: "Should login with email"
+      tags:
+        - login
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I login with email"
+        - "Then I should expect a uid"
+        - "Then I should expect a token"
+        - "Given a fake password"
+        - "When I login with email"
+        - "Then I should expect a forbidden error"
+        - "Given password foo"
+        - "Given a fake email"
+        - "When I login with email"
+        - "Then I should expect a forbidden error"
+
+    - title: "Should login with username"
+      tags:
+        - login
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I login with username"
+        - "Then I should expect a uid"
+        - "Then I should expect a token"
+        - "Given a fake password"
+        - "When I login with username"
+        - "Then I should expect a forbidden error"
+        - "Given password foo"
+        - "Given a fake username"
+        - "When I login with username"
+        - "Then I should expect a forbidden error"
+
+    - title: "Should logout"
+      tags:
+        - logout
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "When I login with email"
+        - "Then I should expect a token"
+        - "When I logout"
+        - "Then I should receive a 200 OK"
