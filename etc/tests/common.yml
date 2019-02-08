@@ -14,7 +14,7 @@ spec:
   backgrounds:
     - title: "Given an empty database"
       steps:
-        - "Reset the database"
+        - "When I init"
         - "Expect a 201 Created"
     - title: "Given that user is registered"
       steps:
@@ -41,7 +41,13 @@ spec:
         - "Expect a 201 Created"
         - "Then I should expect a space id" 
   steps:
-    - title: "Reset the database"
+    - title: "Given no app"
+      set:
+        app: ""
+    - title: "Given a wrong app"
+      set:
+        app: "wrong"
+    - title: "When I init"
       procedure: api
       params:
         method: post
@@ -253,7 +259,9 @@ spec:
                   - key: facts.baseHeaders
                   - object:
                       app:
-                        key: facts.app
+                        one_of:
+                          - key: data.app
+                          - key: facts.app
                   - one_of:
                       - key: params.headers
                       - object: {}
@@ -281,7 +289,9 @@ spec:
                   - key: facts.baseHeaders
                   - object:
                       app:
-                        key: facts.app
+                        one_of:
+                          - key: data.app
+                          - key: facts.app
                   - one_of:
                       - key: params.headers
                       - object: {}

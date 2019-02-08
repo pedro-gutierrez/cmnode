@@ -5,9 +5,6 @@ spec:
     register:
       object:
         method: POST
-        headers:
-          app:
-            any: text
         body:
           object:
             first:
@@ -50,12 +47,6 @@ spec:
   update:
     register:
       model:
-        app:
-          key: 
-            key: headers.app
-          in:
-            config:
-              key: apps
         details:
           key: body
       cmds:

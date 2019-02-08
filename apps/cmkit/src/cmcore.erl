@@ -199,7 +199,8 @@ decode_with([#{ msg := Msg, spec := Spec}|Rem], Data, Model, Config) ->
 decode_with(_, _, _, _) -> {error, no_match}.
 
 
-
+with_encoders(Encs, #{ encoders := Encs2} = Spec) ->
+    Spec#{ encoders => maps:merge(Encs, Encs2) }.
 
 update(Pid, #{ name := App,
                filters := [Filter|RemFilters], 
@@ -209,9 +210,10 @@ update(Pid, #{ name := App,
     case decode(Filter, Data, Model, Config) of
         {ok, Msg, Decoded} ->
             Log({App, Pid, decoded, Msg}),
-            case update_spec(Filter, Encs, Msg, Decoded, Model, Config) of
+            #{ encoders := Encs2 } = Filter2 = with_encoders(Encs, Filter),
+            case update_spec(Filter2, Encs2, Msg, Decoded, Model, Config) of
                 {ok, UpdateSpec} ->
-                    case apply_update_spec(Encs, UpdateSpec, Config, Decoded, {Model, []}) of
+                    case apply_update_spec(Encs2, UpdateSpec, Config, Decoded, {Model, []}) of
                         {ok, Model2, []} ->
                             Data0 = maps:get(data, AppSpec, Data),
                             AppSpec2 = AppSpec#{ data => Data0,
@@ -240,14 +242,15 @@ update(Pid, #{ name := App,
                spec := Spec,
                config := Config } = AppSpec, Data0, Model, Log, Effects) ->
     Data = maps:get(data, AppSpec, Data0),
+    AppSpec2 = maps:without([data], AppSpec),
     Log({App, Pid, in, Data}),
     case decode(Spec, Data, Model, Config) of
         {ok, Msg, Decoded} ->
             Log({App, Pid, decoded, Msg}),
-            update(Pid, AppSpec,  Msg, Decoded, Model, Log, Effects);
+            update(Pid, AppSpec2,  Msg, Decoded, Model, Log, Effects);
         {error, no_match} ->
             cmkit:warning({App, Pid, no_match, cmkit:printable(Data)}),
-            update(Pid, AppSpec,  no_match, Data, Model, Log, Effects);
+            update(Pid, AppSpec2,  no_match, Data, Model, Log, Effects);
         {error, E} ->
             err(App, Pid, update, #{ data => Data, reason => E })
     end.

@@ -2,7 +2,7 @@ type: module
 name: auth
 spec:
   decoders:
-    with_token:
+    token:
       object:
         headers:
           authorization:
@@ -18,11 +18,21 @@ spec:
               without_keys:
                 - authorization
   update:
-    with_token:
+    token:
       model:
         token:
           key: headers.authorization
+      cmds:
+        - effect: service
+          encoder: verify
     anonymous:
       cmds:
         - effect: terminate
           encoder: forbidden
+  encoders:
+    verify:
+      object:
+        service: token_verify
+        params:
+          token:
+            key: token

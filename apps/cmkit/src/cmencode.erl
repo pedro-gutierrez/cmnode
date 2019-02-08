@@ -77,6 +77,24 @@ encode(#{ item := Num, in := At }, In, Config) when ( is_atom(At) or is_binary(A
             Other
     end;
 
+encode(#{ type := keys,
+          spec := KeysSpec,
+          in := InSpec } = Spec, In, Config) ->
+    case encode(KeysSpec, In, Config) of 
+        {ok, Keys} ->
+            case encode(InSpec, In, Config) of 
+                {ok, Map} when is_map(Map) ->
+                    encode_keys(Keys, Map); 
+                {ok, Other} ->
+                    encode_error(not_a_map, #{ spec => Spec,
+                                               encoded  => Other });
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 
 encode(#{ key := Key, in := At }, In, Config) when is_atom(Key) or is_binary(Key) -> 
     case encode(#{ key => At }, In, Config) of 
@@ -1838,6 +1856,19 @@ foldl([S|Rem], In, Config, Acc, Fun) ->
             end;
         Other ->
             Other
+    end.
+
+encode_keys(Keys, Map) ->
+    encode_keys(Keys, Map, #{}).
+
+encode_keys([], _, Out) -> {ok, Out};
+encode_keys([K|Rem], Map, Out) ->
+    case cmkit:value_at(K, Map) of 
+        undef ->
+            encode_error(missing_key, #{ key => K,
+                                         keys => maps:keys(Map) });
+        V ->
+            encode_keys(Rem, Map, Out#{ K => V })
     end.
 
 nan(Value, Spec) ->

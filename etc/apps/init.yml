@@ -2,7 +2,10 @@ type: app
 name: init 
 spec:
   debug: true
+  filters:
+    - app
   modules:
+    - common_api
     - init
   settings:
     - admin

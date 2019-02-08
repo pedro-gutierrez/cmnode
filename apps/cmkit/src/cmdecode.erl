@@ -118,6 +118,24 @@ decode_term(#{ type := other_than, spec := Spec }, Data, Context) ->
     end;
 
 
+decode_term(#{ type := in, 
+               spec := Spec}, Data, Context) ->
+    case cmencode:encode(Spec, Context) of 
+        {ok, Map} when is_map(Map) ->
+            case cmkit:value_at(Data, Map) of 
+                undef ->
+                    no_match;
+                Value ->
+                    {ok, Value}
+            end;
+        {ok, Other} ->
+            cmkit:warning({cmdecode, in, Spec, Other}),
+            no_match;
+        _ ->
+            no_match
+    end;
+
+
 decode_term(#{ type := lower_than, spec := Spec}, Data, Context) ->
     case cmencode:encode(Spec, Context) of
         {ok, Value} ->

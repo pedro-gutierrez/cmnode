@@ -6,8 +6,6 @@ spec:
       object:
         method: POST
         headers:
-          app:
-            any: text
           authorization:
             config:
               key: admin.secret
@@ -22,24 +20,17 @@ spec:
             keyword: ok
   update:
     init:
-      model:
-        app:
-          key: 
-            key: headers.app
-          in:
-            config:
-              key: apps
       cmds:
         - effect: db
           encoder: init
     success:
       cmds:
         - effect: notify
-          encoder: success
+          encoder: created
     error:
       cmds:
         - effect: notify
-          encoder: error
+          encoder: internal_error
   encoders:
     init:
       context: init
@@ -47,18 +38,3 @@ spec:
         keyword:
           key: app.db
       reset: {}
-    error:
-      object:
-        status: 500
-        headers:
-          content-type: application/json
-        body:
-          object: {}
-    success:
-      object:
-        status: 201
-        headers:
-          content-type: application/json
-        body:
-          object: {}
-

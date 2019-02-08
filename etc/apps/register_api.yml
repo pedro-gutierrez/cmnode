@@ -1,6 +1,9 @@
 type: app
 name: register_api
 spec:
+  debug: true
+  filters:
+    - app
   modules:
     - common_api
     - register_api
