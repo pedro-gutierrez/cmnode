@@ -31,6 +31,7 @@ spec:
         - "Given alice's username"
         - "When I reset that password"
         - "Expect a 201 Created"
+        - "Given no token"
     - title: "Given I am logged in"
       steps:
         - "When I login with email"
@@ -44,6 +45,9 @@ spec:
     - title: "Given no app"
       set:
         app: ""
+    - title: "Given no token"
+      set:
+        token: ""
     - title: "Given a wrong app"
       set:
         app: "wrong"
@@ -52,9 +56,8 @@ spec:
       params:
         method: post
         path: "/init"
-        headers:
-          authorization: 
-            key: facts.admin
+        token: 
+          key: facts.admin
     - title: "Register that user"
       procedure: api
       params:
@@ -102,10 +105,6 @@ spec:
         debug: true
         method: post
         path: "/logout"
-        headers:
-          object:
-            authorization:
-              key: data.token
     - title: "Given user details for alice"
       set:
         details:
@@ -114,6 +113,14 @@ spec:
           email: "alice@mail.com"
           lang: "en"
           username: "alice"
+    - title: "Given user details for bob"
+      set:
+        details:
+          first: "Bob"
+          last: "Dylan"
+          email: "bob@mail.com"
+          lang: "en"
+          username: "bob"
     - title: "Given another email"
       set:
         details:
@@ -210,12 +217,6 @@ spec:
         debug: true
         method: post
         path: "/spaces"
-        headers:
-          object:
-            authorization:
-              one_of:
-                - key: data.token
-                - ""
     - title: "Then I should expect a space id"
       expect:
         match:
@@ -262,9 +263,11 @@ spec:
                         one_of:
                           - key: data.app
                           - key: facts.app
-                  - one_of:
-                      - key: params.headers
-                      - object: {}
+                      authorization:
+                        one_of:
+                          - key: params.token
+                          - key: data.token
+                          - ""
               body:
                 key: params.body
             debug:
@@ -292,9 +295,11 @@ spec:
                         one_of:
                           - key: data.app
                           - key: facts.app
-                  - one_of:
-                      - key: params.headers
-                      - object: {}
+                      authorization:
+                        one_of:
+                          - key: params.token
+                          - key: data.token
+                          - ""
             debug:
               one_of:
                 - key: params.debug

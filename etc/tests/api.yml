@@ -32,7 +32,6 @@ spec:
       tags:
         - spaces
         - forbidden 
-        - current
       steps:
         - "Given an empty database"
         - "Given a fake token"
@@ -71,6 +70,18 @@ spec:
         - "Register that user"
         - "Then I should expect a forbidden error"
         - "Given a wrong app"
+        - "Register that user"
+        - "Then I should expect a forbidden error"
+    
+    - title: "Should not allow to register with a token"
+      tags:
+        - register
+        - forbidden
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in"
+        - "Given user details for bob"
         - "Register that user"
         - "Then I should expect a forbidden error"
 
@@ -150,6 +161,19 @@ spec:
         - "Then I should expect a forbidden error"
         - "Given password foo"
         - "Given a fake username"
+        - "When I login with username"
+        - "Then I should expect a forbidden error"
+    
+    - title: "Should not allow to login with a token"
+      tags:
+        - login
+        - forbidden
+        - current
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in"
+        - "Then I should expect a token"
         - "When I login with username"
         - "Then I should expect a forbidden error"
 

@@ -4,6 +4,7 @@ spec:
   debug: true
   filters:
     - app
+    - anonymous
   modules:
     - common_api
     - register_api

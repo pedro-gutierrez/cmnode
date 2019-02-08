@@ -1,5 +1,5 @@
 type: app
-name: token_consume
+name: token_resolve
 spec: 
   debug: true
   tags:
@@ -7,4 +7,4 @@ spec:
   modules:
     - common_service
     - token_find
-    - token_consume
+    - token_resolve

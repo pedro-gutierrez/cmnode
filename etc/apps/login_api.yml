@@ -1,6 +1,9 @@
 type: app
 name: login_api
 spec:
+  filters:
+    - app
+    - anonymous
   modules:
     - common_api
     - login_api

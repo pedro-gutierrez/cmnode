@@ -1,10 +1,9 @@
 type: app
-name: token_consume
+name: user_find 
 spec: 
   debug: true
   tags:
     - service
   modules:
     - common_service
-    - token_find
-    - token_consume
+    - user_find

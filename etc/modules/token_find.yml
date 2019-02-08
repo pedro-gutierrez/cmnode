@@ -1,0 +1,99 @@
+type: module
+name: token_find
+spec:
+  decoders:
+    find:
+      object:
+        bucket:
+          any: keyword
+        token:
+          non_empty: text
+        acl:
+          non_empty: text
+    found:
+      object:
+        context: find
+        status:
+          keyword: ok
+        data:
+          object:
+            value:
+              status: 0
+              expires:
+                greater_than:
+                  now: seconds
+              uid:
+                any: number
+    expired:
+      object:
+        context: find
+        status:
+          keyword: ok
+        data:
+          object:
+            value:
+              expires:
+                less_than:
+                  now: seconds
+    not_found:
+      object:
+        context: find
+        status:
+          keyword: ok
+        data:
+          empty: list
+    consumed:
+      object:
+        context: find
+        status:
+          keyword: ok
+        data:
+          object:
+            value:
+              status: 1
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    find:
+      model:
+        object:
+          bucket:
+            key: bucket
+          token:
+            key: token
+          acl:
+            key: acl
+      cmds:
+        - effect: db
+          encoder: find
+    expired:
+      cmds:
+        - effect: terminate
+          encoder: error
+    not_found:
+      cmds:
+        - effect: terminate
+          encoder: error
+    consumed:
+      cmds:
+        - effect: terminate
+          encoder: error
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    find:
+      object:
+        context: find
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject: token
+            predicate:
+              key: token
+            object:
+              key: acl

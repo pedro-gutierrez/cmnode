@@ -17,6 +17,15 @@ spec:
             headers:
               without_keys:
                 - authorization
+    resolved:
+      status:
+        keyword: ok
+      user:
+        any: object
+    invalid:
+      object:
+        status:
+          keyword: error
   update:
     token:
       model:
@@ -29,10 +38,22 @@ spec:
       cmds:
         - effect: terminate
           encoder: forbidden
+    invalid:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    resolved:
+      model:
+        user:
+          key: user
   encoders:
     verify:
       object:
-        service: token_verify
+        service: token_resolve
         params:
+          bucket:
+            keyword: 
+              key: app.db
           token:
             key: token
+          acl: access

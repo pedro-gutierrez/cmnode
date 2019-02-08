@@ -1,0 +1,36 @@
+type: module
+name: token_resolve
+spec:
+  decoders:
+    user_found:
+      user:
+        any: object
+  update:
+    found:
+      model:
+        uid:
+          key: data.value.uid
+      cmds:
+        - effect: service
+          encoder: user_lookup
+    user_found:
+      model:
+        user:
+          key: user
+      cmds:
+        - effect: terminate
+          encoder: user
+  encoders:
+    user_lookup:
+      service: user_find
+      params:
+        object:
+          bucket:
+            key: bucket
+          uid:
+            key: uid
+    user:
+      status: 
+        keyword: ok
+      user:
+        key: user

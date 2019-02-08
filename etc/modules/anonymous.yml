@@ -1,0 +1,26 @@
+type: module 
+name: anonymous 
+spec:
+  decoders:
+    token:
+      object:
+        headers:
+          authorization:
+            non_empty: text
+    anonymous:
+      one_of:
+        - object:
+            headers:
+              authorization:
+                empty: text
+        - object:
+            headers:
+              without_keys:
+                - authorization
+  update:
+    token:
+      cmds:
+        - effect: terminate 
+          encoder: forbidden
+    anonymous:
+      model: {}

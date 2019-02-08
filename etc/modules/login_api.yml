@@ -5,9 +5,6 @@ spec:
     login_with_email:
       object:
         method: POST
-        headers:
-          app:
-            any: text
         body:
           object:
             email:
@@ -17,9 +14,6 @@ spec:
     login_with_username:
       object:
         method: POST
-        headers:
-          app:
-            any: text
         body:
           object:
             username:
@@ -51,12 +45,6 @@ spec:
   update:
     login_with_email:
       model:
-        app:
-          key: 
-            key: headers.app
-          in:
-            config:
-              key: apps
         uid:
           hash:
             lowercase:
@@ -68,12 +56,6 @@ spec:
           encoder: login
     login_with_username:
       model:
-        app:
-          key: 
-            key: headers.app
-          in:
-            config:
-              key: apps
         username:
           key: body.username
         passwd:
