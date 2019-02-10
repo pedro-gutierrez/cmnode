@@ -6,8 +6,8 @@ spec:
       object:
         bucket:
           any: keyword
-        uid:
-          any: number
+        id:
+          non_empty: text
         passwd:
           any: text
     password_success:
@@ -31,13 +31,17 @@ spec:
             value:
               object:
                 first:
-                  any: text
+                  non_empty: text
                 last:
-                  any: text
-                uid:
-                  key: uid
+                  non_empty: text
+                id:
+                  key: id
                 email:
                   any: email
+                lang:
+                  non_empty: text
+                username:
+                  non_empty: text
     token_success:
       object:
         token:
@@ -68,8 +72,8 @@ spec:
     login:
       model:
         object:
-          uid:
-            key: uid
+          id:
+            key: id
           bucket:
             key: bucket
           passwd:
@@ -117,7 +121,7 @@ spec:
             subject: passwd
             predicate: for
             object:
-              key: uid
+              key: id
     query_for_user:
       object:
         context:
@@ -127,17 +131,17 @@ spec:
         get:
           object:
             subject: user 
-            predicate: is
+            predicate: has_id
             object:
-              key: uid
+              key: id
     token:
       object:
         service: token_create
         params:
           bucket:
             key: bucket
-          uid:
-            key: user.uid
+          id:
+            key: user.id
           ttl: 1000 
           acl: access
     profile:

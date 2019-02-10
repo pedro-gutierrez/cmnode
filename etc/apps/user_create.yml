@@ -1,9 +1,9 @@
 type: app
-name: register
+name: user_create 
 spec:
   debug: true
   tags:
     - service
   modules:
     - common_service
-    - register
+    - user_create

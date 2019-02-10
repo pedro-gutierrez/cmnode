@@ -22,8 +22,8 @@ spec:
               expires:
                 greater_than:
                   now: seconds
-              uid:
-                any: number
+              id:
+                non_empty: text
     expired:
       object:
         context: find

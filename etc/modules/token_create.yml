@@ -6,8 +6,8 @@ spec:
       object:
         bucket:
           any: keyword
-        uid:
-          any: number
+        id:
+          non_empty: text
         ttl:
           any: number
         acl:
@@ -30,8 +30,8 @@ spec:
             key: ttl
           acl:
             key: acl
-          uid:
-            key: uid
+          id:
+            key: id
       cmds:
         - effect: db
           encoder: create
@@ -61,8 +61,8 @@ spec:
                 created:
                   now: seconds
                 status: 0
-                uid:
-                  key: uid
+                id:
+                  key: id
                 ttl:
                   key: ttl
                 acl:

@@ -20,18 +20,20 @@ spec:
               any: text
             password:
               non_empty: text
-    uid_found:
+    id_found:
       object:
-        context: uid_lookup
-        data:
-          object:
-            value:
-              any: number
-    uid_not_found:
+        service: user_id_find
+        status:
+          keyword: ok
+        id:
+          non_empty: text
+    id_not_found:
       object:
-        context: uid_lookup
-        data:
-          empty: list
+        service: user_id_find
+        status:
+          keyword: error
+        id:
+          non_empty: text
     success:
       object:
         status:
@@ -45,15 +47,13 @@ spec:
   update:
     login_with_email:
       model:
-        uid:
-          hash:
-            lowercase:
-              key: body.email
+        email:
+          key: body.email
         passwd:
           key: body.password
       cmds:
         - effect: service
-          encoder: login
+          encoder: email_lookup 
     login_with_username:
       model:
         username:
@@ -61,12 +61,12 @@ spec:
         passwd:
           key: body.password
       cmds:
-        - effect: db
-          encoder: uid_lookup
-    uid_found:
+        - effect: service
+          encoder: username_lookup
+    id_found:
       model:
-        uid:
-          key: data.value
+        id:
+          key: id 
       cmds:
         - effect: service
           encoder: login
@@ -74,7 +74,7 @@ spec:
       cmds:
         - effect: terminate
           encoder: forbidden
-    uid_not_found:
+    id_not_found:
       cmds:
         - effect: terminate
           encoder: forbidden
@@ -86,25 +86,31 @@ spec:
         - effect: terminate
           encoder: success
   encoders:
-    uid_lookup:
+    email_lookup:
       object:
-        context: uid_lookup
-        bucket:
-          keyword:
-            key: app.db
-        get:
-          object:
-            subject: username
-            predicate: is
-            object:
-              key: username
+        service: user_id_find
+        params:
+          email:
+            key: email
+          bucket:
+            keyword:
+              key: app.db
+    username_lookup:
+      object:
+        service: user_id_find
+        params:
+          username:
+            key: username
+          bucket:
+            keyword:
+              key: app.db
     login:
       object:
         service: login
         params:
           object:
-            uid:
-              key: uid 
+            id:
+              key: id 
             passwd:
               key: passwd
             bucket:

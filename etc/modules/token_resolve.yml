@@ -8,8 +8,8 @@ spec:
   update:
     found:
       model:
-        uid:
-          key: data.value.uid
+        id:
+          key: data.value.id
       cmds:
         - effect: service
           encoder: user_lookup
@@ -27,8 +27,8 @@ spec:
         object:
           bucket:
             key: bucket
-          uid:
-            key: uid
+          id:
+            key: id
     user:
       status: 
         keyword: ok

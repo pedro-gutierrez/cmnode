@@ -19,14 +19,14 @@ spec:
               non_empty: text
     registered:
       object:
-        service: register
+        service: user_create
         status:
           keyword: ok
-        uid:
-          any: number
+        id:
+          non_empty: text
     conflict:
       object:
-        service: register
+        service: user_create
         status:
           keyword: conflict
     passwd_remind_token:
@@ -50,12 +50,12 @@ spec:
         details:
           key: body
       cmds:
-        - effect: service
+        - effect: service 
           encoder: registration
     registered:
       model:
-        uid:
-          key: uid
+        id:
+          key: id
       cmds:
         - effect: service
           encoder: passwd_remind
@@ -77,7 +77,7 @@ spec:
   encoders:
     registration:
       object:
-        service: register
+        service: user_create 
         params:
           merge:
             - key: details
@@ -99,8 +99,8 @@ spec:
               key: details.email
             lang:
               key: details.lang
-            uid:
-              key: uid
+            id:
+              key: id
             token_ttl:
               key: app.password.reset.ttl
             token_key:

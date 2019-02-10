@@ -18,8 +18,8 @@ spec:
           non_empty: text
         token:
           non_empty: text
-        uid:
-          any: number
+        id:
+          non_empty: text
     token_success:
       object:
         service: token_consume
@@ -60,8 +60,8 @@ spec:
             key: token
           bucket:
             key: bucket
-          uid:
-            key: uid
+          id:
+            key: id
       cmds:
         - effect: service
           encoder: token_consume
@@ -128,7 +128,7 @@ spec:
             subject: passwd
             predicate: for
             object:
-              key: uid
+              key: id
             value:
               key: passwd
     confirmation:

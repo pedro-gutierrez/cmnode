@@ -41,11 +41,21 @@ spec:
     - title: "Users should be able to create spaces in a valid app"
       tags:
         - spaces
+        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "Given I am logged in"
         - "Given a space"
+        - "When I get my spaces"
+        - "Then I should receive a 200 OK"
+        - "Then I should have one item"
+        - "Then I should have that space id"
+        - "Given a space"
+        - "When I get my spaces"
+        - "Then I should receive a 200 OK"
+        - "Then I should have two items"
+        - "Then I should have that space id"
     
     - title: "Should not allow to init without a proper app"
       tags:
@@ -124,6 +134,7 @@ spec:
     - title: "Should consume password reset tokens"
       tags: 
         - consume 
+        - current2
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -137,7 +148,7 @@ spec:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "When I login with email"
-        - "Then I should expect a uid"
+        - "Then I should expect a user"
         - "Then I should expect a token"
         - "Given a fake password"
         - "When I login with email"
@@ -154,7 +165,7 @@ spec:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "When I login with username"
-        - "Then I should expect a uid"
+        - "Then I should expect a user"
         - "Then I should expect a token"
         - "Given a fake password"
         - "When I login with username"
@@ -168,7 +179,6 @@ spec:
       tags:
         - login
         - forbidden
-        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"

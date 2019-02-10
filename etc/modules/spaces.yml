@@ -5,24 +5,112 @@ spec:
     create:
       object:
         method: POST
-        headers:
-          authorization:
-            any: text
-          app:
-            any: text
+    fetch:
+      object:
+        method: GET
+    created:
+      object:
+        context: create
+        status: 
+          keyword: ok
+    list:
+      object:
+        context: list
+        status:
+          keyword: ok
+        data:
+          list:
+            value:
+              id:
+                non_empty: text
+              owner:
+                non_empty: text
+              title:
+                non_empty: text
   update:
     create:
+      model:
+        space:
+          id:
+            uuid: {}
+          title: "A space"
+          owner:
+            key: user.id
+      cmds:
+        - effect: db
+          encoder: create_space
+    fetch:
+      cmds:
+        - effect: db 
+          encoder: query_for_spaces
+    created:
       cmds:
         - effect: terminate
           encoder: space
+    list:
+      model:
+        spaces:
+          key: data
+      cmds:
+        - effect: terminate
+          encoder: space
+    list:
+      model:
+        spaces:
+          iterate:
+            key: data
+          with:
+            key: value
+      cmds:
+        - effect: terminate
+          encoder: spaces
   encoders:
+    create_space:
+      object:
+        context: create
+        bucket:
+          key: bucket
+        put:
+          - object:
+              subject: space
+              predicate: has_id
+              object:
+                key: space.id
+              value:
+                key: space
+          - object:
+              subject:
+                key: user.id
+              predicate: in_space
+              object:
+                key: space.id
+              value: owner
+    query_for_spaces:
+      object:
+        context: list
+        bucket:
+          key: bucket
+        map:
+          object:
+            subject:
+              key: user.id
+            predicate: in_space
+        using: object
+        with:
+          object:
+            subject: space
+            predicate: has_id
+    spaces:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body:
+          key: spaces
     space:
       object:
         status: 201
         headers:
           content-type: application/json
         body:
-          space:
-            owner: "dummy"
-            title: "dumy"
-            id: "dummy"
+          key: space

@@ -35,12 +35,13 @@ spec:
     - title: "Given I am logged in"
       steps:
         - "When I login with email"
+        - "Then I should expect a user"
         - "Then I should expect a token"
     - title: "Given a space"
       steps:
         - "When I create a space"
         - "Expect a 201 Created"
-        - "Then I should expect a space id" 
+        - "Then I should expect a space" 
   steps:
     - title: "Given no app"
       set:
@@ -75,8 +76,6 @@ spec:
             key: data.email
           password:
             key: data.password
-          token:
-            key: data.token
     - title: "When I login with email"
       procedure: api
       params:
@@ -187,6 +186,24 @@ spec:
         with:
           object:
             status: 401
+    - title: "Then I should expect a user"
+      expect:
+        object:
+          body:
+            object:
+              id:
+                non_empty: text 
+              first:
+                non_empty: text
+              last:
+                non_empty: text
+              email:
+                any: email
+      in:
+        key: data.latest
+      remember:
+        user:
+          key: body
     - title: "Then I should expect a token"
       expect:
         match:
@@ -199,42 +216,61 @@ spec:
         remember:
           token:
             key: body.token
-    - title: "Then I should expect a uid"
-      expect:
-        match:
-          key: data.latest
-        with:
-          object:
-            body:
-              uid:
-                any: number
-        remember:
-          uid:
-            key: body.uid
     - title: "When I create a space"
       procedure: api
       params:
         debug: true
         method: post
         path: "/spaces"
-    - title: "Then I should expect a space id"
+    - title: "Then I should expect a space"
       expect:
-        match:
-          key: data.latest
-        with:
-          object:
-            body:
-              space:
+        object:
+          body:
+            object:
+              id:
+                non_empty: text
+              title:
+                non_empty: text
+              owner:
+                non_empty: text
+      in:
+        key: data.latest
+      remember:
+        space:
+          key: body
+    - title: "When I get my spaces"
+      procedure: api
+      params:
+        debug: true
+        method: get
+        path: /spaces
+    - title: "Then I should have one item"
+      expect:
+        object:
+          body:
+            list:
+              size: 1
+      in:
+        key: data.latest
+    - title: "Then I should have two items"
+      expect:
+        object:
+          body:
+            list:
+              size: 2
+      in:
+        key: data.latest
+    - title: "Then I should have that space id"
+      expect:
+        object:
+          body:
+            list:
+              with:
                 object:
-                  owner:
-                    any: text
-                  title: 
-                    any: text
                   id:
-                    any: text 
-        remember:
-          spaceId:
-            key: body.space.id
+                    key: data.space.id
+      in:
+        key: data.latest
   procedures:
     - name: api
       spec:

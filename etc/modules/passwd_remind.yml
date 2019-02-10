@@ -16,8 +16,8 @@ spec:
           any: email
         lang:
           any: text
-        uid:
-          any: number
+        id:
+          non_empty: text
         token_ttl:
           any: number
     token_success:
@@ -47,8 +47,8 @@ spec:
             key: email
           lang:
             key: lang
-          uid:
-            key: uid
+          id:
+            key: id
       cmds:
         - effect: service
           encoder: token
@@ -98,8 +98,8 @@ spec:
             bucket:
               key: bucket
             acl: passwd_reset
-            uid:
-              key: uid
+            id:
+              key: id
             ttl:
               key: token_ttl
     email_remind:

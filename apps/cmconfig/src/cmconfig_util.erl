@@ -1558,9 +1558,6 @@ compile_term(#{ <<"key">> := KeySpec } = Spec, Index) ->
 
     with_default(Spec, E2, Index);
 
-compile_term(#{ <<"in">> := Spec }, Index) ->
-    #{ type => in,
-       spec => compile_term(Spec, Index) };
 
 compile_term(#{ <<"one_of">> := Specs }, Index) when is_list(Specs) ->
     #{ one_of => lists:map(fun(S) when is_map(S) ->
@@ -1865,10 +1862,6 @@ compile_term(#{ <<"receive">> := Spec,
 
 
 
-compile_term(#{ <<"expect">> := Spec }, Index) ->
-    #{ type => expect,
-       spec => compile_term(Spec, Index)
-     };
 
 compile_term(#{ <<"parallel">> := #{
                     <<"count">> := Count,
@@ -2187,6 +2180,27 @@ compile_term(#{ <<"wait">> := Secs }, _) ->
        spec => #{
          sleep => Secs * 1000 }};
 
+
+compile_term(#{ <<"expect">> := Expect,
+                <<"in">> := In } = Spec, Index) ->
+
+    Match = #{ <<"value">> => In,
+               <<"with">> => Expect },
+    Match2 = case maps:get(<<"remember">>, Spec, undef) of 
+                    undef ->
+                         Match;
+                    Remember ->
+                        Match#{ <<"remember">> => Remember }
+             end,
+
+    #{ type => expect,
+       spec => compile_term(#{ <<"match">> => Match2 }, Index)}; 
+
+compile_term(#{ <<"expect">> := Spec }, Index) ->
+    #{ type => expect,
+       spec => compile_term(Spec, Index)
+     };
+
 compile_term(#{ <<"match">> := #{
                     <<"value">> := ValueSpec,
                     <<"with">> := DecoderSpec } = MatchSpec}, Index) ->
@@ -2217,6 +2231,9 @@ compile_term(#{ <<"find">> := TargetSpec,
        items => compile_term(SourceSpec, Index),
        target => compile_term(TargetSpec, Index) };
 
+compile_term(#{ <<"in">> := Spec }, Index) ->
+    #{ type => in,
+       spec => compile_term(Spec, Index) };
 
 compile_term(#{ <<"sort">> := ItemsSpec,
                 <<"by">> := PropSpec,

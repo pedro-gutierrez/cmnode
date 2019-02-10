@@ -56,4 +56,8 @@ spec:
               key: app.db
           token:
             key: token
-          acl: access
+          acl:
+            one_of:
+              - config:
+                  key: acl
+              - access

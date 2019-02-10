@@ -1,5 +1,5 @@
 type: module
-name: register
+name: user_create 
 spec:
   decoders:
     register:
@@ -42,10 +42,8 @@ spec:
     register:
       model:
         object:
-          uid:
-            hash:
-              lowercase:
-                key: email
+          id:
+            uuid: {}
           bucket:
             key: bucket
           first:
@@ -53,11 +51,13 @@ spec:
           last:
             key: last
           email:
-            key: email
+            lowercase:
+              key: email
           lang:
             key: lang
           username:
-            key: username
+            lowercase:
+              key: username
       cmds:
         - effect: db
           encoder: registration
@@ -74,8 +74,8 @@ spec:
       object:
         status:
           keyword: ok
-        uid:
-          key: uid
+        id:
+          key: id
     conflict:
       object:
         status:
@@ -87,26 +87,35 @@ spec:
           key: bucket
         insert:
           - object:
+              subject: email 
+              predicate:
+                key: email
+              object: owned_by
+              value:
+                key: id
+          - object:
+              subject: username
+              predicate:
+                key: username
+              object: owned_by
+              value:
+                key: id
+          - object:
               subject: user 
-              predicate: is 
+              predicate: has_id 
               object:
-                key: uid
+                key: id
               value:
                 object:
                   first:
                     key: first
                   last:
                     key: last
-                  uid:
-                    key: uid
+                  id:
+                    key: id
                   email:
                     key: email
                   lang:
                     key: lang
-          - object:
-              subject: username
-              predicate: is
-              object:
-                key: username
-              value:
-                key: uid
+                  username:
+                    key: username

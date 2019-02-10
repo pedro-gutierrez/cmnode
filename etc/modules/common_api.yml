@@ -8,6 +8,11 @@ spec:
         headers:
           content-type: application/json
         body: {}
+    not_implemented:
+        status: 503
+        headers:
+          content-type: application/json
+        body: {}
     internal_error:
         status: 500
         headers:

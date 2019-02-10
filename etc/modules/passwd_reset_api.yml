@@ -5,17 +5,25 @@ spec:
     init:
       object:
         method: POST
-        headers:
-          app:
-            any: text
         body:
           object:
             email:
               any: email
-            token:
-              any: text
             password:
               non_empty: text
+
+    user_id_found:
+      object:
+        service: user_id_find
+        status:
+          keyword: ok
+        id:
+          non_empty: text
+    user_id_not_found:
+      object:
+        service: user_id_find
+        status:
+          keyword: error
     forbidden:
       object:
         status: 
@@ -27,21 +35,27 @@ spec:
   update:
     init:
       model:
-        uid:
-          hash:
-            lowercase:
-              key: body.email
-        app:
-          key: 
-            key: headers.app
-          in:
-            config:
-              key: apps
-        details:
-          key: body
+        bucket:
+          keyword:
+            key: app.db
+        email:
+          key: body.email
+        passwd:
+          key: body.password
+      cmds:
+        - effect: service
+          encoder: user_id_lookup
+    user_id_found:
+      model:
+        id:
+          key: id
       cmds:
         - effect: service
           encoder: passwd_reset
+    user_id_not_found:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
     forbidden:
       cmds:
         - effect: terminate
@@ -51,6 +65,14 @@ spec:
         - effect: terminate
           encoder: created
   encoders:
+    user_id_lookup:
+      object:
+        service: user_id_find
+        params:
+          bucket:
+            key: bucket
+          email:
+            key: email
     passwd_reset:
       object:
         service: passwd_reset
@@ -62,12 +84,12 @@ spec:
             account:
               key: app.emails
             email:
-              key: details.email
+              key: email
             token:
-              key: details.token
+              key: token
             passwd:
-              key: details.password
-            uid:
-              key: uid
+              key: passwd
+            id:
+              key: id
             token_key:
               key: app.password.reset.sign_key

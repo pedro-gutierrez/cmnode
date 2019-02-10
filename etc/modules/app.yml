@@ -27,6 +27,12 @@ spec:
       model:
         app:
           key: headers.app
+        bucket:
+          keyword:
+            config:
+              key: db
+              in:
+                key:  headers.app
     missing:
       cmds:
         - effect: terminate

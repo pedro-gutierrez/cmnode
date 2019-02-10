@@ -1,13 +1,7 @@
 type: module
-name: user_find 
+name: user_id_find 
 spec:
   decoders:
-    lookup:
-      object:
-        bucket:
-          any: keyword
-        id:
-          non_empty: text
     by_email:
       object:
         bucket:
@@ -27,7 +21,7 @@ spec:
         data:
           object:
             value:
-              any: object
+              non_empty: text
     not_found:
       object:
         status: 
@@ -39,19 +33,29 @@ spec:
         status:
           keyword: error
   update:
-    lookup:
+    by_email:
       model:
         object:
-          id:
-            key: id
+          email:
+            key: email
           bucket:
             key: bucket
       cmds:
         - effect: db
-          encoder: lookup
+          encoder: email_lookup
+    by_username:
+      model:
+        object:
+          username:
+            key: username
+          bucket:
+            key: bucket
+      cmds:
+        - effect: db
+          encoder: username_lookup
     found:
       model:
-        user:
+        id:
           key: data.value
       cmds:
         - effect: terminate
@@ -69,16 +73,27 @@ spec:
       object:
         status:
           keyword: ok
-        user:
-          key: user
-    lookup:
+        id:
+          key: id
+    email_lookup:
       object:
         context: lookup
         bucket:
           key: bucket
         get:
           object:
-            subject: user
-            predicate: has_id 
-            object:
-              key: id
+            subject: email 
+            predicate:
+              key: email
+            object: owned_by
+    username_lookup:
+      object:
+        context: lookup
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject: username
+            predicate:
+              key: username
+            object: owned_by
