@@ -1,0 +1,12 @@
+type: app
+name: invites 
+spec:
+  debug: true
+  filters:
+    - app
+    - auth 
+  modules:
+    - common_api
+    - invites
+  settings:
+    - apps

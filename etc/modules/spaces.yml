@@ -19,14 +19,7 @@ spec:
         status:
           keyword: ok
         data:
-          list:
-            value:
-              id:
-                non_empty: text
-              owner:
-                non_empty: text
-              title:
-                non_empty: text
+          any: list
   update:
     create:
       model:
@@ -84,18 +77,18 @@ spec:
               predicate: in_space
               object:
                 key: space.id
-              value: owner
+              value: 
+                role: owner
     query_for_spaces:
       object:
         context: list
         bucket:
           key: bucket
-        map:
+        merge:
           object:
             subject:
               key: user.id
             predicate: in_space
-        using: object
         with:
           object:
             subject: space

@@ -17,3 +17,5 @@ spec:
       http: "/api/password/reset"
     spaces:
       http: "/api/spaces"
+    invites:
+      http: "/api/invites"

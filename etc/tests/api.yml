@@ -4,6 +4,26 @@ spec:
   include:
     - common
   scenarios:
+
+    - title: "Space owners should be able to invite users to their spaces"
+      tags:
+        - spaces
+        - invite
+        - current
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given bob's email"
+        - "When I invite that email to that space"
+        - "Then I should receive a 201 Created"
+        - "Given I am logged in as bob"
+        - "When I get my spaces"
+        - "Then I should receive a 200 OK"
+        - "Then I should have one item"
+        - "Then I should be a guest in that space"
     
     - title: "Should not allow anonymous users to create spaces"
       tags:
@@ -41,7 +61,6 @@ spec:
     - title: "Users should be able to create spaces in a valid app"
       tags:
         - spaces
-        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -50,13 +69,33 @@ spec:
         - "When I get my spaces"
         - "Then I should receive a 200 OK"
         - "Then I should have one item"
-        - "Then I should have that space id"
+        - "Then I should be the owner of that space"
         - "Given a space"
         - "When I get my spaces"
         - "Then I should receive a 200 OK"
         - "Then I should have two items"
-        - "Then I should have that space id"
-    
+        - "Then I should be the owner of that space"
+
+    - title: "By default, spaces should be private"
+      tags:
+        - spaces
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given user bob with password foo"
+        - "Given I am logged in as bob"
+        - "Given a space"
+        - "Given I am logged in as alice"
+        - "When I get my spaces"
+        - "Then I should have one item"
+        - "Then all items should belong to that user"
+        - "Given I am logged in as bob"
+        - "When I get my spaces"
+        - "Then I should have one item"
+        - "Then all items should belong to that user"
+
     - title: "Should not allow to init without a proper app"
       tags:
         - register

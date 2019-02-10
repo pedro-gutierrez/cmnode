@@ -1,0 +1,72 @@
+type: module
+name: space_find 
+spec:
+  decoders:
+    lookup:
+      object:
+        bucket:
+          any: keyword
+        id:
+          non_empty: text
+    found:
+      object: 
+        status: 
+          keyword: ok
+        data:
+          object:
+            value:
+              any: object
+    not_found:
+      object:
+        status: 
+          keyword: ok
+        data:
+          empty: list
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    lookup:
+      model:
+        object:
+          id:
+            key: id
+          bucket:
+            key: bucket
+      cmds:
+        - effect: db
+          encoder: lookup
+    found:
+      model:
+        space:
+          key: data.value
+      cmds:
+        - effect: terminate
+          encoder: space 
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+    not_found:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    space:
+      object:
+        status:
+          keyword: ok
+        space:
+          key: space
+    lookup:
+      object:
+        context: lookup
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject: space
+            predicate: has_id 
+            object:
+              key: id

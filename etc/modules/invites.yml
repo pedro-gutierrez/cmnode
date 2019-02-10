@@ -1,0 +1,126 @@
+type: module
+name: invites 
+spec:
+  decoders:
+    create:
+      object:
+        method: POST
+        body:
+          object:
+            email:
+              any: email
+            space:
+              non_empty: text
+    space_found:
+      status:
+        keyword: ok
+      space:
+        id:
+          non_empty: text
+        owner:
+          key: user.id
+    space_not_owned:
+      status:
+        keyword: ok
+      space:
+        owner:
+          other_than:
+            key: user.id
+    space_not_found:
+      service: space_find
+      status:
+        keyword: error
+    user_found:
+      status:
+        keyword: ok
+      user:
+        any: object
+    user_not_found:
+      service: user_find
+      status:
+        keyword: error
+    invite_created:
+      context: create_invite
+      status:
+        keyword: ok
+    invite_error:
+      context: create_invite
+      status:
+        keyword: error
+  update:
+    create:
+      model:
+        space:
+          key: body.space
+        email:
+          key: body.email
+      cmds:
+        - effect: service
+          encoder: query_for_space
+    space_found:
+      model:
+        space:
+          key: space
+      cmds:
+        - effect: service
+          encoder: query_for_user
+    user_found:
+      model:
+        invitee:
+          key: user
+        id:
+          uuid: {}
+      cmds:
+        - effect: db
+          encoder: invite_record
+    invite_created:
+      cmds:
+        - effect: terminate
+          encoder: created
+    space_not_owned:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    space_not_found:
+      cmds:
+        - effect: terminate
+          encoder: not_found
+    invite_error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    query_for_space:
+      service: space_find
+      params:
+        bucket:
+          key: bucket
+        id: 
+          key: space
+    query_for_user:
+      service: user_find
+      params:
+        bucket:
+          key: bucket
+        email:
+          key: email
+    invite_record:
+      context: create_invite
+      bucket:
+        key: bucket
+      put:
+        - object:
+            subject:
+              key: invitee.id
+            predicate: is_invited_to
+            object:
+              key: space.id
+            value: {}
+        - object:
+            subject:
+              key: invitee.id
+            predicate: in_space
+            object:
+              key: space.id
+            value: 
+              role: guest

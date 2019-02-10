@@ -138,14 +138,15 @@ effect_apply(#{ context := C,
 
 effect_apply(#{ context := C,
                 bucket := B, 
-                map := #{ subject := S1,
-                          predicate := P1 },
-                using := <<"object">>,
+                merge:= #{ subject := S1,
+                           predicate := P1 },
                 with := #{ subject := S2,
                            predicate := P2 }} = Spec, Id) ->
     
-    R = reply_from(lists:flatten(lists:map(fun({_, _, O, _}) ->
-                                         cmdb:get(B, S2, P2, O)
+    R = reply_from(lists:flatten(lists:map(fun({_, _, O, V}) ->
+                                    lists:map(fun({S3, P3, O3, V2}) ->
+                                                      {S3, P3, O3, maps:merge(V2, V)}
+                                                      end, cmdb:get(B, S2, P2, O))
                                  end, cmdb:get(B, S1, P1))), Spec),
     cmcore:update(Id, R#{ bucket => B,
                           context => C });

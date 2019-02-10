@@ -15,33 +15,63 @@ spec:
     - title: "Given an empty database"
       steps:
         - "When I init"
-        - "Expect a 201 Created"
+        - "Then I should receive a 201 Created"
     - title: "Given that user is registered"
       steps:
         - "Register that user"
-        - "Expect a 201 Created"
+        - "Then I should receive a 201 Created"
     - title: "Given user alice with password foo"
       steps:
+        - "Given no token"
         - "Given user details for alice"
         - "Register that user"
-        - "Expect a 201 Created"
+        - "Then I should receive a 201 Created"
         - "Then I should expect a token"
         - "Given alice's email"
         - "Given password foo"
         - "Given alice's username"
         - "When I reset that password"
-        - "Expect a 201 Created"
+        - "Then I should receive a 201 Created"
+        - "Given no token"
+    - title: "Given user bob with password foo"
+      steps:
+        - "Given no token"
+        - "Given user details for bob"
+        - "Register that user"
+        - "Then I should receive a 201 Created"
+        - "Then I should expect a token"
+        - "Given bob's email"
+        - "Given password foo"
+        - "Given bob's username"
+        - "When I reset that password"
+        - "Then I should receive a 201 Created"
         - "Given no token"
     - title: "Given I am logged in"
       steps:
         - "When I login with email"
         - "Then I should expect a user"
         - "Then I should expect a token"
+    - title: "Given I am logged in as alice"
+      steps:
+        - "Given no token"
+        - "Given alice's email"
+        - "Given password foo"
+        - "When I login with email"
+        - "Then I should expect a user"
+        - "Then I should expect a token"
+    - title: "Given I am logged in as bob"
+      steps:
+        - "Given no token"
+        - "Given bob's email"
+        - "Given password foo"
+        - "When I login with email"
+        - "Then I should expect a user"
+        - "Then I should expect a token"
     - title: "Given a space"
       steps:
         - "When I create a space"
-        - "Expect a 201 Created"
-        - "Then I should expect a space" 
+        - "Then I should receive a 201 Created"
+        - "Then I should expect a space"
   steps:
     - title: "Given no app"
       set:
@@ -143,6 +173,12 @@ spec:
     - title: "Given alice's username"
       set:
         username: "alice"
+    - title: "Given bob's email"
+      set:
+        email: "bob@mail.com"
+    - title: "Given bob's username"
+      set:
+        username: "bob"
     - title: "Given a fake email"
       set:
         email: "fake@mail.com"
@@ -158,7 +194,7 @@ spec:
     - title: "Given password foo"
       set:
         password: "foo"
-    - title: "Expect a 201 Created"
+    - title: "Then I should receive a 201 Created"
       expect:
         match:
           key: data.latest
@@ -260,17 +296,51 @@ spec:
               size: 2
       in:
         key: data.latest
-    - title: "Then I should have that space id"
+    - title: "Then I should be the owner of that space"
       expect:
         object:
           body:
             list:
               with:
                 object:
+                  role: owner
                   id:
                     key: data.space.id
       in:
         key: data.latest
+    - title: "Then I should be a guest in that space"
+      expect:
+        object:
+          body:
+            list:
+              with:
+                object:
+                  role: guest
+                  id:
+                    key: data.space.id
+      in:
+        key: data.latest
+    - title: "Then all items should belong to that user"
+      expect:
+        object:
+          body:
+            list:
+              object:
+                owner:
+                  key: data.user.id
+      in:
+        key: data.latest
+    - title: "When I invite that email to that space"
+      procedure: api
+      params:
+        debug: true
+        method: post
+        path: /invites
+        body:
+          space:
+            key: data.space.id
+          email:
+            key: data.email
   procedures:
     - name: api
       spec:

@@ -20,6 +20,16 @@ spec:
           any: keyword
         username:
           non_empty: text
+    user_id_found:
+      object:
+        service: user_id_find
+        id:
+          non_empty: text
+    user_id_not_found:
+      object:
+        service: user_id_find
+        status:
+          keyword: error
     found:
       object: 
         status: 
@@ -41,11 +51,35 @@ spec:
   update:
     lookup:
       model:
-        object:
-          id:
-            key: id
-          bucket:
-            key: bucket
+        id:
+          key: id
+        bucket:
+          key: bucket
+      cmds:
+        - effect: db
+          encoder: lookup
+    by_email:
+      model:
+        bucket:
+          key: bucket
+        email:
+          key: email
+      cmds:
+        - effect: service
+          encoder: query_for_email
+    by_username:
+      model:
+        bucket:
+          key: bucket
+        username:
+          key: username
+      cmds:
+        - effect: service
+          encoder: query_for_username
+    user_id_found:
+      model:
+        id:
+          key: id
       cmds:
         - effect: db
           encoder: lookup
@@ -61,6 +95,10 @@ spec:
         - effect: terminate
           encoder: error
     not_found:
+      cmds:
+        - effect: terminate
+          encoder: error
+    user_id_not_found:
       cmds:
         - effect: terminate
           encoder: error
@@ -82,3 +120,19 @@ spec:
             predicate: has_id 
             object:
               key: id
+    query_for_email:
+      object:
+        service: user_id_find
+        params:
+          bucket:
+            key: bucket
+          email:
+            key: email
+    query_for_username:
+      object:
+        service: user_id_find
+        params:
+          bucket:
+            key: bucket
+          username:
+            key: username
