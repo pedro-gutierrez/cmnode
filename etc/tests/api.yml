@@ -19,12 +19,30 @@ spec:
         - "Given bob's email"
         - "When I invite that email to that space"
         - "Then I should receive a 201 Created"
+        - "When I invite that email to that space"
+        - "Then I should receive a 201 Created"
         - "Given I am logged in as bob"
         - "When I get my spaces"
         - "Then I should receive a 200 OK"
         - "Then I should have one item"
         - "Then I should be a guest in that space"
-    
+
+    - title: "Users should not be allowed to invite others to spaces they don't own"
+      tags:
+        - spaces
+        - invite
+        - forbidden
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given I am logged in as bob"
+        - "Given bob's email"
+        - "When I invite that email to that space"
+        - "Then I should expect a forbidden error"
+
     - title: "Should not allow anonymous users to create spaces"
       tags:
         - spaces

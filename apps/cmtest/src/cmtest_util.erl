@@ -595,10 +595,23 @@ run(#{ type := expect,
     case cmencode:encode(Spec, In) of 
         {ok, false} -> 
             {retry, World};
-        {ok, true} -> 
-            {ok, World};
-        {ok, Encoded} ->
-            {ok, World#{ data => maps:merge( Data, Encoded)}};
+        {ok, Encoded} -> 
+            case is_inverse(World) of 
+                true ->
+                    {error, #{ error => unexpected_step_result,
+                               info => expect,
+                               spec => Spec,
+                               value => Encoded }};
+
+                false ->
+                    World2 = case Encoded of 
+                                 true ->
+                                     World;
+                                 M when is_map(M) ->
+                                     World#{ data => maps:merge( Data, M)}
+                             end,
+                    {ok, World2}
+            end;
         Other -> 
             Other
     end;

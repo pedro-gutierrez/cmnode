@@ -93,6 +93,14 @@ decode_term(#{ type := text, spec := ValueSpec }, Text, Config) ->
     end;
 
 decode_term(#{ type := text}, Text, _) when is_binary(Text) -> {ok, Text};
+decode_term(#{ type := text}, Other, _) when is_list(Other) -> 
+    case cmkit:is_string(Other) of 
+        true ->
+            {ok, cmkit:to_bin(Other)};
+        false ->
+            no_match
+    end;
+
 decode_term(#{ type := text}, _, _) -> no_match;
 
 decode_term(#{ type := other_than, spec := #{ type := regexp, value := _ } = Spec}, Data, Config) -> 
@@ -410,6 +418,20 @@ decode_term(Spec, Data, Context) when is_map(Spec) ->
     end;
 
 decode_term(V, V, _) -> {ok, V};
+
+decode_term(B, Str, _) when is_list(Str) and is_binary(B) ->
+    case cmkit:is_string(Str) of 
+        true -> 
+            case cmkit:to_bin(Str) of 
+                B ->
+                    {ok, B};
+                _ ->
+                    no_match
+            end;
+        false ->
+            no_match
+    end;
+
 decode_term(_, _, _) ->
     no_match.
 
