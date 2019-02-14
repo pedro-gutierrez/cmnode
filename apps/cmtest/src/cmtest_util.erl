@@ -391,17 +391,92 @@ connect([S|Rem], In, World) when is_map(S)->
 connect(Spec, In, World) when is_map(Spec) ->
     case connection_with_protocol(Spec, In) of 
         {ok, Spec2} ->
-            case cmencode:encode(Spec2,  In) of
-                {ok, #{ connection := #{ name := Name } = Conn}} ->
-                    {ok, world_with_conn(Name, Conn, World)};
-                {ok, Other} -> 
-                    {error, #{ error => not_a_connection,
-                               info => Other }};
-                Other -> 
+            case connection_with_url(Spec2, In) of
+                {ok, Spec3} ->
+                    {ok, Spec4} = connection_with_timeout(Spec3, In),
+                    {ok, Spec5} = connection_with_debug(Spec4, In),
+                    case connection_from(Spec5, In) of
+                        {ok, #{ connection := #{ name := ConnName } = Conn}} ->
+                            {ok, world_with_conn(ConnName, Conn, World)};
+                        {ok, Other} ->
+                            {error, #{ error => not_a_connection,
+                                       info => Other }};
+                        Other ->
+                            Other
+                    end;
+                Other ->
                     Other
             end;
         Other ->
             Other
+    end.
+
+url_spec(Spec, In) ->
+    case cmencode:encode(Spec, In) of 
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _ } = UrlSpec} ->
+            {ok, UrlSpec};
+        {ok, Url} when is_binary(Url) ->
+            Spec2 = #{ type => url,
+                       spec => Url },
+            case cmencode:encode(Spec2, In) of 
+                {ok, #{ host := _,
+                        port := _,
+                        transport := _,
+                        path := _ } = UrlSpec} ->
+                    {ok, UrlSpec};
+                Other ->
+                    {error, #{ error => invalid_url,
+                               reason => Other,
+                               spec => Spec2 }}
+            end;
+        Other ->
+            {error, #{ error => invalid_url,
+                       reason => Other,
+                       spec => Spec}}
+    end.
+
+connection_from(#{ as := Name, 
+                   spec := #{ transport := Transport } = Config0,
+                   debug := Debug,
+                   timeout := Timeout } = Spec0, _) ->
+
+    Config1 = Config0#{ debug => Debug,
+                        timeout => Timeout,
+                        persistent => false },
+
+    Config2 = case maps:get(protocol, Spec0, undef) of
+                  undef -> Config1;
+                  Protocol ->
+                      Config1#{ protocol => Protocol }
+              end,
+    case cmkit:to_bin(Transport) of
+        T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
+            Url = cmkit:url(Config2),
+            {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
+            {ok, #{ connection => Config2#{ name => Name,
+                                            transport => Transport,
+                                            class => websocket,
+                                            pid => Pid,
+                                            status => undef,
+                                            inbox => [],
+                                            url => Url }}};
+
+        T when T =:= <<"http">> orelse T =:= <<"https">> ->
+            Url = cmkit:url(Config2),
+            Res = cmhttp:get(Url),
+            Status = case Res of
+                         {ok, _} -> up;
+                         {error, S} -> S
+                     end,
+            {ok, #{ connection => Config2#{ name => Name,
+                                            transport => Transport,
+                                            class => http,
+                                            status => Status,
+                                            inbox => [],
+                                            url => Url }}}
     end.
 
 disconnect([], _, World) -> {ok, World};
@@ -438,7 +513,40 @@ connection_with_protocol(#{ protocol := ProtocolSpec } = Spec, In) ->
 connection_with_protocol(Spec, _) -> {ok, Spec}.
 
 
+connection_with_url(#{ spec := UrlSpec } = Spec, In) ->
+    case url_spec(UrlSpec, In) of
+        {ok, #{ host := _,
+                port := _,
+                transport := _,
+                path := _ } = Url} ->
+            {ok, Spec#{ spec => Url }}; 
+        Other ->
+            Other
+    end.
 
+connection_with_timeout(#{ timeout := TimeoutSpec } = Spec, In) ->
+    {ok, T} = case cmencode:encode(TimeoutSpec, In) of 
+                  {ok, T0} -> 
+                      {ok, T0};
+                  Other ->
+                      cmkit:warning({cmtest, timeout, Other, default, 1000}),
+                      {ok, 1000}
+              end,
+    {ok, Spec#{ timeout => T }};
+
+connection_with_timeout(Spec, _) -> {ok, Spec#{ timeout => 1000}}.
+
+connection_with_debug(#{ debug := DebugSpec} = Spec, In) ->
+    {ok, D} = case cmencode:encode(DebugSpec, In) of 
+                  {ok, D0} -> 
+                      {ok, D0};
+                  Other ->
+                      cmkit:warning({cmtest, debug, Other, default, false}),
+                      {ok, false}
+              end,
+    {ok, Spec#{ debug => D }};
+
+connection_with_debug(Spec, _) -> {ok, Spec#{ debug => false}}.
 
 probe([], _, World) -> {ok, World};
 probe([Name|Rem], Status, World) ->

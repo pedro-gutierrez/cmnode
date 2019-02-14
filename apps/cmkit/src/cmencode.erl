@@ -423,6 +423,30 @@ encode(#{ type := url,
         Other -> Other
     end;
 
+encode(#{ type := url,
+          spec := URI } = Spec, _, _) when is_binary(URI) ->
+    case http_uri:parse(URI) of 
+        {ok, {Transport, UserInfo, Host, Port, Path, Query}} ->
+            {ok, #{ url => URI,
+                    transport => Transport,
+                    user_info => UserInfo,
+                    host => Host,
+                    port => Port,
+                    path => Path,
+                    query => Query}};
+        {ok, Other} ->
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       reason => not_supported,
+                       value => Other}};
+        {error, E} ->
+            {error, #{ status => encode_error,
+                       spec => Spec,
+                       reason => E}}
+        end;
+
+
+
 
 encode(#{ type := url,
           spec := Spec}, In, Config) ->
@@ -1325,72 +1349,6 @@ encode(#{ type := merge,
             merge_maps(EncodedTerms);
         {error, E} -> 
             fail(Spec, In, E)
-    end;
-
-encode(#{ type := connect,
-          as := As,
-          debug := Debug,
-          timeout := TimeoutSpec,
-          spec := Spec }=Spec0, In, Config) -> 
-    case encode(As, In, Config) of 
-        {ok, Name} ->
-            case encode(TimeoutSpec, In, Config) of
-                {ok, Timeout} ->
-                    case encode(Debug, In, Config) of 
-                        {ok, D} ->
-                            case encode(Spec, In, Config) of 
-                                {ok, #{ host := _,
-                                        port := _,
-                                        transport := Transport,
-                                        path := _ } = Config0 } ->
-
-                                    Config1 = Config0#{ debug => D,
-                                                        timeout => Timeout,
-                                                        persistent => false },
-
-                                    Config2 = case maps:get(protocol, Spec0, undef) of
-                                                  undef -> Config1;
-                                                  Protocol ->
-                                                      Config1#{ protocol => Protocol }
-                                              end,
-
-                                    case cmkit:to_bin(Transport) of 
-                                        T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
-                                            Url = cmkit:url(Config2),
-                                            {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
-                                            {ok, #{ connection => Config2#{ name => Name,
-                                                                            transport => Transport,
-                                                                            class => websocket,
-                                                                            pid => Pid,
-                                                                            status => undef,
-                                                                            inbox => [],
-                                                                            url => Url }}};
-
-                                        T when T =:= <<"http">> orelse T =:= <<"https">> ->
-                                            Url = cmkit:url(Config2),
-                                            Res = cmhttp:get(Url),
-                                            Status = case Res of
-                                                         {ok, _} -> up;
-                                                         {error, S} -> S
-                                                     end,
-                                            {ok, #{ connection => Config2#{ name => Name,
-                                                                            transport => Transport,
-                                                                            class => http,
-                                                                            status => Status,
-                                                                            inbox => [],
-                                                                            url => Url }}}
-                                    end;
-                                Other ->
-                                    Other
-                            end;
-                        Other ->
-                            Other
-                    end;
-                Other ->
-                    Other
-            end;
-        Other ->
-            Other
     end;
 
 encode(#{ type := send,

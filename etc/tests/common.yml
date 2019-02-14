@@ -72,6 +72,21 @@ spec:
         - "When I create a space"
         - "Then I should receive a 201 Created"
         - "Then I should expect a space"
+    - title: "Given bob is in that space"
+      steps:
+        - "Given bob's email"
+        - "When I invite that email to that space"
+        - "Then I should receive a 201 Created"
+    - title: "Given a connection for alice"
+      steps:
+        - "Given name alice"
+        - "When I connect"
+        - "Given I use that connection"
+        - "Then that connection should be up"
+    - title: "Given I am subscribed to that space"
+      steps:
+        - "When I subscribe to that space"
+        - "Then I should receive a 201 Created"
   steps:
     - title: "Given no app"
       set:
@@ -341,6 +356,32 @@ spec:
             key: data.space.id
           email:
             key: data.email
+    - title: "Given name alice"
+      set:
+        name: alice
+    - title: "When I connect"
+      connect:
+        key: settings.wsUrl
+      as: 
+        key: data.name
+    - title: "Then that connection should be up"
+      probe:
+        connection:
+          key: data.conn
+        status: up
+    - title: "Given I use that connection"
+      set:
+        conn:
+          key: data.name
+    - title: "When I subscribe to that space"
+      procedure: api
+      params:
+        debug: true
+        method: post
+        path: /subscriptions
+        body:
+          space:
+            key: data.space.id
   procedures:
     - name: api
       spec:

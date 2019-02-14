@@ -4,12 +4,26 @@ spec:
   include:
     - common
   scenarios:
+    
+    - title: "Space participants should see presence from other participants"
+      debug: true
+      tags:
+        - presence
+        - current
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as alice"
+        - "Given a connection for alice"
+        - "Given a space"
+        - "Given I am subscribed to that space"
+        - "Given bob is in that space"
 
     - title: "Space owners should be able to invite users to their spaces"
       tags:
         - spaces
         - invite
-        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
