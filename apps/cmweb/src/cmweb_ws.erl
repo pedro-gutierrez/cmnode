@@ -6,9 +6,10 @@
          websocket_info/2
         ]).
 init(Req, State) ->
-    {cowboy_websocket, Req, State}.
+    {cowboy_websocket, Req, State#{ req => Req }}.
 
 websocket_init(#{ app := App, 
+                  req := Req,
                   port := Port, 
                   effects := Effects,
                   instruments := #{ increment := IncrFun }}=State) ->
@@ -22,14 +23,30 @@ websocket_init(#{ app := App,
             {ok, Model, Config} = cmcore:init(Pid, Spec, Log, Effects),
             Spec2 = Spec#{ config => Config },
             Log({ws, new, App, Port, Pid}),
-            {ok, State#{ start => Start,
-                         spec => Spec2, 
-                         model => Model, 
-                         log => Log }};
+            case apply_filters(Spec2, Model, Req, Log, Effects) of 
+                {ok, Model2, Spec3} ->
+                    {ok, State#{ start => Start,
+                                 spec => Spec3, 
+                                 model => Model2, 
+                                 log => Log }};
+                {error, E} ->
+                    cmkit:danger({ws, filters, App, Port, E}),
+                    stop(State#{ start => Start,
+                                 log => Log,
+                                 model => Model,
+                                 spec => Spec2}, E)
+            end;
        {error, E} -> 
             cmkit:warning({ws, new, unknown_app, App, Port, E}),
             stop(State#{ start => Start }, E)
     end.
+
+apply_filters(#{ filters := [_|_]}=Spec, Model, Req, Log, Effects) ->
+    Data = #{ headers => cowboy_req:headers(Req) },
+    cmcore:update(self(), Spec#{ filters_only => true }, Data, Model, Log, Effects);
+
+apply_filters(Spec, Model, _, _, _) ->
+    {ok, Model, Spec}.
 
 websocket_handle({binary, Data}, State) ->
     handle_data(Data, State);

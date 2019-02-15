@@ -1,0 +1,23 @@
+type: module
+name: common_ws
+spec:
+  encoders:
+    created:
+      object:
+        status: 201
+    not_implemented:
+      object:
+        status: 503
+    internal_error:
+      object:
+        status: 500
+    conflict:
+      object:
+        status: 409
+    forbidden:
+      object:
+        status: 401
+    ok:
+      object:
+        status: 200
+

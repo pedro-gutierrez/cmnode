@@ -48,10 +48,10 @@ disconnected(info, {gun_down, _, _}, Data) ->
 
 disconnected(info, {gun_up, Conn, _}, #{ log := Log, 
                                          name := Name, 
-                                         config := #{ path := Path} 
+                                         config := #{ path := Path} = Config 
                                        }=Data) ->
     Data2 = maybe_monitor(Conn, Data),
-    Res = gun:ws_upgrade(Conn, Path),
+    Res = upgrade(Conn, Path, Config),
     Log({cmwsc, Name, disconnected, upgrading, Path, Res}),
     {next_state, upgrading, Data2};
 
@@ -77,8 +77,8 @@ connecting({timeout, connecting}, _, #{ name := Name}=Data) ->
 connecting(info, {gun_up, _, _}, #{ log :=Log,
                                     name := Name,
                                     conn := Conn,
-                                    config := #{ path := Path }}=Data) -> 
-    Res = gun:ws_upgrade(Conn, Path),
+                                    config := #{ path := Path } = Config}=Data) -> 
+    Res = upgrade(Conn, Path, Config),
     Log({cmwsc, Name, connecting, upgrading, Path, Res}),
     {next_state, upgrading, Data};
 
@@ -351,3 +351,16 @@ ws_send(Msg, #{ name := Name,
     Raw = cmkit:jsone(Msg),
     Log({cmwsc, Name, out, Msg}),
     gun:ws_send(Conn, {text, Raw}).
+
+
+upgrade(Pid, Path, #{ headers := Headers }) ->
+    gun:ws_upgrade(Pid, Path, to_headers_list(Headers));
+
+upgrade(Pid, Path, _) ->
+    gun:ws_upgrade(Pid, Path).
+
+
+to_headers_list(Headers) ->
+    maps:fold(fun(K, V, Acc) ->
+                      [{cmkit:to_bin(K), cmkit:to_list(V)}|Acc]
+              end, [], Headers).

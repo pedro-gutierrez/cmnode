@@ -1,0 +1,12 @@
+type: app
+name: notifications 
+spec:
+  debug: true
+  filters:
+    - app
+    - auth
+  modules:
+    - common_ws
+    - notifications
+  settings:
+    - apps

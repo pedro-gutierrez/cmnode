@@ -81,7 +81,7 @@ spec:
       steps:
         - "Given name alice"
         - "When I connect"
-        - "Given I use that connection"
+        - "When I use that connection"
         - "Then that connection should be up"
     - title: "Given I am subscribed to that space"
       steps:
@@ -182,6 +182,9 @@ spec:
     - title: "When I wait 1 second"
       wait:
         seconds: 1
+    - title: "When I wait 5 seconds"
+      wait:
+        seconds: 5
     - title: "Given alice's email"
       set:
         email: "alice@mail.com"
@@ -230,7 +233,7 @@ spec:
         with:
           object:
             status: 409
-    - title: "Then I should expect a forbidden error"
+    - title: "Then it should be forbidden"
       expect:
         match:
           key: data.latest
@@ -362,14 +365,26 @@ spec:
     - title: "When I connect"
       connect:
         key: settings.wsUrl
+      headers:
+        authorization:
+          one_of:
+            - key: data.token
+            - ""
+        app:
+          one_of:
+            - key: data.app
+            - key: facts.app
       as: 
         key: data.name
     - title: "Then that connection should be up"
       probe:
-        connection:
-          key: data.conn
-        status: up
-    - title: "Given I use that connection"
+        key: data.conn
+      status: up
+    - title: "Then that connection should be down"
+      probe:
+        key: data.conn
+      status: down 
+    - title: "When I use that connection"
       set:
         conn:
           key: data.name
@@ -382,6 +397,24 @@ spec:
         body:
           space:
             key: data.space.id
+    - title: "When I get that space's roster"
+      procedure: api
+      params:
+        debug: true
+        method: get
+        path:
+          format: "/spaces/~s/roster"
+          params:
+            - key: data.space.id
+    - title: "Then that user should be in that roster"
+      expect:
+        body:
+          list:
+            with:
+              username:
+                key: data.username
+      in:
+        key: data.latest
   procedures:
     - name: api
       spec:

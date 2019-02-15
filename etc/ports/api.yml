@@ -19,3 +19,7 @@ spec:
       http: "/api/spaces"
     invites:
       http: "/api/invites"
+    subscriptions:
+      http: "/api/subscriptions"
+    notifications:
+      ws: "/ws"

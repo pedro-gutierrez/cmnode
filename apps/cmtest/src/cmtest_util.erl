@@ -393,14 +393,19 @@ connect(Spec, In, World) when is_map(Spec) ->
         {ok, Spec2} ->
             case connection_with_url(Spec2, In) of
                 {ok, Spec3} ->
-                    {ok, Spec4} = connection_with_timeout(Spec3, In),
-                    {ok, Spec5} = connection_with_debug(Spec4, In),
-                    case connection_from(Spec5, In) of
-                        {ok, #{ connection := #{ name := ConnName } = Conn}} ->
-                            {ok, world_with_conn(ConnName, Conn, World)};
-                        {ok, Other} ->
-                            {error, #{ error => not_a_connection,
-                                       info => Other }};
+                    case connection_with_headers(Spec3, In) of 
+                        {ok, Spec4} ->
+                            {ok, Spec5} = connection_with_timeout(Spec4, In),
+                            {ok, Spec6} = connection_with_debug(Spec5, In),
+                            case connection_from(Spec6, In) of
+                                {ok, #{ connection := #{ name := ConnName } = Conn}} ->
+                                    {ok, world_with_conn(ConnName, Conn, World)};
+                                {ok, Other} ->
+                                    {error, #{ error => not_a_connection,
+                                               info => Other }};
+                                Other ->
+                                    Other
+                            end;
                         Other ->
                             Other
                     end;
@@ -452,10 +457,19 @@ connection_from(#{ as := Name,
                   Protocol ->
                       Config1#{ protocol => Protocol }
               end,
+        
+    Config3 = case maps:get(headers, Spec0, undef) of 
+                  undef ->
+                      Config2;
+                  Headers ->
+                      Config2#{ headers => Headers }
+              end,
+
+
     case cmkit:to_bin(Transport) of
         T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
-            Url = cmkit:url(Config2),
-            {ok, Pid } = cmtest_ws_sup:new(Name, Config2, self()),
+            Url = cmkit:url(Config3),
+            {ok, Pid } = cmtest_ws_sup:new(Name, Config3, self()),
             {ok, #{ connection => Config2#{ name => Name,
                                             transport => Transport,
                                             class => websocket,
@@ -471,7 +485,7 @@ connection_from(#{ as := Name,
                          {ok, _} -> up;
                          {error, S} -> S
                      end,
-            {ok, #{ connection => Config2#{ name => Name,
+            {ok, #{ connection => Config3#{ name => Name,
                                             transport => Transport,
                                             class => http,
                                             status => Status,
@@ -523,6 +537,16 @@ connection_with_url(#{ spec := UrlSpec } = Spec, In) ->
         Other ->
             Other
     end.
+
+connection_with_headers(#{ headers := Headers} = Spec, In) ->
+    case cmencode:encode(Headers, In) of 
+        {ok, H} ->
+            {ok, Spec#{ headers => H}};
+        Other ->
+            Other
+    end;
+
+connection_with_headers(Spec, _) -> {ok, Spec}.
 
 connection_with_timeout(#{ timeout := TimeoutSpec } = Spec, In) ->
     {ok, T} = case cmencode:encode(TimeoutSpec, In) of 
@@ -814,7 +838,12 @@ run(#{ type := probe,
     In = World#{ settings => Settings},
     case cmencode:encode(ConnSpec, In) of 
         {ok, NameOrNames} -> 
-            probe(NameOrNames, Status, World);
+            case cmencode:encode(Status, In) of 
+                {ok, S} ->
+                    probe(NameOrNames, cmkit:to_atom(S), World);
+                Other ->
+                    Other
+            end;
         Other -> 
             Other
     end;

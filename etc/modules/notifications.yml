@@ -1,0 +1,6 @@
+type: module
+name: notifications
+spec:
+  decoders: {}
+  update: {}
+  encoders: {}

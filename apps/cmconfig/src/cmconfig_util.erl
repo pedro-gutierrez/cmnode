@@ -1269,14 +1269,15 @@ compile_term(#{ <<"list">> := Items }, Index) when is_list(Items) ->
                              compile_term(I, Index)
                           end, Items) };
 
-compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }, _) when is_map(Spec) andalso map_size(Spec) =:= 1 ->
+compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }, Index) 
+    when is_map(Spec) andalso map_size(Spec) =:= 1 ->
     #{ type => list,
-       size => Size
+       size => compile_term(Size, Index)
      };
 
 compile_term(#{ <<"list">> := #{ <<"size">> := Size } = Spec }, Index) when is_map(Spec) ->
     #{ type => list,
-       size => Size,
+       size => compile_term(Size, Index),
        spec => compile_term(Spec, Index)
      };
 
@@ -1759,13 +1760,28 @@ compile_term(#{ <<"connect">> := Spec } = Spec0, Index) ->
                     Expr3#{ as => compile_term(As, Index)}
             end,
 
-    with_debug(Spec, Expr4, Index);
+    Expr5 = case maps:get(<<"headers">>, Spec0, undef) of
+                undef ->
+                    Expr4;
+                Headers ->
+                    Expr4#{ headers => compile_term(Headers, Index)}
+            end,
 
+    with_debug(Spec, Expr5, Index);
+
+compile_term(#{ <<"probe">> := ConnSpec,
+                <<"status">> := Status }, Index) ->
+
+    #{ type => probe,
+       spec => #{ connection => compile_term(ConnSpec, Index),
+                  status => compile_term(Status, Index) }};
+       
 compile_term(#{ <<"probe">> := Spec }, Index) ->
 
     #{ type => probe,
        spec => compile_term(Spec, Index)
      };
+
 
 compile_term(#{ <<"disconnect">> := Spec }, Index) ->
 

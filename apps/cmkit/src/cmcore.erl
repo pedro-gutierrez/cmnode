@@ -4,7 +4,7 @@
 
 init(Pid, #{ name := App, 
              spec := Spec,
-             config := Config0 }, Log, Effects) ->
+             config := Config0 }, _Log, Effects) ->
     Config = case maps:get(encoders, Spec, undef) of
                  undef -> Config0;
                  Encs -> Config0#{ encoders => Encs }
@@ -14,8 +14,12 @@ init(Pid, #{ name := App,
         {ok, Model, []} ->
             {ok, Model, Config};
         {ok, Model, Cmds} ->
-            cmds(Cmds, Model, Config, Pid, Log, Effects),
-            {ok, Model, Config};
+            case cmds(Cmds, Model, Config, Pid, Effects) of 
+                ok -> 
+                    {ok, Model, Config};
+                {error, E} ->
+                    err(App, Pid, init, E)
+            end;
         {error, E} ->
             err(App, Pid, init, E)
     end.
@@ -105,31 +109,82 @@ unknown_encoder(Enc) ->
        status => undefined }.
 
 
-cmds([], _, _, _, _, _) -> ok;
-cmds([#{ effect := Effect,
-         encoder := Spec }|Rem], Model, Config, Pid, Log, Effects) ->
-    case cmencode:encode(Spec, Model, Config) of
-        {error, Error} ->
-            cmkit:danger({cmcore, Effect, Spec, Error});
-        {ok, Data} ->
-            apply_effect(Effect, Data, Pid, Log, Effects)
-    end,
-    cmds(Rem, Model, Config, Pid, Log, Effects);
+%%cmds([], _, _, _, _, _) -> ok;
+%%cmds([#{ effect := Effect,
+%%         encoder := Spec }|Rem], Model, Config, Pid, Log, Effects) ->
+%%    case cmencode:encode(Spec, Model, Config) of
+%%        {error, Error} ->
+%%            cmkit:danger({cmcore, Effect, Spec, Error});
+%%            
+%%        {ok, Data} ->
+%%            apply_effect(Effect, Data, Pid, Log, Effects)
+%%    end,
+%%    cmds(Rem, Model, Config, Pid, Log, Effects);
+%%
+%%cmds([#{ effect := Effect}|Rem], Model, Config, Pid, Log, Effects) ->
+%%    apply_effect(Effect, #{}, Pid, Log, Effects),
+%%    cmds(Rem, Model, Config, Pid, Log, Effects).
 
-cmds([#{ effect := Effect}|Rem], Model, Config, Pid, Log, Effects) ->
-    apply_effect(Effect, #{}, Pid, Log, Effects),
-    cmds(Rem, Model, Config, Pid, Log, Effects).
 
-apply_effect(Effect, Data, Pid, _Log, Effects) ->
+validated_cmds(Specs, Model, Config, Effects) ->
+    validated_cmds(Specs, Model, Config, Effects, []).
+
+validated_cmds([], _, _, _, Out) -> {ok, lists:reverse(Out)};
+
+validated_cmds([#{ effect := Effect,
+                   encoder := Spec }|Rem], Model, Config, Effects, Out) ->
+    case effect_mod(Effect, Effects) of 
+        {ok, Mod} ->
+            case cmencode:encode(Spec, Model, Config) of 
+                {ok, Params} ->
+                    validated_cmds(Rem, Model, Config, Effects, [{Mod, Params}|Out]);
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+validated_cmds([#{ effect := Effect }|Rem], Model, Config, Effects, Out) ->
+    case effect_mod(Effect, Effects) of 
+        {ok, Mod} ->
+            validated_cmds(Rem, Model, Config, Effects, [{Mod, #{}}|Out]);
+        Other ->
+            Other
+    end.
+
+
+cmds(Specs, Model, Config, Pid, Effects) ->
+    case validated_cmds(Specs, Model, Config, Effects) of 
+        {ok, Cmds} ->
+            lists:foreach(fun({Mod, Params}) ->
+                                  spawn(fun() ->
+                                                Mod:effect_apply(Params, Pid)
+                                        end)
+                          end, Cmds),
+            ok;
+        Other ->
+            Other
+    end.
+
+effect_mod(Effect, Effects) ->
     case maps:get(Effect, Effects, undef) of
         undef ->
-            cmkit:danger({cmcore, not_such_effect, Effect, Data});
+            {error, not_such_effect};
         Mod ->
-            spawn(fun() ->
-                          Mod:effect_apply(Data, Pid)
-                  end)
-    end,
-    ok.
+            {ok, Mod}
+    end.
+
+%%apply_effect(Effect, Data, Pid, _Log, Effects) ->
+%%    case maps:get(Effect, Effects, undef) of
+%%        undef ->
+%%            cmkit:danger({cmcore, not_such_effect, Effect, Data});
+%%        Mod ->
+%%            spawn(fun() ->
+%%                          Mod:effect_apply(Data, Pid)
+%%                  end)
+%%    end,
+%%    ok.
 
 update_spec(#{ update := Updates }, Encoders, Msg, Data, Model, Config) ->
     case maps:get(Msg, Updates, undef) of
@@ -220,10 +275,14 @@ update(Pid, #{ name := App,
                                                  filters => RemFilters },
                             update(Pid, AppSpec2, Data0, Model2, Log, Effects);  
                         {ok, Model2, Cmds} ->
-                            cmds(Cmds, Model2, Config, Pid, Log, Effects),
-                            Data0 = maps:get(data, AppSpec, Data),
-                            AppSpec2 = AppSpec#{ data => Data0 },
-                            {ok, Model2, AppSpec2}; 
+                            case cmds(Cmds, Model2, Config, Pid, Effects) of 
+                                ok ->
+                                    Data0 = maps:get(data, AppSpec, Data),
+                                    AppSpec2 = AppSpec#{ data => Data0 },
+                                    {ok, Model2, AppSpec2}; 
+                                {error, E} ->
+                                    err(App, Pid, cmds, #{ data => Data, reason => E})
+                            end;
                         {error, E} ->
                             err(App, Pid, update, #{ data => Data, reason => E})
                     end;
@@ -237,6 +296,8 @@ update(Pid, #{ name := App,
             err(App, Pid, filter, #{ data => Data, reason => E })
     end;
 
+update(_, #{ filters_only := true } = Spec, _, Model, _, _) ->
+    {ok, Model, maps:without([data, filters, filters_only], Spec)};
 
 update(Pid, #{ name := App,
                spec := Spec,
@@ -257,14 +318,18 @@ update(Pid, #{ name := App,
 
 update(Pid, #{ name := App,
                spec := #{ encoders := Encs }=Spec,
-               config := Config } = AppSpec, Msg, Data, Model, Log, Effects) ->
+               config := Config } = AppSpec, Msg, Data, Model, _Log, Effects) ->
     
     case update_spec(Spec, Encs, Msg, Data, Model, Config) of
         {ok, UpdateSpec} ->
             case apply_update_spec(Encs, UpdateSpec, Config, Data, {Model, []}) of
                 {ok, Model2, Cmds } ->
-                    cmds(Cmds, Model2, Config, Pid, Log, Effects),
-                    {ok, Model2, AppSpec};
+                    case cmds(Cmds, Model2, Config, Pid, Effects) of 
+                        ok ->
+                            {ok, Model2, AppSpec};
+                        {error, E} ->
+                            err(App, Pid, cmds, #{ data => Data, reason => E})
+                    end;
                 {error, E} ->
                     err(App, Pid, update, #{ data => Data, reason => E})
             end;

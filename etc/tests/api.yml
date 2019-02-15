@@ -5,11 +5,69 @@ spec:
     - common
   scenarios:
     
-    - title: "Space participants should see presence from other participants"
-      debug: true
+    - title: "Should not allow anonymous connections"
       tags:
-        - presence
-        - current
+        - ws
+      steps:
+        - "Given name alice"
+        - "When I connect"
+        - "When I use that connection"
+        - "Then that connection should be down"
+    
+    - title: "Should allow authenticated connections"
+      tags:
+        - ws
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in as alice"
+        - "Given name alice"
+        - "When I connect"
+        - "When I use that connection"
+        - "Then that connection should be up"
+    
+    - title: "Users should be able to subscribe to spaces"
+      tags:
+        - subscribe
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "When I subscribe to that space"
+        - "Then I should receive a 201 Created"
+
+    - title: "It should not be possible to subscribe to a space I don't belong to"
+      tags:
+        - subscribe
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given I am logged in as bob"
+        - "When I subscribe to that space"
+        - "Then it should be forbidden"
+
+          ##- title: "Space participants should see presence from other participants"
+          ##  debug: true
+          ##  tags:
+          ##    - presence
+          ##    - current
+          ##  steps:
+          ##    - "Given an empty database"
+          ##    - "Given user alice with password foo"
+          ##    - "Given user bob with password foo"
+          ##    - "Given I am logged in as alice"
+          ##    - "Given a connection for alice"
+          ##    - "Given a space"
+          ##    - "Given I am subscribed to that space"
+          ##    - "Given bob is in that space"
+    
+    - title: "Rosters should be available for participantes of a given space"
+      tags:
+        - roster
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -17,8 +75,27 @@ spec:
         - "Given I am logged in as alice"
         - "Given a connection for alice"
         - "Given a space"
-        - "Given I am subscribed to that space"
         - "Given bob is in that space"
+        - "Given I am logged in as bob"
+        - "When I get that space's roster"
+        - "Then I should receive a 200 OK"
+        - "Given bob's username"
+        - "Then that user should be in that roster"
+        - "Given alice's username"
+        - "Then that user should be in that roster"
+
+    - title: "Non participants should not able to get a space roster"
+      tags:
+        - roster
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given I am logged in as bob"
+        - "When I get that space's roster"
+        - "Then it should be forbidden"
 
     - title: "Space owners should be able to invite users to their spaces"
       tags:
@@ -55,7 +132,7 @@ spec:
         - "Given I am logged in as bob"
         - "Given bob's email"
         - "When I invite that email to that space"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
 
     - title: "Should not allow anonymous users to create spaces"
       tags:
@@ -64,7 +141,7 @@ spec:
       steps:
         - "Given an empty database"
         - "When I create a space"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
     
     - title: "Should not allow users to create spaces without a proper app"
       tags:
@@ -76,9 +153,9 @@ spec:
         - "Given I am logged in"
         - "Given no app"
         - "When I create a space"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
         - "Given a wrong app"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
     
     - title: "Unauthorized users should not create spaces"
       tags:
@@ -88,7 +165,7 @@ spec:
         - "Given an empty database"
         - "Given a fake token"
         - "When I create a space"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
 
     - title: "Users should be able to create spaces in a valid app"
       tags:
@@ -135,10 +212,10 @@ spec:
       steps:
         - "Given no app"
         - "When I init"        
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
         - "Given a wrong app"
         - "When I init"        
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
     
     - title: "Should not allow to register without a proper app"
       tags:
@@ -149,10 +226,10 @@ spec:
         - "Given user details for alice"
         - "Given no app"
         - "Register that user"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
         - "Given a wrong app"
         - "Register that user"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
     
     - title: "Should not allow to register with a token"
       tags:
@@ -164,7 +241,7 @@ spec:
         - "Given I am logged in"
         - "Given user details for bob"
         - "Register that user"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
 
     - title: "Should not register email twice"
       tags:
@@ -196,11 +273,11 @@ spec:
         - "Given user alice with password foo"
         - "Given a fake email"
         - "When I reset that password"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
         - "Given alice's email"
         - "Given a fake token"
         - "When I reset that password"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
 
     - title: "Should consume password reset tokens"
       tags: 
@@ -210,7 +287,7 @@ spec:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "When I reset that password"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
        
     - title: "Should login with email"
       tags:
@@ -223,11 +300,11 @@ spec:
         - "Then I should expect a token"
         - "Given a fake password"
         - "When I login with email"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
         - "Given password foo"
         - "Given a fake email"
         - "When I login with email"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
 
     - title: "Should login with username"
       tags:
@@ -240,11 +317,11 @@ spec:
         - "Then I should expect a token"
         - "Given a fake password"
         - "When I login with username"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
         - "Given password foo"
         - "Given a fake username"
         - "When I login with username"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
     
     - title: "Should not allow to login with a token"
       tags:
@@ -256,7 +333,7 @@ spec:
         - "Given I am logged in"
         - "Then I should expect a token"
         - "When I login with username"
-        - "Then I should expect a forbidden error"
+        - "Then it should be forbidden"
 
     - title: "Should logout"
       tags:

@@ -271,21 +271,37 @@ decode_term(#{ type := list, spec := #{ size := Size }}, Data, _) when is_number
         _ -> no_match
     end;
 
+
 decode_term(#{ type := list, 
-               size := Size, 
+               size := SizeSpec, 
                spec := Spec }, Data, Config) when is_list(Data) -> 
-    case length(Data) of 
-        Size ->  decode_list(Spec, Data, Config);
-        _ -> no_match
+    case cmencode:encode(SizeSpec, Config) of 
+        {ok, Size} ->
+            case length(Data) of 
+                Size ->
+                    decode_list(Spec, Data, Config);
+                _ -> 
+                    no_match
+            end;
+        Other ->
+            cmkit:danger({cmdecode, spec_encoding, SizeSpec, Other}),
+            no_match
     end;
-
+    
 decode_term(#{ type := list, 
-               size := Size }, Data, _) when is_list(Data) -> 
-    case length(Data) of 
-        Size -> {ok, Data};
-        _ -> no_match
+               size := SizeSpec }, Data, Config) when is_list(Data) -> 
+    
+    case cmencode:encode(SizeSpec, Config) of 
+        {ok, Size} ->
+            case length(Data) of 
+                Size -> {ok, Data};
+                _ -> no_match
+            end;
+        Other ->
+            cmkit:danger({cmdecode, spec_encoding, SizeSpec, Other}),
+            no_match
     end;
-
+    
 decode_term(#{ type := list, spec := _ }, [], _)  ->
     no_match;
 

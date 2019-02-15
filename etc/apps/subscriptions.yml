@@ -1,0 +1,12 @@
+type: app
+name: subscriptions
+spec:
+  debug: true
+  filters:
+    - app
+    - auth 
+  modules:
+    - common_api
+    - subscriptions
+  settings:
+    - apps
