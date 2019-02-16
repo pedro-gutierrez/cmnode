@@ -1,0 +1,13 @@
+type: app
+name: space 
+spec:
+  debug: true
+  filters:
+    - app
+    - auth 
+    - space_member
+  modules:
+    - common_api
+    - space
+  settings:
+    - apps

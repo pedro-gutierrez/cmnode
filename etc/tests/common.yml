@@ -298,6 +298,15 @@ spec:
         debug: true
         method: get
         path: /spaces
+    - title: "When I get that space"
+      procedure: api
+      params:
+        debug: true
+        method: get
+        path:
+          format: "/spaces/~s"
+          params:
+            - key: data.space.id
     - title: "Then I should have one item"
       expect:
         object:

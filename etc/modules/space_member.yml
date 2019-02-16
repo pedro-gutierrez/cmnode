@@ -1,0 +1,89 @@
+type: module 
+name: space_member 
+spec:
+  decoders:
+    lookup:
+      object:
+        params:
+          spaceId:
+            non_empty: text
+    invalid:
+      one_of:
+        - object:
+            params:
+              spaceId:
+                empty: text
+        - object:
+            params:
+              without_keys:
+                - spaceId
+    is_member:
+      object:
+        context: query
+        data:
+          object:
+            value:
+              role: 
+                non_empty: text
+    is_not_member:
+      object:
+        context: query
+        data:
+          empty: list
+    resolved:
+      status:
+        keyword: ok
+      space:
+        any: object
+  update:
+    lookup:
+      model:
+        space:
+          key: params.spaceId
+      cmds:
+        - effect: db
+          encoder: query_for_membership
+    is_member:
+      model:
+        role:
+          key: data.value.role
+      cmds:
+        - effect: service
+          encoder: query_for_space
+    is_not_member:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    invalid:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    resolved:
+      model:
+        space:
+          merge:
+            - key: space
+            - object:
+                role:
+                  key: role
+  encoders:
+    query_for_membership:
+      object:
+        context: query
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject:
+              key: user.id
+            predicate: in_space
+            object:
+              key: space
+    query_for_space:
+      object:
+        service: space_find
+        params:
+          bucket:
+            key: bucket
+          id:
+            key: space

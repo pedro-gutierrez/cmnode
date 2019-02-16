@@ -17,6 +17,8 @@ spec:
       http: "/api/password/reset"
     spaces:
       http: "/api/spaces"
+    space:
+      http: "/api/spaces/:spaceId"
     invites:
       http: "/api/invites"
     subscriptions:

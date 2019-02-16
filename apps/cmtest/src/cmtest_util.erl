@@ -590,8 +590,11 @@ probe(Name, Status, #{ conns := Conns } = World) when is_atom(Name) orelse is_bi
             {ok, World};
         _ ->
             {retry, World}
-    end.
+    end;
 
+probe(Other, _, _) ->
+    {error, #{ error => invalid_connection_name,
+               name => Other }}.
 
 send([], _, World) -> {ok, World};
 send([Spec|Rem], In, World) ->

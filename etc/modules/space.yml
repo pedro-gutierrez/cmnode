@@ -1,0 +1,20 @@
+type: module
+name: space 
+spec:
+  decoders:
+    fetch:
+      object:
+        method: GET
+  update:
+    fetch:
+      cmds:
+        - effect: terminate 
+          encoder: space
+  encoders:
+    space:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body:
+          key: space
