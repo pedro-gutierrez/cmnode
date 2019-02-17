@@ -23,13 +23,18 @@ spec:
         data:
           object:
             value:
+              status: active
               role: 
                 non_empty: text
     is_not_member:
       object:
         context: query
         data:
-          empty: list
+          one_of:
+            - empty: list
+            - object:
+                value:
+                  status: inactive
     resolved:
       status:
         keyword: ok

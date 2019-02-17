@@ -33,6 +33,11 @@ spec:
         participants:
           iterate:
             key: data
+          filter:
+            object:
+              value:
+                object:
+                  status: active
           with:
             id:
               key: object 

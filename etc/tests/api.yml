@@ -1,12 +1,15 @@
 type: test 
 name: api 
 spec:
+  config:
+    wait: 10
+    retries: 50
   scenarios:
     
-    - title: "Space participants should see presence from other participants"
+    - title: "Participants should see join and leave events"
       debug: true
       tags:
-        - presence
+        - events
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -22,8 +25,16 @@ spec:
         - "Given bob is in that space"
         - "Given user bob"
         - "Then that user should have joined that space"
-    
+        - "Given bob is no longer in that space"
+        - "Then that user should have left that space"
+        - "Given claire is in that space"
+        - "Given user claire"
+        - "Then that user should have joined that space"
+        - "Given bob's connection"
+        - "Then that user should not have joined that space"
+
     - title: "Should not allow anonymous connections"
+      debug: true
       tags:
         - ws
       steps:
@@ -91,10 +102,12 @@ spec:
     - title: "Space owners should be able to invite users to their spaces"
       tags:
         - invite
+        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "Given user bob with password foo"
+        - "Given user claire with password foo"
         - "Given I am logged in as alice"
         - "Given a space"
         - "Given bob's email"
@@ -107,6 +120,57 @@ spec:
         - "Then I should receive a 200 OK"
         - "Then I should have one item"
         - "Then I should be a guest in that space"
+        - "Given claire's email"
+        - "When I invite that email to that space"
+        - "Then it should be forbidden"
+
+    - title: "Participants can leave a space"
+      tags:
+        - leave
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given bob is in that space"
+        - "Given I am logged in as bob"
+        - "Given user bob"
+        - "When I remove that participant"
+        - "Then I should receive a 200 OK"
+        - "When I get that space"
+        - "Then it should be forbidden"
+        - "Given I am logged in as alice"
+        - "When I get that space's participants"
+        - "Then I should receive a 200 OK"
+        - "Given user bob"
+        - "Then that user should not be in that space"
+
+    - title: "Owners can't leave spaces"
+      tags:
+        - leave
+        - forbidden
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given user claire with password foo"
+        - "Given I am logged in as claire"
+        - "Given I am logged in as alice"
+        - "Given a space"
+        - "Given bob is in that space"
+        - "Given claire is in that space"
+        - "Given user alice"
+        - "When I remove that participant"
+        - "Then it should be forbidden"
+        - "Given I am logged in as bob"
+        - "Given user alice"
+        - "When I remove that participant"
+        - "Then it should be forbidden"
+        - "Given user claire"
+        - "When I remove that participant"
+        - "Then it should be forbidden"
+
 
     - title: "Users should not be allowed to invite others to spaces they don't own"
       tags:
@@ -271,7 +335,6 @@ spec:
     - title: "Should consume password reset tokens"
       tags: 
         - consume 
-        - current2
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -430,6 +493,16 @@ spec:
         - "Given bob's email"
         - "When I invite that email to that space"
         - "Then I should receive a 201 Created"
+    - title: "Given claire is in that space"
+      steps:
+        - "Given claire's email"
+        - "When I invite that email to that space"
+        - "Then I should receive a 201 Created"
+    - title: "Given bob is no longer in that space"
+      steps:
+        - "Given user bob"
+        - "When I remove that participant"
+        - "Then I should receive a 200 OK"
     - title: "Given a connection for alice"
       steps:
         - "Given alice's username"
@@ -448,6 +521,14 @@ spec:
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be up"
+    - title: "Given bob's connection"
+      steps:
+        - "Given bob's username"
+        - "When I use that connection"
+    - title: "Given claire's connection"
+      steps:
+        - "Given claire's username"
+        - "When I use that connection"
   steps:
     - title: "Given no app"
       set:
@@ -824,6 +905,8 @@ spec:
                   non_empty: text
       in:
         key: data.latest
+    - title: "Then that user should not be in that space"
+      fail: "Then that user should be in that space"
     - title: "Given role guest"
       set:
         role: guest
@@ -843,6 +926,29 @@ spec:
         event: joined
       from:
         key: data.conn
+    - title: "Then that user should not have joined that space"
+      fail: "Then that user should have joined that space"
+    - title: "Then that user should have left that space"
+      receive:
+        participant:
+          key: data.user.id
+        space:
+          key: data.space.id 
+        event: left
+      from:
+        key: data.conn
+    - title: "Then that user should not have left that space"
+      fail: "Then that user should have left that space"
+    - title: "When I remove that participant"
+      procedure: api
+      params:
+        debug: true
+        method: delete
+        path:
+          format: "/spaces/~s/participants/~s"
+          params:
+            - key: data.space.id
+            - key: data.user.id
   procedures:
     - name: api
       spec:

@@ -1,0 +1,97 @@
+type: module
+name: participant
+spec:
+  decoders:
+    remove:
+      object:
+        method: DELETE
+        params:
+          participantId:
+            other_than:
+              key: space.owner
+    forbidden:
+      object:
+        method: DELETE
+        params:
+          participantId:
+            key: space.owner
+    removed:
+      context: remove
+      status:
+        keyword: ok
+    notified:
+      service: space_notify
+      status:
+        keyword: ok
+  update:
+    remove:
+      - when: 
+          or:
+            - encoder: user_is_participant
+            - encoder: user_is_owner 
+        model:
+          participant:
+            key: params.participantId
+        cmds:
+          - effect: db
+            encoder: remove_participant
+      - cmds:
+          - effect: terminate
+            encoder: forbidden
+    removed:
+      cmds: 
+        - effect: service
+          encoder: leave_notifications
+    forbidden:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    notified:
+      cmds:
+        - effect: terminate
+          encoder: ok
+  encoders:
+    user_is_participant:
+      eq:
+        - key: user.id
+        - key: params.participantId
+    user_is_owner:
+      eq:
+        - key: user.id
+        - key: space.owner
+    remove_participant:
+      object:
+        context: remove
+        bucket:
+          key: bucket
+        put:
+          - object:
+              subject:
+                key: space.id
+              predicate: has_participant
+              object:
+                key: participant
+              value:
+                status: inactive
+                role: guest
+          - object:
+              subject:
+                key: participant
+              predicate: in_space
+              object:
+                key: space.id
+              value:
+                status: inactive
+                role: guest
+    leave_notifications:
+      service: space_notify
+      params:
+        object:
+          bucket:
+            key: bucket
+          id:
+            key: space.id
+          data:
+            event: left
+            participant:
+              key: participant

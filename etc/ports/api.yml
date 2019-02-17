@@ -19,6 +19,8 @@ spec:
       http: "/api/spaces"
     space:
       http: "/api/spaces/:spaceId"
+    participant:
+      http: "/api/spaces/:spaceId/participants/:participantId"
     participants:
       http: "/api/spaces/:spaceId/participants"
     invites:

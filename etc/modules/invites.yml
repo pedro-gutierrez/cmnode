@@ -124,6 +124,7 @@ spec:
             object:
               key: invitee.id
             value:
+              status: active
               role: guest
         - object:
             subject:
@@ -132,6 +133,7 @@ spec:
             object:
               key: space.id
             value: 
+              status: active
               role: guest
     notifications:
       service: space_notify

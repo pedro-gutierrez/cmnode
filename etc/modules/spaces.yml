@@ -77,7 +77,8 @@ spec:
               predicate: in_space
               object:
                 key: space.id
-              value: 
+              value:
+                status: active
                 role: owner
           - object:
               subject:
@@ -86,6 +87,7 @@ spec:
               object:
                 key: user.id
               value:
+                status: active
                 role: owner
     query_for_spaces:
       object:
