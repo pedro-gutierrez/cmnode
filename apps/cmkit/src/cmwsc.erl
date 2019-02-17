@@ -301,8 +301,9 @@ apply_protocol(In, #{
             ok
     end;
 
-apply_protocol(_, Data) -> 
-    cmkit:log({cmwsc, no_protocol, Data}),
+apply_protocol(_, #{ log := Log,
+                     name := Name}) -> 
+    Log({cmwsc, Name, no_protocol}),
     ok.
 
 try_decoders(#{ default := Decs }, Data) ->

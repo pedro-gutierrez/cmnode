@@ -1,6 +1,7 @@
 -module(cmbus).
 -export([create/1, 
          create_sub/1,
+         create_sub/2,
          delete/1,
          members/1,
          peers/1,
@@ -16,8 +17,11 @@ create(T) ->
     pg2:create(T).
 
 create_sub(T) ->
+    create_sub(T,self()).
+
+create_sub(T, Pid) ->
     pg2:create(T),
-    pg2:join(T, self()).
+    pg2:join(T, Pid).
 
 delete(T) ->
     pg2:delete(T).

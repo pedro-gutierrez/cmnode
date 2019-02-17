@@ -88,7 +88,8 @@ run_steps(#{ test := #{ name := Name },
            }=Data) ->
 
     case Steps of 
-        [#{ title := StepTitle}=Step|Rem] ->
+        [#{ title := StepTitle,
+            spec := StepSpec }=Step|Rem] ->
             StepStarted = step_started(Data),
             Res = cmtest_util:run(Step, Settings, World),
             case Res of 
@@ -122,9 +123,13 @@ run_steps(#{ test := #{ name := Name },
                     Data3 = maps:without([step_started], Data2),
                     {keep_state, Data3}; 
                 {error, E} ->
+                    #{ data := ScenarioData, conns := ScenarioConns } = World,
                     cmkit:danger({cmtest, #{ test => Name,
                                              scenario => Title,
                                              step => StepTitle,
+                                             spec => StepSpec,
+                                             data => ScenarioData,
+                                             conns => ScenarioConns,
                                              pid => self() }}),
                     StepMillis = cmkit:millis_since(StepStarted),
                     Elapsed = cmkit:millis_since(ScenarioStarted),

@@ -1,0 +1,9 @@
+type: app
+name: participants_find 
+spec: 
+  debug: true
+  tags:
+    - service
+  modules:
+    - common_service
+    - participants_find

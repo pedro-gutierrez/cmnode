@@ -465,7 +465,7 @@ connection_from(#{ as := Name,
                       Config2#{ headers => Headers }
               end,
 
-
+    
     case cmkit:to_bin(Transport) of
         T when T =:= <<"ws">> orelse T =:= <<"wss">> ->
             Url = cmkit:url(Config3),

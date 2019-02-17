@@ -1,0 +1,76 @@
+type: module
+name: space_notify
+spec:
+  decoders:
+    notify:
+      object:
+        bucket:
+          any: keyword
+        id:
+          non_empty: text
+        data:
+          any: object
+    participants:
+      participants:
+        any: list
+    error:
+      object:
+        status:
+          keyword: error
+    notified:
+      context: notify
+      status:
+        keyword: ok
+  update:
+    notify:
+      model:
+        object:
+          id:
+            key: id
+          bucket:
+            key: bucket
+          data:
+            key: data
+      cmds:
+        - effect: service
+          encoder: query_for_participants
+    participants:
+      model:
+        participants:
+          key: participants
+      cmds:
+        - effect: bus
+          encoder: notifications
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+    notified:
+      cmds:
+        - effect: terminate
+          encoder: success
+  encoders:
+    query_for_participants:
+      object:
+        service: participants_find
+        params:
+          bucket:
+            key: bucket
+          space:
+            key: id
+    notifications:
+      object:
+        context: notify
+        data:
+          merge:
+            - key: data
+            - object:
+                space:
+                  key: id
+        pub:
+          iterate:
+            key: participants
+          with:
+            list:
+              - keyword: notifications
+              - key: id

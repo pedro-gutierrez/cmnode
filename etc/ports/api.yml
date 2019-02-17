@@ -19,9 +19,9 @@ spec:
       http: "/api/spaces"
     space:
       http: "/api/spaces/:spaceId"
+    participants:
+      http: "/api/spaces/:spaceId/participants"
     invites:
       http: "/api/invites"
-    subscriptions:
-      http: "/api/subscriptions"
     notifications:
       ws: "/ws"

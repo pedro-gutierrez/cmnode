@@ -1,0 +1,64 @@
+type: module
+name: participants_find 
+spec:
+  decoders:
+    lookup:
+      object:
+        bucket:
+          any: keyword
+        space:
+          non_empty: text
+    found:
+      object: 
+        status: 
+          keyword: ok
+        data:
+          any: list
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    lookup:
+      model:
+        space:
+          key: space
+        bucket:
+          key: bucket
+      cmds:
+        - effect: db
+          encoder: lookup
+    found:
+      model:
+        participants:
+          iterate:
+            key: data
+          with:
+            id:
+              key: object 
+            role:
+              key: value.role
+      cmds:
+        - effect: terminate
+          encoder: participants
+    error:
+      cmds:
+        - effect: terminate
+          encoder: error
+  encoders:
+    lookup:
+      object:
+        context: lookup
+        bucket:
+          key: bucket
+        get:
+          object:
+            subject:
+              key: space
+            predicate: has_participant
+    participants:
+      object:
+        status:
+          keyword: ok
+        participants:
+          key: participants

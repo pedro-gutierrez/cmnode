@@ -1,6 +1,20 @@
 type: module
 name: notifications
 spec:
-  decoders: {}
-  update: {}
-  encoders: {}
+  decoders:
+    notification:
+      object:
+        data:
+          any: object
+  update:
+    notification:
+      model:
+        object:
+          data:
+            key: data
+      cmds:
+        - effect: notify
+          encoder: notification
+  encoders:
+    notification:
+      key: data

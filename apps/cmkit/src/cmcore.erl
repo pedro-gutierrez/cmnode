@@ -36,7 +36,7 @@ apply_update_spec(Encs, #{ model := M, cmds := C } = Spec, Config, In, {Model, C
     case data_with_where(Spec, In, Model, Config) of 
         {ok, In2} ->
             case cmencode:encode(M, In2, Config) of
-                {ok, M2} ->
+                {ok, M2} when is_map(M2) ->
                     M3 = maps:merge(Model, M2),
                     case resolve_cmds(Encs, C, M3) of
                         {ok, C2} ->
@@ -44,6 +44,10 @@ apply_update_spec(Encs, #{ model := M, cmds := C } = Spec, Config, In, {Model, C
                         {error, E} ->
                             {error, E}
                     end;
+                {ok, Other} ->
+                    {error, #{ error => model_is_not_a_map,
+                               spec => Spec,
+                               data => Other }};
                 {error, E} -> 
                     {error, E}
             end;
@@ -108,24 +112,6 @@ unknown_encoder(Enc) ->
     #{ encoder => Enc,
        status => undefined }.
 
-
-%%cmds([], _, _, _, _, _) -> ok;
-%%cmds([#{ effect := Effect,
-%%         encoder := Spec }|Rem], Model, Config, Pid, Log, Effects) ->
-%%    case cmencode:encode(Spec, Model, Config) of
-%%        {error, Error} ->
-%%            cmkit:danger({cmcore, Effect, Spec, Error});
-%%            
-%%        {ok, Data} ->
-%%            apply_effect(Effect, Data, Pid, Log, Effects)
-%%    end,
-%%    cmds(Rem, Model, Config, Pid, Log, Effects);
-%%
-%%cmds([#{ effect := Effect}|Rem], Model, Config, Pid, Log, Effects) ->
-%%    apply_effect(Effect, #{}, Pid, Log, Effects),
-%%    cmds(Rem, Model, Config, Pid, Log, Effects).
-
-
 validated_cmds(Specs, Model, Config, Effects) ->
     validated_cmds(Specs, Model, Config, Effects, []).
 
@@ -170,21 +156,12 @@ cmds(Specs, Model, Config, Pid, Effects) ->
 effect_mod(Effect, Effects) ->
     case maps:get(Effect, Effects, undef) of
         undef ->
-            {error, not_such_effect};
+            {error, #{ effect => Effect,
+                       status => not_found,
+                       effects => maps:keys(Effects) }};
         Mod ->
             {ok, Mod}
     end.
-
-%%apply_effect(Effect, Data, Pid, _Log, Effects) ->
-%%    case maps:get(Effect, Effects, undef) of
-%%        undef ->
-%%            cmkit:danger({cmcore, not_such_effect, Effect, Data});
-%%        Mod ->
-%%            spawn(fun() ->
-%%                          Mod:effect_apply(Data, Pid)
-%%                  end)
-%%    end,
-%%    ok.
 
 update_spec(#{ update := Updates }, Encoders, Msg, Data, Model, Config) ->
     case maps:get(Msg, Updates, undef) of

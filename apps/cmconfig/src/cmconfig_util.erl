@@ -1767,7 +1767,7 @@ compile_term(#{ <<"connect">> := Spec } = Spec0, Index) ->
                     Expr4#{ headers => compile_term(Headers, Index)}
             end,
 
-    with_debug(Spec, Expr5, Index);
+    with_debug(Spec0, Expr5, Index);
 
 compile_term(#{ <<"probe">> := ConnSpec,
                 <<"status">> := Status }, Index) ->

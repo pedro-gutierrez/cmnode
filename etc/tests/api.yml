@@ -2,11 +2,32 @@ type: test
 name: api 
 spec:
   scenarios:
+    
+    - title: "Space participants should see presence from other participants"
+      debug: true
+      tags:
+        - presence
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given user claire with password foo"
+        - "Given I am logged in as bob"
+        - "Given a connection for bob"
+        - "Given I am logged in as claire"
+        - "Given a connection for claire"
+        - "Given I am logged in as alice"
+        - "Given a connection for alice"
+        - "Given a space"
+        - "Given bob is in that space"
+        - "Given user bob"
+        - "Then that user should have joined that space"
+    
     - title: "Should not allow anonymous connections"
       tags:
         - ws
       steps:
-        - "Given name alice"
+        - "Given alice's username"
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be down"
@@ -18,52 +39,14 @@ spec:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "Given I am logged in as alice"
-        - "Given name alice"
+        - "Given alice's username"
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be up"
-    
-    - title: "Users should be able to subscribe to spaces"
-      tags:
-        - subscribe
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given I am logged in as alice"
-        - "Given a space"
-        - "When I subscribe to that space"
-        - "Then I should receive a 201 Created"
 
-    - title: "It should not be possible to subscribe to a space I don't belong to"
+    - title: "Should return a space participants"
       tags:
-        - subscribe
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given user bob with password foo"
-        - "Given I am logged in as alice"
-        - "Given a space"
-        - "Given I am logged in as bob"
-        - "When I subscribe to that space"
-        - "Then it should be forbidden"
-
-    - title: "Space participants should see presence from other participants"
-      debug: true
-      tags:
-        - presence
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given user bob with password foo"
-        - "Given I am logged in as alice"
-        - "Given a connection for alice"
-        - "Given a space"
-        - "Given I am subscribed to that space"
-        - "Given bob is in that space"
-
-    - title: "Rosters should be available for participantes of a given space"
-      tags:
-        - roster
+        - participants
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -73,27 +56,18 @@ spec:
         - "Given a space"
         - "Given bob is in that space"
         - "Given I am logged in as bob"
-        - "When I get that space's roster"
+        - "When I get that space's participants"
         - "Then I should receive a 200 OK"
-        - "Given bob's username"
-        - "Then that user should be in that roster"
-        - "Given alice's username"
-        - "Then that user should be in that roster"
-
-    - title: "Non participants should not able to get a space roster"
-      tags:
-        - roster
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given user bob with password foo"
-        - "Given I am logged in as alice"
-        - "Given a space"
-        - "Given I am logged in as bob"
-        - "When I get that space's roster"
+        - "Given user bob"
+        - "Then that user should be in that space"
+        - "Given user alice"
+        - "Then that user should be in that space"
+        - "Given user claire with password foo"
+        - "Given I am logged in as claire"
+        - "When I get that space's participants"
         - "Then it should be forbidden"
-    
-    - title: "Space participants should have access to the space"
+
+    - title: "Should return space information"
       tags:
         - space
       steps:
@@ -109,23 +83,13 @@ spec:
         - "Then I should receive a 200 OK"
         - "Given role guest"
         - "Then I should have that role"
-
-    - title: "Non participants should not able to get a space roster"
-      tags:
-        - space 
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given user bob with password foo"
-        - "Given I am logged in as alice"
-        - "Given a space"
-        - "Given I am logged in as bob"
+        - "Given user claire with password foo"
+        - "Given I am logged in as claire"
         - "When I get that space"
         - "Then it should be forbidden"
-
+    
     - title: "Space owners should be able to invite users to their spaces"
       tags:
-        - spaces
         - invite
       steps:
         - "Given an empty database"
@@ -146,7 +110,6 @@ spec:
 
     - title: "Users should not be allowed to invite others to spaces they don't own"
       tags:
-        - spaces
         - invite
         - forbidden
       steps:
@@ -412,6 +375,19 @@ spec:
         - "When I reset that password"
         - "Then I should receive a 201 Created"
         - "Given no token"
+    - title: "Given user claire with password foo"
+      steps:
+        - "Given no token"
+        - "Given user details for claire"
+        - "Register that user"
+        - "Then I should receive a 201 Created"
+        - "Then I should expect a token"
+        - "Given claire's email"
+        - "Given password foo"
+        - "Given claire's username"
+        - "When I reset that password"
+        - "Then I should receive a 201 Created"
+        - "Given no token"
     - title: "Given I am logged in"
       steps:
         - "When I login with email"
@@ -425,6 +401,7 @@ spec:
         - "When I login with email"
         - "Then I should expect a user"
         - "Then I should expect a token"
+        - "Given I remember that user as alice"
     - title: "Given I am logged in as bob"
       steps:
         - "Given no token"
@@ -433,6 +410,16 @@ spec:
         - "When I login with email"
         - "Then I should expect a user"
         - "Then I should expect a token"
+        - "Given I remember that user as bob"
+    - title: "Given I am logged in as claire"
+      steps:
+        - "Given no token"
+        - "Given claire's email"
+        - "Given password foo"
+        - "When I login with email"
+        - "Then I should expect a user"
+        - "Then I should expect a token"
+        - "Given I remember that user as claire"
     - title: "Given a space"
       steps:
         - "When I create a space"
@@ -445,14 +432,22 @@ spec:
         - "Then I should receive a 201 Created"
     - title: "Given a connection for alice"
       steps:
-        - "Given name alice"
+        - "Given alice's username"
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be up"
-    - title: "Given I am subscribed to that space"
+    - title: "Given a connection for bob"
       steps:
-        - "When I subscribe to that space"
-        - "Then I should receive a 201 Created"
+        - "Given bob's username"
+        - "When I connect"
+        - "When I use that connection"
+        - "Then that connection should be up"
+    - title: "Given a connection for claire"
+      steps:
+        - "Given claire's username"
+        - "When I connect"
+        - "When I use that connection"
+        - "Then that connection should be up"
   steps:
     - title: "Given no app"
       set:
@@ -531,6 +526,14 @@ spec:
           email: "bob@mail.com"
           lang: "en"
           username: "bob"
+    - title: "Given user details for claire"
+      set:
+        details:
+          first: "Claire"
+          last: "DeLune"
+          email: "claire@mail.com"
+          lang: "en"
+          username: "claire"
     - title: "Given another email"
       set:
         details:
@@ -545,6 +548,30 @@ spec:
             - key: data.details
             - object:
                 username: "another"
+    - title: "Given I remember that user as alice"
+      set:
+        alice:
+          key: data.user
+    - title: "Given user alice"
+      set:
+        user:
+          key: data.alice
+    - title: "Given I remember that user as bob"
+      set:
+        bob:
+          key: data.user
+    - title: "Given user bob"
+      set:
+        user:
+          key: data.bob
+    - title: "Given I remember that user as claire"
+      set:
+        claire:
+          key: data.user
+    - title: "Given user claire"
+      set:
+        user:
+          key: data.claire
     - title: "When I wait 1 second"
       wait:
         seconds: 1
@@ -563,6 +590,12 @@ spec:
     - title: "Given bob's username"
       set:
         username: "bob"
+    - title: "Given claire's email"
+      set:
+        email: "claire@mail.com"
+    - title: "Given claire's username"
+      set:
+        username: "claire"
     - title: "Given a fake email"
       set:
         email: "fake@mail.com"
@@ -734,10 +767,8 @@ spec:
             key: data.space.id
           email:
             key: data.email
-    - title: "Given name alice"
-      set:
-        name: alice
     - title: "When I connect"
+      debug: true
       connect:
         key: settings.wsUrl
       headers:
@@ -750,7 +781,7 @@ spec:
             - key: data.app
             - key: facts.app
       as: 
-        key: data.name
+        key: data.username
     - title: "Then that connection should be up"
       probe:
         key: data.conn
@@ -762,7 +793,7 @@ spec:
     - title: "When I use that connection"
       set:
         conn:
-          key: data.name
+          key: data.username
     - title: "When I subscribe to that space"
       procedure: api
       params:
@@ -772,22 +803,25 @@ spec:
         body:
           space:
             key: data.space.id
-    - title: "When I get that space's roster"
+    - title: "When I get that space's participants"
       procedure: api
       params:
         debug: true
         method: get
         path:
-          format: "/spaces/~s/roster"
+          format: "/spaces/~s/participants"
           params:
             - key: data.space.id
-    - title: "Then that user should be in that roster"
+    - title: "Then that user should be in that space"
       expect:
         body:
           list:
             with:
-              username:
-                key: data.username
+              object:
+                id:
+                  key: data.user.id
+                role:
+                  non_empty: text
       in:
         key: data.latest
     - title: "Given role guest"
@@ -800,6 +834,15 @@ spec:
             key: data.role
       in:
         key: data.latest
+    - title: "Then that user should have joined that space"
+      receive:
+        participant:
+          key: data.user.id
+        space:
+          key: data.space.id 
+        event: joined
+      from:
+        key: data.conn
   procedures:
     - name: api
       spec:

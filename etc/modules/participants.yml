@@ -1,0 +1,40 @@
+type: module
+name: participants 
+spec:
+  decoders:
+    fetch:
+      object:
+        method: GET
+    found:
+      participants:
+        any: list
+  update:
+    fetch:
+      model:
+        object:
+          participants: []
+      cmds:
+        - effect: service 
+          encoder: query_for_participants
+    found:
+      model:
+        participants:
+          key: participants
+      cmds:
+        - effect: terminate
+          encoder: participants
+  encoders:
+    query_for_participants:
+      service: participants_find
+      params:
+        bucket:
+          key: bucket
+        space:
+          key: space.id
+    participants:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body:
+          key: participants

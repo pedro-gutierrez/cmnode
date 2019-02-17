@@ -79,6 +79,14 @@ spec:
                 key: space.id
               value: 
                 role: owner
+          - object:
+              subject:
+                key: space.id
+              predicate: has_participant
+              object:
+                key: user.id
+              value:
+                role: owner
     query_for_spaces:
       object:
         context: list

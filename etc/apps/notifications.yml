@@ -5,6 +5,7 @@ spec:
   filters:
     - app
     - auth
+    - subscribe
   modules:
     - common_ws
     - notifications

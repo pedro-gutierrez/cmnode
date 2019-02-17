@@ -1,0 +1,9 @@
+type: app
+name: space_notify
+spec: 
+  debug: true
+  tags:
+    - service
+  modules:
+    - common_service
+    - space_notify

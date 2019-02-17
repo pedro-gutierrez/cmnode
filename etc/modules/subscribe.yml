@@ -1,0 +1,23 @@
+type: module
+name: subscribe
+spec:
+  decoders:
+    subscribe:
+      any: object
+    subscribed:
+      status: 
+        keyword: ok
+  update:
+    subscribe:
+      cmds:
+        - effect: bus
+          encoder: subscription
+    subscribed:
+      model: {}
+  encoders:
+    subscription:
+      object:
+        sub:
+          - keyword: notifications
+          - key: user.id
+        create: true

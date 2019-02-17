@@ -47,6 +47,10 @@ spec:
       context: create_invite
       status:
         keyword: error
+    notifications_sent:
+      service: space_notify
+      status:
+        keyword: ok
   update:
     create:
       model:
@@ -74,6 +78,10 @@ spec:
         - effect: db
           encoder: invite_record
     invite_created:
+      cmds:
+        - effect: service
+          encoder: notifications
+    notifications_sent:
       cmds:
         - effect: terminate
           encoder: created
@@ -111,11 +119,12 @@ spec:
       put:
         - object:
             subject:
-              key: invitee.id
-            predicate: is_invited_to
-            object:
               key: space.id
-            value: {}
+            predicate: has_participant
+            object:
+              key: invitee.id
+            value:
+              role: guest
         - object:
             subject:
               key: invitee.id
@@ -124,3 +133,15 @@ spec:
               key: space.id
             value: 
               role: guest
+    notifications:
+      service: space_notify
+      params:
+        object:
+          bucket:
+            key: bucket
+          id:
+            key: space.id
+          data:
+            event: joined
+            participant:
+              key: invitee.id
