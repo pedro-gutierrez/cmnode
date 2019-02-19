@@ -17,13 +17,17 @@ spec:
       http: "/api/password/reset"
     spaces:
       http: "/api/spaces"
+    invites:
+      http: "/api/invites"
     space:
       http: "/api/spaces/:spaceId"
     participant:
       http: "/api/spaces/:spaceId/participants/:participantId"
     participants:
       http: "/api/spaces/:spaceId/participants"
-    invites:
-      http: "/api/invites"
+    messages:
+      http: "/api/spaces/:spaceId/messages"
+    daily_messages:
+      http: "/api/spaces/:spaceId/messages/:daysAgo"
     notifications:
       ws: "/ws"

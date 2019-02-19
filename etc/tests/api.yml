@@ -6,6 +6,33 @@ spec:
     retries: 50
   scenarios:
     
+    - title: "Participants should create messages"
+      debug: true
+      tags:
+        - messages
+      steps:
+        - "Given an empty database"
+        - "Given user alice with password foo"
+        - "Given user bob with password foo"
+        - "Given I am logged in as bob"
+        - "Given a connection for bob"
+        - "Given I am logged in as alice"
+        - "Given a connection for alice"
+        - "Given a space"
+        - "Given some text"
+        - "Given a message with that text"
+        - "Then there should be an event with that message"
+        - "Given bob's connection"
+        - "Then there should not be an event with that message"
+        - "Given a message with that text"
+        - "Given a message with that text"
+        - "Given a message with that text"
+        - "Given a message with that text"
+        - "Given today"
+        - "When I get the messages for that day"
+        - "Given a total of 5"
+        - "Then I should receive that many messages"
+        
     - title: "Participants should see join and leave events"
       debug: true
       tags:
@@ -488,6 +515,11 @@ spec:
         - "When I create a space"
         - "Then I should receive a 201 Created"
         - "Then I should expect a space"
+    - title: "Given a message with that text"
+      steps:
+        - "When I create a message with that text"
+        - "Then I should receive a 201 Created"
+        - "Then I should receive a message"
     - title: "Given bob is in that space"
       steps:
         - "Given bob's email"
@@ -942,13 +974,90 @@ spec:
     - title: "When I remove that participant"
       procedure: api
       params:
-        debug: true
         method: delete
         path:
           format: "/spaces/~s/participants/~s"
           params:
             - key: data.space.id
             - key: data.user.id
+    - title: "Given some text"
+      set:
+        object:
+          text: "This is a message"
+    - title: "When I create a message with that text"
+      procedure: api
+      params:
+        method: post
+        path: 
+          format: "/spaces/~s/messages"
+          params:
+            - key: data.space.id
+        body:
+          object:
+            data:
+              key: data.text
+    - title: "Then I should receive a message"
+      expect:
+        object:
+          body:
+            object:
+              id:
+                non_empty: text
+              data:
+                non_empty: text
+              owner:
+                non_empty: text
+              space:
+                non_empty: text
+              timestamp:
+                any: number
+      in:
+        key: data.latest
+      remember:
+        message:
+          key: body
+    - title: "Then there should be an event with that message"
+      receive:
+        message:
+          key: data.message.id
+        space:
+          key: data.space.id 
+        event: message 
+      from:
+        key: data.conn
+    - title: "Then there should not be an event with that message"
+      fail: "Then there should be an event with that message"
+    - title: "Given today"
+      set:
+        ago: 0
+    - title: "When I get the messages for that day"
+      procedure: api
+      params:
+        method: get
+        path: 
+          format: "/spaces/~s/messages/~s"
+          params:
+            - key: data.space.id
+            - text:
+                key: data.ago
+    - title: "Given a total of 5"
+      set:
+        total: 5
+    - title: "Then I should receive that many messages"
+      expect:
+        body:
+          all:
+            - list:
+                size:
+                  key: data.total
+            - list: 
+                object:
+                  data:
+                    non_empty: text
+                  space:
+                    key: data.space.id
+      in:
+        key: data.latest
   procedures:
     - name: api
       spec:

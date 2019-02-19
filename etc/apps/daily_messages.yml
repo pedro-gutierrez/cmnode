@@ -1,0 +1,13 @@
+type: app
+name: daily_messages
+spec:
+  debug: true
+  filters:
+    - app
+    - auth 
+    - space_member
+  modules:
+    - common_api
+    - daily_messages
+  settings:
+    - apps

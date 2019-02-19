@@ -150,7 +150,20 @@ effect_apply(#{ context := C,
                                  end, cmdb:get(B, S1, P1))), Spec),
     cmcore:update(Id, R#{ bucket => B,
                           context => C });
-        
+
+effect_apply(#{ context := C,
+                bucket := B,
+                map := #{ subject := S1,
+                          predicate := P1 },
+                with := #{ subject := S2,
+                           predicate := P2 }}=Spec, Id ) ->
+
+    R = reply_from(lists:flatten(lists:map(fun({_, _, _, V}) ->
+                                    cmdb:get(B, S2, P2, V)
+                                 end, cmdb:get(B, S1, P1))), Spec),
+    cmcore:update(Id, R#{ bucket => B,
+                          context => C });
+
 
 effect_apply(#{ context := C} = Spec, Id) ->
     cmkit:danger({cmeffect, db, unsupported, Spec}),

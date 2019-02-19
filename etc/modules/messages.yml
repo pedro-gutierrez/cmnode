@@ -1,0 +1,94 @@
+type: module
+name: messages 
+spec:
+  decoders:
+    create:
+      object:
+        method: POST
+        body:
+          object:
+            data:
+              non_empty: text
+    created:
+      context: create
+      status:
+        keyword: ok
+    notified:
+      service: space_notify
+      status:
+        keyword: ok
+  update:
+    create:
+      model:
+        date:
+          format:
+            pattern:
+              keyword: yyyymmdd
+            date:
+              calendar: now
+        message:
+          object:
+            owner:
+              key: user.id
+            space:
+              key: space.id
+            id:
+              uuid: {}
+            timestamp:
+              now: microseconds
+            data:
+              key: body.data
+      cmds:
+        - effect: db 
+          encoder: message_record
+    created:
+      cmds:
+        - effect: service
+          encoder: notifications
+    notified:
+      cmds:
+        - effect: terminate
+          encoder: message
+  encoders:
+    message_record:
+      context: create
+      bucket:
+        key: bucket
+      put:
+        - object:
+            subject:
+              key: message.space
+            predicate:
+              key: date    
+            object:
+              key: message.timestamp
+            value:
+              key: message.id
+        - object:
+            subject: message
+            predicate: has_id
+            object:
+              key: message.id
+            value:
+              key: message
+    notifications:
+      service: space_notify
+      params:
+        object:
+          bucket:
+            key: bucket
+          id:
+            key: space.id
+          data:
+            event: message 
+            space:
+              key: message.space
+            message:
+              key: message.id
+    message:
+      object:
+        status: 201
+        headers:
+          content-type: application/json
+        body:
+          key: message

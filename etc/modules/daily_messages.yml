@@ -1,0 +1,64 @@
+type: module
+name: daily_messages
+spec:
+  decoders:
+    fetch:
+      object:
+        method: GET
+        params:
+          daysAgo:
+            non_empty: text
+    messages:
+      object:
+        context: query
+        data:
+          any: list
+  update:
+    fetch:
+      model:
+        date:
+          format:
+            pattern:
+              keyword: yyyymmdd
+            date:
+              calendar:
+                days:
+                  ago:
+                    number:
+                      key: params.daysAgo
+      cmds:
+        - effect: db
+          encoder: query_for_messages
+    messages:
+      model:
+        messages:
+          iterate:
+            key: data
+          with:
+            key: value
+      cmds:
+        - effect: terminate
+          encoder: messages
+  encoders:
+    query_for_messages:
+      object:
+        context: query
+        bucket:
+          key: bucket
+        map:
+          object:
+            subject:
+              key: space.id
+            predicate:
+              key: date
+        with:
+          object:
+            subject: message
+            predicate: has_id
+    messages:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body:
+          key: messages

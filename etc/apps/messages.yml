@@ -1,0 +1,13 @@
+type: app
+name: messages
+spec:
+  debug: true
+  filters:
+    - app
+    - auth 
+    - space_member
+  modules:
+    - common_api
+    - messages
+  settings:
+    - apps
