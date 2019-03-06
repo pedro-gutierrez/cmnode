@@ -1,0 +1,411 @@
+type: module
+name: ui_common
+spec:
+  encoders:
+    containerView:
+      view:
+        tag: section
+        attrs:
+          class: section
+        children:
+          - tag: div
+            attrs:
+              class: container
+            children:
+              - view:
+                  key: contentView
+                params:
+                  key: content
+    labelView:
+      view:
+        tag: label
+        attrs:
+          class: label
+        children:
+          - text:
+              key: title
+    labeledFieldView:
+      view:
+        tag: div
+        attrs:
+          class: field
+        children:
+          - view: labelView
+            when:
+              not:
+                eq:
+                  - ""
+                  - key: content.title
+            params:
+              title:          
+                key: content.title
+          - tag: div
+            attrs:
+              class: control
+            children:
+              - view:
+                  key: control
+                params:
+                  key: content
+    fieldView:
+      view:
+        tag: div
+        attrs:
+          class: field
+        children:
+          - tag: div
+            attrs:
+              class: control
+            children:
+              - view:
+                  key: control
+                params:
+                  key: content
+    inputStyle:
+      either:
+        - when:
+            key: is_error
+          text: "input is-danger"
+        - text: "input"
+    inputView:
+      view:
+        tag: input
+        attrs:
+          class:
+            encoder: inputStyle
+          type: text
+          placeholder:
+            key: help
+    emailView:
+      view:
+        tag: input
+        attrs:
+          class:
+            encoder: inputStyle
+          type: email
+          placeholder:
+            key: help
+          value:
+            key: value
+          onchange:
+            key: changed
+    passwordView:
+      view:
+        tag: input
+        attrs:
+          class:
+            encoder: inputStyle
+          type: password
+          placeholder:
+            key: help
+          value:
+            key: value
+          onchange:
+            key: changed
+    buttonStyle:
+      format: "button is-link ~s ~s"
+      params:
+        - either:
+            - when:
+                and:
+                  - is_set: is_loading
+                  - key: is_loading
+              text: is-loading
+            - ""
+        - either:
+            - when:
+                and:
+                  - is_set: is_full
+                  - key: is_full
+              text: is-fullwidth
+            - ""
+    buttonView:
+      view:
+        tag: button
+        attrs:
+          onclick:
+            key: action
+          class:
+            encoder: buttonStyle
+        children:
+          - text:
+              key: title
+    inputFieldView:
+      view:
+        view: labeledFieldView
+        params:
+          control: inputView
+          content:
+            key: content
+    passwordFieldView:
+      view:
+        view: labeledFieldView
+        params:
+          control: passwordView
+          content:
+            key: content
+    emailFieldView:
+      view:
+        view: labeledFieldView
+        params:
+          control: emailView
+          content:
+            key: content
+    buttonFieldView:
+      view:
+        view: fieldView
+        params:
+          control: buttonView
+          content:
+            key: content
+    titleView:
+      view:
+        tag: h1
+        attrs:
+          class: title
+        children:
+          - text:
+              key: content
+    subtitleView:
+      view:
+        tag: p
+        attrs:
+          class: subtitle
+        children:
+          - text:
+              key: content
+    notificationView:
+      view:
+        tag: div
+        attrs:
+          class: notification
+        children:
+          - text:
+              key: content
+    linkView:
+      view:
+        tag: button
+        attrs:
+          class: button is-text
+          onclick:
+            key: content.action
+        children:
+          - text:
+              key: content.title
+    contentView:
+      view:
+        view:
+          key: contentView
+        params:
+          content:
+            key: content
+    horizontalFormView:
+      view:
+        tag: div
+        atttrs:
+          class: field is-horizontal
+        children:
+          - tag: div
+            attrs:
+              class: field-body
+            children:
+              loop:
+                key: content
+              with: contentView
+
+    alertView:
+      view:
+        tag: div
+        attrs:
+          class: column is-full has-text-centered
+        children:
+          - tag: article
+            attrs:
+              class: message
+            children:
+              - tag: div
+                attrs:
+                  class: message-body
+                  style: "border-width: 0px 0px 0px 0px !important;"
+                children:
+                  - text:
+                      key: title
+    formView:
+      view:
+        tag: div
+        attrs:
+          class: columns is-multiline
+        children:
+          - view: alertView
+            when:
+              and:
+                - is_set: message
+                - not:
+                    eq:
+                      - key: message.title
+                      - ""
+            params:
+              key: message
+          - tag: div
+            attrs:
+              class: column is-full
+            children:
+              loop:
+                key: fields 
+              with: contentView
+          - tag: div
+            attrs:
+              class: column is-full has-text-centered
+            children:
+              loop:
+                key: links
+              with: contentView
+    columnView:
+      view:
+        tag: div
+        attrs:
+          class:
+            format: "column ~s"
+            params:
+              - key: style
+        children:
+          - view:
+              key: contentView
+            params:
+              key: content
+    columnsView:
+      view:
+        tag: section
+        attrs:
+          class: section
+        children:
+          - tag: div
+            attrs:
+              class: container
+            children:
+              - tag: div
+                attrs:
+                  class:
+                    format: "columns ~s"
+                    params:
+                      - key: style
+                children:
+                  loop:
+                    key: columns
+                  with: columnView
+    iconView:
+      view:
+        tag: i
+        attrs:
+          class:
+            key: name
+    navbarButtonView:
+      view:
+        tag: a
+        attrs:
+          class:
+            format: "button ~s"
+            params:
+              - key: style
+          onclick:
+            key: action
+        children:
+          - text:
+              key: title
+    navbarView:
+      view:
+        tag: navbar
+        attrs:
+          class: navbar
+          role: navigation
+          aria-label: main navigation
+        children:
+          - tag: div
+            attrs:
+              class: navbar-end
+            children:
+              - tag: div
+                attrs:
+                  class: navbar-item
+                children:
+                  - tag: div
+                    attrs:
+                      class: buttons
+                    children:
+                      loop:
+                        key: buttons
+                      with: navbarButtonView
+    heroView:
+      view:
+        tag: div
+        children:
+          - view: iconView
+            params:
+              name:
+                key: icon
+          - tag: h1
+            attrs:
+              class: is-size-1 title
+            children:
+              - text:
+                  key: title
+          - tag: h2
+            attrs:
+              class: subtitle
+            children:
+              - text:
+                  key: subtitle
+    highlightView:
+      view:
+        tag: div
+        attrs:
+          class: column is-4 has-text-centered
+        children:
+          - tag: h3
+            attrs:
+              class: title
+            children:
+              - text:
+                  key: title
+          - tag: p
+            attrs:
+              class: subtitle
+            children:
+              - text:
+                  key: subtitle
+    highlightsView:
+      view:
+        tag: section
+        attrs:
+          class: section has-background is-medium
+        children:
+          - tag: div
+            attrs:
+              class: container
+            children:
+              - tag: div
+                attrs:
+                  class: columns
+                children:
+                  loop:
+                    key: content
+                  with: highlightView
+    legalView:
+      view:
+        tag: p
+        children:
+          - text: Made with Erlang and Elementary
+    footerView:
+      view:
+        tag: footer
+        attrs:
+          class: footer
+        children:
+          - tag: div
+            attrs:
+              class: content has-text-centered
+            children:
+              - view:
+                  key: contentView
+                params:
+                  key: content

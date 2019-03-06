@@ -1,0 +1,45 @@
+type: module
+name: ui_passwd_remind
+spec:
+  init:
+    model:
+      email: ""
+  decoders:
+    show-passwd-remind:
+      object:
+        effect: ui
+        event: show-passwd-remind
+  update:
+    show-passwd-remind:
+      model:
+        firstView: passwdRemindView
+      cmds:
+        - effect: ui
+  encoders:
+    passwdRemindView:
+      view:
+        view: formView
+        params:
+          fields:
+            - contentView: emailFieldView
+              content:
+                title: "" 
+                help: Your email address
+                is_error: false 
+                value: alice@mail.com
+                changed: email-changed
+            - contentView: buttonFieldView
+              content: 
+                title: "Send password reset link"
+                is_loading: false
+                is_full: true
+                action: passwd-remind
+          links:
+            - contentView: linkView
+              content:
+                title: "Login"
+                action: show-login
+            - contentView: linkView
+              content:
+                title: "Register"
+                action: show-register

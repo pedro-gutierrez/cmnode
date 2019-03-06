@@ -1,0 +1,69 @@
+type: module
+name: ui_register
+spec:
+  init:
+    model:
+      first: ""
+      last: ""
+      username: ""
+      email: ""
+  decoders:
+    show-register:
+      object:
+        effect: ui
+        event: show-register
+  update:
+    show-register:
+      model:
+        firstView: registerView
+      cmds:
+        - effect: ui
+  encoders:
+    registerView:
+      view:
+        view: formView
+        params:
+          fields:
+            - contentView: inputFieldView
+              content:
+                title: "" 
+                help: Your first name
+                is_error: false 
+                value: Pedro
+                changed: first-name-changed
+            - contentView: inputFieldView
+              content:
+                title: "" 
+                help: Your last name
+                is_error: false 
+                value: Guti
+                changed: last-name-changed
+            - contentView: emailFieldView
+              content:
+                title: "" 
+                help: Your email address
+                is_error: false
+                value: alice@mail.com
+                changed: email-changed
+            - contentView: inputFieldView
+              content:
+                title: "" 
+                help: Your desired username
+                is_error: false 
+                value: sicozu
+                changed: username-changed
+            - contentView: buttonFieldView
+              content:
+                title: Register 
+                is_loading: false
+                is_full: true
+                action: login
+          links:
+            - contentView: linkView
+              content:
+                title: "Forgotten password"
+                action: show-passwd-remind
+            - contentView: linkView
+              content:
+                title: "Login"
+                action: show-login

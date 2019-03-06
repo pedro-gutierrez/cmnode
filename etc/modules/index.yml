@@ -1,0 +1,48 @@
+type: module
+name: index
+spec:
+  decoders:
+    default:
+      object:
+        method: GET
+  update:
+    default:
+      cmds:
+        - effect: notify
+          encoder: home
+        - effect: terminate
+  encoders:
+    home:
+      object:
+        status: 200
+        headers:
+          content-type: "text/html; charset=utf-8"
+          expires: 0
+          cache-control: no-cache, no-store, must-revalidate
+        body:
+          format: |
+            <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta charset="utf-8" />
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <title>{{title}}</title>
+                  <link rel="stylesheet" href="css/bulma.min.css"/>
+                  <link rel="stylesheet" href="css/fontawesome.min.css">
+                  <link rel="stylesheet" href="css/styles.css"/>
+                  <script src="js/elementary-ui-deps.js"></script>
+                  <script type="module">
+                    import {default as ui} from "{{baseUrl}}/js/elementary-ui.js";
+                    import {default as ws} from "{{baseUrl}}/js/elementary-ws.js";
+                    import {default as events} from "{{baseUrl}}/js/elementary-events.js";
+                    import {default as http} from "{{baseUrl}}/js/elementary-http.js";
+                    import {default as app} from "{{baseUrl}}/js/elementary.js";
+                    app("{{baseUrl}}/js/app.js", {ui, ws, events, http});
+                  </script>
+                </head>
+                <body>
+                </body>
+              </html>
+          params:
+            config:
+              key: ui

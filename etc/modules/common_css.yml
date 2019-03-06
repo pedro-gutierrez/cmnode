@@ -1,0 +1,71 @@
+type: module
+name: common_css
+spec:
+  decoders:
+    compile_theme:
+      object:
+        query:
+          t:
+            member:
+              config:
+                key: ui.themes.supported
+    compile:
+      one_of:
+        - object:
+            query:
+              without_keys:
+                - t
+        - object:
+            query:
+              t:
+                not:
+                  member:
+                    config:
+                      key: ui.themes.supported
+    render:
+      object:
+        language:
+          keyword: css
+        status:
+          keyword: ok
+        source:
+          any: data
+  update:
+    compile_theme:
+      model:
+        theme:
+          key: query.t
+      cmds:
+        - effect: css
+          encoder: styles
+    compile:
+      model:
+        theme:
+          config:
+            key: ui.themes.default
+      cmds:
+        - effect: css
+          encoder: styles
+    render:
+      model:
+        object:
+          source:
+            key: source
+      cmds:
+        - effect: notify
+          encoder: css
+        - effect: terminate
+  encoders:
+    css:
+      object:
+        status: 200
+        headers:
+          object:
+            content-type: "text/css"
+            cache-control: "no-cache, no-store, must-revalidate"
+            pragma: "no-cache"
+            expires: "0"
+            theme:
+              key: theme
+        body:
+          key: source

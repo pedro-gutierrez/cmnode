@@ -1,0 +1,8 @@
+type: app
+name: css
+spec:
+  modules:
+    - common_css 
+    - ui
+  settings:
+    - ui

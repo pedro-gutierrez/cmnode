@@ -1,0 +1,14 @@
+type: module
+name: ui_effects 
+spec:
+  effects:
+    http:
+      type: elementary-http
+      settings:
+        path: /api
+        headers:
+          object:
+            content-type: application/json
+            app:
+              config:
+                key: app

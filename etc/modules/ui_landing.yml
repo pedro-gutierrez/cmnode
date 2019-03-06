@@ -1,0 +1,70 @@
+type: module
+name: ui_landing
+spec:
+  init:
+    model:
+      firstView: loginView
+    cmds:
+      - effect: ui
+        encoder: landingView
+  decoders:
+    show-home:
+      object:
+        effect: ui
+        event: show-home
+  update:
+    show-home:
+      cmds:
+        - effect: ui
+          encoder: landingView
+  encoders:
+    landingView:
+      view:
+        tag: div
+        children:
+          - view: navbarView
+            params:
+              buttons: []
+              ##  - title: Sign up
+              ##    action: show-register
+              ##    style: ""
+              ##  - title: Log in
+              ##    action: show-login
+              ##    style: is-primary
+
+          - view: columnsView
+            params:
+              style: "is-centered"
+              columns:
+                - style: "is-6 has-text-centered"
+                  contentView: heroView
+                  content:
+                    icon: fa-6x far fa-comments
+                    title: " Elementary Messenger"
+                    subtitle: "A simple, distributed, Erlang powered IM application, written in YAML"
+                    name: far fa-4x fa-comments
+
+          - view: columnsView
+            params:
+              style: "is-centered"
+              columns:
+                - style: "is-4"
+                  contentView:
+                    key: model.firstView
+                  content:
+                    key: model
+
+          - view: highlightsView
+            params:
+              content:
+                - title: Simple
+                  subtitle: "Easy to use, responsive and straight to the point user interface based on Bulma"
+                - title: Distributed
+                  subtitle: "Implemented as microservices and lambda functions deployed on a cluster of Erlang nodes"
+                - title: Declarative
+                  subtitle: "UI, server side logic and even automated tests all written from the ground up in YAML"
+
+          - view: footerView
+            params:
+              contentView: legalView
+              content: {}

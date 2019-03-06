@@ -5,7 +5,7 @@ export default (name, settings, app) => {
     function url() {
         if (settings.url) return settings.url;
         const scheme = window.location.protocol === 'http:' ? 'ws' : 'wss';
-        return scheme + '://' + window.location.host + settings.path
+        return scheme + '://' + window.location.host + (settings.path||'/ws');
     }
 
     function send(ev) {

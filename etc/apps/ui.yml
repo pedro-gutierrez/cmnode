@@ -1,0 +1,6 @@
+type: app
+name: ui
+spec:
+  modules:
+    - common_ui 
+    - ui

@@ -3,6 +3,12 @@ name: api
 spec:
   port: 4001
   apps:
+    index:
+      http: "/"
+    ui:
+      http: "/js/app.js"
+    css:
+      http: "/css/styles.css"
     init:
       http: "/api/init"
     acme:

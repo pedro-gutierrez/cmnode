@@ -1,0 +1,128 @@
+type: module
+name: ui_login
+spec:
+  init:
+    model:
+      message: ""
+      state: ""
+      email: ""
+      password: ""
+  decoders:
+    show-login:
+      object:
+        effect: ui
+        event: show-login
+    email-changed:
+      object:
+        effect: ui
+        event: email-changed
+        value:
+          any: text
+    password-changed:
+      object:
+        effect: ui
+        event: password-changed
+        value:
+          any: text
+    login:
+      object:
+        effect: ui
+        event: login
+    login-error:
+      object:
+        effect: http
+        context: login
+        status:
+          other_than: 201
+    login-success:
+      object:
+        effect: http
+        context: login
+        status: 201
+  update:
+    show-login:
+      model:
+        firstView: loginView
+      cmds:
+        - effect: ui
+    email-changed:
+      model:
+        email:
+          key: value
+      cmds:
+        - effect: ui
+    password-changed:
+      model:
+        password:
+          key: value
+      cmds:
+        - effect: ui
+    login:
+      model:
+        message: ""
+        state: loggingIn
+      cmds:
+        - effect: ui
+        - effect: http
+          encoder: login
+    login-error:
+      model:
+        password: ""
+        state: ""
+        message: "Please try again"
+      cmds:
+        - effect: ui
+  encoders:
+    login:
+      object:
+        context: login
+        method: post
+        path: /login
+        body:
+          email:
+            key: model.email
+          password:
+            key: model.password
+    loginView:
+      view:
+        view: formView
+        params:
+          message:
+            style: ""
+            title:
+              key: message
+          fields:
+            - contentView: emailFieldView
+              content:
+                title: "" 
+                help: Your email address
+                is_error: false
+                value:
+                  key: email
+                changed: email-changed
+            - contentView: passwordFieldView
+              content:
+                title: ""
+                help: Your password
+                is_error: false
+                value:
+                  key: password
+                changed: password-changed
+            - contentView: buttonFieldView
+              content:
+                title: Login 
+                is_loading:
+                  eq:
+                    - key: state
+                    - loggingIn
+                is_full: true
+                action: login
+          links:
+            - contentView: linkView
+              content:
+                title: "Forgotten password"
+                action: show-passwd-remind
+            - contentView: linkView
+              content:
+                title: "Register"
+                action: show-register

@@ -1,0 +1,22 @@
+type: module
+name: ui
+spec:
+  encoders:
+    styles:
+      object:
+        settings: ui
+        themes: []
+    app:
+      object:
+        settings: 
+          - ui
+          - i18n
+        app:
+          spec: 
+            modules:
+              - ui_effects
+              - ui_common 
+              - ui_landing
+              - ui_login
+              - ui_register
+              - ui_passwd_remind

@@ -1,0 +1,8 @@
+type: app
+name: index
+spec:
+  modules:
+    - index
+  settings:
+    - ui
+

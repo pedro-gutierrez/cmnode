@@ -37,7 +37,15 @@ compile(#{ effects := EffectsSpec,
             end;
         Other -> 
             Other
-    end.
+    end;
+
+compile(_, Settings) ->
+    {ok, #{ settings => Settings,
+            init => #{},
+            update => #{},
+            decoders => #{},
+            encoders => #{},
+            effects => #{}}}.
 
 compile_encoders(Specs, Ctx) ->
     compile_encoders(maps:keys(Specs), Specs, Ctx, #{}).
