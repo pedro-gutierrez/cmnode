@@ -9,29 +9,100 @@ spec:
       object:
         effect: ui
         event: show-passwd-remind
+    passwd-remind:
+      object:
+        effect: ui
+        event: passwd-remind
+    passwd-remind-success:
+      object:
+        effect: http
+        context: passwd-remind
+        status: 201
+    passwd-remind-error:
+      object:
+        effect: http
+        context: passwd-remind
+        status:
+          other_than: 201
   update:
     show-passwd-remind:
       model:
+        message: ""
+        email: ""
         firstView: passwdRemindView
       cmds:
         - effect: ui
+    passwd-remind:
+      model:
+        message: ""
+        state: sendingPasswdRemind
+      cmds:
+        - effect: ui
+        - effect: http
+          encoder: passwdRemind
+    passwd-remind-success:
+      model:
+        state: ""
+        email: ""
+        message: "We just sent you a password reset link, please check your email."
+        firstView: passwdLinkSentView
+      cmds:
+        - effect: ui
+    passd-remind-error:
+      model:
+        state: ""
+        message: "Please try again"
+      cmds:
+        - effect: ui
   encoders:
+    passwdRemind:
+      object:
+        context: passwd-remind
+        method: post
+        path: /password/remind
+        body:
+          email:
+            key: model.email
+          lang: en
+    passwdLinkSentView:
+      view:
+        view: stackView
+        params:
+          style: is-full has-text-centered
+          subViews:
+            - contentView: alertView
+              content:
+                style: success
+                title:
+                  key: message
+            - contentView: linkView
+              content:
+                title: "Send me another link"
+                action: show-passwd-remind
     passwdRemindView:
       view:
         view: formView
         params:
+          id: passwordRemind
+          message:
+            style: ""
+            title:
+              key: message
           fields:
-            - contentView: emailFieldView
+            - contentView: emailView
               content:
-                title: "" 
                 help: Your email address
                 is_error: false 
-                value: alice@mail.com
+                value:
+                  key: email
                 changed: email-changed
-            - contentView: buttonFieldView
+            - contentView: buttonView
               content: 
                 title: "Send password reset link"
-                is_loading: false
+                is_loading:
+                  eq:
+                    - key: state
+                    - sendingPasswdRemind 
                 is_full: true
                 action: passwd-remind
           links:

@@ -3,7 +3,7 @@ name: ui_landing
 spec:
   init:
     model:
-      firstView: loginView
+      firstView: loginView 
     cmds:
       - effect: ui
         encoder: landingView

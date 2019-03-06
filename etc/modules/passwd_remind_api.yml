@@ -1,0 +1,94 @@
+type: module
+name: passwd_remind_api 
+spec:
+  decoders:
+    init:
+      object:
+        method: POST
+        body:
+          object:
+            email:
+              any: email
+            lang:
+              non_empty: text
+    user_id_found:
+      object:
+        service: user_id_find
+        status:
+          keyword: ok
+        id:
+          non_empty: text
+    user_id_not_found:
+      object:
+        service: user_id_find
+        status:
+          keyword: error
+    forbidden:
+      object:
+        status: 
+          keyword: error
+    success:
+      object:
+        status:
+          keyword: ok
+  update:
+    init:
+      model:
+        bucket:
+          keyword:
+            key: app.db
+        email:
+          key: body.email
+        lang:
+          key: body.lang
+      cmds:
+        - effect: service
+          encoder: user_id_lookup
+    user_id_found:
+      model:
+        id:
+          key: id
+      cmds:
+        - effect: service
+          encoder: passwd_remind
+    user_id_not_found:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    forbidden:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    success:
+      cmds:
+        - effect: terminate
+          encoder: created
+  encoders:
+    user_id_lookup:
+      object:
+        service: user_id_find
+        params:
+          bucket:
+            key: bucket
+          email:
+            key: email
+    passwd_remind:
+      object:
+        service: passwd_remind
+        params:
+          object:
+            bucket:
+              keyword:
+                key: app.db
+            account:
+              key: app.emails
+            email:
+              key: email
+            lang:
+              key: lang
+            id:
+              key: id
+            token_ttl:
+              key: app.password.reset.ttl
+            token_key:
+              key: app.password.reset.sign_key

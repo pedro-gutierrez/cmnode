@@ -1,0 +1,11 @@
+type: app
+name: passwd_remind_api
+spec:
+  filters:
+    - app
+    - anonymous
+  modules:
+    - common_api
+    - passwd_remind_api
+  settings:
+    - apps

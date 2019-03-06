@@ -3,61 +3,184 @@ name: ui_register
 spec:
   init:
     model:
-      first: ""
-      last: ""
+      firstName: ""
+      lastName: ""
       username: ""
       email: ""
+      token: ""
   decoders:
     show-register:
       object:
         effect: ui
         event: show-register
+    first-changed:
+      object:
+        effect: ui
+        event: first-name-changed
+        value:
+          any: text
+    last-changed:
+      object:
+        effect: ui
+        event: last-name-changed
+        value:
+          any: text
+    username-changed:
+      object:
+        effect: ui
+        event: username-changed
+        value:
+          any: text
+    register:
+      object:
+        effect: ui
+        event: register 
+    register-error:
+      object:
+        effect: http
+        context: register 
+        status:
+          other_than: 201
+    register-success:
+      object:
+        effect: http
+        context: register
+        status: 201
   update:
     show-register:
       model:
+        email: ""
+        firstName: ""
+        lastName: ""
+        username: ""
         firstView: registerView
       cmds:
         - effect: ui
+    first-changed:
+      model:
+        firstName:
+          key: value
+      cmds:
+        - effect: ui
+    last-changed:
+      model:
+        lastName:
+          key: value
+      cmds:
+        - effect: ui
+    username-changed:
+      model:
+        username:
+          key: value
+      cmds:
+        - effect: ui
+    register:
+      model:
+        message: ""
+        state: registering 
+      cmds:
+        - effect: ui
+        - effect: http
+          encoder: register
+    register-error:
+      model:
+        state: ""
+        message: "Please try again"
+      cmds:
+        - effect: ui
+    register-success:
+      model:
+        firstView: registeredView
+        message: "Your account has been created. We just sent you a password reset link, please check your email."
+        state: ""
+        firstName: ""
+        lastName: ""
+        username: ""
+      cmds:
+        - effect: ui
   encoders:
+    register:
+      object:
+        context: register
+        method: post
+        path: /register
+        body:
+          object:
+            first:
+              key: model.firstName
+            last:
+              key: model.lastName
+            email:
+              key: model.email
+            username:
+              key: model.username
+            lang: en
+    registeredView:
+      view:
+        view: stackView
+        params:
+          style: is-full has-text-centered
+          subViews:
+            - contentView: alertView
+              content:
+                style: success
+                title:
+                  key: message
+            - contentView: linkView
+              content:
+                title: "Send me another link"
+                action: show-passwd-remind
     registerView:
       view:
         view: formView
         params:
+          id: register
+          message:
+            style: ""
+            title:
+              key: message
           fields:
-            - contentView: inputFieldView
+            - contentView: inputView
               content:
                 title: "" 
                 help: Your first name
                 is_error: false 
-                value: Pedro
+                value:
+                  key: firstName
                 changed: first-name-changed
-            - contentView: inputFieldView
+            - contentView: inputView
               content:
                 title: "" 
                 help: Your last name
                 is_error: false 
-                value: Guti
+                value:
+                  key: lastName
                 changed: last-name-changed
-            - contentView: emailFieldView
+            - contentView: emailView
               content:
                 title: "" 
                 help: Your email address
                 is_error: false
-                value: alice@mail.com
+                value:
+                  key: email
                 changed: email-changed
-            - contentView: inputFieldView
+            - contentView: inputView
               content:
                 title: "" 
                 help: Your desired username
                 is_error: false 
-                value: sicozu
+                value:
+                  key: username
                 changed: username-changed
-            - contentView: buttonFieldView
+            - contentView: buttonView
               content:
                 title: Register 
-                is_loading: false
+                is_loading:
+                  eq:
+                    - key: state
+                    - registering 
                 is_full: true
-                action: login
+                action: register
           links:
             - contentView: linkView
               content:

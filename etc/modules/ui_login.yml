@@ -42,6 +42,9 @@ spec:
   update:
     show-login:
       model:
+        email: ""
+        password: ""
+        message: ""
         firstView: loginView
       cmds:
         - effect: ui
@@ -87,12 +90,13 @@ spec:
       view:
         view: formView
         params:
+          id: login
           message:
             style: ""
             title:
               key: message
           fields:
-            - contentView: emailFieldView
+            - contentView: emailView
               content:
                 title: "" 
                 help: Your email address
@@ -100,7 +104,7 @@ spec:
                 value:
                   key: email
                 changed: email-changed
-            - contentView: passwordFieldView
+            - contentView: passwordView
               content:
                 title: ""
                 help: Your password
@@ -108,7 +112,7 @@ spec:
                 value:
                   key: password
                 changed: password-changed
-            - contentView: buttonFieldView
+            - contentView: buttonView
               content:
                 title: Login 
                 is_loading:

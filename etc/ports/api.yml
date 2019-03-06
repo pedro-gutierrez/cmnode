@@ -19,6 +19,8 @@ spec:
       http: "/api/login"
     logout_api:
       http: "/api/logout"
+    passwd_remind_api:
+      http: "/api/password/remind"
     passwd_reset_api:
       http: "/api/password/reset"
     spaces:

@@ -24,43 +24,6 @@ spec:
         children:
           - text:
               key: title
-    labeledFieldView:
-      view:
-        tag: div
-        attrs:
-          class: field
-        children:
-          - view: labelView
-            when:
-              not:
-                eq:
-                  - ""
-                  - key: content.title
-            params:
-              title:          
-                key: content.title
-          - tag: div
-            attrs:
-              class: control
-            children:
-              - view:
-                  key: control
-                params:
-                  key: content
-    fieldView:
-      view:
-        tag: div
-        attrs:
-          class: field
-        children:
-          - tag: div
-            attrs:
-              class: control
-            children:
-              - view:
-                  key: control
-                params:
-                  key: content
     inputStyle:
       either:
         - when:
@@ -69,39 +32,74 @@ spec:
         - text: "input"
     inputView:
       view:
-        tag: input
+        tag: div
         attrs:
-          class:
-            encoder: inputStyle
-          type: text
-          placeholder:
-            key: help
+          class: field
+        children:
+          - tag: div
+            attrs:
+              class: control
+            children:
+              - tag: input
+                attrs:
+                  object:
+                    class:
+                      encoder: inputStyle
+                    type: text
+                    placeholder:
+                      key: help
+                    onchange:
+                      key: changed
+                    key:
+                      key: changed
     emailView:
       view:
-        tag: input
+        tag: div
         attrs:
-          class:
-            encoder: inputStyle
-          type: email
-          placeholder:
-            key: help
-          value:
-            key: value
-          onchange:
-            key: changed
+          class: field
+        children:
+          - tag: div
+            attrs:
+              class: control
+            children:
+              - tag: input
+                attrs:
+                  object:
+                    class:
+                      encoder: inputStyle
+                    type: email
+                    placeholder:
+                      key: help
+                    value:
+                      key: value
+                    onchange:
+                      key: changed
+                    key:
+                      key: changed
     passwordView:
       view:
-        tag: input
+        tag: div
         attrs:
-          class:
-            encoder: inputStyle
-          type: password
-          placeholder:
-            key: help
-          value:
-            key: value
-          onchange:
-            key: changed
+          class: field
+        children:
+          - tag: div
+            attrs:
+              class: control
+            children:
+              - tag: input
+                attrs:
+                  object:
+                    class:
+                      encoder: inputStyle
+                    type: password
+                    placeholder:
+                      key: help
+                    value:
+                      key: value
+                    onchange:
+                      key: changed
+                    key:
+                      key: changed
     buttonStyle:
       format: "button is-link ~s ~s"
       params:
@@ -130,34 +128,6 @@ spec:
         children:
           - text:
               key: title
-    inputFieldView:
-      view:
-        view: labeledFieldView
-        params:
-          control: inputView
-          content:
-            key: content
-    passwordFieldView:
-      view:
-        view: labeledFieldView
-        params:
-          control: passwordView
-          content:
-            key: content
-    emailFieldView:
-      view:
-        view: labeledFieldView
-        params:
-          control: emailView
-          content:
-            key: content
-    buttonFieldView:
-      view:
-        view: fieldView
-        params:
-          control: buttonView
-          content:
-            key: content
     titleView:
       view:
         tag: h1
@@ -188,17 +158,16 @@ spec:
         attrs:
           class: button is-text
           onclick:
-            key: content.action
+            key: action
         children:
           - text:
-              key: content.title
+              key: title
     contentView:
       view:
         view:
           key: contentView
         params:
-          content:
-            key: content
+          key: content
     horizontalFormView:
       view:
         tag: div
@@ -215,28 +184,27 @@ spec:
 
     alertView:
       view:
-        tag: div
+        tag: article
         attrs:
-          class: column is-full has-text-centered
+          class: message
         children:
-          - tag: article
+          - tag: div
             attrs:
-              class: message
+              class: message-body
+              style: "border-width: 0px 0px 0px 0px !important;"
             children:
-              - tag: div
-                attrs:
-                  class: message-body
-                  style: "border-width: 0px 0px 0px 0px !important;"
-                children:
-                  - text:
-                      key: title
+              - text:
+                  key: title
     formView:
       view:
         tag: div
         attrs:
-          class: columns is-multiline
+          object:
+            key:
+              key: id
+            class: columns is-multiline
         children:
-          - view: alertView
+          - view: columnView
             when:
               and:
                 - is_set: message
@@ -245,7 +213,10 @@ spec:
                       - key: message.title
                       - ""
             params:
-              key: message
+              style: is-full has-text-centered
+              contentView: alertView
+              content:
+                key: message
           - tag: div
             attrs:
               class: column is-full
@@ -260,6 +231,19 @@ spec:
               loop:
                 key: links
               with: contentView
+    stackView:
+      view:
+        tag: div
+        attrs:
+          object:
+            class: columns is-multiline
+        children:
+          loop:
+            key: subViews 
+          with: columnView
+          context:
+            style:
+              key: style
     columnView:
       view:
         tag: div
@@ -267,7 +251,9 @@ spec:
           class:
             format: "column ~s"
             params:
-              - key: style
+              - one_of:
+                  - key: style
+                  - key: context.style
         children:
           - view:
               key: contentView
