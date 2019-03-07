@@ -1345,8 +1345,15 @@ encode(#{ type := filter,
 encode(#{ type := merge,
           spec := Specs } = Spec, In, Config) -> 
     case encode_all(Specs, In, Config) of 
-        {ok, EncodedTerms} ->
+        {ok, []} ->
+            {ok, #{}};
+        {ok, [First|_]=EncodedTerms} when is_map(First) ->
             merge_maps(EncodedTerms);
+        {ok, [First|_]=EncodedTerms} when is_list(First) ->
+            merge_lists(EncodedTerms);
+        {ok, Other} ->
+            fail(Spec, In, #{ error => unsupported_argument,
+                              data => Other });
         {error, E} -> 
             fail(Spec, In, E)
     end;
@@ -1783,6 +1790,8 @@ encode_url(Url, In, Config) ->
             Other
     end.
 
+merge_lists(Lists) ->
+    {ok, lists:merge(Lists)}.
 
 merge_maps(Maps) -> merge_maps(Maps, #{}).
 merge_maps([], Out) -> {ok, Out};

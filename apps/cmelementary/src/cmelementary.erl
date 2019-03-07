@@ -402,7 +402,8 @@ term(#{ type := text, key := _, in := _}=Spec, Settings) ->
     end;
 
     
-term(#{ text := Spec }, Settings) -> 
+term(#{ type := text,
+        spec := Spec }, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
             {ok, #{ text => Compiled}};

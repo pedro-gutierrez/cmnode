@@ -2405,11 +2405,6 @@ compile_term(#{ <<"without">> := Spec}, Index) ->
 compile_term(Num, _) when is_number(Num) ->
     #{ type => number, value => Num };
 
-compile_term(Text, _) when is_binary(Text) ->
-
-    #{ type => text, spec => Text };
-
-
 
 compile_term(#{ <<"sequence">> := #{ <<"from">> := From,
                                      <<"to">> := To }}, Index) ->
@@ -2465,6 +2460,14 @@ compile_term(Items, Index) when is_list(Items) ->
 
 compile_term([], _) ->
     #{ type => list, value => [] };
+
+compile_term(Text, Index) when is_binary(Text) ->
+    case cmkit:prefix(Text, <<"@">>) of 
+        nomatch ->
+            #{ type => text, spec => Text };
+        KeyPath -> 
+            compile_term(#{ <<"key">> => KeyPath }, Index )
+    end;
 
 compile_term(Spec, _) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
@@ -2711,10 +2714,11 @@ compile_view(#{ <<"tag">> := _ }=View, Index) ->
                    <<"children">> => []}, Index);
 
 compile_view(#{ <<"text">> := Text}, _) when is_binary(Text) ->
-    #{ text => #{ literal => Text }};
-
+    #{ type => text, spec => Text };
+    
 compile_view(#{ <<"text">> := Spec}, Index) ->
-    #{ text => compile_term(Spec, Index) };
+    #{ type => text,
+       spec => compile_term(Spec, Index) };
 
 compile_view(#{ <<"iterate">> := From,
                 <<"using">> := ItemView }, Index) ->
