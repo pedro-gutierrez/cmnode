@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- All responses must contain the Response element -->
-<Response>
-  <!-- Say and Dial are examples of Verbs -->
-  <Dial>
-    <!-- Number is an example of a Dial Noun -->
-    <Number>+12082529372</Number>
-  </Dial>
-</Response>

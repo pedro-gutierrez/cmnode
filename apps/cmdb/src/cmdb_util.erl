@@ -114,7 +114,6 @@ unwind(Tree, Spec, Decoder) ->
     fold(Tree, start_key(Spec), match_fun(Spec, Decoder)).
 
 
-
 fold(Tree, Start, Fun) ->
     {ok, _, Res} = cbt_btree:fold(Tree, fun({{S, P, O} = K, V}, Acc) ->
                                       case Fun(K, V) of 
@@ -157,9 +156,10 @@ match_fun({S, P, O1, O2}) ->
                               andalso P0 =:= P 
                               andalso O0 >= O1 
                               andalso O0 =< O2 -> 
+
             true;
        (_, _) -> 
-            false
+            stop
     end;
 
 match_fun(_) ->

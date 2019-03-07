@@ -110,14 +110,14 @@ spec:
             key: account.id
           to:
             key: email
-          subject: "Password request"
+          subject: Password reset
           body:
             format: |+
               A password reset was requested on Postmark using your email address.
               
               To reset the password for {{email}}, follow the link below.
               
-              https://{{account}}/#reset={{token}}
+              {{baseUrl}}/#reset={{token}}
               
               P.S. The password reset links are only valid for next 30 minutes.
               
@@ -126,6 +126,8 @@ spec:
               object:
                 email:
                   key: email
+                baseUrl:
+                  key: app.baseUrl
                 account:
                   key: account.id
                 token:
