@@ -6,12 +6,20 @@ spec:
       object:
         bucket:
           any: keyword
-        account:
+        app:
           object:
-            id:
+            title:
               non_empty: text
-            enabled:
-              any: keyword
+            baseUrl:
+              non_empty: text
+            emails:
+              object:
+                id:
+                  non_empty: text
+                enabled:
+                  one_of:
+                    - true
+                    - false
         email:
           any: email
         lang:
@@ -41,8 +49,7 @@ spec:
             key: token_ttl
           bucket:
             key: bucket
-          account:
-            key: account
+          app: @app
           email:
             key: email
           lang:
@@ -62,7 +69,7 @@ spec:
             - when:
                 eq:
                   - keyword: true
-                  - key: account.enabled
+                  - @app.emails.enabled
               effect: service
               encoder: email_remind
             - effect: terminate
@@ -106,14 +113,12 @@ spec:
       object:
         service: email
         params:
-          account:
-            key: account.id
-          to:
-            key: email
+          account: @app.emails.id
+          to: @email
           subject: Password reset
           body:
             format: |+
-              A password reset was requested on Postmark using your email address.
+              A password reset was requested on {{app}} using your email address.
               
               To reset the password for {{email}}, follow the link below.
               
@@ -124,11 +129,8 @@ spec:
               If you think you received this message by mistake, you can ignore it or contact support at support@{{account}}.
             params:
               object:
-                email:
-                  key: email
-                baseUrl:
-                  key: app.baseUrl
-                account:
-                  key: account.id
-                token:
-                  key: token
+                app: @app.title
+                email: @email
+                baseUrl: @app.baseUrl
+                account: @app.emails.id
+                token: @token

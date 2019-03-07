@@ -48,7 +48,7 @@ spec:
         firstView: passwdLinkSentView
       cmds:
         - effect: ui
-    passd-remind-error:
+    passwd-remind-error:
       model:
         state: ""
         message: "Please try again"

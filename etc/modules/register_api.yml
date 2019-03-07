@@ -44,6 +44,11 @@ spec:
               keyword: ok
         - without_keys:
             - token
+    passwd_remind_error:
+      object:
+        service: passwd_remind
+        status:
+          keyword: error
   update:
     register:
       model:
@@ -74,6 +79,10 @@ spec:
       cmds:
         - effect: terminate
           encoder: created
+    passwd_remind_error:
+      cmds:
+        - effect: terminate
+          encoder: created
   encoders:
     registration:
       object:
@@ -93,8 +102,7 @@ spec:
             bucket:
               keyword:
                 key: app.db
-            account:
-              key: app.emails
+            app: @app
             email:
               key: details.email
             lang:

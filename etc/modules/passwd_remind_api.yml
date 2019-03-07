@@ -80,8 +80,7 @@ spec:
             bucket:
               keyword:
                 key: app.db
-            account:
-              key: app.emails
+            app: @app
             email:
               key: email
             lang:
