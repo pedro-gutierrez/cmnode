@@ -1,9 +1,6 @@
 type: module
 name: ui_landing
 spec:
-  init:
-    model:
-      firstView: loginView 
   decoders:
     show-landing-page:
       object:
@@ -40,8 +37,9 @@ spec:
                   contentView: heroView
                   content:
                     icon: fa-6x far fa-comments
-                    title: " Elementary Messenger"
-                    subtitle: "A simple, distributed, Erlang powered IM application, written in YAML"
+                    title: @title
+                    subtitle: 
+                      i18n: @labels.app.description
                     name: far fa-4x fa-comments
 
           - view: columnsView
@@ -49,10 +47,8 @@ spec:
               style: "is-centered"
               columns:
                 - style: "is-4"
-                  contentView:
-                    key: model.firstView
-                  content:
-                    key: model
+                  contentView: @firstView
+                  content: @
 
           - view: highlightsView
             params:

@@ -61,6 +61,7 @@ export default (appUrl, appEffects) => {
     
     function encodeKey(spec, data, ctx) {
         if (!data) return error(spec, data, "no_data");
+        if (spec === '@' || (spec.key && spec.key === '@')) return {value: data};
         switch(typeof(spec)) {
             case 'string':
                 if (!data.hasOwnProperty(spec)) {
@@ -209,17 +210,37 @@ export default (appUrl, appEffects) => {
         }
         return { value: d };
     }
+    
+    function asKeyPath(spec, out) {
+        if (spec.key) out.push(spec.key)
+        if (!spec.in) {
+            out.reverse();
+            return out.join(".");
+        } else {
+            return asKeyPath(spec.in, out);
+        }
+    }
 
     function encodeI18n(spec, data, ctx) {
-        var {err, value} = encode(spec.lang, data, ctx);
-        if (err) return error(spec, data, err);
-        var lang = value;
+        var lang = data.lang || 'en';
+        if (spec.lang) {
+            var {err, value} = encode(spec.lang, data, ctx);
+            if (err) return error(spec, data, err);
+            lang = value;
+        }
         var {err, value} = encode(spec.i18n, data, ctx);
-        if (err) return error(spec, data, err);
-        var keyPath = value;
-        var {err, value} = encodeKeyPath({ key_path: keyPath + "." + lang }, data, ctx);
-        if (err) return { value: "??" + keyPath + "." + lang + "??" };
-        return { value };
+        if (err) {
+            var pathSpec = { key: lang, in: spec.i18n };
+            return { value: "??" + asKeyPath(pathSpec, [])+ "??" };
+        } else {
+            var value = value[lang];
+            if (value) {
+                return {value};
+            } else {
+                var pathSpec = { key: lang, in: spec.i18n };
+                return { value: "??" + asKeyPath(pathSpec, [])+ "??" };
+            }
+        }
     }
 
     function encodeFormatText(spec, data, ctx) {
@@ -292,6 +313,7 @@ export default (appUrl, appEffects) => {
     }
 
     function encodeIsSet(spec, data, ctx) {
+        if (!data) return error(spec, data, "no_data");
         var {err, value} = encode(spec.is_set, data, ctx);
         if (err) return error(spec, data, err);
         var v = data[value];
@@ -933,10 +955,7 @@ export default (appUrl, appEffects) => {
             }
 
             setTimeout(() => {   
-                eff(encoders, enc, {
-                    model: m2,
-                    settings: state.app.settings
-                });
+                eff(encoders, enc, Object.assign({}, m2, state.app.settings));
             }, 0);
         });
     }

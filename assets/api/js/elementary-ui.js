@@ -118,6 +118,7 @@ export default (name, settings, app) => {
         if (err) return error(spec, ctx, err);
         if (!value) return {view: ['div']};
         var {err, value} = encode(spec.params, ctx);
+        if (err) return error(spec, ctx, err);
         var params = value;
         return compile(views, view, params);
     }

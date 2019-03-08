@@ -829,16 +829,20 @@ term(#{ type := condition,
 
 
 term(#{ type := i18n,
-        spec := Spec,
-        lang := Lang }, Settings) -> 
+        spec := Spec } = Spec0, Settings) -> 
     case term(Spec, Settings) of 
         {ok, K} ->
-            case term(Lang, Settings) of 
-                {ok, L} ->
-                    {ok, #{ i18n => K,
-                            lang => L }};
-                Other ->
-                    Other
+            Compiled = #{ i18n => K },
+            case maps:get(lang, Spec0, undef) of 
+                undef ->
+                    {ok, Compiled};
+                Lang ->
+                    case term(Lang, Settings) of 
+                        {ok, L} ->
+                            {ok, Compiled#{ lang => L }};
+                        Other ->
+                            Other
+                    end
             end;
         Other ->
             Other

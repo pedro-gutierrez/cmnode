@@ -7,6 +7,7 @@ spec:
       state: ""
       email: ""
       password: ""
+      firstView: loginView
   decoders:
     show-login:
       object:
@@ -48,6 +49,7 @@ spec:
     navigate-to-login:
       model:
         email: ""
+        password: ""
         firstView: loginView
       cmds:
         - effect: ui
@@ -97,10 +99,8 @@ spec:
         method: post
         path: /login
         body:
-          email:
-            key: model.email
-          password:
-            key: model.password
+          email: @email
+          password: @password
     loginView:
       view:
         view: formView
@@ -108,40 +108,42 @@ spec:
           id: login
           message:
             style: ""
-            title:
-              key: message
+            title: @message
           fields:
             - contentView: emailView
               content:
                 title: "" 
-                help: Your email address
+                help:
+                  i18n: @labels.account.email.help
                 is_error: false
-                value:
-                  key: email
+                value: @email
                 changed: email-changed
             - contentView: passwordView
               content:
                 title: ""
-                help: Your password
+                help:
+                  i18n: @labels.account.password.help
                 is_error: false
-                value:
-                  key: password
+                value: @password
                 changed: password-changed
             - contentView: buttonView
               content:
-                title: Login 
+                title: 
+                  i18n: @labels.account.login.title
                 is_loading:
                   eq:
-                    - key: state
+                    - @state
                     - loggingIn
                 is_full: true
                 action: login
           links:
             - contentView: linkView
               content:
-                title: "Forgotten password"
+                title:
+                  i18n: @labels.account.password.reset
                 action: show-passwd-remind
             - contentView: linkView
               content:
-                title: "Register"
+                title:
+                  i18n: @labels.account.register.title
                 action: show-register

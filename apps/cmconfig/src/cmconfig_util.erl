@@ -1505,15 +1505,15 @@ compile_term(#{ <<"item">> := Num }, _) when is_number(Num) ->
 
 compile_term(#{ <<"i18n">> := KeySpec } = Spec, Index) ->
 
-    #{ type => i18n,
-       spec => compile_term(KeySpec, Index),
-       lang => case maps:get(<<"lang">>, Spec, undef) of
-                   undef ->
-                       #{ key => lang };
-                   LangSpec ->
-                       compile_term(LangSpec, Index)
-               end };
+    Spec0 = #{ type => i18n,
+               spec => compile_term(KeySpec, Index) },
 
+    case maps:get(<<"lang">>, Spec, undef) of 
+        undef ->
+            Spec0;
+        LangSpec ->
+            Spec0#{ lang => compile_term(LangSpec, Index) }
+    end;
 
 compile_term(#{ <<"keys">> := KeysSpec,
                 <<"in">> := InSpec }, Index) -> 
@@ -2473,6 +2473,8 @@ compile_term(Text, Index) when is_binary(Text) ->
     case cmkit:prefix(Text, <<"@">>) of 
         nomatch ->
             #{ type => text, spec => Text };
+        <<>> ->
+            compile_term(#{ <<"key">> => <<"@">> }, Index );
         KeyPath -> 
             compile_term(#{ <<"key">> => KeyPath }, Index )
     end;
