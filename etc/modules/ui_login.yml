@@ -64,14 +64,12 @@ spec:
         - effect: ui
     email-changed:
       model:
-        email:
-          key: value
+        email: @value
       cmds:
         - effect: ui
     password-changed:
       model:
-        password:
-          key: value
+        password: @value
       cmds:
         - effect: ui
     login:
@@ -86,7 +84,8 @@ spec:
       model:
         password: ""
         state: ""
-        message: "Please try again"
+        message: 
+          i18n: @labels.errors.retry
       cmds:
         - effect: ui
   encoders:

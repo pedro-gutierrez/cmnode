@@ -58,20 +58,17 @@ spec:
         - effect: ui
     first-changed:
       model:
-        firstName:
-          key: value
+        firstName: @value
       cmds:
         - effect: ui
     last-changed:
       model:
-        lastName:
-          key: value
+        lastName: @value
       cmds:
         - effect: ui
     username-changed:
       model:
-        username:
-          key: value
+        username: @value
       cmds:
         - effect: ui
     register:
@@ -85,13 +82,14 @@ spec:
     register-error:
       model:
         state: ""
-        message: "Please try again"
+        message:
+          i18n: @labels.errors.retry
       cmds:
         - effect: ui
     register-success:
       model:
         firstView: registeredView
-        message: "Your account has been created. We just sent you a password reset link, please check your email."
+        message: @labels.account.register.success
         state: ""
         firstName: ""
         lastName: ""
@@ -106,15 +104,11 @@ spec:
         path: /register
         body:
           object:
-            first:
-              key: model.firstName
-            last:
-              key: model.lastName
-            email:
-              key: model.email
-            username:
-              key: model.username
-            lang: en
+            first: @firstName
+            last: @lastName
+            email: @email
+            username: @username
+            lang: @lang
     registeredView:
       view:
         view: stackView
@@ -124,11 +118,11 @@ spec:
             - contentView: alertView
               content:
                 style: success
-                title:
-                  key: message
+                title: @message
             - contentView: linkView
               content:
-                title: "Send me another link"
+                title:
+                  i18n: @labels.account.password.resend
                 action: show-passwd-remind
     registerView:
       view:
@@ -137,56 +131,59 @@ spec:
           id: register
           message:
             style: ""
-            title:
-              key: message
+            title: @message
           fields:
             - contentView: inputView
               content:
                 title: "" 
-                help: Your first name
+                help:
+                  i18n: @labels.account.firstName.help
                 is_error: false 
-                value:
-                  key: firstName
+                value: @firstName
                 changed: first-name-changed
             - contentView: inputView
               content:
                 title: "" 
-                help: Your last name
+                help: 
+                  i18n: @labels.account.lastName.help
                 is_error: false 
-                value:
-                  key: lastName
+                value: @lastName
                 changed: last-name-changed
             - contentView: emailView
               content:
                 title: "" 
-                help: Your email address
+                help:
+                  i18n: @labels.account.email.help
                 is_error: false
-                value:
-                  key: email
+                value: @email
                 changed: email-changed
             - contentView: inputView
               content:
                 title: "" 
-                help: Your desired username
+                help:
+                  i18n: @labels.account.username.help
                 is_error: false 
                 value:
                   key: username
                 changed: username-changed
             - contentView: buttonView
               content:
-                title: Register 
+                title:
+                  i18n: @labels.account.register.title
                 is_loading:
                   eq:
-                    - key: state
+                    - @state
                     - registering 
                 is_full: true
                 action: register
           links:
             - contentView: linkView
               content:
-                title: "Forgotten password"
+                title: 
+                  i18n: @labels.account.password.reset
                 action: show-passwd-remind
             - contentView: linkView
               content:
-                title: "Login"
+                title:
+                  i18n: @labels.account.login.title
                 action: show-login

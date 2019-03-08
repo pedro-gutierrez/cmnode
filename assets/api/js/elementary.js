@@ -934,6 +934,10 @@ export default (appUrl, appEffects) => {
         }
     }
 
+    function withSettings(m) {
+        return Object.assign({}, m, state.app.settings);
+    }   
+
     function applyCmds(encoders, effects, cmds, m2) {
         var {err, value} = encodeCmds(cmds, m2);
         if (err) return error(cmds, m2, err);
@@ -955,14 +959,14 @@ export default (appUrl, appEffects) => {
             }
 
             setTimeout(() => {   
-                eff(encoders, enc, Object.assign({}, m2, state.app.settings));
+                eff(encoders, enc, withSettings(m2));
             }, 0);
         });
     }
 
     function updateModel(spec, data) {
         if (!spec) return;
-        var {err, value} = encode(spec, data, state.model);
+        var {err, value} = encode(spec, withSettings(data), state.model);
         if (err) return err;
         log("[core] merging into model", value);
         Object.assign(state.model, value);

@@ -44,14 +44,16 @@ spec:
       model:
         state: ""
         email: ""
-        message: "We just sent you a password reset link, please check your email."
+        message: 
+          i18n: @labels.account.password.sent
         firstView: passwdLinkSentView
       cmds:
         - effect: ui
     passwd-remind-error:
       model:
         state: ""
-        message: "Please try again"
+        message: 
+          i18n: @labels.errors.retry
       cmds:
         - effect: ui
   encoders:
@@ -61,9 +63,8 @@ spec:
         method: post
         path: /password/remind
         body:
-          email:
-            key: model.email
-          lang: en
+          email: @email
+          lang: @lang
     passwdLinkSentView:
       view:
         view: stackView
@@ -73,11 +74,11 @@ spec:
             - contentView: alertView
               content:
                 style: success
-                title:
-                  key: message
+                title: @message
             - contentView: linkView
               content:
-                title: "Send me another link"
+                title: 
+                  i18n: @labels.account.password.resend
                 action: show-passwd-remind
     passwdRemindView:
       view:
@@ -86,31 +87,33 @@ spec:
           id: passwordRemind
           message:
             style: ""
-            title:
-              key: message
+            title: @message
           fields:
             - contentView: emailView
               content:
-                help: Your email address
+                help: 
+                  i18n: @labels.account.email.help
                 is_error: false 
-                value:
-                  key: email
+                value: @email
                 changed: email-changed
             - contentView: buttonView
               content: 
-                title: "Send password reset link"
+                title: 
+                  i18n: @labels.account.password.reset
                 is_loading:
                   eq:
-                    - key: state
+                    - @state
                     - sendingPasswdRemind 
                 is_full: true
                 action: passwd-remind
           links:
             - contentView: linkView
               content:
-                title: "Login"
+                title:
+                  i18n: @labels.account.login.title
                 action: show-login
             - contentView: linkView
               content:
-                title: "Register"
+                title:
+                  i18n: @labels.account.register.title
                 action: show-register

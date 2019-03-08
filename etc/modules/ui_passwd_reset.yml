@@ -55,20 +55,23 @@ spec:
         email: ""
         token: ""
         password: ""
-        message: "Your password has been updated. You can login now."
+        message:
+          i18n: @labels.account.password.updated
       cmds:
         - effect: router
           encoder: show-login-page
     passwd-reset-error:
       model:
         state: ""
-        message: "Please try again"
+        message:
+          i18n: @labels.errors.retry
       cmds:
         - effect: ui
     passwd-reset-forbidden:
       model:
         state: ""
-        message: "This page has expired. Please request a new password reset link."
+        message: 
+          i18n: @labels.account.password.expired
       cmds:
         - effect: ui
   encoders:
@@ -78,10 +81,10 @@ spec:
         method: post
         path: /password/reset
         headers:
-          authorization: @model.token
+          authorization: @token
         body:
-          email: @model.email
-          password: @model.password
+          email: @email
+          password: @password
     passwdResetView:
       view:
         view: formView
@@ -89,24 +92,26 @@ spec:
           id: password-reset
           message:
             style: ""
-            title:
-              key: message
+            title: @message
           fields:
             - contentView: emailView
               content:
-                help: Your email address
+                help: 
+                  i18n: @labels.account.email.help
                 is_error: false 
                 value: @email
                 changed: email-changed
             - contentView: passwordView
               content:
-                help: Your new password
+                help: 
+                  i18n: @labels.account.password.help
                 is_error: false 
                 value: @password
                 changed: password-changed
             - contentView: buttonView
               content: 
-                title: "Update my password"
+                title:
+                  i18n: @labels.account.password.reset
                 is_loading:
                   eq:
                     - @state
@@ -116,5 +121,6 @@ spec:
           links:
             - contentView: linkView
               content:
-                title: "Send me another link"
+                title:
+                  i18n: @labels.account.password.resend
                 action: show-passwd-remind
