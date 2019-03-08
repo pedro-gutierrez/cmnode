@@ -1168,13 +1168,10 @@ compile_term(#{<<"empty">> := <<"list">> }, _) ->
 compile_term(#{<<"empty">> := _}, _) ->
     #{ type => empty };
 
-compile_term(#{ <<"config">> := Spec}, Index) when is_map(Spec) ->
+compile_term(#{ <<"config">> := Spec}, Index) ->
     #{ type => config,
        spec => compile_term(Spec, Index)
      };
-
-compile_term(#{ <<"config">> := Key} = Spec, Index) when is_binary(Key) ->
-    compile_term(Spec#{ <<"config">> := #{ <<"key">> => Key }}, Index);
 
 compile_term(#{ <<"maybe">> := Spec }, Index) ->
     #{ maybe => compile_term(Spec, Index) };
@@ -1334,15 +1331,11 @@ compile_term(#{ <<"encoded">> := Spec }, Index) ->
     #{ type => encoded,
        spec => compile_term(Spec, Index) };
 
-compile_term(#{ <<"keyword">> := Keyword }, _) when is_binary(Keyword) ->
+compile_term(#{ <<"keyword">> := A}, _) when is_atom(A) ->
     #{ type => keyword,
-       value => cmkit:to_atom(Keyword) };
+       value => A };
 
-compile_term(#{ <<"keyword">> := Keyword }, _) when is_atom(Keyword) ->
-    #{ type => keyword,
-       value => Keyword };
-
-compile_term(#{ <<"keyword">> := Spec }, Index) when is_map(Spec) ->
+compile_term(#{ <<"keyword">> := Spec }, Index) ->
     #{ type => keyword,
        spec => compile_term(Spec, Index) };
 

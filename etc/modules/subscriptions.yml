@@ -1,0 +1,66 @@
+type: module
+name: subscriptions 
+spec:
+  decoders:
+    auth:
+      object:
+        app:
+          in:
+            config: @apps
+        token:
+          non_empty: text
+    subscribed:
+      topic:
+        any: list
+      status: 
+        keyword: ok
+    resolved:
+      status:
+        keyword: ok
+      user:
+        any: object
+    error:
+      object:
+        status:
+          keyword: error
+  update:
+    auth:
+      model:
+        app: @app
+        token: @token
+      cmds:
+        - effect: service
+          encoder: token_resolve
+    error:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    resolved:
+      model:
+        user: @user
+      cmds:
+        - effect: bus
+          encoder: subscription
+    subscribed:
+      cmds:
+        - effect: notify
+          encoder: created
+  encoders:
+    token_resolve:
+      object:
+        service: token_resolve
+        params:
+          bucket:
+            keyword: @app.db
+          token: @token
+          acl:
+            one_of:
+              - config: @acl
+              - access
+    subscription:
+      object:
+        sub:
+          - keyword: notifications
+          - @user.id
+        create: true
+    

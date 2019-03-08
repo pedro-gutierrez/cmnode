@@ -76,7 +76,19 @@ decode_term(#{ type := data }, Data, _) when is_binary(Data) -> {ok, Data};
 decode_term(#{ type := data }, _, _) -> no_match;
 decode_term(#{ type := keyword, value := Data}, Data, _) when is_atom(Data) -> {ok, Data};
 decode_term(#{ type := keyword, spec := Spec}, Data, Config) when is_atom(Data) ->
-    decode_term(Spec, Data, Config);
+    case cmencode:encode(Spec, Config) of 
+        {ok, Data} ->
+            {ok, Data};
+        {ok, Encoded} when is_binary(Encoded) ->
+            case cmkit:to_atom(Encoded) of 
+                Data ->
+                    {ok, Data};
+                _ ->
+                    no_match
+            end;
+        _ ->
+            no_match
+    end;
 
 decode_term(#{ type := keyword, value := _}, _, _) -> no_match;
 decode_term(#{ type := keyword }, Data, _) when is_atom(Data) -> {ok, Data}; 

@@ -10,6 +10,7 @@ spec:
       debug: true
       tags:
         - messages
+        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -60,7 +61,7 @@ spec:
         - "Given bob's connection"
         - "Then that user should not have joined that space"
 
-    - title: "Should not allow anonymous connections"
+    - title: "Should allow anonymous connections"
       debug: true
       tags:
         - ws
@@ -68,20 +69,8 @@ spec:
         - "Given alice's username"
         - "When I connect"
         - "When I use that connection"
-        - "Then that connection should be down"
-    
-    - title: "Should allow authenticated connections"
-      tags:
-        - ws
-      steps:
-        - "Given an empty database"
-        - "Given user alice with password foo"
-        - "Given I am logged in as alice"
-        - "Given alice's username"
-        - "When I connect"
-        - "When I use that connection"
         - "Then that connection should be up"
-
+    
     - title: "Should return a space participants"
       tags:
         - participants
@@ -113,7 +102,6 @@ spec:
         - "Given user alice with password foo"
         - "Given user bob with password foo"
         - "Given I am logged in as alice"
-        - "Given a connection for alice"
         - "Given a space"
         - "Given bob is in that space"
         - "Given I am logged in as bob"
@@ -417,7 +405,6 @@ spec:
       debug: true
       tags:
         - logout
-        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -542,18 +529,24 @@ spec:
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be up"
+        - "When I authenticate that connection"
+        - "Then I should receive a 201 Created on that connection"
     - title: "Given a connection for bob"
       steps:
         - "Given bob's username"
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be up"
+        - "When I authenticate that connection"
+        - "Then I should receive a 201 Created on that connection"
     - title: "Given a connection for claire"
       steps:
         - "Given claire's username"
         - "When I connect"
         - "When I use that connection"
         - "Then that connection should be up"
+        - "When I authenticate that connection"
+        - "Then I should receive a 201 Created on that connection"
     - title: "Given bob's connection"
       steps:
         - "Given bob's username"
@@ -886,19 +879,17 @@ spec:
             key: data.email
     - title: "When I connect"
       debug: true
-      connect:
-        key: settings.wsUrl
-      headers:
-        authorization:
-          one_of:
-            - key: data.token
-            - ""
-        app:
-          one_of:
-            - key: data.app
-            - key: facts.app
-      as: 
-        key: data.username
+      connect: @settings.wsUrl
+        ##      headers:
+        ##        authorization:
+        ##          one_of:
+        ##            - key: data.token
+        ##            - ""
+        ##        app:
+        ##          one_of:
+        ##            - key: data.app
+        ##            - key: facts.app
+      as: @data.username
     - title: "Then that connection should be up"
       probe:
         key: data.conn
@@ -1031,6 +1022,16 @@ spec:
         key: data.conn
     - title: "Then there should not be an event with that message"
       fail: "Then there should be an event with that message"
+    - title: "When I authenticate that connection"
+      send:
+        object:
+          app: @facts.app
+          token: @data.token
+      to: @data.conn
+    - title: "Then I should receive a 201 Created on that connection"
+      receive:
+        status: 201
+      from: @data.conn
     - title: "Given today"
       set:
         ago: 0

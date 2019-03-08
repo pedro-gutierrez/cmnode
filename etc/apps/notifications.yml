@@ -2,12 +2,13 @@ type: app
 name: notifications 
 spec:
   debug: true
-  filters:
-    - app
-    - auth
-    - subscribe
+  #filters:
+  #  - app
+  #  - auth
+  #  - subscribe
   modules:
     - common_ws
+    - subscriptions
     - notifications
   settings:
     - apps
