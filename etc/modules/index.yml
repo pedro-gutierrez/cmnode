@@ -36,8 +36,9 @@ spec:
                     import {default as ws} from "{{baseUrl}}/js/elementary-ws.js";
                     import {default as events} from "{{baseUrl}}/js/elementary-events.js";
                     import {default as http} from "{{baseUrl}}/js/elementary-http.js";
+                    import {default as router} from "{{baseUrl}}/js/elementary-router.js";
                     import {default as app} from "{{baseUrl}}/js/elementary.js";
-                    app("{{baseUrl}}/js/app.js", {ui, ws, events, http});
+                    app("{{baseUrl}}/js/app.js", {ui, ws, events, http, router});
                   </script>
                 </head>
                 <body>

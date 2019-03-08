@@ -1,0 +1,120 @@
+type: module
+name: ui_passwd_reset
+spec:
+  decoders:
+    show-passwd-reset:
+      object:
+        effect: router
+        route:
+          - "reset"
+          - any: text
+    passwd-reset:
+      object:
+        effect: ui
+        event: passwd-reset
+    passwd-reset-success:
+      object:
+        effect: http
+        context: passwd-reset
+        status: 201
+    passwd-reset-forbidden:
+      object:
+        effect: http
+        context: passwd-reset
+        status: 401
+    passwd-reset-error:
+      object:
+        effect: http
+        context: passwd-reset
+        status:
+          one_of:
+            - 500
+            - 400
+  update:
+    show-passwd-reset:
+      model:
+        email: ""
+        password: ""
+        token:
+          last: @route
+        firstView: passwdResetView
+      cmds:
+        - effect: ui
+          encoder: landingView 
+    passwd-reset:
+      model:
+        message: ""
+        state: changingPasswd
+      cmds:
+        - effect: ui
+        - effect: http
+          encoder: passwdReset
+    passwd-reset-success:
+      model:
+        state: ""
+        email: ""
+        token: ""
+        password: ""
+        message: "Your password has been updated. You can login now."
+      cmds:
+        - effect: router
+          encoder: show-login-page
+    passwd-reset-error:
+      model:
+        state: ""
+        message: "Please try again"
+      cmds:
+        - effect: ui
+    passwd-reset-forbidden:
+      model:
+        state: ""
+        message: "This page has expired. Please request a new password reset link."
+      cmds:
+        - effect: ui
+  encoders:
+    passwdReset:
+      object:
+        context: passwd-reset
+        method: post
+        path: /password/reset
+        headers:
+          authorization: @model.token
+        body:
+          email: @model.email
+          password: @model.password
+    passwdResetView:
+      view:
+        view: formView
+        params:
+          id: password-reset
+          message:
+            style: ""
+            title:
+              key: message
+          fields:
+            - contentView: emailView
+              content:
+                help: Your email address
+                is_error: false 
+                value: @email
+                changed: email-changed
+            - contentView: passwordView
+              content:
+                help: Your new password
+                is_error: false 
+                value: @password
+                changed: password-changed
+            - contentView: buttonView
+              content: 
+                title: "Update my password"
+                is_loading:
+                  eq:
+                    - @state
+                    - changingPasswd 
+                is_full: true
+                action: passwd-reset
+          links:
+            - contentView: linkView
+              content:
+                title: "Send me another link"
+                action: show-passwd-remind

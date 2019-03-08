@@ -316,14 +316,6 @@ term(#{ type := 'case',
 
 
 
-term(#{ type := tail, spec := Spec }, Settings) ->
-    case term(Spec, Settings) of 
-        {ok, Compiled} ->
-            {ok, #{ tail => Compiled}};
-        Other ->
-            Other
-    end;
-
 term(#{ type := split, spec := Spec, separator := Separator }, Settings) ->
     case term(Spec, Settings) of 
         {ok, Compiled} ->
@@ -359,6 +351,29 @@ term(#{ type := head, spec := Spec }, Settings) ->
             Other
     end;
 
+term(#{ type := first, spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ first => Compiled}};
+        Other ->
+            Other
+    end;
+
+term(#{ type := last, spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ last => Compiled}};
+        Other ->
+            Other
+    end;
+
+term(#{ type := tail, spec := Spec }, Settings) ->
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ tail => Compiled}};
+        Other ->
+            Other
+    end;
 
 term(#{ type := size_of,
         spec := Spec }, Settings) -> 

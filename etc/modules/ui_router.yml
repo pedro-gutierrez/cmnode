@@ -1,0 +1,10 @@
+type: module
+name: ui_router
+spec:
+  init:
+    cmds:
+      - effect: router
+        encoder: route
+  encoders:
+    route:
+      action: get

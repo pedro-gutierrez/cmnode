@@ -16,7 +16,9 @@ spec:
             modules:
               - ui_effects
               - ui_common 
+              - ui_router
               - ui_landing
               - ui_login
               - ui_register
               - ui_passwd_remind
+              - ui_passwd_reset

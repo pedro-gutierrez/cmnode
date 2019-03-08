@@ -12,6 +12,11 @@ spec:
       object:
         effect: ui
         event: show-login
+    navigate-to-login:
+      object:
+        effect: router
+        route:
+          - "login"
     email-changed:
       object:
         effect: ui
@@ -38,8 +43,15 @@ spec:
       object:
         effect: http
         context: login
-        status: 201
+        status: 200
   update:
+    navigate-to-login:
+      model:
+        email: ""
+        firstView: loginView
+      cmds:
+        - effect: ui
+          encoder: landingView
     show-login:
       model:
         email: ""
@@ -76,6 +88,9 @@ spec:
       cmds:
         - effect: ui
   encoders:
+    show-login-page:
+      action: navigate
+      target: login
     login:
       object:
         context: login

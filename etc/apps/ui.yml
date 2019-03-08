@@ -1,6 +1,7 @@
 type: app
 name: ui
 spec:
+  debug: false
   modules:
     - common_ui 
     - ui

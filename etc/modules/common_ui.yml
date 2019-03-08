@@ -28,7 +28,6 @@ spec:
       cmds:
         - effect: notify
           encoder: json
-        - effect: terminate
   encoders:
     json:
       object:

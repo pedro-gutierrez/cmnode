@@ -502,6 +502,8 @@ encoded_settings(App, Name, Settings) ->
             encoded_settings_spec(App, Name, Spec)
     end.
 
+
+app_debug(#{ debug := false }) -> false;
 app_debug(#{ debug := true }) -> true;
 app_debug(#{ config := #{ debug := true }}) -> true;
 app_debug(_) -> false.
@@ -1296,10 +1298,6 @@ compile_term(#{ <<"merged_list">> := Specs }, Index) when is_list(Specs) ->
        spec => compile_terms(Specs, Index)
      };
 
-compile_term(#{ <<"first">> := Spec }, Index) when is_map(Spec) ->
-    #{ type => first,
-       spec => compile_term(Spec, Index)
-     };
 
 
 compile_term(#{ <<"merge">> := Specs }, Index) when is_list(Specs) ->
@@ -1933,6 +1931,16 @@ compile_term(#{ <<"head">> := Term }, Index) ->
 compile_term(#{ <<"tail">> := Term }, Index) ->
     #{ type => tail,
        spec => compile_term(Term, Index) };
+
+compile_term(#{ <<"first">> := Spec }, Index) ->
+    #{ type => first,
+       spec => compile_term(Spec, Index)
+     };
+
+compile_term(#{ <<"last">> := Spec }, Index) ->
+    #{ type => last,
+       spec => compile_term(Spec, Index)
+     };
 
 compile_term(#{ <<"join">> := Term,
                 <<"using">> := Separator }, Index) ->

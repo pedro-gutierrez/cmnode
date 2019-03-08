@@ -56,8 +56,9 @@ build(#{ dir := Dir,
                             Headers = #{ 'content-type' => <<"application/x-tar">> },
                             cmkit:log({cmdocker, building, Tag}),
                             cmkit:log({post, Url, Headers, size(Data)}),
-                            case cmhttp:post(Url, Headers, Data, #{ debug => true, 
-                                                                    raw => true}) of 
+                            HttpOpts = #{ debug => true,
+                                          raw => true },
+                            case cmhttp:post(Url, Headers, Data, HttpOpts) of 
                                 {ok, #{ status := 200, raw := R, mime := Mime } } ->
                                     case has_errors(cmkit:to_bin(R), Errors) of 
                                         {true, E} ->
@@ -71,11 +72,13 @@ build(#{ dir := Dir,
                                             cmkit:log({cmdocker,pushing, PushUrl}),
                                             case cmhttp:post(PushUrl, #{ 
                                                                'content-type' => "application/json",
-                                                               'X-Registry-Auth' => auth_config(Creds) }, #{}) of 
+                                                               'X-Registry-Auth' => auth_config(Creds) 
+                                                              }, #{}, HttpOpts) of 
                                                 {ok, #{ status := 200, raw := R2, mime := Mime }} -> 
                                                     cmkit:log({cmdocker, pushed, Mime, R2}),
                                                     ok;
                                                 Other -> 
+                                                    cmkit:warning({cmdocker,push, unexpected, Other}),
                                                     Other
                                             end
                                     end;

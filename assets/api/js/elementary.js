@@ -781,22 +781,30 @@ export default (appUrl, appEffects) => {
         return d(spec, data);
     }
 
-    function decodeListItems(spec, data, ctx) {
-        var out = [];
-        for (var i=0; i<data.length; i++) {
-            var item = data[i];
-            var { err, decoded } = decode(spec, item, ctx);
-            if (err) return error(spec, data, err);
-            out.push(decoded);
-        }
-        return { decoded: out};
-    }
-
     function decodeList(spec, data, ctx) {
         if (!Array.isArray(data)) return error(spec, data, "no_match");
         if (Array.isArray(spec.list)) {
-            return error(spec, data, "decoder_not_supported");
-        } else return decodeListItems(spec.list, data, ctx);
+            var out = [];
+            let itemSpec;
+            for (var i=0; i<spec.list.length; i++) {
+                var item = data[i];
+                var itemSpec = spec.list[i];
+                var {err, decoded}=decode(itemSpec, item, ctx);
+                if (err) return error(spec, data, err);
+                out.push(decoded);
+            }
+            return { decoded: out};
+        } else {
+            var out = [];
+            const itemSpec = spec.list;
+            for (var i=0; i<data.length; i++) {
+                var item = data[i];
+                var {err, decoded}=decode(itemSpec, item, ctx);
+                if (err) return error(spec, data, err);
+                out.push(decoded);
+            }
+            return { decoded: out};
+        }
     }
     
     function decodeOne(spec, data, ctx) {
@@ -843,7 +851,6 @@ export default (appUrl, appEffects) => {
             case "object":
                 if (spec.hasOwnProperty("text")) return decode(spec.text, data, ctx);
                 if (spec.key) return decodeKey(spec, data, ctx);
-                if (Array.isArray(spec)) return error(spec, data, "decoder_not_supported");
                 if (spec.object) return decodeObject(spec, data, ctx);
                 if (spec.any) return decodeAny(spec, data, ctx);
                 if (spec.list) return decodeList(spec, data, ctx);
@@ -851,15 +858,14 @@ export default (appUrl, appEffects) => {
                 if (spec.one_of) return decodeOne(spec, data, ctx);
                 if (spec.json) return decodeJson(spec, data, ctx);
                 if (spec.size) return decodeSize(spec, data, ctx);
+                if (Array.isArray(spec)) return decodeList({list: spec}, data, ctx);
                 return error(spec, data, "decoder_not_supported");
             default :
                 return (spec === data) ? { decoded: data } : error(spec, data, "no_match");
         }
     }
 
-    function tryDecoders(data, decoders) {
-        if (!data.effect) return error(null, data, "no_effect_in_data");
-        var decs = decoders[data.effect];
+    function tryDecoders(data, decs) {
         if (!decs || !decs.length) return error(null, data, "no_decoders");
         for (var i=0; i<decs.length; i++) {
             var d = decs[i];
@@ -867,12 +873,17 @@ export default (appUrl, appEffects) => {
             const {err, decoded} = decode(spec, data, state.model)
             if (!err && decoded) return {decoded: {msg: d.msg, data: decoded}};
         }
-
         return error(null, data, "all_decoders_failed");
     }
 
-
-
+    function tryAllDecoders(data, decoders) {
+        if (!data.effect) return error(null, data, "no_effect_in_data");
+        var {err, decoded} = tryDecoders(data, decoders[data.effect]);
+        if (!err) return {decoded};
+        var {err, decoded} = tryDecoders(data, decoders.default);
+        if (!err) return {decoded};
+        if (err) return error(null, data, "all_decoders_failed");
+    }
 
     function assetUrl(baseUrl, name) {
         return baseUrl + 'js/' + name + '.js';
@@ -972,7 +983,7 @@ export default (appUrl, appEffects) => {
     function _update(ev) {
         const { encoders, effects, decoders, update } = state.app;
         const t0 = new Date();
-        var {err, decoded } = tryDecoders(ev, decoders);
+        var {err, decoded } = tryAllDecoders(ev, decoders);
         if (err) {
             console.error("Decode error", err);
             return;

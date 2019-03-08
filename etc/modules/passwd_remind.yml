@@ -122,7 +122,7 @@ spec:
               
               To reset the password for {{email}}, follow the link below.
               
-              {{baseUrl}}/#reset={{token}}
+              {{baseUrl}}/#/reset/{{token}}
               
               P.S. The password reset links are only valid for next 30 minutes.
               

@@ -4,20 +4,20 @@ spec:
   init:
     model:
       firstView: loginView 
-    cmds:
-      - effect: ui
-        encoder: landingView
   decoders:
-    show-home:
+    show-landing-page:
       object:
-        effect: ui
-        event: show-home
+        effect: router
+        route:
+          empty: list
   update:
-    show-home:
+    show-landing-page:
       cmds:
         - effect: ui
           encoder: landingView
   encoders:
+    route:
+      action: get
     landingView:
       view:
         tag: div
