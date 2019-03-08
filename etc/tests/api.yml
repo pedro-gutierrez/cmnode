@@ -129,7 +129,6 @@ spec:
     - title: "Space owners should be able to invite users to their spaces"
       tags:
         - invite
-        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -415,8 +414,10 @@ spec:
         - "Then it should be forbidden"
 
     - title: "Should logout"
+      debug: true
       tags:
         - logout
+        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -626,27 +627,30 @@ spec:
     - title: "Given user details for alice"
       set:
         details:
-          first: "Alice"
-          last: "In Chains"
-          email: "alice@mail.com"
-          lang: "en"
-          username: "alice"
+          object:
+            first: "Alice"
+            last: "In Chains"
+            email: "alice@mail.com"
+            lang: "en"
+            username: "alice"
     - title: "Given user details for bob"
       set:
         details:
-          first: "Bob"
-          last: "Dylan"
-          email: "bob@mail.com"
-          lang: "en"
-          username: "bob"
+          object:
+            first: "Bob"
+            last: "Dylan"
+            email: "bob@mail.com"
+            lang: "en"
+            username: "bob"
     - title: "Given user details for claire"
       set:
         details:
-          first: "Claire"
-          last: "DeLune"
-          email: "claire@mail.com"
-          lang: "en"
-          username: "claire"
+          object:
+            first: "Claire"
+            last: "DeLune"
+            email: "claire@mail.com"
+            lang: "en"
+            username: "claire"
     - title: "Given another email"
       set:
         details:
