@@ -10,7 +10,8 @@
     cowboy,
     uuid,
     os_mon,
-    slacker
+    slacker,
+    pbkdf2
    ]},
   {env,[]},
   {modules, []},

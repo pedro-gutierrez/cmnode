@@ -9,3 +9,4 @@ spec:
     - login_api
   settings:
     - apps
+    - security

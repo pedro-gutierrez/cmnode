@@ -289,14 +289,13 @@ spec:
       view:
         tag: a
         attrs:
+          href: @target
           class:
             format: "button ~s"
             params:
-              - key: style
-          onclick:
-            key: action
+              - @style
         children:
-          - text:
+          - text: 
               key: title
     navbarView:
       view:
@@ -319,7 +318,7 @@ spec:
                       class: buttons
                     children:
                       loop:
-                        key: buttons
+                        key: links 
                       with: navbarButtonView
     heroView:
       view:

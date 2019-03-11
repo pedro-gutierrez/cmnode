@@ -41,7 +41,9 @@ spec:
         email:
           key: body.email
         passwd:
-          key: body.password
+          pbkdf2: @body.password
+          using:
+            config: @security.pbkdf2
       cmds:
         - effect: service
           encoder: user_id_lookup

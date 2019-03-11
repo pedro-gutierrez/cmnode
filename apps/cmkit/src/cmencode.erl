@@ -833,6 +833,52 @@ encode(#{ type := json,
             Other
     end;
 
+encode(#{ type := pbkdf2,
+          value := Value,
+          salt := Salt,
+          iterations := Iterations,
+          length := Length }, In, Config) ->
+    
+    case encode(Value, In, Config) of 
+        {ok, V} ->
+            case encode(Salt, In, Config) of 
+                {ok, S} ->
+                    case encode(Iterations, In, Config) of 
+                        {ok, I} ->
+                            case encode(Length, In, Config) of 
+                                {ok, L} ->
+                                    pbkdf2:pbkdf2({hmac, sha512}, V, S, I, L);
+                                Other ->
+                                    Other
+                            end;
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
+encode(#{ type := pbkdf2,
+          value := Value,
+          using := Using }, In, Config) ->
+    
+    case encode(Value, In, Config) of 
+        {ok, V} ->
+            case encode(Using, In, Config) of 
+                {ok, #{ salt := S,
+                        iterations := I,
+                        length := L}} ->
+                    pbkdf2:pbkdf2({hmac, sha512}, V, S, I, L);
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 encode(#{ type := encrypt,
           spec := #{ method := aes_cbc,
                      key := KeySpec,

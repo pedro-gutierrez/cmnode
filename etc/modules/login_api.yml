@@ -50,7 +50,7 @@ spec:
         email:
           key: body.email
         passwd:
-          key: body.password
+          encoder: passwd_hash
       cmds:
         - effect: service
           encoder: email_lookup 
@@ -59,7 +59,7 @@ spec:
         username:
           key: body.username
         passwd:
-          key: body.password
+          encoder: passwd_hash
       cmds:
         - effect: service
           encoder: username_lookup
@@ -86,6 +86,10 @@ spec:
         - effect: terminate
           encoder: success
   encoders:
+    passwd_hash:
+      pbkdf2: @body.password
+      using:
+        config: @security.pbkdf2
     email_lookup:
       object:
         service: user_id_find

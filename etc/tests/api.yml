@@ -10,7 +10,6 @@ spec:
       debug: true
       tags:
         - messages
-        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"
@@ -375,6 +374,7 @@ spec:
     - title: "Should login with username"
       tags:
         - login
+        - current
       steps:
         - "Given an empty database"
         - "Given user alice with password foo"

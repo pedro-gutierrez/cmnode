@@ -9,3 +9,4 @@ spec:
     - passwd_reset_api
   settings:
     - apps
+    - security

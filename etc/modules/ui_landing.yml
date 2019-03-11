@@ -21,13 +21,10 @@ spec:
         children:
           - view: navbarView
             params:
-              buttons: []
-              ##  - title: Sign up
-              ##    action: show-register
-              ##    style: ""
-              ##  - title: Log in
-              ##    action: show-login
-              ##    style: is-primary
+              links:
+                - title: GitHub
+                  target: https://github.com/pedro-gutierrez/cmnode
+                  style: ""
 
           - view: columnsView
             params:

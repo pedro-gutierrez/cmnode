@@ -9,7 +9,7 @@ spec:
         id:
           non_empty: text
         passwd:
-          any: text
+          any: data
     password_success:
       object:
         context:

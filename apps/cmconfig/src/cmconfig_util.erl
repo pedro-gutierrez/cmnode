@@ -1065,6 +1065,23 @@ compile_term(#{ <<"calendar">> := #{
        factor => 3600*24,
        tense  => future };
 
+compile_term(#{ <<"pbkdf2">> := Value,
+                <<"using">> := #{ <<"salt">> := Salt,
+                                  <<"iterations">> := Iterations,
+                                  <<"length">> := Length }}, Index) ->
+    #{ type => pbkdf2,
+       value => compile_term(Value, Index),
+       salt => compile_term(Salt, Index),
+       iterations => compile_term(Iterations, Index),
+       length => compile_term(Length, Index) };
+
+compile_term(#{ <<"pbkdf2">> := Value,
+                <<"using">> := Using}, Index) ->
+    
+    #{ type => pbkdf2,
+       value => compile_term(Value, Index),
+       using => compile_term(Using, Index) };
+
 compile_term(#{ <<"encrypt">> := #{ <<"method">> := Method,
                                     <<"key">> := Key,
                                     <<"value">> := Value }}, Index) ->

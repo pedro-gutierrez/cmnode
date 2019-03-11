@@ -2,6 +2,10 @@ type: module
 name: ui_effects 
 spec:
   effects:
+    ws:
+      type: elementary-ws
+      settings:
+        auto: true 
     http:
       type: elementary-http
       settings:

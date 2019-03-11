@@ -2,8 +2,14 @@
 //
 //
 export default (name, settings, app) => {
+    
     const { encode, decode, update} = app;
     const state = {};
+    
+    function auto() {
+        if (!settings.hasOwnProperty('auto')) return true;
+        return settings.auto;
+    }
 
     function url() {
         if (settings.url) return settings.url;
@@ -41,7 +47,7 @@ export default (name, settings, app) => {
             send({ effect: name, event: 'data', data: JSON.parse(ev.data) })};
     }
 
-    connect();
+    if (auto()) connect();
 
     return (encoders, enc, model) => {
         const {err, value} = encode(enc, model);
