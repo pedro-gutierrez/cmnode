@@ -30,10 +30,10 @@ spec:
                   <link rel="stylesheet" href="css/bulma.min.css"/>
                   <link rel="stylesheet" href="css/fontawesome.min.css">
                   <link rel="stylesheet" href="css/styles.css"/>
-                  <link href="https://fonts.googleapis.com/css?family={{font}}" rel="stylesheet"/>
+                  <!-- <link href="https://fonts.googleapis.com/css?family={{font}}" rel="stylesheet"/>
                   <style>
                     body, input, button {font-family: '{{font}}', sans-serif !important;}
-                  </style>
+                  </style> -->
                   <script src="js/elementary-ui-deps.js"></script>
                   <script type="module">
                     import {default as ui} from "{{baseUrl}}/js/elementary-ui.js";

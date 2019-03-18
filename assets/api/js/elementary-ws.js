@@ -33,6 +33,17 @@ export default (name, settings, app) => {
         setTimeout(connect, 5*1000);
     }
 
+    function disconnect() {
+        if (state.ws) {
+            state.ws.onopen = null;
+            state.ws.onclose = null;
+            state.ws.onerror = null;
+            state.ws.onmessage = null;
+            state.ws.close();
+            state.ws = null;
+        }
+    }
+
     function connect() {
         state.ws = new WebSocket(state.url);
         state.ws.onopen = () => {
@@ -53,6 +64,17 @@ export default (name, settings, app) => {
         const {err, value} = encode(enc, model);
         if (err) {
             console.error("Encode error", err);
-        } else state.ws.send(JSON.stringify(value));
+        } else {
+            switch (value) {
+                case "connect":
+                    connect();
+                    return;
+                case "disconnect":
+                    disconnect();
+                    return;
+                default:
+                    state.ws.send(JSON.stringify(value));
+            }
+        }
     }
 };

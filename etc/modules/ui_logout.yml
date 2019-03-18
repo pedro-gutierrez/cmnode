@@ -1,0 +1,47 @@
+type: module
+name: ui_logout
+spec:
+  init:
+    model:
+      features:
+        - object:
+            name: logout 
+            title: ""
+            icon: 
+              name: fas fa-power-off
+              size: 
+  decoders:
+    logout:
+      object:
+        effect: ui
+        event: show-logout
+    logout-success:
+      object:
+        effect: http
+        context: logout
+        status: 200
+  update:
+    logout:
+      cmds:
+        - effect: http
+          encoder: logout
+    logout-success:
+      model:
+        user: {}
+      cmds:
+        - effect: events
+          encoder: logged-out
+
+  encoders:
+    logged-out:
+      object:
+        loggedOut: {}
+    logout:
+      object:
+        context: logout 
+        method: post
+        path: /logout
+        headers:
+          authorization: @user.token
+        body: {}
+

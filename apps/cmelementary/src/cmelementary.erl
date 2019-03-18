@@ -700,6 +700,7 @@ term(#{ type := merge, spec := Specs }, Settings) ->
 term(#{ type := iterate,
         spec := #{ source := Source,
                    filter := Filter,
+                   context := Context,
                    dest := Dest,
                    as := As }}, Settings) -> 
     case term(Source, Settings) of 
@@ -710,10 +711,16 @@ term(#{ type := iterate,
                         {ok, D} ->
                             case term(As, Settings) of 
                                 {ok, A} ->
-                                    {ok, #{ iterate => #{ source => S,
-                                                          dest => D,
-                                                          filter => F,
-                                                          as => A }}};
+                                    case term(Context, Settings) of 
+                                        {ok, C} ->
+                                            {ok, #{ iterate => #{ source => S,
+                                                                  context => C,
+                                                                  dest => D,
+                                                                  filter => F,
+                                                                  as => A }}};
+                                        Other ->
+                                            Other
+                                    end;
                                 Other -> 
                                     Other
                             end;

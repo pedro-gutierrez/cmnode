@@ -1,0 +1,35 @@
+type: module
+name: ui_spaces
+spec:
+  init:
+    model:
+      onLogin:
+        - effect: http
+          encoder: spacesQuery
+      onSpaces: []
+      spaces: []
+  decoders:
+    spaces:
+      context: spacesQuery
+      status: 200
+      body:
+        any: list
+  update: {}
+  encoders:
+    newInvite:
+      method: post
+      path: /invites
+      headers:
+        authorization: @user.token
+    newSpace:
+      method: post
+      path: /spaces
+      headers:
+        authorization: @user.token
+      body: {}
+    spacesQuery:
+      context: spacesQuery
+      method: get
+      path: /spaces
+      headers:
+        authorization: @user.token

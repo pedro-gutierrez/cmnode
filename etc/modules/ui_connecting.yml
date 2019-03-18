@@ -1,0 +1,25 @@
+type: module
+name: ui_connecting
+spec:
+  init:
+    model:
+      onLogin:
+        - effect: ui
+          encoder: connectingView 
+  decoders:
+  update:
+  encoders:
+    connectingView:
+      view:
+        tag: div
+        children:
+          - view: columnsView
+            params:
+              style: is-centered
+              columns:
+                - style: is-4 has-text-centered
+                  contentView: alertView
+                  content:
+                    object:
+                      title:
+                        i18n: @labels.general.connecting

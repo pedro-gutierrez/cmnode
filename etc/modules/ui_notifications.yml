@@ -1,0 +1,52 @@
+type: module
+name: ui_notifications
+spec:
+  init:
+    model:
+      onSubscribed: []
+      onLogin:
+        - effect: ws
+          encoder: connect 
+      onLogout:
+        - effect: ws
+          encoder: disconnect 
+  decoders:
+    connected:
+      object:
+        effect: ws
+        event: connected
+    disconnected:
+      object: 
+        effect: ws
+        event: disconnected
+    subscribed:
+      object:
+        effect: ws
+        data: 
+          object: 
+            status: 201
+  update:
+    connected:
+      cmds:
+        - effect: ws
+          encoder: subscription
+    disconnected:
+      cmds:
+        - effect: ui
+    subscribed:
+      cmds: @onSubscribed
+  encoders:
+    connect: connect
+    disconnect: disconnect
+    subscription:
+      object:
+        app: @app
+        token: @user.token
+        
+
+
+
+
+
+              
+

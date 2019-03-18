@@ -503,9 +503,8 @@ encoded_settings(App, Name, Settings) ->
     end.
 
 
-app_debug(#{ debug := false }) -> false;
-app_debug(#{ debug := true }) -> true;
 app_debug(#{ config := #{ debug := true }}) -> true;
+app_debug(#{ debug := true }) -> true;
 app_debug(_) -> false.
 
 compile_app(#{ <<"name">> := Name,
@@ -902,9 +901,9 @@ compile_term(#{ <<"encoders">> := Encs }, Index) ->
     compile_encoders(Encs, Index);
 
 compile_term(#{ <<"effect">> := Effect,
-                <<"encoder">> := Encoder }, _) when is_binary(Effect) andalso is_binary(Encoder)->
+                <<"encoder">> := Encoder }, Index) when is_binary(Effect) andalso is_binary(Encoder)->
     #{ effect => compile_keyword(Effect),
-       encoder => compile_keyword(Encoder) };
+       encoder => compile_keyword_or_term(Encoder, Index) };
 
 compile_term(#{ <<"effect">> := EffectSpec,
                 <<"encoder">> := EncoderSpec }, Index) ->
@@ -917,8 +916,8 @@ compile_term(#{ <<"effect">> := Effect  }, _) when is_binary(Effect) ->
 compile_term(#{ <<"effect">> := Spec }, Index) when is_map(Spec) ->
     #{ effect => compile_term(Spec, Index) };
 
-compile_term(#{ <<"encoder">> := Enc }, _) when is_binary(Enc) ->
-    #{ encoder => compile_keyword(Enc) };
+compile_term(#{ <<"encoder">> := Enc }, Index) when is_binary(Enc) ->
+    #{ encoder => compile_keyword_or_term(Enc, Index) };
 
 compile_term(#{ <<"encoder">> := Spec }, Index) when is_map(Spec) ->
     #{ encoder => compile_term(Spec, Index) };
@@ -1583,7 +1582,7 @@ compile_term(#{ <<"all">> := Specs }, Index) when is_list(Specs) ->
 
 compile_term(#{ <<"loop">> := From,
                 <<"context">> := Context,
-                <<"with">> := View }, Index) when is_map(From) ->
+                <<"with">> := View }, Index) ->
 
     ItemViewSpec = case is_binary(View) of
                        true -> cmkit:to_atom(View);
@@ -1593,12 +1592,6 @@ compile_term(#{ <<"loop">> := From,
     #{ loop => compile_term(From, Index),
        with => ItemViewSpec,
        context => compile_term(Context, Index) };
-
-compile_term(#{ <<"loop">> := From,
-                <<"context">> := _,
-                <<"with">> := _ } = Spec, Index) when is_binary(From) ->
-
-    compile_term(Spec#{ <<"loop">> => #{ <<"key">> => From }}, Index);
 
 compile_term(#{ <<"loop">> := _} = Spec, Index)  ->
 
@@ -2299,10 +2292,17 @@ compile_term(#{ <<"iterate">> := SourceSpec,
                 S1 ->
                     compile_term(S1, Index)
              end,
+    ContextSpec = case maps:get(<<"context">>, Spec, none) of
+                none ->
+                    none;
+                S2 ->
+                    compile_term(S2, Index)
+             end,
 
     #{ type => iterate,
        spec => #{ source => compile_term(SourceSpec, Index),
                   filter => FilterSpec,
+                  context => ContextSpec,
                   as => maybe_compile_as(Spec, Index),
                   dest => compile_term(DestSpec, Index) }};
 
@@ -2493,6 +2493,14 @@ compile_term(Spec, _) ->
     cmkit:danger({cmconfig, compile, term_not_supported, Spec}),
     #{ type => unknown, spec => Spec }.
 
+
+compile_keyword_or_term(Text, Index) when is_binary(Text) ->
+    case cmkit:prefix(Text, <<"@">>) of 
+        nomatch ->
+            compile_keyword(Text);
+        KeyPath -> 
+            compile_term(#{ <<"key">> => KeyPath }, Index )
+    end.
 
 compile_as(As, Index) when is_binary(As) or is_atom(As) ->
     compile_term(#{ <<"keyword">> => As }, Index);

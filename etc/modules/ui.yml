@@ -17,8 +17,15 @@ spec:
               - ui_effects
               - ui_common 
               - ui_router
+              - ui_events
               - ui_landing
               - ui_login
               - ui_register
               - ui_passwd_remind
               - ui_passwd_reset
+              - ui_dashboard
+              - ui_notifications
+              - ui_connecting
+              - ui_spaces
+              - ui_chat
+              - ui_logout

@@ -39,12 +39,28 @@ spec:
         effect: http
         context: login
         status:
-          other_than: 201
+          other_than: 200
     login-success:
       object:
         effect: http
         context: login
         status: 200
+        body:
+          object:
+            email:
+              any: text
+            first:
+              any: text
+            last:
+              any: text
+            lang:
+              any: text
+            id:
+              any: text
+            token:
+              any: text
+            username:
+              any: text
   update:
     navigate-to-login:
       model:
@@ -88,10 +104,23 @@ spec:
           i18n: @labels.errors.retry
       cmds:
         - effect: ui
+    login-success:
+      model:
+        email: ""
+        password: ""
+        message: ""
+        state: ""
+        user: @body
+      cmds:
+        - effect: events
+          encoder: logged-in
   encoders:
     show-login-page:
       action: navigate
       target: login
+    logged-in:
+      object:
+        loggedIn: @user
     login:
       object:
         context: login

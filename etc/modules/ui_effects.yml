@@ -5,7 +5,8 @@ spec:
     ws:
       type: elementary-ws
       settings:
-        auto: true 
+        auto: false 
+        persistent: true
     http:
       type: elementary-http
       settings:

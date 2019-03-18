@@ -27,31 +27,48 @@ spec:
     inputStyle:
       either:
         - when:
-            key: is_error
+            and:
+              - is_set: is_error
+              - key: is_error
           text: "input is-danger"
         - text: "input"
+    inputControlView:
+      view:
+        tag: div
+        attrs:
+          class: control is-expanded
+        children:
+          - tag: input
+            attrs:
+              object:
+                class:
+                  encoder: inputStyle
+                type: text
+                placeholder: @help
+                onchange: @changed
+                key: @changed
     inputView:
       view:
         tag: div
         attrs:
           class: field
         children:
+          - view: inputControlView
+            params: @
+    inputWithButtonView:
+      view:
+        tag: div
+        attrs:
+          class: field has-addons
+        children:
+          - view: inputControlView
+            params: @
           - tag: div
             attrs:
               class: control
             children:
-              - tag: input
-                attrs:
-                  object:
-                    class:
-                      encoder: inputStyle
-                    type: text
-                    placeholder:
-                      key: help
-                    onchange:
-                      key: changed
-                    key:
-                      key: changed
+              - view: buttonView
+                params: @
     emailView:
       view:
         tag: div
@@ -101,8 +118,11 @@ spec:
                     key:
                       key: changed
     buttonStyle:
-      format: "button is-link ~s ~s"
+      format: "button ~s ~s ~s"
       params:
+        - one_of:
+            - @style
+            - is-warning
         - either:
             - when:
                 and:
@@ -119,15 +139,20 @@ spec:
             - ""
     buttonView:
       view:
-        tag: button
+        tag: a
         attrs:
-          onclick:
-            key: action
+          onclick: @action
           class:
             encoder: buttonStyle
         children:
-          - text:
-              key: title
+          - view: iconView
+            when:
+              is_set: icon
+            params: @icon
+          - tag: strong
+            children:
+              - text:
+                  key: title
     titleView:
       view:
         tag: h1
@@ -281,53 +306,85 @@ spec:
                   with: columnView
     iconView:
       view:
-        tag: i
+        tag: span
         attrs:
-          class:
-            key: name
-    navbarButtonView:
+          class: icon
+        children:
+          - tag: i
+            attrs:
+              class:
+                format: "~s ~s"
+                params:
+                  - @size
+                  - @name
+    navbarLinkView:
       view:
         tag: a
         attrs:
           href: @target
           class:
-            format: "button ~s"
+            format: "navbar-item ~s"
             params:
               - @style
         children:
           - text: 
               key: title
+    navbarStyle:
+      either:
+        - when: 
+            one_of:
+                - @transparent
+                - true
+          object:
+            background-color: transparent
+            background-image: none
+        - ""
+    navbarButtonsView:
+      view:
+        tag: div
+        attrs:
+          class: navbar-item
+        children:
+          - tag: div
+            attrs:
+              class: buttons
+            children:
+              loop: @buttons
+              with: buttonView
     navbarView:
       view:
         tag: navbar
         attrs:
-          class: navbar
+          class: navbar container
+          style: 
+            encoder: navbarStyle
           role: navigation
           aria-label: main navigation
         children:
           - tag: div
             attrs:
-              class: navbar-end
+              class: navbar-menu
             children:
               - tag: div
                 attrs:
-                  class: navbar-item
+                  class: navbar-start
                 children:
-                  - tag: div
-                    attrs:
-                      class: buttons
-                    children:
-                      loop:
-                        key: links 
-                      with: navbarButtonView
+                  - view: navbarButtonsView
+                    params:
+                      buttons: @start
+              - tag: div
+                attrs:
+                  class: navbar-end
+                children:
+                  - view: navbarButtonsView
+                    params:
+                      buttons: @end
     heroView:
       view:
         tag: div
         children:
           - view: iconView
-            params:
-              name:
-                key: icon
+            params: @icon
           - tag: h1
             attrs:
               class: is-size-1 title
@@ -384,13 +441,64 @@ spec:
       view:
         tag: footer
         attrs:
-          class: footer
+          class: footer has-background-black has-text-white
         children:
           - tag: div
             attrs:
               class: content has-text-centered
             children:
-              - view:
-                  key: contentView
+              - view: legalView
+                params: @
+    featureButtonInfo:
+      object:
+        title: @title
+        icon: @icon
+        action:
+          format: show-~s
+          params:
+            - @name
+        style:
+          either:
+            - when:
+                eq:
+                  - @name
+                  - @context.activeFeature
+              text: is-white
+            - format: is-~s
+              params:
+                - @context.background
+    adminView:
+      view:
+        tag: div
+        children:
+          - tag: div
+            attrs:
+              class:
+                format: has-background-~s
                 params:
-                  key: content
+                  - @background
+            children:
+              - view: navbarView
+                params:
+                  transparent: true
+                  start: []
+                  end:
+                    iterate: @features
+                    with:
+                      encoder: featureButtonInfo
+                    context: @
+          - tag: section
+            attrs:
+              class: section has-background-white-bis
+            children:
+              - tag: div
+                attrs:
+                  class: container
+                children:
+                  - view: 
+                      format: ~sContentView
+                      params:
+                        - @activeFeature
+                    params: @
+          - view: footerView
+            params: @

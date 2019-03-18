@@ -1,6 +1,11 @@
 type: module
 name: ui_landing
 spec:
+  init:
+    model:
+      onLogout:
+        - effect: ui
+          encoder: landingView
   decoders:
     show-landing-page:
       object:
@@ -21,10 +26,11 @@ spec:
         children:
           - view: navbarView
             params:
-              links:
+              start: []
+              end:
                 - title: GitHub
-                  target: https://github.com/pedro-gutierrez/cmnode
-                  style: ""
+                  action: https://github.com/pedro-gutierrez/cmnode
+                  style: is-light
 
           - view: columnsView
             params:
@@ -33,7 +39,9 @@ spec:
                 - style: "is-6 has-text-centered"
                   contentView: heroView
                   content:
-                    icon: fa-6x far fa-comments
+                    icon:
+                      name: far fa-comments
+                      size: fa-6x
                     title: @title
                     subtitle: 
                       i18n: @labels.app.description
@@ -58,6 +66,4 @@ spec:
                   subtitle: "UI, server side logic and even automated tests all written from the ground up in YAML"
 
           - view: footerView
-            params:
-              contentView: legalView
-              content: {}
+            params: @

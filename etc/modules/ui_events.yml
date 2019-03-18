@@ -1,0 +1,25 @@
+type: module
+name: ui_events
+spec:
+  init:
+    model:
+      onLogin: []
+      onLogout: []
+  decoders:
+    loggedIn:
+      object:
+        effect: events
+        loggedIn:
+          any: object
+    loggedOut:
+      object:
+        effect: events
+        loggedOut:
+          any: object
+  update:
+    loggedIn:
+      model:
+        user: @loggedIn
+      cmds: @onLogin
+    loggedOut:
+      cmds: @onLogout

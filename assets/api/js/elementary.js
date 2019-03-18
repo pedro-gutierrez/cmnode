@@ -70,7 +70,7 @@ export default (appUrl, appEffects) => {
                 return { value: data[spec]};
             case 'object':
                 if (spec.in) {
-                    var {err, value} = encodeKey(spec.in, data, ctx);
+                    var {err, value} = encode(spec.in, data, ctx);
                     if (err) {
                         if (spec.hasOwnProperty("default")) {
                             var {err, value} = encode(spec['default'], data, ctx);
@@ -443,11 +443,14 @@ export default (appUrl, appEffects) => {
                 return obj;
             }
 
+        var {err, value} = encode(spec.iterate.context, data, ctx);
+        if (err) return error(spec, data, err);
+        var context = {context: value};
         for (var i=0; i<source.length; i++) {
-            var {err, value} = filterFn(source[i], ctx);
+            var {err, value} = filterFn(source[i], context);
             if (!err) {
                 var item = itemFn(source[i]);
-                var {err, value} = encode(spec.iterate.dest, item, ctx);
+                var {err, value} = encode(spec.iterate.dest, Object.assign(context, item), ctx);
                 if (err) return error(spec, data, err);
                 out[i] = value;
             }
@@ -474,7 +477,7 @@ export default (appUrl, appEffects) => {
         }
         return {value: Object.assign({}, ...objs)}
     }
-
+    
     function encodePrettify(spec, data, ctx) {
         var {err, value} = encode(spec.prettify, data, ctx);
         if (err) return error(spec, data, err);
@@ -610,6 +613,7 @@ export default (appUrl, appEffects) => {
         if (err) return error(spec, data, err);
         if (!Array.isArray(value)) return error(spec, value, "not_a_list");
         const [head, _] = value;
+        if (!head) return error(spec, value, "empty_list");
         return {value: head};
 
     }
@@ -619,6 +623,7 @@ export default (appUrl, appEffects) => {
         if (err) return error(spec, data, err);
         if (!Array.isArray(value)) return error(spec, value, "not_a_list");
         const [_, ...tail] = value;
+        if (!tail) return error(spec, value, "empty_list");
         return {value: tail};
     }
     
@@ -807,10 +812,10 @@ export default (appUrl, appEffects) => {
         if (!Array.isArray(data)) return error(spec, data, "no_match");
         if (Array.isArray(spec.list)) {
             var out = [];
-            let itemSpec;
+            var itemSpec;
             for (var i=0; i<spec.list.length; i++) {
                 var item = data[i];
-                var itemSpec = spec.list[i];
+                itemSpec = spec.list[i];
                 var {err, decoded}=decode(itemSpec, item, ctx);
                 if (err) return error(spec, data, err);
                 out.push(decoded);
@@ -818,7 +823,7 @@ export default (appUrl, appEffects) => {
             return { decoded: out};
         } else {
             var out = [];
-            const itemSpec = spec.list;
+            var itemSpec = spec.list;
             for (var i=0; i<data.length; i++) {
                 var item = data[i];
                 var {err, decoded}=decode(itemSpec, item, ctx);
@@ -1054,7 +1059,7 @@ export default (appUrl, appEffects) => {
         const { model, cmds } = init;
 
         const t0 = new Date();
-        const { err, value } = encode(model, {});
+        const { err, value } = encode(model, withSettings({}));
         if (err) {
             console.error("(init) cannot encode model", err);
         } else {

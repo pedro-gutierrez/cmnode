@@ -7,8 +7,8 @@ spec:
       http: "/"
     ui:
       http: "/js/app.js"
-    css:
-      http: "/css/styles.css"
+      #css:
+      #http: "/css/styles.css"
     init:
       http: "/api/init"
     acme:

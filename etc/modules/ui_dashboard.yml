@@ -1,0 +1,18 @@
+type: module
+name: ui_dashboard
+spec:
+  init:
+    model:
+      background: warning
+      onSubscribed:
+        - effect: ui
+          encoder: dashboard-view
+      features: []
+      activeFeature: ""
+  decoders:
+  update:
+  encoders:
+    dashboard-view:
+      view:
+        view: adminView
+        params: @
