@@ -39,7 +39,7 @@ build(#{ dir := Dir,
          repo := Repo,
          tag := Version,
          credentials := Creds,
-         errors := Errors } = Req) -> 
+         errors := Errors0 } = Req) -> 
 
     [User, Image] = cmkit:bin_split(Repo, <<"/">>),
     TarFilename = cmkit:to_list(cmkit:bin_join([User, Image, Version], <<"-">>)),
@@ -60,6 +60,7 @@ build(#{ dir := Dir,
                                           raw => true },
                             case cmhttp:post(Url, Headers, Data, HttpOpts) of 
                                 {ok, #{ status := 200, raw := R, mime := Mime } } ->
+                                    Errors = [<<"non-zero code">>|Errors0],
                                     case has_errors(cmkit:to_bin(R), Errors) of 
                                         {true, E} ->
                                             cmkit:danger({cmdocker, build, E, R}),

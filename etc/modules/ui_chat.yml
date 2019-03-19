@@ -80,6 +80,16 @@ spec:
             - list:
                 id:
                   any: text
+    messageChanged:
+      object:
+        effect: ui
+        event: messageChanged
+        value:
+          any: text
+    createMessage:
+      object:
+        effect: ui
+        event: createMessage
   update:
     show-chat:
       cmds:
@@ -180,6 +190,22 @@ spec:
           merge:
             - @chat
             - participants: @body
+      cmds:
+        - effect: ui
+    messageChanged:
+      model:
+        chat:
+          merge:
+            - @chat
+            - message: @value
+      cmds:
+        - effect: ui
+    createMessage:
+      model:
+        chat:
+          merge:
+            - @chat
+            - state: creatingMessage
       cmds:
         - effect: ui
   encoders:

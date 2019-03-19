@@ -2449,17 +2449,17 @@ compile_term(true, _) ->
     #{ type => keyword,
        value => true };
 
-compile_term(<<"yes">>, _) ->
-    #{ type => keyword,
-       value => true };
+%%compile_term(<<"yes">>, _) ->
+%%    #{ type => keyword,
+%%       value => true };
 
 compile_term(false, _) ->
     #{ type => keyword,
        value => false };
 
-compile_term(<<"no">>, _) ->
-    #{ type => keyword,
-       value => false };
+%%compile_term(<<"no">>, _) ->
+%%    #{ type => keyword,
+%%       value => false };
 
 compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }, _) ->
     #{ lat => Lat,

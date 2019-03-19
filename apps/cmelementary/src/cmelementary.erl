@@ -1105,11 +1105,14 @@ term(#{ chart := #{ type := Type,
 term(Map, _) when is_map(Map) andalso map_size(Map) =:= 0 ->
     {ok, #{}};
 
+term(#{ type := keyword, 
+        spec := #{ type := text, spec := Spec }}, _) when is_binary(Spec) ->
+    {ok, #{ text => Spec}};
+
 term(Other, Settings) ->
     cmkit:warning({cmelementary, default_as_object, Other}),
     term(#{ type => object,
             spec => Other }, Settings).
-
 
 with_default(#{ default := DefaultSpec}, Compiled, Settings) ->
     case term(DefaultSpec, Settings) of 
