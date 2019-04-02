@@ -182,8 +182,12 @@ request_body(Req, Log) ->
         false -> 
             {ok, #{}, Req};
         true ->
-            {CT1, CT2, _} = cowboy_req:parse_header(<<"content-type">>, Req),
-            request_body(CT1, CT2, Req, Log)
+            case cowboy_req:parse_header(<<"content-type">>, Req) of 
+                {CT1, CT2, _} -> 
+                    request_body(CT1, CT2, Req, Log);
+                _ ->
+                    request_body(unknown, unknown, Req, Log)
+            end
     end.
 
 

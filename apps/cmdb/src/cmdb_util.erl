@@ -12,8 +12,11 @@
          all_new/2 ]).
 
 reload() ->
-    Buckets = [ compiled(Spec) || {ok, Spec} <- cmkit:yamls(bucket)] ,
+    Buckets = [ compiled(Spec) || {ok, Spec} <- cmkit:yamls(bucket), has_db_role(Spec) ] ,
     {ok, Buckets}.
+
+has_db_role(#{ <<"spec">> := #{ <<"role">> := <<"es">> }}) -> false;
+has_db_role(_) -> true.
     
 compiled(#{ <<"name">> := Name,
             <<"spec">> := Spec}) ->

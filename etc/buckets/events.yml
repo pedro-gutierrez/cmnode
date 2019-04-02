@@ -1,0 +1,5 @@
+type: bucket
+name: events 
+spec:
+  debug: true 
+  role: es

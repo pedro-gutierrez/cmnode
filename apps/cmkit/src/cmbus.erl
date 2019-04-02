@@ -6,6 +6,7 @@
          members/1,
          peers/1,
          closest/1,
+         local/1,
          sub/1, 
          sub/2, 
          unsub/1, 
@@ -55,6 +56,9 @@ unsub(T, Pid) ->
 
 closest(T) ->
     pg2:get_closest_pid(T).
+
+local(T) ->
+    pg2:get_local_members(T).
 
 members(T) -> 
     case pg2:get_members(T) of 

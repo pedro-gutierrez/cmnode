@@ -553,7 +553,10 @@ compile_bucket(#{ <<"name">> := Name,
        name => cmkit:to_atom(Name),
        storage =>  cmkit:to_atom(Storage),
        debug =>  cmkit:to_atom(maps:get(<<"debug">>, Spec, <<"false">>))
-     }.
+     };
+
+compile_bucket(#{ <<"spec">> := Spec} = Spec0, Index) ->
+    compile_bucket(Spec0#{ <<"spec">> => Spec#{ <<"storage">> => <<"disc">>}}, Index).
 
 compile_test(#{ <<"name">> := Name,
                 <<"rank">> := Rank,
