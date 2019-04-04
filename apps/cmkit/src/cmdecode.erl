@@ -13,6 +13,7 @@ decode(#{ type := object, spec := Spec }, Data, Config) ->
 decode(#{ type := object }, Data, _) when is_map(Data) -> 
     {ok, Data};
 
+
 decode(Spec, Data, Config) -> 
     decode_term(Spec, Data, Config).
 
@@ -40,8 +41,13 @@ decode_object([Key|Rem], Spec, Data, Context, Out) when is_map(Data) ->
     KeySpec = maps:get(Key, Spec),
     Value = cmkit:value_at(Key, Data),
     case Value of 
-        undef -> 
-            no_match;
+        undef ->
+            case decode_default(KeySpec, Data, Context) of 
+                no_match ->
+                    no_match;
+                {ok, Decoded} ->
+                    decode_object(Rem, Spec, Data, Context, Out#{ Key => Decoded})
+            end;
         _ -> 
             case decode_term(KeySpec, Value, Context) of 
                 {ok, Decoded} ->
@@ -49,8 +55,13 @@ decode_object([Key|Rem], Spec, Data, Context, Out) when is_map(Data) ->
                 no_match -> 
                     no_match
             end
-
     end.
+
+decode_default(#{ default := Spec }, Data, Config) ->
+    cmencode:encode(Spec, Data, Config);
+
+decode_default(_, _, _) -> no_match.
+
 
 decode_object_without_keys([], In) -> {ok, In};
 decode_object_without_keys([K|Rem], In) ->
@@ -61,6 +72,13 @@ decode_object_without_keys([K|Rem], In) ->
 
 decode_term(In, In, _) ->
     {ok, In};
+
+
+decode_term(#{ type := boolean }, true, _) -> 
+    {ok, true};
+
+decode_term(#{ type := boolean }, false, _) -> 
+    {ok, false};
 
 decode_term(#{ type := without_keys, spec := KeySpecs}, In, _) when is_map(In) -> 
     case cmencode:encode_all(KeySpecs, In) of 

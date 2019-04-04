@@ -170,12 +170,17 @@ encode(#{ type := condition,
 
 encode(#{ type := condition, 
           condition := C,
-          spec := Spec}, In, Config) -> 
+          spec := Spec} = Expr, In, Config) -> 
     case encode(C, In, Config) of 
         {ok, true} -> 
             encode(Spec, In, Config);
         {ok, false} ->
             {error, condition_not_satisfied};
+        {ok, Other} ->
+            {error, #{ error => unexpected_result_from_condition,
+                       want => [true, false],
+                       got => Other,
+                       expression => Expr }};
         Other -> 
             Other
     end;

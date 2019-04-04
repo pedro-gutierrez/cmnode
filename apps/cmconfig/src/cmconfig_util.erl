@@ -2441,28 +2441,15 @@ compile_term(#{ <<"pipe">> := Specs,
        as => compile_keyword(As) };
 
 compile_term(Term, Index) when is_map(Term) ->
-    #{ type => object,
-       spec => maps:fold(fun(K, V, Out) ->
-                                 K2 = cmkit:to_atom(K),
-                                 V2 = compile_term(V, Index),
-                                 Out#{ K2 => V2 }
-                         end, #{}, Term) };
+    compile_object(Term, Index);
 
 compile_term(true, _) ->
     #{ type => keyword,
        value => true };
 
-%%compile_term(<<"yes">>, _) ->
-%%    #{ type => keyword,
-%%       value => true };
-
 compile_term(false, _) ->
     #{ type => keyword,
        value => false };
-
-%%compile_term(<<"no">>, _) ->
-%%    #{ type => keyword,
-%%       value => false };
 
 compile_term(#{ <<"lat">> := Lat, <<"lon">> := Lon }, _) ->
     #{ lat => Lat,
@@ -2567,9 +2554,12 @@ compile_object(Other, _) ->
 
 compile_object([], _, _, Out) -> Out;
 compile_object([K|Rem], Map, Index, Out) ->
+    KeySpec = maps:get(K, Map),
+    CompiledKeySpec = compile_term(KeySpec, Index),
+    CompiledKeySpecWithDefault = with_default(KeySpec, CompiledKeySpec, Index),
     compile_object(Rem, Map, Index, Out#{
-                               compile_keyword(K) => compile_term(maps:get(K, Map), Index)
-                              }).
+                                      compile_keyword(K) => CompiledKeySpecWithDefault
+                                     }).
 
 compile_keyword(K) -> cmkit:to_atom(K).
 

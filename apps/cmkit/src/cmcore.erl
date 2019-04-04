@@ -79,12 +79,30 @@ resolve_cmds(Encoders, [Cmd|Rem], Model, Out) ->
         {error, E} -> {error, E}
     end.
 
-resolve_cmd(Encoders, #{ encoder := Enc }=Cmd, _) ->
-    case maps:get(Enc, Encoders, undef) of
-        undef ->
-            {error, unknown_encoder(Enc) };
-        Encoder ->
-            {ok, Cmd#{ encoder => Encoder }}
+resolve_cmd(Encoders, #{ encoder := Enc }=Cmd, _) when is_atom(Enc) orelse is_binary(Enc)->
+    case encoder_named(Enc, Encoders) of
+        {ok, Encoder} ->
+            {ok, Cmd#{ encoder => Encoder }};
+        Other ->
+            Other
+    end;
+
+resolve_cmd(Encoders, #{ encoder := Expr }=Cmd, Model) when is_map(Expr) ->
+    case cmencode:encode(Expr, Model) of 
+        {ok, EncoderName} when is_binary(EncoderName) orelse is_atom(EncoderName) ->
+            case encoder_named(EncoderName, Encoders) of 
+                {ok, Encoder} ->
+                    {ok, Cmd#{ encoder => Encoder }};
+                Other ->
+                    Other
+            end;
+        {ok, Other} ->
+            {error, #{ error => invalid_encoder_name_expression,
+                       encoder => Expr,
+                       encoded_as => Other }};
+
+        Error ->
+            Error
     end;
 
 resolve_cmd(_, #{ effect := _ }=Cmd, _) ->
@@ -108,9 +126,50 @@ resolve_cmd(Encoders, CmdSpec, Model) ->
                        reason => Other }}
     end.
 
-unknown_encoder(Enc) ->
+encoder_named(Name, Encs) ->
+    case cmkit:value_at(Name, Encs) of 
+        undef -> 
+            unknown_encoder(Name, Encs);
+        Enc ->
+            {ok, Enc}
+    end.
+
+unknown_encoder(Enc, Encoders) ->
     #{ encoder => Enc,
-       status => undefined }.
+       error => no_such_encoder,
+       encoders => maps:keys(Encoders) }.
+
+
+resolve_effect(Expr, Effects, _) when is_binary(Expr) orelse is_atom(Expr) ->
+    effect_named(Expr, Effects);
+
+resolve_effect(Expr, Effects, Model) when is_map(Expr)->
+    case cmencode:encode(Expr, Model) of 
+        {ok, Name} when  is_binary(Name) orelse is_atom(Name) ->
+            resolve_effect(Name, Effects, Model);
+        {ok, Other} ->
+            {error, #{ error => invalid_effect_name_expression,
+                       effect => Expr,
+                       encoded_as => Other }};
+        Error ->
+            Error
+    end.
+
+
+effect_named(Name, Effects) ->
+    case cmkit:value_at(Name, Effects) of
+        undef ->
+            unknown_effect(Name, Effects);
+        Mod ->
+            {ok, Mod}
+    end.
+
+unknown_effect(Eff, Effects) ->
+    #{ effect => Eff,
+       error => no_such_effect,
+       effects => maps:keys(Effects) }.
+
+
 
 validated_cmds(Specs, Model, Config, Effects) ->
     validated_cmds(Specs, Model, Config, Effects, []).
@@ -119,7 +178,7 @@ validated_cmds([], _, _, _, Out) -> {ok, lists:reverse(Out)};
 
 validated_cmds([#{ effect := Effect,
                    encoder := Spec }|Rem], Model, Config, Effects, Out) ->
-    case effect_mod(Effect, Effects) of 
+    case resolve_effect(Effect, Effects, Model) of 
         {ok, Mod} ->
             case cmencode:encode(Spec, Model, Config) of 
                 {ok, Params} ->
@@ -132,7 +191,7 @@ validated_cmds([#{ effect := Effect,
     end;
 
 validated_cmds([#{ effect := Effect }|Rem], Model, Config, Effects, Out) ->
-    case effect_mod(Effect, Effects) of 
+    case resolve_effect(Effect, Effects, Model) of 
         {ok, Mod} ->
             validated_cmds(Rem, Model, Config, Effects, [{Mod, #{}}|Out]);
         Other ->
@@ -151,16 +210,6 @@ cmds(Specs, Model, Config, Pid, Effects) ->
             ok;
         Other ->
             Other
-    end.
-
-effect_mod(Effect, Effects) ->
-    case maps:get(Effect, Effects, undef) of
-        undef ->
-            {error, #{ effect => Effect,
-                       status => not_found,
-                       effects => maps:keys(Effects) }};
-        Mod ->
-            {ok, Mod}
     end.
 
 update_spec(#{ update := Updates }, Encoders, Msg, Data, Model, Config) ->
