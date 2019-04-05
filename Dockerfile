@@ -3,6 +3,7 @@ MAINTAINER Pedro Gutiérrez <pedrogutierrez@mac.com>
 RUN apt-get update; apt-get install -y libgd-dev libwebp-dev inotify-tools vim tree
 RUN mkdir -p /opt/cmnode/apps; mkdir ~/.ssh; ssh-keyscan github.com >> ~/.ssh/known_hosts
 ENV CMHOME /opt/cmnode
+RUN rm -rf rebar3; wget https://github.com/erlang/rebar3/releases/download/3.9.1/rebar3; chmod +x rebar3
 ENV CODE_LOADING_MODE interactive
 ENV RELX_REPLACE_OS_VARS true
 ENV CMNODE cmnode
