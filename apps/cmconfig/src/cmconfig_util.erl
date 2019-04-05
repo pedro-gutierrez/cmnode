@@ -1824,8 +1824,9 @@ compile_term(#{ <<"fail">> := Spec }, Index) ->
 compile_term(#{ <<"receive">> :=
                 #{ <<"from">> := From,
                    <<"spec">> := Spec,
-                   <<"as">> := As }}, Index) ->
+                   <<"as">> := As }} = Spec0, Index) ->
     #{ type => recv,
+       retry => maps:get(<<"retry">>, Spec0, true),
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
        as => compile_term(As, Index)
@@ -1833,9 +1834,10 @@ compile_term(#{ <<"receive">> :=
 
 compile_term(#{ <<"receive">> := Spec,
                 <<"from">> := From,
-                <<"as">> := Remember}, Index) ->
+                <<"as">> := Remember} = Spec0, Index) ->
 
     #{ type => recv,
+       retry => maps:get(<<"retry">>, Spec0, true),
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
        as => compile_term(Remember, Index)
@@ -1844,8 +1846,9 @@ compile_term(#{ <<"receive">> := Spec,
 compile_term(#{ <<"receive">> :=
                 #{ <<"from">> := From,
                    <<"spec">> := Spec,
-                   <<"remember">> := Remember }}, Index) ->
+                   <<"remember">> := Remember }} = Spec0, Index) ->
     #{ type => recv,
+       retry => maps:get(<<"retry">>, Spec0, true),
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
        as => compile_object(Remember, Index)
@@ -1853,9 +1856,10 @@ compile_term(#{ <<"receive">> :=
 
 compile_term(#{ <<"receive">> := Spec,
                 <<"from">> := From,
-                <<"remember">> := Remember}, Index) ->
+                <<"remember">> := Remember} = Spec0, Index) ->
 
     #{ type => recv,
+       retry => maps:get(<<"retry">>, Spec0, true),
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
        as => compile_object(Remember, Index)
@@ -1863,25 +1867,24 @@ compile_term(#{ <<"receive">> := Spec,
 
 compile_term(#{ <<"receive">> :=
                 #{ <<"from">> := From,
-                   <<"spec">> := Spec }}, Index) ->
+                   <<"spec">> := Spec }} = Spec0, Index) ->
 
     #{ type => recv,
+       retry => maps:get(<<"retry">>, Spec0, true),
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
        as => latest
      };
 
 compile_term(#{ <<"receive">> := Spec,
-                <<"from">> := From }, Index) ->
+                <<"from">> := From } = Spec0, Index) ->
 
     #{ type => recv,
+       retry => maps:get(<<"retry">>, Spec0, true),
        from => compile_term(From, Index),
        spec => compile_term(Spec, Index),
        as => latest
      };
-
-
-
 
 compile_term(#{ <<"parallel">> := #{
                     <<"count">> := Count,
@@ -2224,10 +2227,12 @@ compile_term(#{ <<"expect">> := Expect,
              end,
 
     #{ type => expect,
+       retry => maps:get(<<"retry">>, Spec, false),
        spec => compile_term(#{ <<"match">> => Match2 }, Index)}; 
 
 compile_term(#{ <<"expect">> := Spec }, Index) ->
     #{ type => expect,
+       retry => maps:get(<<"retry">>, Spec, false),
        spec => compile_term(Spec, Index)
      };
 
@@ -2243,7 +2248,7 @@ compile_term(#{ <<"match">> := #{
                 RememberSpec ->
                     Expr#{ map => compile_term(RememberSpec, Index) }
             end,
-
+    
     #{ type => match, spec => Expr2 };
 
 compile_term(#{ <<"match">> := ValueSpec,

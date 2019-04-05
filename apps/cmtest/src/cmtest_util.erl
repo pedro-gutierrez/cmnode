@@ -626,7 +626,8 @@ recv([S|Rem], In, World) ->
     end;
 
 recv(#{ from := Name,
-        spec := Spec } = RecvSpec, In, #{ data := Data,
+        spec := Spec,
+        retry := Retry } = RecvSpec, In, #{ data := Data,
                                           conns := Conns }=World) ->
     case maps:get(Name, Conns, undef) of 
         undef -> 
@@ -661,7 +662,19 @@ recv(#{ from := Name,
                                        connection => Name }}
                     end;
                 no_match -> 
-                    {retry, World}
+                    case Retry of 
+                        true -> 
+                            {retry, World};
+                        false ->
+                            case is_inverse(World) of
+                                false ->
+                                    {error, #{ error => message_not_received,
+                                               spec => RecvSpec,
+                                               conn => Name }};
+                                true ->
+                                    {ok,World}
+                            end
+                    end
             end
     end.
 
@@ -725,11 +738,23 @@ run(#{ type := iterate,
 
 
 run(#{ type := expect, 
+       retry := Retry,
        spec := Spec }, Settings, #{ data := Data }=World) ->
     In = World#{ settings => Settings },
     case cmencode:encode(Spec, In) of 
-        {ok, false} -> 
-            {retry, World};
+        {ok, false} ->
+            case Retry of 
+                true ->
+                    {retry, World};
+                false ->
+                    case is_inverse(World) of 
+                        false ->
+                            {error, #{ error => failed_expectation,
+                                       spec => Spec }};
+                        true ->
+                            {ok, World}
+                    end
+            end;
         {ok, Encoded} -> 
             case is_inverse(World) of 
                 true ->
