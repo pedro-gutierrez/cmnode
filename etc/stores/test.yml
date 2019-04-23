@@ -1,0 +1,4 @@
+type: store 
+name: test 
+spec:
+  storage: disc

@@ -14,6 +14,21 @@ effect_apply(#{ context := C,
                           context => C });
 
 effect_apply(#{ context := C,
+                buckets := Buckets,
+                restart := _ }, Id) ->
+    
+    R = case restart(Buckets) of 
+            ok ->
+                #{status => ok};
+            {error, E} ->
+                #{ status => error,
+                   reason => E}
+        end,
+            
+    cmcore:update(Id, R#{ buckets => Buckets,
+                          context => C });
+
+effect_apply(#{ context := C,
                 bucket := B,
                 put := Values }=Spec, Id) ->
 
@@ -231,3 +246,13 @@ reply_from({error, E}, _) ->
 reply_from(Other, _) -> 
     #{ status => error,
        error => Other }.
+
+
+restart([]) -> ok;
+restart([B|Rest]) ->
+    case cmdb:restart(cmkit:to_atom(B)) of 
+        ok -> 
+            restart(Rest);
+        Other ->
+            Other
+    end.

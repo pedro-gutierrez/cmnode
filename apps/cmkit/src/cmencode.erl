@@ -26,10 +26,21 @@ encode(#{ maybe := Spec}, In, Config) ->
 encode(Map, _, _) when is_map(Map) andalso map_size(Map) =:= 0 -> 
     {ok, #{}};
 
-encode(#{ type := object, spec := Spec} = Spec0, In, Config) ->
+encode(#{ type := object, 
+          mode := Mode,
+          spec := Spec} = Spec0, In, Config) ->
     case with_where(Spec0, In, Config) of 
         {ok, In2} ->
-            encode_object(Spec, In2, Config);
+            encode_object(Spec, In2, Config, Mode);
+        Other ->
+            Other
+    end;
+
+encode(#{ type := object, 
+          spec := Spec} = Spec0, In, Config) ->
+    case with_where(Spec0, In, Config) of 
+        {ok, In2} ->
+            encode_object(Spec, In2, Config, strict);
         Other ->
             Other
     end;
@@ -938,6 +949,9 @@ encode(#{ type := asset,
         Other -> Other
     end;
 
+encode(#{ type := cmdata }, _, _) ->
+    {ok, cmkit:data()};
+
 encode(#{ type := equal, 
           spec := Specs } = Spec, In, Config) when is_list(Specs) -> 
     case encode_all(Specs, In, Config) of 
@@ -974,17 +988,27 @@ encode(#{ type := multiply,
     end;
 
 encode(#{ type := sum,
-          spec := Specs } = Spec, In, Config) ->
-
-    Res = foldl(Specs, In, Config, 0, fun(V, Acc) when is_number(V) ->
-                                              {ok, Acc +V};
-                                         (Other, _) ->
-                                              nan(Other, Spec)
-                                      end), 
+          spec := Spec } = Spec0, In, Config) ->
     
-    case Res of 
-        N when is_number(N) -> {ok, N};
-        Other -> Other
+    case encode(Spec, In, Config) of 
+        {ok, Terms} when is_list(Terms) ->
+            fold_numbers(Terms, fun(A, B) -> A+B end);
+        {ok, NotSupported} ->
+            fail(Spec0, NotSupported, not_a_list);
+        Other ->
+            Other
+    end;
+
+encode(#{ type := max,
+          spec := Spec } = Spec0, In, Config) ->
+
+    case encode(Spec, In, Config) of
+        {ok, Terms} when is_list(Terms) ->
+            {ok, lists:max(Terms)};
+        {ok, NotSupported} ->
+            fail(Spec0, NotSupported, not_a_list);
+        Other ->
+            Other
     end;
 
 encode(#{ type := difference,
@@ -1308,6 +1332,31 @@ encode(#{ type := encode,
             Other
     end;
 
+encode(#{ type := group,
+          source := ItemsSpec,
+          into := IntoSpec,
+          by := GroupingSpec,
+          as := GroupNameSpec }, In, Config) ->
+    
+    case encode(GroupNameSpec, In, Config) of 
+        {ok, GroupName} ->
+            case encode(IntoSpec, In, Config) of 
+                {ok, Into} ->
+                    case encode(ItemsSpec, In, Config) of 
+                        {ok, Items} when is_list(Items) ->
+                            group_items(GroupName, GroupingSpec, Into, Items);       
+                        {ok, Unsupported} ->
+                            fail(ItemsSpec, Unsupported, not_a_list);
+                        Other ->
+                            Other
+                    end;
+                Other ->
+                    Other
+            end;
+        Other ->
+            Other
+    end;
+
 encode(#{ type := iterate, 
           spec := #{ source := SourceSpec,
                      filter := FilterSpec,
@@ -1581,15 +1630,24 @@ encode(List, In, Config) when is_list(List) ->
 encode(Value, _, _) ->
     {ok, Value}.
 
-encode_object(Spec, In, Config) ->
-    encode_object(maps:keys(Spec), Spec, In, Config, #{}).
+encode_object(Spec, In, Config, Mode) ->
+    encode_object(maps:keys(Spec), Spec, In, Config, Mode, #{}).
 
-encode_object([], _, _,_, Out) -> {ok, Out};
-encode_object([K|Rem], Spec, In, Config, Out) ->
+encode_object([], _, _,_, _, Out) -> {ok, Out};
+
+encode_object([K|Rem], Spec, In, Config, strict, Out) ->
     case encode(maps:get(K, Spec), In, Config) of 
         {ok, V} ->
-            encode_object(Rem, Spec, In, Config, Out#{ K => V });
+            encode_object(Rem, Spec, In, Config, strict, Out#{ K => V });
         Other -> Other
+    end;
+
+encode_object([K|Rem], Spec, In, Config, loose, Out) ->
+    case encode(maps:get(K, Spec), In, Config) of 
+        {ok, V} ->
+            encode_object(Rem, Spec, In, Config, loose, Out#{ K => V });
+        _ -> 
+            encode_object(Rem, Spec, In, Config, loose, Out)
     end.
 
 encode_list(Specs, In, Config) ->
@@ -1861,6 +1919,15 @@ all_equal([V|Rem], V) -> all_equal(Rem, V);
 all_equal(_, _) -> false.
 
 
+fold_numbers(Numbers, Fun) ->
+    fold_numbers(Numbers, Fun, 0).
+
+fold_numbers([], _, Result) -> {ok, Result};
+fold_numbers([N|Rest], Fun, Result) when is_number(N) ->
+    fold_numbers(Rest, Fun, Fun(N, Result));
+fold_numbers([N|_], _, _) -> {error, #{ error => not_a_number,
+                                        value => N}}.
+
 
 foldl([], _, _, Acc, _) -> {ok, Acc};
 foldl([S|Rem], In, Config, Acc, Fun) ->
@@ -1894,3 +1961,39 @@ nan(Value, Spec) ->
                spec => Spec,
                data => Value,
                reason => not_a_number }}.
+
+
+group_items(GroupAlias, GroupingSpec,  Into, Items) ->
+    case groups(Items, GroupingSpec, #{ names => [], 
+                                                   groups => #{}}) of 
+        {ok, Index} ->
+            sorted_groups(GroupAlias, Into, Index);
+        Other ->
+            Other
+    end.
+
+
+groups([], _, Index) -> {ok, Index};
+groups([Item|Rest], GroupingSpec,  #{ names := GroupNames,
+                                      groups := Groups } = Index) -> 
+    
+    case encode(GroupingSpec, Item) of 
+        {ok, GroupName} ->
+            case maps:get(GroupName, Groups, undef) of 
+                undef ->
+                    groups(Rest, GroupingSpec, Index#{ names => [GroupName|GroupNames],
+                                                       groups => Groups#{ GroupName => [Item]} });
+                Group ->
+                    groups(Rest, GroupingSpec, Index#{ groups => Groups#{ GroupName => [Item|Group]}})
+            end;
+        Other ->
+            Other
+    end.
+
+sorted_groups(GroupAlias, Into,  #{ names := GroupNames,
+                                    groups := Groups }) ->
+    {ok, lists:map(fun(N) ->
+                      Items = maps:get(N, Groups),
+                      #{ GroupAlias => N,
+                         Into => lists:reverse(Items) }
+              end, lists:reverse(GroupNames))}.

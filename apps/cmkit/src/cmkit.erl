@@ -651,6 +651,15 @@ format_date(#{ year := Y, month := M, day := D} , yyyymmdd) ->
             invalid
     end;
 
+format_date(#{ year := Y, month := M, day := D, 
+               hour := H, minute := Min, second := Secs} , yyyymmddhhmmss) -> 
+    try 
+        to_bin(lists:flatten(io_lib:format("~4..0w~2..0w~2..0w~2..0w~2..0w~2..0w",[Y,M,D, H, Min, Secs])))
+    catch
+        _:_ ->
+            invalid
+    end;
+
 format_date(_, _) ->
     invalid.
 

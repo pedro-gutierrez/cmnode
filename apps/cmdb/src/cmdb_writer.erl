@@ -25,6 +25,10 @@ handle_call(reset, _, Data) ->
     {ok, Data2} = reset(Data),
     {reply, ok, Data2};
 
+handle_call(restart, _, Data) ->
+    {ok, Data2} = restart(Data),
+    {reply, ok, Data2};
+
 handle_call({put, Entries}, _, Data) ->
     
     write_and_reply(distinct(Entries), Data);
@@ -116,17 +120,31 @@ start(#{ name := Name,
         ref => Ref }.
 
 
-reset(#{ log := Log,
-         name := Name,
-         pid := Fd,
-         ref := Ref} = Data) ->
+restart(Data) -> 
+    restart(Data, []).
+
+restart(#{ log := Log,
+           name := Name,
+           pid := Fd,
+           ref := Ref} = Data, Opts) ->
+    
     erlang:demonitor(Ref),
     ok = cbt_file:close(Fd),
     Filename = filename:join([cmkit:data(), atom_to_list(Name) ++ ".cbt"]),
-    ok = file:delete(Filename),
+    case lists:member(delete, Opts) of
+        true ->
+            ok = file:delete(Filename),
+            ok;
+        false -> 
+            ok
+    end,
     Data2 = start(Data),
     Log({Name, resetted}),
     {ok, Data2}.
+
+
+reset(Data) ->
+    restart(Data, [delete]).
 
 distinct(E) ->
     maps:to_list(lists:foldl(fun({S, P, O, V}, Idx) ->

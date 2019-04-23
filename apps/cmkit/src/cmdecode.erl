@@ -427,14 +427,21 @@ decode_term(#{ all := Specs }, In, Config) when is_list(Specs) ->
     decode_all_specs(Specs, In, Config);
 
 decode_term(#{ type := member,
-               spec := Spec }, In, Config) ->
-    case cmencode:encode(Spec, In, Config) of
+               spec := Spec }, In, Context) ->
+    case cmencode:encode(Spec, Context) of
         {ok, Members} when is_list(Members) ->
             case lists:member(In, Members) of 
                 true ->
                     {ok, In};
                 false ->
                     no_match
+            end;
+        {ok, Members} when is_map(Members) ->
+            case cmkit:value_at(In, Members) of 
+                undef ->
+                    no_match;
+                Value ->
+                    {ok, Value}
             end;
         {ok, Other} ->
             cmkit:warning({cmdecode, member, Spec, not_a_list, Other}),

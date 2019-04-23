@@ -538,11 +538,20 @@ term(#{ type := divide,
 
 
 term(#{ type := sum,
-        spec := Specs }, Settings) -> 
+        spec := Specs }, Settings) when is_list(Specs) -> 
     case terms(Specs, Settings) of 
         {ok, CompiledTerms} -> 
             {ok, #{ sum => CompiledTerms}};
         Other -> 
+            Other
+    end;
+
+term(#{ type := sum,
+        spec := Spec }, Settings) -> 
+    case term(Spec, Settings) of 
+        {ok, Compiled} ->
+            {ok, #{ sum => Compiled}};
+        Other ->
             Other
     end;
 

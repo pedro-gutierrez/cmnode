@@ -4,6 +4,8 @@
          app/1,
          buckets/0,
          bucket/1,
+         stores/0,
+         store/1,
          crons/0,
          cron/1,
          modules/0,
@@ -36,6 +38,8 @@ apps() -> {ok, V} = cmkit:app_env(cmconfig, app), V.
 app(N) -> cmkit:app_env(cmconfig, app, N).
 buckets() -> {ok, V} = cmkit:app_env(cmconfig, bucket), V.
 bucket(N) -> cmkit:app_env(cmconfig, bucket, N).
+stores() -> {ok, V} = cmkit:app_env(cmconfig, store), V.
+store(N) -> cmkit:app_env(cmconfig, store, N).
 crons() -> {ok, V} = cmkit:app_env(cmconfig, cron), V.
 cron(N) -> cmkit:app_env(cmconfig, cron, N).
 modules() -> {ok, V} = cmkit:app_env(cmconfig, module), V.

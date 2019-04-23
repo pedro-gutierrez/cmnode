@@ -1,6 +1,7 @@
 -module(cmdb).
 -export([
          reset/1,
+         restart/1,
          put/2,
          delete/2,
          insert/2,
@@ -17,6 +18,9 @@
 
 reset(Name) -> 
     cmdb_util:write(Name, reset).
+
+restart(Name) -> 
+    cmdb_util:write(Name, restart).
 
 put(Name, Entries) -> 
     cmdb_util:write(Name, {put, Entries}).

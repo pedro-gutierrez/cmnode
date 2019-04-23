@@ -23,6 +23,7 @@
                 cron,
                 test,
                 bucket,
+                store,
                 service,
                 task,
                 topic]).
@@ -164,6 +165,7 @@ ranked_spec(#{ <<"type">> := Type }=Spec) ->
 compile(#{ <<"type">> := <<"port">> }=Spec, Index) -> {ok, compile_port(Spec, Index)};
 compile(#{ <<"type">> := <<"app">> }=Spec, Index) -> {ok, compile_app(Spec, Index)};
 compile(#{ <<"type">> := <<"bucket">> }=Spec, Index) -> {ok, compile_bucket(Spec, Index)};
+compile(#{ <<"type">> := <<"store">> }=Spec, Index) -> {ok, compile_store(Spec, Index)};
 compile(#{ <<"type">> := <<"template">> }=Spec, Index) -> {ok, compile_template(Spec, Index)};
 compile(#{ <<"type">> := <<"module">> }=Spec, Index) -> {ok, compile_module(Spec, Index)};
 compile(#{ <<"type">> := <<"test">> }=Spec, Index) -> {ok, compile_test(Spec, Index)};
@@ -557,6 +559,19 @@ compile_bucket(#{ <<"name">> := Name,
 
 compile_bucket(#{ <<"spec">> := Spec} = Spec0, Index) ->
     compile_bucket(Spec0#{ <<"spec">> => Spec#{ <<"storage">> => <<"disc">>}}, Index).
+
+compile_store(#{ <<"name">> := Name,
+                  <<"rank">> := Rank,
+                  <<"spec">> := #{
+                      <<"storage">> := Storage
+                     } = Spec}, _) ->
+
+    #{ type => store,
+       rank => Rank,
+       name => cmkit:to_atom(Name),
+       storage =>  cmkit:to_atom(Storage),
+       debug =>  cmkit:to_atom(maps:get(<<"debug">>, Spec, <<"false">>))
+     }.
 
 compile_test(#{ <<"name">> := Name,
                 <<"rank">> := Rank,
@@ -1126,6 +1141,9 @@ compile_term(#{ <<"file">> := Spec }, Index) when is_map(Spec) ->
        spec => compile_term(Spec, Index)
      };
 
+compile_term(#{ <<"cmdata">> := _}, _) ->
+    #{ type => cmdata };
+
 compile_term(#{ <<"asset">> := Spec,
                 <<"as">> := As }, Index) ->
 
@@ -1222,7 +1240,15 @@ compile_term(#{ <<"perf">> := <<"stats">> }, _) ->
     #{ type => perf };
 
 compile_term(#{ <<"object">> := Object} = Spec, Index) ->
-    with_where(Spec, compile_object(Object, Index), Index);
+    Compiled = compile_object(Object, Index),
+    Mode = case maps:get(<<"mode">>, Spec, strict) of 
+               strict ->
+                   strict;
+               Other ->
+                   cmkit:to_atom(Other)
+           end,
+    Compiled2 = Compiled#{ mode => Mode},
+    with_where(Spec, Compiled2, Index);
 
 compile_term(#{ <<"without_keys">> := Keys }, Index) when is_list(Keys) ->
     #{ type => without_keys,
@@ -1657,11 +1683,13 @@ compile_term(#{ <<"less_than">> := S }, Index)  ->
     #{ type => lower_than,
        spec => compile_term(S, Index) };
 
-compile_term(#{ <<"sum">> := Specs }, Index) when is_list(Specs) ->
+compile_term(#{ <<"sum">> := Spec }, Index) ->
     #{ type => sum,
-       spec => lists:map(fun(S) ->
-                            compile_term(S, Index)
-                         end, Specs)};
+       spec => compile_term(Spec, Index) };
+
+compile_term(#{ <<"max">> := Spec }, Index) ->
+    #{ type => max,
+       spec => compile_term(Spec, Index) };
 
 compile_term(#{ <<"multiply">> := Specs }, Index) when is_list(Specs) ->
     #{ type => multiply,
@@ -1712,6 +1740,14 @@ compile_term(#{ <<"percentage">> := #{ <<"num">> := Num,
        num => compile_term(Num, Index),
        den => compile_term(Den, Index)
      };
+
+
+compile_term(#{ <<"member">> := MemberSpec,
+                <<"in">> := InSpec }, Index ) -> 
+
+    #{ type => member,
+       spec => #{ value => compile_term(MemberSpec, Index),
+                  in => compile_term(InSpec, Index) }};
 
 compile_term(#{ <<"member">> := Spec }, Index) ->
 
@@ -2290,6 +2326,17 @@ compile_term(#{ <<"encode">> := SourceSpec,
 compile_term(#{ <<"encode">> := _,
                 <<"with">> := With } = Spec, Index) when is_binary(With) ->
     compile_term(Spec#{ <<"with">> => #{ <<"encoder">> => With }}, Index);
+
+
+compile_term(#{ <<"group">> := Items,
+                <<"into">> := Into,
+                <<"by">> := GroupingDecoder,
+                <<"as">> := GroupName }, Index) ->
+    #{ type => group,
+       source => compile_term(Items, Index),
+       into => compile_term(Into, Index),
+       by => compile_term(GroupingDecoder, Index),
+       as => compile_term(GroupName, Index) };
 
 compile_term(#{ <<"iterate">> := SourceSpec,
                 <<"with">> := DestSpec } = Spec, Index) ->

@@ -261,8 +261,19 @@ encoded_body(Mime, Data) when is_binary(Mime) ->
         true ->
             cmkit:jsone(Data);
         false ->
-            Data
+            encode_binary(Data)
     end.
+
+encode_binary(Bin) when is_binary(Bin) -> Bin;
+encode_binary(List) when is_list(List) -> 
+    case cmkit:is_string(List) of 
+        true -> 
+            cmkit:to_bin(List);
+        false ->
+            erlang:term_to_binary(List)
+    end;
+encode_binary(Other) ->
+    erlang:term_to_binary(Other).
 
 encoded_url(Url) -> cmkit:to_list(Url).
 encoded_headers(H) when is_map(H) ->

@@ -129,7 +129,7 @@ resolve_cmd(Encoders, CmdSpec, Model) ->
 encoder_named(Name, Encs) ->
     case cmkit:value_at(Name, Encs) of 
         undef -> 
-            unknown_encoder(Name, Encs);
+            {error, unknown_encoder(Name, Encs)};
         Enc ->
             {ok, Enc}
     end.
@@ -159,7 +159,7 @@ resolve_effect(Expr, Effects, Model) when is_map(Expr)->
 effect_named(Name, Effects) ->
     case cmkit:value_at(Name, Effects) of
         undef ->
-            unknown_effect(Name, Effects);
+            {error, unknown_effect(Name, Effects)};
         Mod ->
             {ok, Mod}
     end.
