@@ -1,0 +1,131 @@
+type: module
+name: passwd_reset_link
+spec:
+  decoders:
+    token:
+      object:
+        kind: registration
+        id:
+          non_empty: text
+        event: token 
+        data:
+          object:
+            token:
+              non_empty: text
+    registration:
+      object:
+        context: registration
+        status: 
+          keyword: ok
+        data:
+          object:
+            data:
+              object:
+                email:
+                  any: email
+                lang:
+                  non_empty: text
+                first:
+                  non_empty: text
+    no_registration:
+      object:
+        context: registration
+        status: 
+          keyword: ok
+        data:
+          empty: list
+    multiple_registrations:
+      object:
+        context: registration
+        status: 
+          keyword: ok
+        data:
+          non_empty: list
+    email_sent:
+      object:
+        service: email
+        status:
+          keyword: ok
+    email_written:
+      object:
+        context: email_event
+        status:
+          keyword: ok
+  update:
+    token:
+      - when: @app.emails.enabled
+        model:
+          token: @data.token
+          registration: @id
+        cmds:
+          - effect: store
+            encoder: registration
+      - cmds:
+          - effect: terminate
+    registration:
+      model:
+        object:
+          email: @data.data.email
+          first: @data.data.first
+          lang: @data.data.lang
+      cmds:
+        - effect: service
+          encoder: email
+    email_sent:
+      cmds:
+        - effect: store
+          encoder: email_event
+    email_written:
+      cmds:
+        - effect: terminate
+  encoders:
+    registration:
+      object:
+        context: registration
+        store: @store
+        read:
+          object:
+            app: @app.name
+            kind: registration
+            id: @registration
+            event: created
+    email:
+      object:
+        service: email
+        params:
+          account: @app.emails.id
+          to: @email
+          subject: Password reset
+          body:
+            format: |+
+              Hello {{first}},
+
+              A password reset was requested on {{app}} using your email address.
+              
+              To reset the password for {{email}}, follow the link below.
+              
+              {{baseUrl}}/#/reset/{{token}}
+              
+              P.S. The password reset links are only valid for next 30 minutes.
+              
+              If you think you received this message by mistake, you can ignore it or contact support at support@{{account}}.
+            params:
+              object:
+                first: @first
+                app: @app.title
+                email: @email
+                baseUrl: @app.baseUrl
+                account: @app.emails.id
+                token: @token
+    email_event:
+      context: email_event
+      store: @store
+      write: 
+        object:
+          app: @app.name
+          kind: registration
+          id: @registration
+          event: email
+          data:
+            object:
+              token: @token

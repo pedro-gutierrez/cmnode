@@ -3,7 +3,7 @@ name: init
 spec:
   debug: true
   filters:
-    - app
+    - client_app
   modules:
     - common_api
     - init

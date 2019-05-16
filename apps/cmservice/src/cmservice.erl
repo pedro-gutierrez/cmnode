@@ -1,9 +1,8 @@
 -module(cmservice).
--export([run/2, run/3]).
-
+-export([run/2]).
 
 run(App, Data) ->
-    run(App, self(), Data).
-
-run(App, From, Data) ->
-    cmservice_sup:new(App, From, Data).
+    case cmservice_sup:new(App, Data) of 
+        {ok, _} -> ok;
+        Other -> Other
+    end.

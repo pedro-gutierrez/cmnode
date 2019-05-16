@@ -1,0 +1,13 @@
+type: app
+name: passwd_reset_token
+spec: 
+  debug: true
+  tags:
+    - service
+  filters:
+    - event_app
+  modules:
+    - common_service
+    - passwd_reset_token
+  settings:
+    - apps

@@ -4,6 +4,7 @@
          reader/1,
          writer/1,
          write/2,
+         read/1,
          read/2,
          read_all/2,
          read/3,
@@ -29,10 +30,7 @@ writer(N) -> {bucket, writer, N}.
 
 write(Name, Msg) ->
     case cmbus:members(writer(Name)) of 
-        [] ->
-            {error, #{ bucket => Name,
-                       error => not_enough_pids}};
-        Pids ->
+        {ok, Pids} ->
             Results = lists:map(fun(Pid) ->
                                         gen_server:call(Pid, Msg)
                                 end, Pids),
@@ -41,12 +39,16 @@ write(Name, Msg) ->
                     Value;
                 Other ->
                     {error, Other}
-            end
+            end;
+        {error, E} ->
+            {error, #{ bucket => Name,
+                       error => E}}
+
     end.
 
 with_reader_pid(Name, Fun) ->
     case cmbus:closest(reader(Name)) of
-        Pid when is_pid(Pid) ->
+        {ok, [Pid]} when is_pid(Pid) ->
             Fun(Pid);
         {error, E} ->
             cmkit:danger({Name, reader, E}),
@@ -58,6 +60,9 @@ with_tree(Pid, Fun) ->
     {_, Root} = Header,
     {ok, Tree} = cbt_btree:open(Root, Pid),
     Fun(Tree).
+
+read(Tree) ->
+    read(Tree, {}).
 
 read(Name, Spec) when is_atom(Name) ->
     with_reader_pid(Name, fun(Pid) ->
@@ -164,6 +169,9 @@ match_fun({S, P, O1, O2}) ->
        (_, _) -> 
             stop
     end;
+
+match_fun({}) ->
+    fun(_, _) -> true end;
 
 match_fun(_) ->
     fun(_, _) -> stop end.

@@ -5,32 +5,47 @@
 
 effect_info() -> bus.
 
-effect_apply(#{ sub := [Prefix, Value] = T,
-                create := true }, Pid) ->
+effect_apply(#{ context := Context,
+                sub := T } = Spec, Pid) ->
     
-    Topic = {Prefix, Value},
-    Res = cmbus:create_sub(Topic, Pid),
+    Res = case maps:get(create, Spec, false) of 
+        false ->
+            cmbus:sub(T, Pid);
+        true ->
+            cmbus:create_sub(T, Pid)
+    end,
+
     cmcore:update(Pid, #{ topic => T,
+                          context => Context,
                           status => Res });
 
 effect_apply(#{ context := Context,
-                pub := Topics,
+                unsub := T } = Spec, Pid) ->
+    
+    Res0 = cmbus:unsub(T, Pid),
+    Res = case maps:get(delete, Spec, false) of 
+        false -> 
+            Res0;
+        true ->
+            cmbus:delete(T)
+    end,    
+    cmcore:update(Pid, #{ topic => T,
+                          context => Context,
+                          status => Res });
+
+effect_apply(#{ context := Context,
+                topic := Topic,
                 data := Data }, Pid) ->
     
-    Payload = #{ data => Data },
-    lists:foreach(fun([P, V]) ->
-                    cmbus:pub({P, V}, Payload)      
-                  end, Topics),
-
-    cmcore:update(Pid, #{ context => Context,
-                          status => ok });
-
-effect_apply(#{ subscription := Topic }, Pid) ->
-    Res = case cmconfig:topic(Topic) of 
-              {ok, #{ name := T}} ->
-                  cmbus:sub(T, Pid);
-              {error, E} ->
-                  E
-          end,
-    cmcore:update(Pid, #{ topic => Topic,
-                          subscription => Res }).
+    case cmbus:closest(Topic) of 
+        {error, E} ->
+            cmcore:update(Pid, #{ context => Context,
+                                  status => error,
+                                  topic => Topic,
+                                  error => E });
+        {ok, [Pid2]} ->
+            cmcore:update(Pid2, Data),
+            cmcore:update(Pid, #{ context => Context,
+                                  status => ok,
+                                  topic => Topic })
+    end.

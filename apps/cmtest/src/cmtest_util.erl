@@ -168,8 +168,12 @@ scenarios_by_tag(Tag, Scenarios) ->
                       end, Scenarios)}.
 
 steps_from_background(#{ steps := Steps}) -> Steps.
-steps_from_backgrounds(Backgrounds) ->
-    lists:flatten(lists:map(fun steps_from_background/1, Backgrounds)).
+steps_from_backgrounds(Backgrounds) when is_list(Backgrounds) ->
+    lists:flatten(lists:map(fun steps_from_background/1, Backgrounds));
+
+steps_from_backgrounds(Other) ->
+    cmkit:warning({cmtest, steps_from_backgrounds, unexpected, Other}),
+    [].
 
 
 steps(#{ steps := Steps,

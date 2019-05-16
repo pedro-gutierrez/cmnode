@@ -1,12 +1,12 @@
 type: app
-name: register_api
+name: register
 spec:
   debug: true
   filters:
-    - app
+    - client_app
     - anonymous
   modules:
     - common_api
-    - register_api
+    - register
   settings:
     - apps

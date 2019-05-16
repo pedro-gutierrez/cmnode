@@ -6,6 +6,21 @@
 
 effect_info() -> http.
 
+effect_apply(#{ context := Context,
+                requests := [] }, SessionId) ->
+    
+    cmcore:update(SessionId, #{ context => Context,
+                                error => no_requests });
+
+effect_apply(#{ context := Context,
+                requests := Specs }, SessionId) when is_list(Specs) ->
+    case do_specs(Specs, []) of 
+        {ok, Resps} ->
+            cmcore:update(SessionId, #{ context => Context,
+                                        responses => Resps });
+        Other ->
+            Other
+    end;
 
 effect_apply(Spec, SessionId) when is_map(Spec) ->
         
@@ -15,15 +30,6 @@ effect_apply(Spec, SessionId) when is_map(Spec) ->
         Other ->
             Other
     end;
-
-effect_apply(Specs, SessionId) when is_list(Specs) ->
-    case do_specs(Specs, []) of 
-        {ok, Resps} ->
-            cmcore:update(SessionId, #{ responses => Resps });
-        Other ->
-            Other
-    end;
-
 
 effect_apply(#{ stream := Stream } = Q, SessionId) ->
     cmkit:log({cmeffect, http, Q}),

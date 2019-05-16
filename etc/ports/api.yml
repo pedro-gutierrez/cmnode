@@ -11,9 +11,11 @@ spec:
       #http: "/css/styles.css"
     init:
       http: "/api/init"
+    health:
+      http: "/health"
     acme:
       http: "/api/acme/:domain/:value"
-    register_api:
+    register:
       http: "/api/register"
     login_api:
       http: "/api/login"

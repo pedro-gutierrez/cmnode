@@ -10,6 +10,7 @@
          merge/6,
          match/3,
          match/4,
+         get/1,
          get/2,
          get/3,
          get/4,
@@ -45,6 +46,9 @@ match(Name, S, V) ->
 
 match(Name, S, P, V) ->
     cmdb_util:read(Name, {S, P}, V).
+
+get(Name) ->
+    cmdb_util:read(Name).
 
 get(Name, Keys) when is_list(Keys) -> 
     cmdb_util:read(Name, Keys);

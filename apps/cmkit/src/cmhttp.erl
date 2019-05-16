@@ -266,12 +266,16 @@ encoded_body(Mime, Data) when is_binary(Mime) ->
 
 encode_binary(Bin) when is_binary(Bin) -> Bin;
 encode_binary(List) when is_list(List) -> 
-    case cmkit:is_string(List) of 
-        true -> 
-            cmkit:to_bin(List);
-        false ->
-            erlang:term_to_binary(List)
-    end;
+    cmkit:to_bin(List);
+
+    %%case cmkit:is_string(List) of 
+    %%    true -> 
+    %%        cmkit:warning({http, encode_binary, is_string}),
+    %%        cmkit:to_bin(List);
+    %%    false ->
+    %%        cmkit:warning({http, encode_binary, is_not_string}),
+    %%        erlang:term_to_binary(List)
+    %%end;
 encode_binary(Other) ->
     erlang:term_to_binary(Other).
 
@@ -295,12 +299,20 @@ withQs(Url, _) -> Url.
 
 encodedQs(Map) when is_map(Map) ->
     Params = cmkit:bin_join(maps:fold(fun(K, V, Acc) ->
-                                        KBin = cmkit:to_bin(K),
-                                        VBin = cmkit:to_bin(V),
-                                        [<<KBin/binary, "=", VBin/binary>>|Acc]
+                                              add_to_qs(K, V, Acc)
                                        end, [], Map), <<"&">>),
     <<"?", Params/binary>>;
 
 encodedQs(Bin) when is_binary(Bin) ->
     Bin.
+
+
+add_to_qs(_, [], Qs) -> Qs;
+add_to_qs(K, [V|Rest], Qs) ->
+    add_to_qs(K, Rest, add_to_qs(K, V, Qs));
+
+add_to_qs(K, V, Qs) ->
+    KBin = cmkit:to_bin(K),
+    VBin = cmkit:to_bin(V),
+    [<<KBin/binary, "=", VBin/binary>>|Qs].
 

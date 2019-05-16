@@ -63,11 +63,31 @@ decode_default(#{ default := Spec }, Data, Config) ->
 decode_default(_, _, _) -> no_match.
 
 
-decode_object_without_keys([], In) -> {ok, In};
-decode_object_without_keys([K|Rem], In) ->
+decode_object_without_keys([], _, ok, In) -> {ok, In};
+decode_object_without_keys([], _, false, _) -> no_match;
+
+decode_object_without_keys([K|Rem], all, Result, In) ->
     case cmkit:value_at(K, In) of 
-        undef -> decode_object_without_keys(Rem, In);
+        undef -> decode_object_without_keys(Rem, all, Result, In);
         _ -> no_match
+    end;
+
+decode_object_without_keys([K|Rem], any, Result, In) ->
+    case cmkit:value_at(K, In) of 
+        undef -> 
+            decode_object_without_keys(Rem, any, ok, In);
+        _ ->
+            decode_object_without_keys(Rem, any, Result, In)
+    end.
+
+decode_object_with_keys([], In) -> {ok, In};
+
+decode_object_with_keys([K|Rem], In) ->
+    case cmkit:value_at(K, In) of 
+        undef -> 
+            no_match;
+        _ ->
+            decode_object_with_keys(Rem, In)
     end.
 
 decode_term(In, In, _) ->
@@ -80,15 +100,34 @@ decode_term(#{ type := boolean }, true, _) ->
 decode_term(#{ type := boolean }, false, _) -> 
     {ok, false};
 
-decode_term(#{ type := without_keys, spec := KeySpecs}, In, _) when is_map(In) -> 
-    case cmencode:encode_all(KeySpecs, In) of 
-        {ok, Keys} -> 
-            decode_object_without_keys(Keys, In);
+decode_term(#{ type := without_keys, 
+               match := Match,
+               spec := KeysSpec}, In, Context) when is_map(In) -> 
+    case cmencode:encode(KeysSpec, Context) of 
+        {ok, Keys} ->
+            InitialResult = case Match of 
+                                any -> false;
+                                all -> ok
+                            end,
+            
+            decode_object_without_keys(Keys, Match, InitialResult, In);
         Other -> 
             Other
     end;
 
 decode_term(#{ type := without_keys, spec := _}, _, _) ->  no_match;
+
+decode_term(#{ type := with_keys, 
+               spec := KeysSpec}, In, Context) when is_map(In) -> 
+    
+    case cmencode:encode(KeysSpec, Context) of 
+        {ok, Keys} ->
+            decode_object_with_keys(Keys, In);
+        Other -> 
+            Other
+    end;
+
+decode_term(#{ type := with_keys }, _, _) ->  no_match;
 
 decode_term(#{ type := data }, Data, _) when is_binary(Data) -> {ok, Data};
 decode_term(#{ type := data }, _, _) -> no_match;
@@ -203,12 +242,24 @@ decode_term(#{ type := greater_than, spec := Spec}, Data, Context) ->
     end;
 
 
-decode_term(#{ type := regexp, value := Spec}, Data, Config) -> 
+decode_term(#{ type := regexp, value := Spec}=Spec0, Data, Config) -> 
     case cmencode:encode(Spec, Data, Config) of 
         {ok, EncodedRegex} ->
-            case re:run(Data, EncodedRegex) of 
-                {match, _} -> 
-                    {ok, Data};
+            case re:run(Data, EncodedRegex, [{capture, all_but_first, list}]) of 
+                {match, Groups} ->
+                    case maps:get(labels, Spec0, undef) of 
+                        undef ->
+                            {ok, Data};
+                        LabelsSpec ->
+                            case cmencode:encode(LabelsSpec, Config) of 
+                                {ok, Labels} when is_list(Labels) andalso length(Labels) =:= length(Groups) ->
+                                    cmkit:map_from(Labels, Groups,
+                                                        maps:get(as, Spec0, binary));
+                                Other ->
+                                    cmkit:danger({cmdecode, regexp, incompatible_labels, Groups, Other}),
+                                    no_match
+                            end
+                    end;
                 nomatch -> 
                     no_match
             end;

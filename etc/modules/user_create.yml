@@ -4,8 +4,10 @@ spec:
   decoders:
     register:
       object:
-        bucket:
-          any: keyword
+        app:
+          non_empty: text 
+        id:
+          non_empty: text
         first:
           non_empty: text
         last:
@@ -19,103 +21,74 @@ spec:
             - es
         username:
           non_empty: text
-    success:
-      object: 
+    registered:
+      object:
         context: registration
         status: 
-          keyword: ok
+          keyword: ok 
+    notified:
+      object:
+        context: notification
+        status: 
+          keyword: ok 
     error:
       object:
-        status:
+        status: 
           keyword: error
-        error:
-          other_than:
-            keyword: conflict
-    conflict:
-      object: 
-        context: registration
-        status:
-          keyword: error
-        error: 
-          keyword: conflict
   update:
     register:
       model:
-        object:
-          id:
-            uuid: {}
-          bucket:
-            key: bucket
-          first:
-            key: first
-          last:
-            key: last
-          email:
-            lowercase:
-              key: email
-          lang:
-            key: lang
-          username:
-            lowercase:
-              key: username
+        store: 
+          keyword:
+            config: app
+        event:
+          object:
+            kind: user
+            id: @id
+            event: registered
+            data:
+              object:
+                first: @first
+                last: @last
+                id: @id
+                lang: @lang
+                email: 
+                  lowercase: @email
+                username: 
+                  lowercase: @username
       cmds:
-        - effect: db
+        - effect: store
           encoder: registration
-    success:
+    registered:
+      cmds:
+        - effect: bus
+          encoder: registered
+    notified:
       cmds:
         - effect: terminate
           encoder: success
-    conflict:
+    error:
       cmds:
         - effect: terminate
-          encoder: conflict
+          encoder: error
   encoders:
     success:
       object:
         status:
           keyword: ok
-        id:
-          key: id
-    conflict:
+    error:
       object:
         status:
-          keyword: conflict
+          keyword: error
     registration:
       object:
         context: registration
-        bucket:
-          key: bucket
-        insert:
-          - object:
-              subject: email 
-              predicate:
-                key: email
-              object: owned_by
-              value:
-                key: id
-          - object:
-              subject: username
-              predicate:
-                key: username
-              object: owned_by
-              value:
-                key: id
-          - object:
-              subject: user 
-              predicate: has_id 
-              object:
-                key: id
-              value:
-                object:
-                  first:
-                    key: first
-                  last:
-                    key: last
-                  id:
-                    key: id
-                  email:
-                    key: email
-                  lang:
-                    key: lang
-                  username:
-                    key: username
+        store: @store
+        write: @event
+    registered: 
+      object:
+        context: notification
+        topic:
+          - @event.kind
+          - @event.event
+        data: @event

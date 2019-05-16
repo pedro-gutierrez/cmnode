@@ -395,13 +395,15 @@ compile_template(#{ <<"name">> := Name,
          contents => Contents }.
 
 compile_topic(#{ <<"name">> := Name,
-                    <<"rank">> := Rank,
-                    <<"spec">> := _ }, _) ->
+                 <<"rank">> := Rank,
+                 <<"spec">> := #{ <<"on">> := Spec,
+                                  <<"services">> := Services }}, Index) ->
 
     #{   type => topic,
          rank => Rank,
          name => cmkit:to_atom(Name),
-         spec => #{}}.
+         spec => #{ on => compile_term(Spec, Index),
+                    services => lists:map(fun cmkit:to_atom/1, Services) }}.
 
 compile_metrics(#{ <<"name">> := Name,
                    <<"rank">> := Rank,
@@ -1119,6 +1121,10 @@ compile_term(#{ <<"base64">> := Spec }, Index) ->
     #{ type => base64,
        spec => compile_term(Spec, Index) };
 
+compile_term(#{ <<"hex">> := Spec }, Index) ->
+    #{ type => hex,
+       spec => compile_term(Spec, Index) };
+
 compile_term(#{ <<"json">> := Spec }, Index) ->
     #{ type => json,
        spec => compile_term(Spec, Index) };
@@ -1250,13 +1256,22 @@ compile_term(#{ <<"object">> := Object} = Spec, Index) ->
     Compiled2 = Compiled#{ mode => Mode},
     with_where(Spec, Compiled2, Index);
 
-compile_term(#{ <<"without_keys">> := Keys }, Index) when is_list(Keys) ->
-    #{ type => without_keys,
-       spec => compile_terms(Keys, Index) };
+compile_term(#{ <<"without_keys">> := KeysSpec }=Spec, Index) ->
+    
+    Match = case maps:get(<<"match">>,  Spec, <<"all">>) of 
+                <<"all">> ->
+                    all;
+                <<"any">> ->
+                    any
+            end,
 
-compile_term(#{ <<"with_keys">> := Keys }, Index) when is_list(Keys) ->
+    #{ type => without_keys,
+       match => Match,
+       spec => compile_term(KeysSpec, Index) };
+
+compile_term(#{ <<"with_keys">> := KeysSpec }, Index) ->
     #{ type => with_keys,
-       spec => compile_terms(Keys, Index) };
+       spec => compile_term(KeysSpec, Index) };
 
 compile_term(#{ <<"entries">> := Spec }, Index) ->
     #{ type => entries,
@@ -1345,6 +1360,11 @@ compile_term(#{ <<"merged_list">> := Specs }, Index) when is_list(Specs) ->
 compile_term(#{ <<"merge">> := Specs }, Index) when is_list(Specs) ->
     #{ type => merge,
        spec => compile_terms(Specs, Index)
+     };
+
+compile_term(#{ <<"merge">> := Spec }, Index) when is_map(Spec) ->
+    #{ type => merge,
+       spec => compile_term(Spec, Index)
      };
 
 compile_term(#{ <<"flattened">> := Specs }, Index) when is_list(Specs) ->
@@ -1457,10 +1477,27 @@ compile_term(#{ <<"any">> := <<"boolean">> }, _) ->
 compile_term(#{ <<"boolean">> := <<"any">> }, _) ->
     #{ type => boolean };
 
-compile_term(#{ <<"regexp">> := Regex }, Index) ->
-    #{ type => regexp,
-       value => compile_term(Regex, Index) };
+compile_term(#{ <<"regexp">> := Regex }=Spec, Index) ->
+    Compiled = #{ type => regexp,
+                  value => compile_term(Regex, Index) },
 
+    case maps:get(<<"labels">>, Spec, undef) of 
+        undef ->
+            Compiled;
+        LabelsSpec ->
+            Compiled2 = Compiled#{ labels => compile_term(LabelsSpec, Index) },
+            case maps:get(<<"as">>, Spec, strings) of
+                <<"numbers">> ->
+                    Compiled2#{ as => number }; 
+                _ ->
+                    Compiled2#{ as => binary }    
+            end
+    end;
+
+compile_term(#{ <<"regex">> := Regex }=Spec, Index) ->
+    Spec2 = Spec#{<<"regexp">> => Regex},
+    compile_term(maps:without([<<"regex">>], Spec2), Index);
+    
 compile_term(#{ <<"text">> := Spec }, Index) when is_map(Spec) ->
     #{ type => text,
        spec => compile_term(Spec, Index) };
@@ -2338,8 +2375,7 @@ compile_term(#{ <<"group">> := Items,
        by => compile_term(GroupingDecoder, Index),
        as => compile_term(GroupName, Index) };
 
-compile_term(#{ <<"iterate">> := SourceSpec,
-                <<"with">> := DestSpec } = Spec, Index) ->
+compile_term(#{ <<"iterate">> := SourceSpec } = Spec, Index) ->
 
     FilterSpec = case maps:get(<<"filter">>, Spec, none) of
                 none ->
@@ -2354,19 +2390,29 @@ compile_term(#{ <<"iterate">> := SourceSpec,
                     compile_term(S2, Index)
              end,
 
+    DestSpec = case maps:get(<<"with">>, Spec, none) of 
+                   none ->
+                       none;
+                   S3 ->
+                       compile_term(S3, Index)
+               end,
+
     #{ type => iterate,
        spec => #{ source => compile_term(SourceSpec, Index),
                   filter => FilterSpec,
                   context => ContextSpec,
                   as => maybe_compile_as(Spec, Index),
-                  dest => compile_term(DestSpec, Index) }};
+                  dest => DestSpec }};
 
 compile_term(#{ <<"filter">> := SourceSpec,
-                <<"with">> := FilterSpec }, Index) ->
+                <<"with">> := FilterSpec } = Spec, Index) ->
 
-    #{ type => filter,
+    #{ type => iterate,
        spec => #{ source => compile_term(SourceSpec, Index),
-                  filter => compile_term(FilterSpec, Index) }};
+                  filter => compile_term(FilterSpec, Index),
+                  context => none,
+                  as => maybe_compile_as(Spec, Index),
+                  dest => none }};
 
 compile_term(#{ <<"error">> := Spec }, Index) ->
     #{ type => error,

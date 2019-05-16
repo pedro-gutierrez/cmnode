@@ -1,0 +1,135 @@
+type: module
+name: register
+spec:
+  decoders:
+    register:
+      object:
+        method: POST
+        body:
+          object:
+            id:
+              non_empty: text
+            first:
+              non_empty: text
+            last:
+              non_empty: text
+            email:
+              any: email
+            lang:
+              any: text
+            username:
+              non_empty: text
+    subscribed:
+      context: subscription
+      status:
+        keyword: ok 
+    unsubscribed:
+      context: unsubscription
+      status:
+        keyword: ok
+    registered:
+      one_of:
+        - object:
+            context: registration
+            status:
+              keyword: ok
+        - object:
+            kind: registration
+            id: @event.id
+            event: created
+    http_token:
+      object:
+        kind: registration
+        id: @event.id
+        event: token
+        data:
+          object:
+            channel: http
+            token:
+              non_empty: text
+    email_token:
+      object:
+        kind: registration
+        id: @event.id
+        event: token
+        data:
+          object:
+            channel: email
+    email_sent:
+      object:
+        kind: registration
+        id: @event.id
+        event: email 
+  update:
+    register:
+      model:
+        event:
+          object:
+            app: @app.name
+            kind: registration
+            id: @body.id
+            event: created
+            data:
+              object:
+                first: @body.first
+                last: @body.last
+                id: @body.id
+                lang: @body.lang
+                email: 
+                  lowercase: @body.email
+                username: 
+                  lowercase: @body.username
+      cmds:
+        - effect: bus
+          encoder: subscription
+    subscribed:
+      cmds:
+        - effect: store
+          encoder: registration
+    registered:
+      model: {}
+    http_token:
+      model:
+        token: @data.token
+      cmds:
+        - effect: bus
+          encoder: unsubscription
+    email_token:
+      model: {}
+    email_sent:
+      model:
+        token: ""
+      cmds:
+        - effect: bus
+          encoder: unsubscription
+    unsubscribed:
+      cmds:
+        - effect: notify
+          encoder: token
+  encoders:
+    subscription:
+      object:
+        context: subscription
+        sub:
+          - registration
+          - @event.id
+        create: true
+    unsubscription:
+      object:
+        context: unsubscription
+        unsub:
+          - registration
+          - @event.id
+        delete: true
+    registration:
+      object:
+        context: registration
+        store: @store
+        write: @event
+    token:
+      object:
+        status: 201
+        headers:
+          content-type: application/json
+        body:
+          token: @token

@@ -51,11 +51,8 @@ spec:
       object:
         service: token_resolve
         params:
-          bucket:
-            keyword: 
-              key: app.db
-          token:
-            key: token
+          store: @store
+          token: @token
           acl:
             one_of:
               - config:

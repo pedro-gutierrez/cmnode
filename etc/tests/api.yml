@@ -408,9 +408,9 @@ spec:
         - "Given an empty database"
         - "Given user alice with password foo"
         - "When I login with email"
-        - "Then I should expect a token"
-        - "When I logout"
-        - "Then I should receive a 200 OK"
+          ##   - "Then I should expect a token"
+          ##   - "When I logout"
+          ##   - "Then I should receive a 200 OK"
   facts:
     app: test
     baseHeaders:
@@ -620,6 +620,8 @@ spec:
       set:
         details:
           object:
+            id:
+              uuid: {}
             first: "Alice"
             last: "In Chains"
             email: "alice@mail.com"

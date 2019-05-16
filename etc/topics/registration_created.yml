@@ -1,0 +1,8 @@
+type: topic
+name: registration_created
+spec:
+  on:
+    - registration
+    - created
+  services:
+    - passwd_reset_token

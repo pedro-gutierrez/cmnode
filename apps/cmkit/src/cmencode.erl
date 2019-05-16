@@ -158,11 +158,14 @@ encode(#{ type := is_set, spec := Spec }, In, Config) ->
     end;
 
 
-encode(#{ type := one_of, specs := Specs}, In, Config) ->
+encode(#{ type := one_of, specs := Specs}, In, Config) when is_list(Specs) ->
     encode_first(Specs, Specs, In, Config);
 
+encode(#{ type := one_of, specs := Specs}=Spec, _, _) -> 
+    fail(Spec, Specs, not_a_list);
+
 encode(#{ one_of := Specs}, In, Config) ->
-    encode_first(Specs, Specs, In, Config);
+    encode(#{ type => one_of, specs => Specs}, In, Config);
 
 encode(#{ type := either, options := Opts}, In, Config) -> 
     encode_options(Opts, Opts, In, Config);
@@ -840,6 +843,17 @@ encode(#{ type := base64,
                        reason => Other }}
     end;
 
+encode(#{ type := hex,
+          spec := Spec }, In, Config) ->
+    case encode(Spec, In, Config) of 
+        {ok, Value} when is_binary(Value); is_list(Value) ->
+            {ok, cmkit:hex(Value)};
+        {ok, Other} ->
+            fail(Spec, Other, not_a_list_or_binary);
+        Other ->
+            Other
+    end;
+
 encode(#{ type := json,
           spec := JsonSpec }, In, Config) -> 
     case encode(JsonSpec, In, Config) of 
@@ -1362,89 +1376,89 @@ encode(#{ type := iterate,
                      filter := FilterSpec,
                      as := AsSpec,
                      dest := DestSpec }}, In, Config) -> 
+    
+    case encode_as(AsSpec, In, Config) of 
+        {ok, As} ->
+            case cmencode:encode(SourceSpec, In, Config) of 
+                {ok, Source} when is_list(Source) -> 
+                    EncodedSource = case FilterSpec of 
+                                        none -> {ok, Source};
+                                        _ -> 
 
-    case cmencode:encode(SourceSpec, In, Config) of 
-        {ok, Source} when is_list(Source) -> 
-            EncodedSource = case FilterSpec of 
-                          none -> {ok, Source};
-                          _ -> 
-                              
-                              EncodedFilterSpec = case FilterSpec of 
-                                                      #{ type := object } -> 
-                                                          {ok, FilterSpec};
-                                                      _ ->
-                                                          case encode(FilterSpec, In, Config) of 
-                                                              {ok, Encoded} ->
-                                                                  {ok, Encoded};
-                                                              Other ->
-                                                                  Other
-                                                          end
-                                                  end,
-                              case EncodedFilterSpec of 
-                                  {ok, FilterSpec2} ->
-                                      {ok, lists:filter(fun(Item) -> 
-                                                   case cmdecode:decode(FilterSpec2, Item) of
-                                                       {ok, _} -> true;
-                                                       _ -> false
-                                                    end
-                                           end, Source)};
-                                  Other2 ->
-                                      Other2
-                              end
-                        end,
-            case EncodedSource of 
-                {ok, Source2} ->
-                    map(DestSpec, In, Config, Source2, AsSpec);
-                Other3 ->
-                    Other3
+                                            EncodedFilterSpec = case FilterSpec of 
+                                                                    #{ type := object } -> 
+                                                                        {ok, FilterSpec};
+                                                                    _ ->
+                                                                        case encode(FilterSpec, In, Config) of 
+                                                                            {ok, Encoded} ->
+                                                                                {ok, Encoded};
+                                                                            Other ->
+                                                                                Other
+                                                                        end
+                                                                end,
+                                            
+                                            case EncodedFilterSpec of 
+                                                {ok, FilterSpec2} ->
+
+                                                    {ok, lists:filter(fun(Item) -> 
+                                                                             FilterContext = case As of
+                                                                                                 none ->
+                                                                                                     Item;
+                                                                                                 undef ->
+                                                                                                     Item;
+                                                                                                 K ->
+                                                                                                     #{ K => Item }
+                                                                                             end,
+
+                                                                             
+                                                                             
+                                                                             case cmdecode:decode(FilterSpec2, FilterContext, In) of
+                                                                                 {ok, _} -> true;
+                                                                                 _ -> false
+                                                                             end
+                                                                      end, Source)};
+                                                Other2 ->
+                                                    Other2
+                                            end
+                                    end,
+                    case EncodedSource of 
+                        {ok, Source2} ->
+                            case DestSpec of 
+                                none -> 
+                                    {ok, Source2};
+                                _ ->
+                                    map(DestSpec, In, Config, Source2, AsSpec)
+                            end;
+                        Other3 ->
+                            Other3
+                    end;
+                Other4 -> 
+                    Other4
             end;
-        Other4 -> 
-            Other4
+
+        Other ->
+            Other
     end;
+
 
 encode(#{ type := iterate, 
           spec := #{
             source := _,
             dest := _ } = S0} = Spec, In, Config) ->
+
     encode(Spec#{ spec => S0#{ filter => none }}, In, Config);
-
-encode(#{ type := filter,
-          spec := #{ source := SourceSpec,
-                     filter := FilterSpec }}, In, Config) ->
-    
-    EncodedFilterSpec = case FilterSpec of 
-                      #{ type := object } -> 
-                          {ok, FilterSpec};
-                      _ ->
-                          case encode(FilterSpec, In, Config) of 
-                              {ok, Encoded} ->
-                                  {ok, Encoded};
-                              Other ->
-                                  Other
-                          end
-                  end,
-
-    case EncodedFilterSpec of 
-        {ok, FilterSpec2} ->
-            case cmencode:encode(SourceSpec, In, Config) of 
-                {ok, Source} when is_list(Source) ->
-                    Source2 = lists:filter(fun(Item) -> 
-                                                   case cmdecode:decode(FilterSpec2, Item) of
-                                                       {ok, _} -> true;
-                                                       _ -> false
-                                                   end
-                                           end, Source),
-                    {ok, Source2};
-                Other2 -> 
-                    Other2
-            end;
-        Other3 ->
-            Other3
-    end;
 
 encode(#{ type := merge,
           spec := Specs } = Spec, In, Config) -> 
-    case encode_all(Specs, In, Config) of 
+    
+    EncodedSpecs = case is_list(Specs) of 
+                       true ->
+                           encode_all(Specs, In, Config);
+                       false ->
+                           encode(Specs, In, Config)
+                   end,
+    
+    case EncodedSpecs of 
         {ok, []} ->
             {ok, #{}};
         {ok, [First|_]=EncodedTerms} when is_map(First) ->
@@ -1695,11 +1709,11 @@ map(DestSpec, In, Config, Item, As, _) ->
     cmencode:encode(DestSpec, In2, Config).
 
 
-fail(Spec, In, Out) ->
+fail(Spec, Data, Reason) ->
     {error, #{ status => encode_error,
                spec => Spec,
-               data => In,
-               reason => Out 
+               data => Data,
+               reason => Reason 
              }
     }.
 
@@ -1808,7 +1822,6 @@ encode_first([Spec|Rem], All, In, Config) ->
         {ok, Encoded} ->
             {ok, Encoded};
         _Other ->
-            %cmkit:warning({cmencode, encode_first, Other, trying_next}),
             encode_first(Rem, All, In, Config)
     end.
 
@@ -1997,3 +2010,9 @@ sorted_groups(GroupAlias, Into,  #{ names := GroupNames,
                       #{ GroupAlias => N,
                          Into => lists:reverse(Items) }
               end, lists:reverse(GroupNames))}.
+
+
+
+encode_as(none, _, _) -> {ok, undef};
+encode_as(Spec, In, Config) -> 
+    encode(Spec, In, Config).

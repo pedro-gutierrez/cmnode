@@ -2,7 +2,7 @@ type: app
 name: passwd_reset_api
 spec:
   filters:
-    - app
+    - client_app
     - auth
   modules:
     - common_api

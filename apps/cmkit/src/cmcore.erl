@@ -77,7 +77,12 @@ resolve_cmds(Encoders, [Cmd|Rem], Model, Out) ->
         {ok, Cmd2} ->
             resolve_cmds(Encoders, Rem, Model, [Cmd2|Out]);
         {error, E} -> {error, E}
-    end.
+    end;
+
+resolve_cmds(_, Cmds, _, _) ->
+    {error, #{ error => invalid_cmds,
+               reason => not_a_list,
+               cmds => Cmds }}.
 
 resolve_cmd(Encoders, #{ encoder := Enc }=Cmd, _) when is_atom(Enc) orelse is_binary(Enc)->
     case encoder_named(Enc, Encoders) of
@@ -287,7 +292,8 @@ update(Pid, #{ name := App,
                filters := [Filter|RemFilters], 
                spec := #{ encoders := Encs },
                config := Config } = AppSpec, Data, Model, Log, Effects) ->
-    Log({App, Pid, in, Data}),
+    Log({App, Pid, #{ in => Data, 
+                      model => Model}}),
     case decode(Filter, Data, Model, Config) of
         {ok, Msg, Decoded} ->
             Log({App, Pid, decoded, Msg}),
@@ -330,7 +336,7 @@ update(Pid, #{ name := App,
                config := Config } = AppSpec, Data0, Model, Log, Effects) ->
     Data = maps:get(data, AppSpec, Data0),
     AppSpec2 = maps:without([data], AppSpec),
-    Log({App, Pid, in, Data}),
+    Log({App, Pid, #{ in => Data, model => Model}}),
     case decode(Spec, Data, Model, Config) of
         {ok, Msg, Decoded} ->
             Log({App, Pid, decoded, Msg}),

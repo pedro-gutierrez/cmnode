@@ -1,0 +1,54 @@
+type: module
+name: passwd_reset_token
+spec:
+  decoders:
+    registration:
+      object:
+        kind: registration
+        id:
+          non_empty: text
+        event: created 
+    success:
+      context: token
+      status:
+        keyword: ok
+  update:
+    registration:
+      model:
+        object:
+          event:
+            object:
+              app: @app.name
+              kind: registration 
+              id: @id
+              event: token
+              data:
+                object:
+                  channel:
+                    either:
+                      - when: @app.emails.enabled
+                        text: email
+                      - text: http 
+                  registration: @id
+                  token: @token
+                  acl: passwd_reset
+                  ttl: @app.password.reset.ttl
+                  expires:
+                    sum:
+                      - @app.password.reset.ttl
+                      - now: seconds
+        where:
+          token:
+            uuid: {}
+      cmds:
+        - effect: store
+          encoder: token
+    success:
+      cmds:
+        - effect: terminate
+  encoders:
+    token:
+      object:
+        context: token
+        store: @store
+        write: @event

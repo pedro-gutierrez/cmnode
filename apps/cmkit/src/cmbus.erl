@@ -12,6 +12,7 @@
          unsub/1, 
          unsub/2, 
          pub/2, 
+         pub/3,
          topics/0]).
 
 create(T) ->
@@ -55,24 +56,56 @@ unsub(T, Pid) ->
     pg2:leave(T, Pid).
 
 closest(T) ->
-    pg2:get_closest_pid(T).
+    case pg2:get_closest_pid(T) of 
+        {error, _} -> 
+            {error, no_subscriptions};
+        Pid when is_pid(Pid) ->
+            {ok, [Pid]}
+    end.
 
 local(T) ->
-    pg2:get_local_members(T).
+    case pg2:get_local_members(T) of 
+        {error, _} -> 
+            {error, no_subscriptions};
+        Pids when is_list(Pids) ->
+            {ok, Pids}
+    end.
 
 members(T) -> 
     case pg2:get_members(T) of 
-        {error, _} -> [];
-        Pids -> Pids
+        {error, _} -> 
+            {error, no_subscriptions};
+        Pids -> 
+            {ok, Pids}
     end.
 
 peers(T) ->
-    [Pid || Pid <- members(T), Pid =/= self() ].
+    case members(T) of 
+        {ok, Pids} ->
+            {ok, [Pid || Pid <- Pids, Pid =/= self() ]};
+        Other ->
+            Other
+    end.
 
 pub(T, Msg) ->
-    spawn(fun() ->
-                  lists:foreach(fun(Pid) ->
-                                        cmcore:update(Pid, Msg)
-                                end, members(T))
-          end),
-    ok.
+    pub(T, Msg, members).
+
+pub(T, Msg, Method) ->
+    case subscriptions(T, Method) of 
+        {ok, Pids} ->
+            lists:foreach(fun(Pid) ->
+                                  cmcore:update(Pid, Msg)
+                          end, Pids),
+            ok;
+        Other ->
+            Other
+    end.
+
+subscriptions(T, members) ->
+    members(T);
+
+subscriptions(T, local) ->
+    local(T);
+
+subscriptions(T, closest) ->
+    closest(T).

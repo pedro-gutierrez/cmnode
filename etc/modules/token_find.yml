@@ -4,7 +4,7 @@ spec:
   decoders:
     find:
       object:
-        bucket:
+        store:
           any: keyword
         token:
           non_empty: text
@@ -59,12 +59,9 @@ spec:
     find:
       model:
         object:
-          bucket:
-            key: bucket
-          token:
-            key: token
-          acl:
-            key: acl
+          store: @store
+          token: @token
+          acl: @acl
       cmds:
         - effect: db
           encoder: find

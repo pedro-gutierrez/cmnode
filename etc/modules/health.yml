@@ -1,0 +1,40 @@
+type: module
+name: health
+spec:
+  init:
+    model:
+      fields:
+        - id
+  decoders:
+    health:
+      object:
+        body:
+          object:
+            objs:
+              list:
+                with_keys: @fields
+    invalid:
+      object:
+        body:
+          object:
+            recurrence:
+              not:
+                member:
+                  - "Once"
+                  - "Daily"
+                  - "Weekly"
+  update:
+    health:
+      model:
+        objs: @body.objs
+      cmds:
+        - effect: notify
+          encoder: ok
+  encoders:
+    ok:
+      object:
+        status: 200
+        headers:
+          content-type: application/json
+        body:
+          objs: @objs

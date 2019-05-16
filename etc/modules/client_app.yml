@@ -1,5 +1,5 @@
 type: module
-name: app 
+name: client_app 
 spec:
   decoders:
     app:
@@ -25,14 +25,13 @@ spec:
   update:
     app:
       model:
-        app:
-          key: headers.app
-        bucket:
+        app: @headers.app
+        store:
           keyword:
             config:
               key: db
               in:
-                key:  headers.app
+                key: headers.app
     missing:
       cmds:
         - effect: terminate

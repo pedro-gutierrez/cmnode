@@ -1,6 +1,6 @@
 -module(cmservice_worker).
 -behaviour(gen_server).
--export([start_link/3]).
+-export([start_link/2]).
 -export([init/1, 
          handle_call/3, 
          handle_cast/2, 
@@ -9,10 +9,10 @@
          code_change/3
         ]).
 
-start_link(App, From, Params) ->
-    gen_server:start_link(?MODULE, [App, From, Params], []).
+start_link(App, Params) ->
+    gen_server:start_link(?MODULE, [App, Params], []).
 
-init([App, From, Params]) ->
+init([App, Params]) ->
     
     DurationMetric = cmservice_util:duration_metric_name(App),
     Pid = self(),
@@ -28,24 +28,23 @@ init([App, From, Params]) ->
                             spec => Spec#{ config => Config },
                             pid => Pid,
                             log => Log,
-                            from => From,
                             model => Model,
                             effects => Effects,
                             duration_metric => DurationMetric,
                             data => Params}, 0};
                 {error, E} ->
                     cmkit:danger({cmservice, App, init, E}),
-                    {stop, normal, #{ app => App,
-                                      start => Start,
-                                      duration_metric => DurationMetric,
-                                      status => error }}
-            end;
-        {error, E}->
-            cmkit:danger({cmservice, App, E}),
-            {stop, normal, #{ app => App, 
+                    {stop, #{ app => App,
                               start => Start,
                               duration_metric => DurationMetric,
                               status => error }}
+            end;
+        {error, E}->
+            cmkit:danger({cmservice, App, E}),
+            {stop, #{ app => App, 
+                      start => Start,
+                      duration_metric => DurationMetric,
+                      status => error }}
     end.
 
 handle_info(timeout, #{ data := Data }=State) ->
@@ -54,17 +53,17 @@ handle_info(timeout, #{ data := Data }=State) ->
 handle_info({update, Data}, State) ->
     update(Data, State);
 
-handle_info({terminate, #{ status := Status}=Data}, #{ app := Name,
-                                                       from := From }=State) ->
-    cmcore:update(From, Data#{ service => Name }),
-    {stop, normal, State#{ reason => Status }};
+handle_info({terminate, #{ status := Status}}, State) ->
+    {stop, normal, State#{ status => Status }};
 
-handle_info(Data, #{ from := From }=State) ->
-    cmcore:update(From, Data),
+handle_info({terminate, _}, State) ->
+    {stop, normal, State#{ status => ok }};
+
+handle_info(Data, #{ app := Name}=State) ->
+    cmkit:warning({cmservice, Name, ignored, Data}),
     {noreply, State}.
 
 update(Data, #{ spec := Spec,
-                from := From,
                 model := Model,
                 log := Log,
                 effects := Effects,
@@ -75,7 +74,6 @@ update(Data, #{ spec := Spec,
                               model => Model2 }};
         {error, E} ->
             cmkit:danger({App, E}),
-            cmcore:update(From, E),
             {stop, normal, State#{ status => error }}
     end.
 
@@ -88,15 +86,20 @@ handle_cast(_, Data) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(R, #{ app := App, 
+terminate(_, #{ app := App, 
                 log := Log,
                 duration_metric := DurationMetric,
                 start := Start} = Data) ->
     Reason = reason(Data),
     Elapsed = cmkit:elapsed(Start),
     cmmetrics:record_duration(DurationMetric, Reason, Elapsed/1000),
-    Log({cmservice, App, terminate, R, Reason, Elapsed}).
+    Termination = {App, terminate, Reason, Elapsed},
+    case Reason of 
+        ok ->
+            Log(Termination);
+        error ->
+            cmkit:danger(Termination)
+    end.
 
-
-reason(#{ reason := R}) -> R;
-reason(_) -> error.
+reason(#{ status := ok }) -> ok;
+reason(#{ status := error }) -> error.

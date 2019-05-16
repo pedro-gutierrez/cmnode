@@ -1,0 +1,39 @@
+type: module
+name: event_app 
+spec:
+  decoders:
+    valid:
+      object:
+        app:
+          in:
+            config:
+              key: apps
+    missing:
+      object:
+        without_keys:
+          - app
+    invalid:
+      object:
+        app:
+          not:
+            in:
+              config:
+                key: apps
+  update:
+    valid:
+      model:
+        app: @app
+        store:
+          keyword:
+            config:
+              key: db
+              in:
+                key: app
+    missing:
+      cmds:
+        - effect: terminate
+          encoder: forbidden
+    invalid:
+      cmds:
+        - effect: terminate
+          encoder: forbidden

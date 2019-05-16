@@ -1,0 +1,6 @@
+type: app
+name: health
+spec:
+  debug: true
+  modules:
+    - health 

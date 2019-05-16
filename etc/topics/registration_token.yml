@@ -1,0 +1,8 @@
+type: topic
+name: registration_token 
+spec:
+  on:
+    - registration
+    - token
+  services:
+    - passwd_reset_link

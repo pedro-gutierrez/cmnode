@@ -21,7 +21,7 @@ spec:
   update:
     init:
       cmds:
-        - effect: db
+        - effect: store
           encoder: init
     success:
       cmds:
@@ -34,7 +34,7 @@ spec:
   encoders:
     init:
       context: init
-      bucket:
+      store:
         keyword:
           key: app.db
       reset: {}

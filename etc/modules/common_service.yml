@@ -1,6 +1,11 @@
 type: module
 name: common_service 
 spec:
+  decoders:
+    error:
+      object:
+        status:
+          keyword: error
   update:
     error:
       cmds:
