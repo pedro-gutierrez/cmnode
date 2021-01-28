@@ -60,7 +60,7 @@ encode(#{type := size_of, spec := Spec}, In, Config) ->
             Other
     end;
 encode(#{item := Num, in := At}, In, Config)
-    when is_atom(At) or is_binary(At) or is_map(At) ->
+  when is_atom(At) or is_binary(At) or is_map(At) ->
     case encode(#{key => At}, In, Config) of
         {ok, In2} ->
             case is_list(In2) of
@@ -107,7 +107,7 @@ encode(#{key := Key, in := At}, In, Config) when is_atom(Key) or is_binary(Key) 
             Other
     end;
 encode(#{key := Key} = Spec, In, Config)
-    when is_binary(Key) or is_atom(Key) andalso is_map(In) ->
+  when is_binary(Key) or is_atom(Key) andalso is_map(In) ->
     case cmkit:value_at(Key, In) of
         undef ->
             case maps:get(default, Spec, undef) of
@@ -265,8 +265,8 @@ encode(#{type := os,
                 {ok, D} ->
                     {ok,
                      cmkit:to_bin(
-                         os:getenv(
-                             cmkit:to_list(V), cmkit:to_list(D)))};
+                       os:getenv(
+                         cmkit:to_list(V), cmkit:to_list(D)))};
                 Other ->
                     Other
             end;
@@ -277,7 +277,7 @@ encode(#{type := os, name := VarSpec} = Spec, In, Config) ->
     case encode(VarSpec, In, Config) of
         {ok, V} ->
             case os:getenv(
-                     cmkit:to_list(V))
+                   cmkit:to_list(V))
             of
                 false ->
                     {error,
@@ -361,7 +361,7 @@ encode(#{type := url,
                port := Port,
                transport := Transport,
                path := Path} =
-                 Spec},
+             Spec},
        In,
        Config) ->
     case encode(Host, In, Config) of
@@ -565,21 +565,21 @@ encode(#{type := multipart, files := FilesSpec}, In, Config) ->
                                   filename := Filename,
                                   data := Data},
                                 Acc) ->
-                               erlang:iolist_to_binary([Acc,
-                                                        StartBoundary,
-                                                        LineSeparator,
-                                                        <<"Content-Disposition: form-data; name=\"">>,
-                                                        Name,
-                                                        <<"\"; filename=\"">>,
-                                                        Filename,
-                                                        <<"\"">>,
-                                                        LineSeparator,
-                                                        <<"Content-Type: ">>,
-                                                        Mime,
-                                                        LineSeparator,
-                                                        LineSeparator,
-                                                        Data,
-                                                        LineSeparator])
+                                    erlang:iolist_to_binary([Acc,
+                                                             StartBoundary,
+                                                             LineSeparator,
+                                                             <<"Content-Disposition: form-data; name=\"">>,
+                                                             Name,
+                                                             <<"\"; filename=\"">>,
+                                                             Filename,
+                                                             <<"\"">>,
+                                                             LineSeparator,
+                                                             <<"Content-Type: ">>,
+                                                             Mime,
+                                                             LineSeparator,
+                                                             LineSeparator,
+                                                             Data,
+                                                             LineSeparator])
                             end,
                             <<"">>,
                             Files),
@@ -797,7 +797,7 @@ encode(#{type := file, spec := #{path := Path, data := Data}}, In, Config) ->
             case encode(Data, In, Config) of
                 {ok, D} ->
                     case file:write_file(
-                             cmkit:to_list(P), D)
+                           cmkit:to_list(P), D)
                     of
                         ok ->
                             {ok, ok};
@@ -943,8 +943,8 @@ encode(#{type := asset, spec := Spec}, In, Config) ->
     case encode(Spec, In, Config) of
         {ok, Name} ->
             cmkit:read_file(
-                filename:join(
-                    cmkit:assets(), Name));
+              filename:join(
+                cmkit:assets(), Name));
         Other ->
             Other
     end;
@@ -1028,7 +1028,7 @@ encode(#{type := join,
          spec := Specs},
        In,
        Config)
-    when is_list(Specs) ->
+  when is_list(Specs) ->
     case encode_all(Specs, In, Config) of
         {ok, EncodedTerms} ->
             case encode(SepSpec, In, Config) of
@@ -1281,13 +1281,13 @@ encode(#{type := sort,
                                 case Mode of
                                     asc ->
                                         fun(A, B) ->
-                                           cmkit:value_at(SimpleProp, A) <
-                                               cmkit:value_at(SimpleProp, B)
+                                                cmkit:value_at(SimpleProp, A) <
+                                                    cmkit:value_at(SimpleProp, B)
                                         end;
                                     desc ->
                                         fun(A, B) ->
-                                           cmkit:value_at(SimpleProp, A) >
-                                               cmkit:value_at(SimpleProp, B)
+                                                cmkit:value_at(SimpleProp, A) >
+                                                    cmkit:value_at(SimpleProp, B)
                                         end
                                 end,
                             {ok, lists:sort(SortFun, Items)};
@@ -1376,20 +1376,20 @@ encode(#{type := iterate,
                                     {ok, FilterSpec2} ->
                                         {ok,
                                          lists:filter(fun(Item) ->
-                                                         FilterContext =
-                                                             case As of
-                                                                 none -> Item;
-                                                                 undef -> Item;
-                                                                 K -> #{K => Item}
-                                                             end,
+                                                              FilterContext =
+                                                                  case As of
+                                                                      none -> Item;
+                                                                      undef -> Item;
+                                                                      K -> #{K => Item}
+                                                                  end,
 
-                                                         case cmdecode:decode(FilterSpec2,
-                                                                              FilterContext,
-                                                                              In)
-                                                         of
-                                                             {ok, _} -> true;
-                                                             _ -> false
-                                                         end
+                                                              case cmdecode:decode(FilterSpec2,
+                                                                                   FilterContext,
+                                                                                   In)
+                                                              of
+                                                                  {ok, _} -> true;
+                                                                  _ -> false
+                                                              end
                                                       end,
                                                       Source)};
                                     Other2 ->
@@ -1486,7 +1486,7 @@ encode(#{type := kube,
                resource := Resource,
                server := ServerSpec,
                state := StateSpec} =
-                 Spec},
+             Spec},
        In,
        Config) ->
     case encode(NameSpec, In, Config) of
@@ -1810,7 +1810,7 @@ encode_http(Method, Url, Query, Headers, Debug, Body, In, Config) ->
                            headers =>
                                H#{'content-type' =>
                                       "multipart/form-data; boundary=" ++
-                                          binary_to_list(Boundary)}}};
+                                      binary_to_list(Boundary)}}};
                 {ok, B} ->
                     {ok, Spec#{body => B}};
                 Other ->
@@ -1969,8 +1969,8 @@ groups([Item | Rest], GroupingSpec, #{names := GroupNames, groups := Groups} = I
 sorted_groups(GroupAlias, Into, #{names := GroupNames, groups := Groups}) ->
     {ok,
      lists:map(fun(N) ->
-                  Items = maps:get(N, Groups),
-                  #{GroupAlias => N, Into => lists:reverse(Items)}
+                       Items = maps:get(N, Groups),
+                       #{GroupAlias => N, Into => lists:reverse(Items)}
                end,
                lists:reverse(GroupNames))}.
 

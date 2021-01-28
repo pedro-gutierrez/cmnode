@@ -10,7 +10,7 @@ config(#{ access_key := AccessKey,
           port := Port, 
           scheme := Scheme,
           kind := Kind } = Spec) ->
-    
+
     Cfg = erlcloud_s3:new(cmkit:to_list(AccessKey), 
                           cmkit:to_list(SecretKey), 
                           cmkit:to_list(Host),
@@ -31,7 +31,7 @@ config(#{ access_key := _,
           timeout := _,
           port := _, 
           scheme := _} = Spec) ->
-    
+
     config(Spec#{ access => auto });
 
 config(#{ access_key := _,
@@ -45,7 +45,7 @@ config(#{ access_key := _,
 
 config(#{ access_key := _,
           secret_key := _ }=Spec) ->
-    
+
     config(Spec#{ host => "s3-eu-west-3.amazonaws.com",
                   timeout => 60000 }).
 
@@ -63,7 +63,7 @@ s3_op(OpFun) ->
 put(#{ bucket := Bucket,
        key := Key,
        data := Data}=Spec) -> 
-    
+
     Config = config(Spec),
     case ensure_bucket(Bucket, Config) of 
         ok ->
@@ -86,7 +86,7 @@ get(#{ bucket := Bucket,
        key := Key }=Spec) ->
 
     Config = config(Spec),
-    
+
     s3_op(fun() -> 
                   case erlcloud_s3:get_object(cmkit:to_list(Bucket),
                                               cmkit:to_list(Key), 

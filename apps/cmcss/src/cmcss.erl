@@ -28,8 +28,8 @@ merge(All, Settings) ->
     case cmencode:encode_all(All, Settings) of
         {ok, Encoded} ->
             {ok, lists:foldr(fun(E0, Merged) -> 
-                            maps:merge(Merged, E0)
-                        end, #{}, Encoded)};
+                                     maps:merge(Merged, E0)
+                             end, #{}, Encoded)};
         Other -> 
             Other
     end.
@@ -84,8 +84,8 @@ render_selector(#{ class := N }, P) ->
 
 render_selector(#{ 'any-class' := N }, P) ->
     cmkit:bin_join(lists:map(fun(C) -> 
-                        <<P/binary, ".", C/binary>> 
-                        end, cmkit:bin_split(N, <<" ">>)), <<", ">>);
+                                     <<P/binary, ".", C/binary>> 
+                             end, cmkit:bin_split(N, <<" ">>)), <<", ">>);
 
 render_selector(#{ 'all-classes' := N }, <<>>) ->
     cmkit:bin_join(lists:map(fun(C) -> 
@@ -121,7 +121,7 @@ render_style(_, _) -> {ok, <<>>}.
 
 render(Props) when is_map(Props) -> 
     cmkit:bin_join(maps:fold(fun(K, V, Out) -> 
-                                    Kbin = cmkit:to_bin(K),
-                                    Vbin = cmkit:to_bin(V),
+                                     Kbin = cmkit:to_bin(K),
+                                     Vbin = cmkit:to_bin(V),
                                      [<<Kbin/binary, ":", Vbin/binary, ";">>|Out]
-              end, [], Props), <<>>).
+                             end, [], Props), <<>>).

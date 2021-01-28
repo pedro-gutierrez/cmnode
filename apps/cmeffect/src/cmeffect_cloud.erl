@@ -12,7 +12,7 @@ effect_apply(#{ query := nodes }, SessionId) ->
                                  status => node_status(N, CurrentNodes)
                                }
                       end, ExpectedNodes),
-    
+
     cmcore:update(SessionId, #{ nodes => Nodes }).
 
 node_status(N, Nodes) ->

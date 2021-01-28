@@ -7,7 +7,7 @@ effect_info() -> crypt_verify.
 effect_apply(#{ context := Context, 
                 hash := Hash, 
                 clear := Clear }, SessionId) ->
-    
+
     Res = #{ context => Context,
              verified => Hash =:= Clear },
     cmcore:update(SessionId, Res).

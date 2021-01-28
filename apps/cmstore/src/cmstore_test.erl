@@ -65,13 +65,13 @@ rel() ->
 bench(Writes) ->
     ok = cmstore:reset(test),
     {Micros, Res} = timer:tc(fun() ->
-                     write_many(Writes, test, #{ app => <<"app">>, 
-                                                 kind => <<"test">>,
-                                                 id => <<"94f047a5-fa00-4bd6-8c59-c1827a6e1c7e">>,
-                                                 event => <<"created">>,
-                                                 data => #{ <<"key1">> => <<"value">>,
-                                                            <<"key2">> => 1 }})
-             end),
+                                     write_many(Writes, test, #{ app => <<"app">>, 
+                                                                 kind => <<"test">>,
+                                                                 id => <<"94f047a5-fa00-4bd6-8c59-c1827a6e1c7e">>,
+                                                                 event => <<"created">>,
+                                                                 data => #{ <<"key1">> => <<"value">>,
+                                                                            <<"key2">> => 1 }})
+                             end),
     {Writes, Micros, Res, trunc(Writes/Micros*1000000)}.
 
 write_many(0, _, _) -> ok;

@@ -37,8 +37,8 @@ compiled_view(#{ view := Name,
     end;
 
 compiled_view(#{ tag := Tag,
-                attrs := Attrs,
-                children := Children }, Views, Context, Settings) -> 
+                 attrs := Attrs,
+                 children := Children }, Views, Context, Settings) -> 
     case compiled_attrs(Attrs, Context, Settings) of 
         {ok, CompiledAttrs} ->
             case compiled_views(Children, Views, Context, Settings) of 
@@ -166,7 +166,7 @@ compiled_attrs([K|Rem], Attrs, Ctx, Settings, Out) ->
 render([Tag, Attrs, Children]) when map_size(Attrs) =:= 0 -> 
     RenderedChildren = cmkit:bin_join(lists:map(fun render/1, Children)),
     <<"<", Tag/binary, ">",
-        RenderedChildren/binary,
+      RenderedChildren/binary,
       "</", Tag/binary, ">" >>;
 
 render([]) -> <<>>;
@@ -175,7 +175,7 @@ render([Tag, Attrs, Children]) ->
     RenderedAttrs = render(Attrs),
     RenderedChildren = cmkit:bin_join(lists:map(fun render/1, Children)),
     <<"<", Tag/binary, RenderedAttrs/binary, ">",
-        RenderedChildren/binary,
+      RenderedChildren/binary,
       "</", Tag/binary, ">" >>;
 
 

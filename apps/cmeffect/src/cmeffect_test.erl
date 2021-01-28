@@ -14,11 +14,11 @@ effect_apply(#{ query := tests }, SessionId) ->
                scenarios => length(Scenarios),
                backgrounds => map_size(Backgrounds) 
              } || #{ name := Name, 
-                  backgrounds := Backgrounds, 
-                  scenarios := Scenarios 
-                } <- cmconfig:tests() ],
-    
-    
+                     backgrounds := Backgrounds, 
+                     scenarios := Scenarios 
+                   } <- cmconfig:tests() ],
+
+
     cmcore:update(SessionId, #{ tests => Res});
 
 effect_apply(#{ query := test,
@@ -32,10 +32,10 @@ effect_apply(#{ query := test,
                       name := Id, 
                       config := Config }} -> 
 
-                      #{ name => Id,
-                         config => cmkit:to_list(Config, property, value),
-                         scenarios => lists:map(fun metadata/1, Scenarios),
-                         backgrounds => lists:map(fun metadata/1, maps:values(Backgrounds)) }
+                  #{ name => Id,
+                     config => cmkit:to_list(Config, property, value),
+                     scenarios => lists:map(fun metadata/1, Scenarios),
+                     backgrounds => lists:map(fun metadata/1, maps:values(Backgrounds)) }
 
           end,
 
@@ -45,7 +45,7 @@ effect_apply(#{ query := test,
 effect_apply(#{ query := scenario,
                 test := Test,
                 scenario := Scenario}, SessionId) ->
-    
+
     Res = case cmconfig:test(Test) of 
               {error, E } ->
                   #{ test => Test,
@@ -61,13 +61,13 @@ effect_apply(#{ query := scenario,
                           Spec#{ test => Test}
                   end
           end,
-    
+
     cmcore:update(SessionId, #{ scenario => Res});
 
 effect_apply(#{ query := background,
                 test := Test,
                 background := Background }, SessionId) when is_binary(Background) ->
-    
+
     Res = case cmconfig:test(Test) of 
               {error, E } ->
                   #{ test => Test,

@@ -116,9 +116,9 @@ info(#{ status := Code, headers := Headers, body := Body }, Req, #{ app := App,
 
     DurationFun(Method, Code, Elapsed2/1000),
     DecrFun(),
-    
+
     {stop, Req2, State};
-    
+
 info(Data, Req, State) ->
     reply_and_stop(error, json, #{ error => Data }, Req, State).
 
@@ -134,7 +134,7 @@ reply_and_stop(Status, Type, Body, Req, #{ method := Method,
     Req2 = cowboy_req:reply(Code, Headers2, EncodedBody, Req),
     Elapsed2 = cmkit:elapsed(Start),
     Log({App, out, Code, Headers, Body, #{ total_time => Elapsed2,
-                                                  render_time => Elapsed2 - Elapsed}}),
+                                           render_time => Elapsed2 - Elapsed}}),
 
     DurationFun(Method, Code, Elapsed2/1000),
     DecrFun(),
@@ -217,8 +217,8 @@ multipart_body(Req0, Body) ->
                     {ok, Body0, Req2} = cowboy_req:read_part_body(Req1),
                     multipart_body(Req2, Body#{ FieldName => Body0 });
                 {file, FieldName, Filename, CType} ->
-                    %%%
-                    %%% TODO: streaming
+%%%
+%%% TODO: streaming
                     case multipart_file(Req1) of 
                         {ok, FileData, Req2} ->
                             multipart_body(Req2, Body#{ FieldName => #{ name => Filename,

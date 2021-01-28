@@ -19,7 +19,7 @@ terminate(_, _, _) ->
 init([Stores]) ->
     {ok, Data} = open_stores(Stores),
     {ok, ready, Data}.
-    
+
 ready(EvType, EvData, Data) ->
     cmkit:warning({?MODULE, unexpected, EvType, EvData}),
     {keep_state, Data}.

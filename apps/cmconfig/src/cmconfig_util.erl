@@ -722,8 +722,8 @@ compile_config(Spec, Index) ->
             #{}
     end.
 
-%compile_modules([], #{ decoders := Decs }=Spec) ->
-%    Spec#{ decoders => sort_decoders(Decs) };
+                                                %compile_modules([], #{ decoders := Decs }=Spec) ->
+                                                %    Spec#{ decoders => sort_decoders(Decs) };
 
 compile_modules([], Spec) ->
     Spec;
@@ -796,6 +796,12 @@ compile_option(Spec, Index) ->
 
 compile_terms(Specs, Index) ->
     lists:map(fun(S) -> compile_term(S, Index) end, Specs).
+
+is_key_path(<<"$", _/binary>>) ->
+    false;
+
+
+
 
 is_key_path(Term) when is_binary(Term) ->
     case binary:match(Term, <<".">>) of
@@ -1622,7 +1628,8 @@ compile_term(#{<<"multipart">> := #{<<"files">> := FilesSpec}}, Index) ->
 compile_term(#{<<"await">> :=
                    #{<<"http">> := Http,
                      <<"expect">> := Expect,
-                     <<"in">> := In}} =
+                     <<"in">> := In} =
+                       InnerSpec} =
                  Await,
              Index) ->
     Debug = maps:get(<<"debug">>, Await, <<"false">>),
@@ -1630,7 +1637,7 @@ compile_term(#{<<"await">> :=
 
     ExpectSpec0 = #{<<"expect">> => Expect, <<"in">> => In},
     ExpectSpec =
-        case maps:get(<<"remember">>, Await, undefined) of
+        case maps:get(<<"remember">>, InnerSpec, undefined) of
             undefined ->
                 ExpectSpec0;
             Remember ->
@@ -2150,11 +2157,11 @@ compile_options([K | Rem], Spec, Index, Out) ->
                        target => compile_term(maps:get(K, Spec), Index)}
                      | Out]).
 
-%sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
+                                                %sort_decoders(Decs) -> lists:sort(fun compare_priorities/2, Decs).
 
-%compare_priorities(#{ priority := _ }, #{ priority := lowest }) -> true;
-%compare_priorities(#{ priority := lowest }, #{ priority := _ }) -> false;
-%compare_priorities(#{ priority := _ }, #{ priority := _ }) -> true.
+                                                %compare_priorities(#{ priority := _ }, #{ priority := lowest }) -> true;
+                                                %compare_priorities(#{ priority := lowest }, #{ priority := _ }) -> false;
+                                                %compare_priorities(#{ priority := _ }, #{ priority := _ }) -> true.
 
 compile_encoders(Encs, Index) when is_map(Encs) ->
     compile_encoders(maps:keys(Encs), Encs, Index, #{});

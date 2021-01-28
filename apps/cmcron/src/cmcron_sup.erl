@@ -8,7 +8,7 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 init([]) ->
-    
+
     Server = cmkit:child_spec(cmcron_server,
                               cmcron_server,
                               [],

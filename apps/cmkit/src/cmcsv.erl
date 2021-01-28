@@ -32,7 +32,7 @@ parse(File, BatchSize, Fun) ->
     Stats = #{ start => cmcsv:now(), 
                read => 0,
                stop => undef,
-                written => 0 
+               written => 0 
              },
     case file:open(File, [raw, read_ahead, binary]) of
         {ok, IoDevice} ->

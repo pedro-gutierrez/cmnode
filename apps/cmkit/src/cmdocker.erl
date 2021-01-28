@@ -10,8 +10,8 @@ pull(#{ repo := Repo,
     cmkit:log({cmdocker, pull, Image}),
     PushUrl = <<?BASE_URL/binary, "/images/create?fromImage=", Image/binary>>,
     case cmhttp:post(PushUrl, #{ 
-                       'content-type' => "application/json",
-                       'X-Registry-Auth' => auth_config(Creds) }, #{}) of 
+                                 'content-type' => "application/json",
+                                 'X-Registry-Auth' => auth_config(Creds) }, #{}) of 
         {ok, #{ status := 200, body := R2 }} -> 
             cmkit:log({cmdocker, pulled, R2}),
             ok;
@@ -72,9 +72,9 @@ build(#{ dir := Dir,
 
                                             cmkit:log({cmdocker,pushing, PushUrl}),
                                             case cmhttp:post(PushUrl, #{ 
-                                                               'content-type' => "application/json",
-                                                               'X-Registry-Auth' => auth_config(Creds) 
-                                                              }, #{}, HttpOpts) of 
+                                                                         'content-type' => "application/json",
+                                                                         'X-Registry-Auth' => auth_config(Creds) 
+                                                                       }, #{}, HttpOpts) of 
                                                 {ok, #{ status := 200, raw := R2, mime := Mime }} -> 
                                                     cmkit:log({cmdocker, pushed, Mime, R2}),
                                                     ok;
@@ -90,7 +90,7 @@ build(#{ dir := Dir,
                         Other ->
                             Other
                     end;
-                    Other -> Other
+                Other -> Other
             end;
         Other -> 
             Other
@@ -103,7 +103,7 @@ auth_config(#{ user := User,
                password := Password,
                email := Email,
                registry := Registry }) -> 
-    
+
     base64:encode(cmkit:jsone(#{ username => User,
                                  password => Password,
                                  email => Email,

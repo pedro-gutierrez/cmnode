@@ -36,7 +36,7 @@ websocket_init(#{ app := App,
                                  model => Model,
                                  spec => Spec2}, E)
             end;
-       {error, E} -> 
+        {error, E} -> 
             cmkit:warning({ws, new, unknown_app, App, Port, E}),
             stop(State#{ start => Start }, E)
     end.
@@ -87,7 +87,7 @@ stop(#{ start := Start,
         port := Port,
         instruments := #{ duration := DurationFun,
                           decrement := DecrFun }} = State, Reason) ->
-    
+
     Elapsed = cmkit:elapsed(Start),
     Log({App, Port, self(), Elapsed, stop}),
     DurationFun(reason(Reason), trunc(Elapsed/1000000)),

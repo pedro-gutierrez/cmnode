@@ -18,7 +18,7 @@ reload() ->
 
 has_db_role(#{ <<"spec">> := #{ <<"role">> := <<"es">> }}) -> false;
 has_db_role(_) -> true.
-    
+
 compiled(#{ <<"name">> := Name,
             <<"spec">> := Spec}) ->
 
@@ -66,7 +66,7 @@ read(Tree) ->
 
 read(Name, Spec) when is_atom(Name) ->
     with_reader_pid(Name, fun(Pid) ->
-                            read(Pid, Spec)
+                                  read(Pid, Spec)
                           end);
 
 read(Pid, Spec) when is_pid(Pid) ->
@@ -85,20 +85,20 @@ read(Tree, Spec) ->
 
 read_all(Tree, Specs) ->
     lists:flatten(lists:foldl(fun(S, Acc) ->
-                        [read(Tree, S)|Acc]
-                end, [], Specs)).
+                                      [read(Tree, S)|Acc]
+                              end, [], Specs)).
 
 
 read(Name, KSpec, VSpec) when is_atom(Name) ->
     with_reader_pid(Name, fun(Pid) ->
-                            read(Pid, KSpec, VSpec)
+                                  read(Pid, KSpec, VSpec)
                           end);
 
 read(Pid, KSpec, VSpec) when is_pid(Pid) ->
     with_tree(Pid, fun(T) ->
                            read(T, KSpec, VSpec)
                    end);
-    
+
 read(Tree, KSpec, VSpec)  ->
     unwind(Tree, KSpec, VSpec).
 
@@ -124,15 +124,15 @@ unwind(Tree, Spec, Decoder) ->
 
 fold(Tree, Start, Fun) ->
     {ok, _, Res} = cbt_btree:fold(Tree, fun({{S, P, O} = K, V}, Acc) ->
-                                      case Fun(K, V) of 
-                                          true ->
-                                              {ok, [{S, P, O, V}|Acc]};
-                                          false ->
-                                              {ok, Acc};
-                                          stop ->
-                                              {stop, Acc}
-                                      end
-                              end, [], [{start_key, Start}]),
+                                                case Fun(K, V) of 
+                                                    true ->
+                                                        {ok, [{S, P, O, V}|Acc]};
+                                                    false ->
+                                                        {ok, Acc};
+                                                    stop ->
+                                                        {stop, Acc}
+                                                end
+                                        end, [], [{start_key, Start}]),
     lists:reverse(Res).
 
 start_key({S, P, O}) -> {S, P, O};
@@ -208,8 +208,8 @@ decodes(Decoder, V) ->
 
 all_new(Tree, Entries) ->
     Keys = lists:map(fun({S, P, O, _}) ->
-                {S, P, O}
-              end, Entries),
+                             {S, P, O}
+                     end, Entries),
     case read(Tree, Keys) of 
         [] -> true;
         _ -> false

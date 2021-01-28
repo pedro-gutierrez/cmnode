@@ -7,15 +7,15 @@ effect_info() -> elementary.
 
 effect_apply(#{ settings := SettingsNames,
                 app := Spec}, Id) ->
-   
-    Res = case resolve_settings(SettingsNames) of 
-        {ok, Settings } -> 
-            compile(Spec, Settings);
-        {error, E} -> 
-                    #{ status => error,
-                       reason => E }
 
-    end,
+    Res = case resolve_settings(SettingsNames) of 
+              {ok, Settings } -> 
+                  compile(Spec, Settings);
+              {error, E} -> 
+                  #{ status => error,
+                     reason => E }
+
+          end,
     cmcore:update(Id, Res);
 
 effect_apply(#{ app := Spec}, Id) ->

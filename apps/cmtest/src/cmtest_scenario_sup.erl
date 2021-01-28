@@ -7,13 +7,13 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    
+
     Spec = cmkit:child_spec(cmtest_scenario,
                             cmtest_scenario,
                             [],
                             temporary,
                             worker),
-    
+
     {ok, { {simple_one_for_one, 0, 1}, [Spec]}}.
 
 start(Test, Scenario, Steps, Facts, Settings, Runner) ->

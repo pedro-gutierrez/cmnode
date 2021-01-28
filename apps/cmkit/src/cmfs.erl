@@ -16,9 +16,9 @@ stream(#{ stream := Stream,
                                           status => error,
                                           reason => E}
                                end
-                               
+
                        end, cmcloud:current_nodes()),
-    
+
     case aggregate(Probes) of 
         not_found -> 
             cmkit:stream_error(Stream, 404, Data, {M, F});

@@ -47,12 +47,12 @@ with_scenarios_entries(#{id := Id,
                       elapsed := Elapsed} =
                         S,
                     E0) ->
-                   SHash = hash(Test, Title),
-                   H = #{label => TStamp,
-                         duration => Elapsed,
-                         status => Status},
-                   E1 = [{scenario, Id, Title, S}, {history, SHash, TStamp, H}],
-                   with_steps_entries(S#{timestamp => TStamp}, E1 ++ E0)
+                        SHash = hash(Test, Title),
+                        H = #{label => TStamp,
+                              duration => Elapsed,
+                              status => Status},
+                        E1 = [{scenario, Id, Title, S}, {history, SHash, TStamp, H}],
+                        with_steps_entries(S#{timestamp => TStamp}, E1 ++ E0)
                 end,
                 Entries,
                 Scenarios).
@@ -66,26 +66,26 @@ with_steps_entries(#{steps := Steps,
                       status := Status,
                       step := #{title := Step}},
                     E0) ->
-                   SHash = hash(Test, Scenario, Step),
-                   H = #{label => TStamp,
-                         status => Status,
-                         duration => Millis},
-                   [{history, SHash, TStamp, H} | E0]
+                        SHash = hash(Test, Scenario, Step),
+                        H = #{label => TStamp,
+                              status => Status,
+                              duration => Millis},
+                        [{history, SHash, TStamp, H} | E0]
                 end,
                 Entries,
                 Steps).
 
 hash(Test) ->
     cmkit:hash(
-        cmkit:to_bin(Test)).
+      cmkit:to_bin(Test)).
 
 hash(Test, Scenario) ->
     cmkit:hash(
-        cmkit:bin_join([cmkit:to_bin(Test), Scenario])).
+      cmkit:bin_join([cmkit:to_bin(Test), Scenario])).
 
 hash(Test, Scenario, Step) ->
     cmkit:hash(
-        cmkit:bin_join([cmkit:to_bin(Test), Scenario, Step])).
+      cmkit:bin_join([cmkit:to_bin(Test), Scenario, Step])).
 
 with_debug(Debug, Steps) when is_list(Steps) ->
     lists:map(fun(S) -> with_debug(Debug, S) end, Steps);
@@ -164,7 +164,7 @@ steps_from_background(#{steps := Steps}) ->
 
 steps_from_backgrounds(Backgrounds) when is_list(Backgrounds) ->
     lists:flatten(
-        lists:map(fun steps_from_background/1, Backgrounds));
+      lists:map(fun steps_from_background/1, Backgrounds));
 steps_from_backgrounds(Other) ->
     cmkit:warning({cmtest, steps_from_backgrounds, unexpected, Other}),
     [].
@@ -190,7 +190,7 @@ steps(#{steps := Steps, backgrounds := Backgrounds}, Test) ->
                     case resolve_procedures(Steps3, Procs, []) of
                         {ok, Steps4} ->
                             {ok, Steps4};
-                        %resolve_steps(Steps4, IndexedReusableSteps, Procs);
+                                                %resolve_steps(Steps4, IndexedReusableSteps, Procs);
                         Other ->
                             Other
                     end;
@@ -206,14 +206,14 @@ index_reusable_steps(#{steps := Steps}) ->
 
 index_procedures(#{procedures := Procs}) ->
     lists:foldl(fun(#{name := Name, spec := Spec} = Spec0, Index) ->
-                   Spec1 = #{spec => Spec},
-                   Spec2 =
-                       case maps:get(as, Spec0, undef) of
-                           undef -> Spec1;
-                           As -> Spec1#{as => As}
-                       end,
+                        Spec1 = #{spec => Spec},
+                        Spec2 =
+                            case maps:get(as, Spec0, undef) of
+                                undef -> Spec1;
+                                As -> Spec1#{as => As}
+                            end,
 
-                   Index#{Name => Spec2}
+                        Index#{Name => Spec2}
                 end,
                 #{},
                 Procs);
@@ -354,7 +354,7 @@ resolve_steps([#{type := parallel, spec := #{ref := Title}} = Spec | Rem],
             Other
     end;
 resolve_steps([#{type := fail, spec := Title} = Spec | Rem], ReusableSteps, Procs, Out)
-    when is_binary(Title) ->
+  when is_binary(Title) ->
     case resolve_step(Title, ReusableSteps, Procs) of
         {ok, S} ->
             resolve_steps(Rem, ReusableSteps, Procs, [Spec#{spec => S} | Out]);
@@ -596,7 +596,7 @@ probe([Name | Rem], Status, World) ->
             Other
     end;
 probe(Name, Status, #{conns := Conns} = World)
-    when is_atom(Name) orelse is_binary(Name) ->
+  when is_atom(Name) orelse is_binary(Name) ->
     case maps:get(Name, Conns, undef) of
         undef ->
             {error, #{error => not_such_connection, info => Name}};
@@ -715,9 +715,9 @@ run_specs([S | Rem] = Specs,
                 #{wait := Wait,
                   left := Left,
                   max := Max} =
-                    Retries} =
+                Retries} =
               World)
-    when is_map(S) ->
+  when is_map(S) ->
     case run(S, Settings, World) of
         {retry, World2} ->
             timer:sleep(Wait),

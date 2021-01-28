@@ -20,25 +20,25 @@ stats() ->
 
 
     AvgCpu = trunc(lists:foldl(fun(#{ busy := Busy }, Sum) ->
-                    Busy + Sum
-                end, 0, CpuInfo)/length(CpuInfo)),
-    
-    
+                                       Busy + Sum
+                               end, 0, CpuInfo)/length(CpuInfo)),
+
+
     {TotalMem0, _, _} = memsup:get_memory_data(),
     TotalMem = trunc(TotalMem0/(1 bsl 20)),
     UsedMem = trunc(erlang:memory(total) / (1 bsl 20)),
 
-    
+
 
 
 
     #{mem => #{ 
-        used => UsedMem,
-        total => TotalMem
-       }, 
+                used => UsedMem,
+                total => TotalMem
+              }, 
       cpu => #{
-        average => AvgCpu
-       }
+               average => AvgCpu
+              }
      }.
 
 gc() ->
@@ -49,7 +49,7 @@ procs() -> procs(5).
 
 procs(Limit) ->
     lists:sublist(
-        lists:sort(fun proc_by_mem/2, lists:map(fun proc_info/1, erlang:processes())), Limit).
+      lists:sort(fun proc_by_mem/2, lists:map(fun proc_info/1, erlang:processes())), Limit).
 
 proc_info(Pid) -> 
     maps:from_list([{pid, Pid}, 

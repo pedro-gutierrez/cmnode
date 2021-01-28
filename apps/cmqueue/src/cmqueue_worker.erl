@@ -52,8 +52,8 @@ ready({call, From}, {subscribe, Topic, Id}, Data) ->
 
 
 ready(cast, {info, Id, JobInfo}, #{ name := Name,
-                                 subscriptions := Subs,
-                                 running := R }=Data) ->
+                                    subscriptions := Subs,
+                                    running := R }=Data) ->
     case maps:get(Id, R, undef) of 
         undef -> 
             cmkit:warning({cmqueue, Name, info, Id, unknown_job}),
@@ -90,7 +90,7 @@ ready({call, From}, {cancel, Id}, #{ name := Name,
 ready(cast, {finished, Id}, #{ name := Name,
                                subscriptions := Subs,
                                status := #{ pending := 0 } }=Data) -> 
-    
+
     cmkit:log({cmqueue, Name, finishing, Id}),
     Data2 = active_job_finished(Id, Data),
     Info = status_info(Data2),
@@ -98,8 +98,8 @@ ready(cast, {finished, Id}, #{ name := Name,
     {keep_state, Data2};
 
 ready(cast, {finished, Id}, #{ subscriptions := Subs,
-                                status := #{ pending := _ } }=Data) -> 
-    
+                               status := #{ pending := _ } }=Data) -> 
+
     Data2 = active_job_finished(Id, Data),
     Data3 = start_next_job(Data2),
     Info = status_info(Data3),
@@ -110,13 +110,13 @@ ready(cast, {finished, Id}, #{ subscriptions := Subs,
 ready({call, From}, {schedule, Job}, #{ subscriptions := Subs,
                                         status := #{ active := A, pending := P },
                                         cap := #{ concurrency := A, max := Max }}=Data) ->
-    
+
     Data2 = case P < Max of 
-        true -> 
-            enqueue(Job, Data);
-        false -> 
-            Data
-        end,
+                true -> 
+                    enqueue(Job, Data);
+                false -> 
+                    Data
+            end,
 
     Info = status_info(Data2),
     notify(Info, Subs),
@@ -137,10 +137,10 @@ terminate(Reason, _, #{ name := Name}) ->
     ok.
 
 active_job_finished(Id, #{ status := #{ active := A } = Status,
-                            running := R } = Data) ->
-    
+                           running := R } = Data) ->
+
     Data#{ status => Status#{ active => A - 1},
-                    running => maps:without([Id], R) }.
+           running => maps:without([Id], R) }.
 
 status_info(#{ queue := Q, running := R, cap := #{ concurrency := Concurrency,
                                                    max := Max }}) ->
@@ -154,11 +154,11 @@ status_info(#{ queue := Q, running := R, cap := #{ concurrency := Concurrency,
        pending => #{ max => Max,
                      current => length(Pending),
                      items => Pending } }.
-    
+
 job_info(#{ id := Id,
             timestamp := Timestamp,
             info := Info  }) ->
-    
+
     maps:merge(Info, #{ id => Id,
                         timestamp => Timestamp }).
 
@@ -190,12 +190,12 @@ cancel_job(#{ spec := #{ stop :=  {M, F, Args} }}) ->
 cancel_job(_) -> ok.
 
 start_job(#{ id := Id,
-         timestamp := _,
-         info:= _,
-         spec := #{ start := {M, F, Args} }} = Job, #{ name := Name,
-                                          status := #{ active := A } = Status,
-                                          running := R, name := Name }=Data) ->
-    
+             timestamp := _,
+             info:= _,
+             spec := #{ start := {M, F, Args} }} = Job, #{ name := Name,
+                                                           status := #{ active := A } = Status,
+                                                           running := R, name := Name }=Data) ->
+
     case apply(M, F, Args) of 
         ok -> 
             cmkit:log({cmqueue, Name, started, Job}),
@@ -216,10 +216,10 @@ dequeue(#{ queue := Q,
            status := #{ pending := P}=Status }=Data) ->
     {{value, Job}, Q2}  = queue:out(Q),
     {Job, Data#{ queue => Q2, 
-                  status => Status#{ pending => P - 1}}}.
+                 status => Status#{ pending => P - 1}}}.
 
 remove_from_queue(_, #{ name := Name, 
-                         status := #{ pending := 0 }}=Data) ->
+                        status := #{ pending := 0 }}=Data) ->
     cmkit:warning({cmqueue, Name, cancel, empty_queue}),
     Data;
 
@@ -227,8 +227,8 @@ remove_from_queue(Id, #{ name := Name,
                          queue := Q, 
                          status := #{ pending := P } = Status }=Data) ->
     {L2, Removed} = lists:partition(fun(#{ id := JobId }) ->
-                                      Id =/= JobId
-                              end, queue:to_list(Q)),
+                                            Id =/= JobId
+                                    end, queue:to_list(Q)),
     case Removed of 
         [#{ id := Id }] ->
             Q2 = queue:from_list(L2),

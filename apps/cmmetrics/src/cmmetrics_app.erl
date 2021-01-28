@@ -15,8 +15,8 @@ load_metrics() ->
     lists:foreach(fun load_metrics_group/1, cmconfig:metrics()).
 
 load_metrics_group(#{ name := Name,
-                spec := Metrics }) -> 
-    
+                      spec := Metrics }) -> 
+
     load_metrics_group(Name, maps:next(maps:iterator(Metrics))).
 
 load_metrics_group(_, none) -> ok;

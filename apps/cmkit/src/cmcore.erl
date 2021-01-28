@@ -65,7 +65,7 @@ data_with_where(#{ where := WhereSpec }, Data, Model, Config) ->
         Other ->
             Other
     end;
-        
+
 data_with_where(_, Data, Model, _) -> {ok, maps:merge(Model, Data)}.
 
 resolve_cmds(Encoders, Cmds, Model) ->
@@ -222,7 +222,7 @@ update_spec(#{ update := Updates }, Encoders, Msg, Data, Model, Config) ->
         undef ->
             {error, #{  update => not_implemented, msg => Msg }};
         Clauses ->
-            %In = #{ model => Model, data => Data },
+                                                %In = #{ model => Model, data => Data },
             In = maps:merge(Model, Data),
             case first_clause(Clauses, Encoders, In, Config) of
                 none ->
@@ -248,10 +248,10 @@ first_clause([Spec|_], _, _, _) ->
 
 decode(#{ decoders := Decoders }, #{ effect := default,
                                      data :=  Data }, Model, Config) ->
-    
+
     DefaultDecoders = maps:get(default, Decoders, []),
     decode_with(DefaultDecoders, Data, Model, Config);
-    
+
 decode(#{ decoders := Decoders }, #{ effect := Effect,
                                      data :=  Data }, Model, Config) ->
     case maps:get(Effect, Decoders, undef) of 
@@ -351,7 +351,7 @@ update(Pid, #{ name := App,
 update(Pid, #{ name := App,
                spec := #{ encoders := Encs }=Spec,
                config := Config } = AppSpec, Msg, Data, Model, _Log, Effects) ->
-    
+
     case update_spec(Spec, Encs, Msg, Data, Model, Config) of
         {ok, UpdateSpec} ->
             case apply_update_spec(Encs, UpdateSpec, Config, Data, {Model, []}) of

@@ -24,7 +24,7 @@ init([]) ->
                     Log = cmkit:log_fun(false),
                     State = set_state(offline, Log),
                     {ok, State, #{ log => Log}};
-                
+
                 {ok, #{ name := Name,
                         size := Size,
                         contact := Nodes } = Spec0} ->

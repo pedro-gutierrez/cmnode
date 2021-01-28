@@ -8,32 +8,32 @@ effect_info() -> css.
 
 effect_apply(#{ settings := SettingsName,
                 themes := ThemeNames}, Id) ->
-   
+
     Res = case cmconfig:settings(SettingsName) of 
-        {ok, #{ spec := SettingsSpec}} -> 
-            case cmencode:encode(SettingsSpec) of 
-                {ok, Settings} ->
-                    case resolve(ThemeNames) of 
-                        {ok, Colors, Fonts, FontSizes, Selectors} -> 
-                            case cmcss:compile(Colors, Fonts, FontSizes, Selectors, Settings) of 
-                                {ok, Source} ->
-                                    #{ language => css,
-                                       status => ok,
-                                       source => Source };
-                                {error, Error} -> 
-                                    err(ThemeNames, Error)
-                            end;
-                        {error, E} -> 
-                            err(ThemeNames, E)
-                    end;
-                {error, E} -> 
-                    err(ThemeNames, #{ status => E,
-                                       settings => SettingsName })
-            end;
-        {error, E} -> 
+              {ok, #{ spec := SettingsSpec}} -> 
+                  case cmencode:encode(SettingsSpec) of 
+                      {ok, Settings} ->
+                          case resolve(ThemeNames) of 
+                              {ok, Colors, Fonts, FontSizes, Selectors} -> 
+                                  case cmcss:compile(Colors, Fonts, FontSizes, Selectors, Settings) of 
+                                      {ok, Source} ->
+                                          #{ language => css,
+                                             status => ok,
+                                             source => Source };
+                                      {error, Error} -> 
+                                          err(ThemeNames, Error)
+                                  end;
+                              {error, E} -> 
+                                  err(ThemeNames, E)
+                          end;
+                      {error, E} -> 
+                          err(ThemeNames, #{ status => E,
+                                             settings => SettingsName })
+                  end;
+              {error, E} -> 
                   err(ThemeNames, #{ status => E,
                                      settings => SettingsName }) 
-    end,
+          end,
     cmcore:update(Id, Res).
 
 err(Themes, I) -> 

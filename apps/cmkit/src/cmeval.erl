@@ -13,8 +13,8 @@ eval(#{ type := false }, _, _, _) -> false;
 eval(#{ type := 'and', 
         spec := Specs }, _, In, Config) when is_list(Specs) -> 
     all_true(lists:map(fun(Spec) ->
-                                eval(Spec, In, Config)
-                        end, Specs));
+                               eval(Spec, In, Config)
+                       end, Specs));
 
 eval(#{ type := present, spec := Keys}, _, In, _) when is_map(In) ->
     cmkit:has_all_keys(Keys, In);
@@ -23,8 +23,8 @@ eval(#{ type := present, spec := Keys}, _, In, _) when is_map(In) ->
 eval(#{ encoder := Name}, Encs, In, Config) when is_atom(Name) ->
     case maps:get(Name, Encs, undef) of 
         undef -> 
-             cmkit:log({cmeval, encoder, unknown, Name}),
-             false;
+            cmkit:log({cmeval, encoder, unknown, Name}),
+            false;
         Enc ->
             eval(Enc, #{}, In, Config)
     end;

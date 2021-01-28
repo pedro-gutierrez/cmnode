@@ -6,22 +6,22 @@ load_beams(App, Prefix) ->
     Dir = code:lib_dir(App, ebin),
     Files = cmkit:files(Dir, ".beam"),
     Mods = lists:foldl(fun(F, Mods) ->
-                      ModName = filename:rootname(filename:basename(F)),
-                      case cmkit:prefix(ModName, Prefix) of
-                          no_match -> Mods;
-                          _ ->
-                              ModFile = Dir ++ "/" ++ ModName,
-                              Mod = cmkit:to_atom(ModName),
-                              code:purge(Mod),
-                              code:load_abs(ModFile),
-                              [Mod|Mods]
-                      end
-              end, [], Files),
+                               ModName = filename:rootname(filename:basename(F)),
+                               case cmkit:prefix(ModName, Prefix) of
+                                   no_match -> Mods;
+                                   _ ->
+                                       ModFile = Dir ++ "/" ++ ModName,
+                                       Mod = cmkit:to_atom(ModName),
+                                       code:purge(Mod),
+                                       code:load_abs(ModFile),
+                                       [Mod|Mods]
+                               end
+                       end, [], Files),
     Mods.
 
 compile(#{ module := Module,
            functions := Functions }) ->
-    
+
     ModForm = erl_syntax:revert(
                 erl_syntax:attribute(
                   erl_syntax:atom(module),[erl_syntax:atom(Module)])),
@@ -30,12 +30,12 @@ compile(#{ module := Module,
     ExportForm = erl_syntax:revert(
                    erl_syntax:attribute(
                      erl_syntax:atom(export),
-                        [erl_syntax:list([ 
-                                          erl_syntax:arity_qualifier(
-                                            erl_syntax:atom(Fun),
-                                            erl_syntax:integer(maps:get(arity, maps:get(Fun, Functions)))) ||
+                     [erl_syntax:list([ 
+                                        erl_syntax:arity_qualifier(
+                                          erl_syntax:atom(Fun),
+                                          erl_syntax:integer(maps:get(arity, maps:get(Fun, Functions)))) ||
                                           Fun <- maps:keys(Functions) ])])),
-    
+
     FunctionForms = [ erl_syntax:revert(
                         erl_syntax:function(
                           erl_syntax:atom(Fun), [ compile(C) || C <- maps:get(clauses, maps:get(Fun, Functions)) ])) 
@@ -50,7 +50,7 @@ compile(#{ module := Module,
 
 compile(#{ vars := Vars,
            body := Body }) ->
-    
+
     erl_syntax:clause([ compile(V) || V <- Vars ], [], [compile(Body)]);
 
 compile(#{ var := V }) ->
