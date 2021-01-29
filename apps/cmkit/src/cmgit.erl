@@ -125,7 +125,7 @@ tags(Dir) ->
                                             _ -> 
                                                 Acc
                                         end
-                                 end, [], Lines),
+                                end, [], Lines),
             {ok, Tags};
         Other ->
             cmkit:danger({cmgit, tags, Dir, Other}),
@@ -166,7 +166,7 @@ branch_create_cmd(Name) ->
 
 touch_branch_cmd(Name) ->
     cmkit:fmt("echo '{ \"rel\": \"~s\", \"date\": \"~s\"}' > RELEASE.json", [Name, cmkit:fmt_date()]).
-       
+
 add_cmd() -> "git add .".
 
 commit_cmd(Branch) ->
@@ -200,15 +200,15 @@ next_tag(Major, Minor, Patch, <<"patch">>) ->
 
 tags_filtered_by(Prefix, Items) -> 
     lists:sublist(lists:reverse(lists:sort(fun compare_tag/2, lists:foldr(fun(I, Acc) -> 
-                        case cmkit:prefix(I, Prefix) of 
-                            nomatch -> Acc;
-                            Suffix -> 
-                                [Maj, Min, Patch] = cmkit:bin_split(Suffix, <<".">>),
-                                [{ cmkit:to_number(Maj), 
-                                   cmkit:to_number(Min),
-                                   cmkit:to_number(Patch) }|Acc]
-                        end
-                end, [], Items))), 5).
+                                                                                  case cmkit:prefix(I, Prefix) of 
+                                                                                      nomatch -> Acc;
+                                                                                      Suffix -> 
+                                                                                          [Maj, Min, Patch] = cmkit:bin_split(Suffix, <<".">>),
+                                                                                          [{ cmkit:to_number(Maj), 
+                                                                                             cmkit:to_number(Min),
+                                                                                             cmkit:to_number(Patch) }|Acc]
+                                                                                  end
+                                                                          end, [], Items))), 5).
 
 tag_with_prefix(Prefix, {Maj, Min, Patch}) ->
     MajBin = cmkit:to_bin(Maj),
@@ -226,6 +226,6 @@ compare_tag({_, _, _}, {_, _, _}) -> false.
 git_http_url(Repo, #{ user := User,
                       password := Password }) -> 
     cmkit:fmt("https://~s:~s@~s", [ cmkit:to_list(User),
-                              cmkit:to_list(Password),
-                              cmkit:to_list(Repo) ]).
-    
+                                    cmkit:to_list(Password),
+                                    cmkit:to_list(Repo) ]).
+

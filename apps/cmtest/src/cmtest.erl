@@ -100,9 +100,9 @@ queue_job(T, S, Opts) ->
                   settings => S,
                   info => <<"Not started yet">> },
        spec => #{ start => {cmtest, run, [#{ id => Now,
-                                 test => T,
-                                 settings => S,
-                                 opts => Opts }]},
+                                             test => T,
+                                             settings => S,
+                                             opts => Opts }]},
 
                   stop => {cmtest, stop, [Now]}}
      }.
@@ -202,13 +202,13 @@ history(Query, Days, Series) ->
             Acc2 = Acc#{ labels => [], series => Acc },
             History = lists:foldr(fun({_, _, _, #{ label := L }=H}, #{ labels := Labels,
                                                                        series := AllSeries0 }=Acc0) ->
-                            AllSeries1 = lists:foldl(fun(S, A0) ->
-                                            V = maps:get(S, H),
-                                            S0 = maps:get(S, A0),
-                                            A0#{ S => [V|S0] } 
-                                        end, AllSeries0, Series),
-                            Acc0#{ labels => [L|Labels], series => AllSeries1 }
-                        end, Acc2, Entries),
+                                          AllSeries1 = lists:foldl(fun(S, A0) ->
+                                                                           V = maps:get(S, H),
+                                                                           S0 = maps:get(S, A0),
+                                                                           A0#{ S => [V|S0] } 
+                                                                   end, AllSeries0, Series),
+                                          Acc0#{ labels => [L|Labels], series => AllSeries1 }
+                                  end, Acc2, Entries),
             {ok, History};
         Other ->
             Other

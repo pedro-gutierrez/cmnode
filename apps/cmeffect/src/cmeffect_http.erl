@@ -8,7 +8,7 @@ effect_info() -> http.
 
 effect_apply(#{ context := Context,
                 requests := [] }, SessionId) ->
-    
+
     cmcore:update(SessionId, #{ context => Context,
                                 error => no_requests });
 
@@ -23,7 +23,7 @@ effect_apply(#{ context := Context,
     end;
 
 effect_apply(Spec, SessionId) when is_map(Spec) ->
-        
+
     case do_spec(Spec) of 
         {ok, Resp} ->
             cmcore:update(SessionId, Resp);
@@ -52,7 +52,7 @@ with_url(Http, Url) when is_binary(Url) ->
 
 with_url(Http, UrlSpec) when is_map(UrlSpec) ->
     case cmencode:encode(#{ type => url,
-                   spec => UrlSpec }) of 
+                            spec => UrlSpec }) of 
         {ok, #{ url := Url }} ->
             {ok, Http#{ url => Url }};
         Other ->
@@ -83,7 +83,7 @@ record_metric(_, _, _) -> ok.
 
 
 do_spec(#{ method := Method,
-          url := UrlSpec } = Spec) ->
+           url := UrlSpec } = Spec) ->
 
     Data = case with_url(#{ debug => maps:get(debug, Spec, false),
                             method => Method}, UrlSpec) of 

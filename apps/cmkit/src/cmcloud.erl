@@ -25,12 +25,12 @@ expected_nodes() ->
        ) || H <- net_adm:host_file()].
 
 current_nodes() ->
-      ExpectedNodes = expected_nodes(),
-      cmkit:intersection(ExpectedNodes, [node()|nodes()]).
+    ExpectedNodes = expected_nodes(),
+    cmkit:intersection(ExpectedNodes, [node()|nodes()]).
 
 current_peer_nodes() ->
-      ExpectedNodes = expected_nodes(),
-      cmkit:intersection(ExpectedNodes, nodes()).
+    ExpectedNodes = expected_nodes(),
+    cmkit:intersection(ExpectedNodes, nodes()).
 
 localhost() -> cmkit:node_host_short(node()).
 

@@ -26,10 +26,10 @@ start_link(Test, Scenario, Steps, Facts, Settings, Runner) ->
     gen_statem:start_link(?MODULE, [Test, Scenario, Steps, Facts, Settings, Runner], []).
 
 init([#{ config := Config }=Test, Scenario, Steps, Facts, Settings, Runner]) ->
-    
+
     Retries = maps:get(retries, Config, 10),
     Wait = maps:get(wait, Config, 25),
-    
+
     Data = #{ log => cmkit:log_fun(Config),
               test => Test,
               scenario => Scenario,
@@ -61,7 +61,7 @@ ready(state_timeout, retry, Data) ->
 
 ready(cast, next, Data) ->
     run_steps(Data);
-     
+
 ready({call, From}, stop, #{ 
                              world := World
                            }) ->
@@ -98,8 +98,8 @@ run_steps(#{ test := #{ name := Name },
                     World3 = retried(World2#{ elapsed => Elapsed }),
                     {keep_state, Data#{ step_started => StepStarted,
                                         world => World3 }, 
-                        [{state_timeout, Wait, retry}]};
-                
+                     [{state_timeout, Wait, retry}]};
+
                 {ok, World2} ->
                     Elapsed = cmkit:millis_since(ScenarioStarted),
                     StepMillis = cmkit:millis_since(StepStarted),
@@ -128,7 +128,7 @@ run_steps(#{ test := #{ name := Name },
                                              scenario => Title,
                                              step => StepTitle,
                                              spec => StepSpec,
-                                             data => ScenarioData,
+                                             data => cmtest_util:printable(ScenarioData),
                                              conns => ScenarioConns,
                                              pid => self() }}),
                     StepMillis = cmkit:millis_since(StepStarted),
@@ -186,14 +186,14 @@ world_with_conn_msg(App, Msg, #{ conns := Conns}=World) ->
 
 close_conns(#{ conns := Conns }) ->
     ConnsToClose = [ {Name, Pid} || #{ name := Name,
-                                  pid := Pid,
-                                  class := websocket } <- maps:values(Conns) ],
+                                       pid := Pid,
+                                       class := websocket } <- maps:values(Conns) ],
     [ close_conn(C) || C <- ConnsToClose ],
     ok;
 
 close_conns(_) ->
     ok.
-   
+
 close_conn({_, Pid}) ->
     cmtest_ws_sup:stop(Pid).
 

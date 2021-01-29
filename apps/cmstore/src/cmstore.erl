@@ -2,7 +2,7 @@
 -export([reset/1,
          write/2,
          read/2]).
-         
+
 write(Bucket, Spec) -> 
     cmstore_util:write(Bucket, Spec).
 

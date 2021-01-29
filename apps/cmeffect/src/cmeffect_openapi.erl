@@ -11,26 +11,26 @@ effect_apply(#{ port := Port,
 
 
     Res = case cmconfig:port(Port) of
-               {ok, #{ apps := Apps }} ->
-                    case resolve_apps(Apps, AppNames, #{}) of 
-                        {ok, ResolvedApps} ->
-                            case cmopenapi:spec(ResolvedApps) of 
-                                {ok, Spec} ->
-                                    Info = #{ title => ApiTitle,
-                                              version => <<"1.0.0">> },
+              {ok, #{ apps := Apps }} ->
+                  case resolve_apps(Apps, AppNames, #{}) of 
+                      {ok, ResolvedApps} ->
+                          case cmopenapi:spec(ResolvedApps) of 
+                              {ok, Spec} ->
+                                  Info = #{ title => ApiTitle,
+                                            version => <<"1.0.0">> },
 
-                                    Spec#{ openapi => <<"3.0.0">>,
-                                           info => Info };
-                                Other ->
-                                    Other
-                            end;
-                        Other ->
-                            Other
-                    end;
-               Other ->
+                                  Spec#{ openapi => <<"3.0.0">>,
+                                         info => Info };
+                              Other ->
+                                  Other
+                          end;
+                      Other ->
+                          Other
+                  end;
+              Other ->
                   Other
-           end,
-        
+          end,
+
     Res2 = case Res of 
                {error, E} ->
                    #{ status => error,

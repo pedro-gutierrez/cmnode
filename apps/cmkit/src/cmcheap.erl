@@ -23,9 +23,9 @@ replace(#{ 'Name' := Name,
 
 
 add(#{ 'Name' := _,
-            'Type' := _,
-            'Address' := _,
-            'TTL' := _ }=H, Config) ->
+       'Type' := _,
+       'Address' := _,
+       'TTL' := _ }=H, Config) ->
 
     case hosts(Config) of 
         {ok, Hosts} ->
@@ -42,11 +42,11 @@ add(#{ 'Name' := _,
     end;
 
 add(_, _) -> err(invalid_host).
- 
+
 set_hosts(Hosts, Config) ->
     {Q, _} = lists:foldl(fun(H, {Acc, Idx}) ->
-                        {replace_host(H, Acc, Idx), Idx+1}
-                    end, {#{}, 1}, Hosts),
+                                 {replace_host(H, Acc, Idx), Idx+1}
+                         end, {#{}, 1}, Hosts),
     case cmd(post, 'namecheap.domains.dns.setHosts', 'DomainDNSSetHostsResult', Q, Config) of 
         {ok, Attrs, _} ->
             case lists:keyfind('IsSuccess', 1, Attrs) of 
@@ -88,17 +88,17 @@ hosts(Config) ->
     case cmd(get, 'namecheap.domains.dns.getHosts', 'DomainDNSGetHostsResult', #{}, Config) of 
         {ok, _, Hosts} ->
             {ok, lists:map(fun({host, Attrs, _}) ->
-                        maps:from_list(Attrs)
+                                   maps:from_list(Attrs)
                            end, Hosts)};
         Other ->
             Other
     end.
 
 cmd(Method, Command, Resp, Extra, #{ sld := Sld,
-                                tld := Tld,
-                                user := User,
-                                key := ApiKey }) -> 
-    
+                                     tld := Tld,
+                                     user := User,
+                                     key := ApiKey }) -> 
+
     extract(cmhttp:do(#{ method => Method,
                          url => <<"https://api.namecheap.com/xml.response">>,
                          query => maps:merge(Extra, #{ 'ApiUser' => User,
@@ -115,7 +115,7 @@ client_ip() ->
 
 
 extract({ok, #{ status := 200,
-              body := {'ApiResponse', Attrs, Children}}}, RespName) ->
+                body := {'ApiResponse', Attrs, Children}}}, RespName) ->
 
     case lists:keyfind('Status', 1, Attrs) of 
         false ->
@@ -125,7 +125,7 @@ extract({ok, #{ status := 200,
         {_, "OK"} ->
             extract_response(Children, RespName)
     end;
-    
+
 
 extract({ok, #{ status := Other }}, _) when Other =/= 200 ->
     {error, Other}.
@@ -161,7 +161,7 @@ unknown_err() ->
 
 err(E) ->
     {error, E}.
-   
+
 
 hosts_without(N, Hosts) ->
     [ H || #{'Name' := Name} = H <- Hosts, cmkit:to_bin(Name) =/= cmkit:to_bin(N) ].

@@ -12,5 +12,5 @@ init([]) ->
                          [],
                          permanent,
                          worker),
-    
+
     {ok, { {one_for_one, 0, 1}, [W]} }.

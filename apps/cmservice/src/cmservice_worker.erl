@@ -13,7 +13,7 @@ start_link(App, Params) ->
     gen_server:start_link(?MODULE, [App, Params], []).
 
 init([App, Params]) ->
-    
+
     DurationMetric = cmservice_util:duration_metric_name(App),
     Pid = self(),
     Start = cmkit:micros(), 

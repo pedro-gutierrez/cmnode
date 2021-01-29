@@ -15,11 +15,11 @@ init([]) ->
                                [],
                                permanent,
                                worker),
-    
+
     CompilerSup = cmkit:child_spec(cmconfig_compiler_sup,
                                    cmconfig_compiler_sup,
                                    [],
                                    permanent,
                                    supervisor),
-    
+
     {ok, { {one_for_one, 0, 1}, [Watcher, CompilerSup]} }.

@@ -32,11 +32,11 @@ settings([Name|Rem], Names, Spec) ->
 
 run(#{ name := Name,
        items := Items }, Settings, Params) ->
-    
+
     Input = #{ params => Params,
                context => #{},
                settings => maps:get(spec, Settings, #{})},
-    
+
     case resolve_items(Items) of 
         {ok, Items2} -> 
             case run_items(Name, Items2, Input) of 
@@ -56,7 +56,7 @@ resolve_items([], Out) -> {ok, lists:reverse(Out) };
 resolve_items([#{ type := task, name := Name }|Rem], Out) ->
     case cmconfig:task(Name) of 
         {ok, #{ items := Items }} ->
-             resolve_items(Rem, lists:reverse(Items) ++ Out); 
+            resolve_items(Rem, lists:reverse(Items) ++ Out); 
         Other ->
             Other
     end;
@@ -90,10 +90,10 @@ run_item(Name, #{ type := dump, spec := Spec}, In) ->
     ok;
 
 run_item(Name, #{ type := slack,
-               spec := #{ settings := SettingsSpec, 
-                          severity := SeveritySpec,
-                          subject := SubjectSpec,
-                          body := BodySpec }}, #{ settings := Settings} = In) ->
+                  spec := #{ settings := SettingsSpec, 
+                             severity := SeveritySpec,
+                             subject := SubjectSpec,
+                             body := BodySpec }}, #{ settings := Settings} = In) ->
     case maps:get(slack, Settings, undef) of 
         undef -> 
             {error, #{ task => Name,
@@ -380,10 +380,10 @@ run_item(Name, #{ type := attempt,
     end;
 
 run_item(_, #{ type := db,
-                  spec := #{ bucket := Bucket,
-                             type := Type,
-                             id := Id,
-                             value := Value }}, In) -> 
+               spec := #{ bucket := Bucket,
+                          type := Type,
+                          id := Id,
+                          value := Value }}, In) -> 
     case cmencode:encode(Bucket, In) of 
         {ok, B} -> 
             case cmencode:encode(Type, In) of 
@@ -411,7 +411,7 @@ run_item(_, #{ type := queue,
                spec := #{ action := finish,
                           id := IdSpec,
                           name := Name }}, In) ->
-    
+
     case cmencode:encode(IdSpec, In) of 
         {ok, Id} ->
             cmqueue:finish(Name, Id);
@@ -423,7 +423,7 @@ run_item(_, #{ type := queue,
                name := NameSpec,
                notify := JobSpec,
                info := InfoSpec }, In) ->
-    
+
     case cmencode:encode(NameSpec, In) of 
         {ok, Name} ->
             case cmencode:encode(JobSpec, In) of 
@@ -444,7 +444,7 @@ run_item(_, #{ type := queue,
 run_item(_, #{ type := queue,
                name := NameSpec,
                finish := JobSpec }, In) ->
-    
+
     case cmencode:encode(NameSpec, In) of 
         {ok, Name} ->
             case cmencode:encode(JobSpec, In) of 

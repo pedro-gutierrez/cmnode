@@ -12,17 +12,17 @@ effect_apply(#{ query := queues }, SessionId) ->
 effect_apply(#{ query := queue,
                 queue := Name }, SessionId) ->
     Res = case cmconfig:queue(Name) of 
-        {ok, Spec} ->
+              {ok, Spec} ->
                   with_status(Spec);
-        Other -> Other
-    end,
+              Other -> Other
+          end,
 
     cmcore:update(SessionId, #{ queue => Res});
 
 effect_apply(#{ context := Context,
                 queue := Name,
                 topic := Topic }, SessionId) ->
-    
+
     Res = case cmqueue:subscribe(Name, Topic, SessionId) of 
               {ok, QueueInfo} ->
                   #{ status => ok,
@@ -97,4 +97,4 @@ with_status(#{ worker := Name }=Spec) ->
         {error, E} ->
             Spec#{ error => E }
     end.
-    
+

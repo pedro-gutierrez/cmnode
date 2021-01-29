@@ -8,21 +8,21 @@ effect_info() -> store.
 effect_apply(#{ context := C,
                 store := Store,
                 reset := _ }, Pid) ->
-    
+
     R = result(C, Store, cmstore:reset(Store)),
     cmcore:update(Pid, R);
 
 effect_apply(#{ context := C, 
                 store := Store,
                 read := Spec }, Pid) ->
-                
+
     Res = case cmstore:read(Store, Spec) of 
-        {ok, [Single]} -> 
-            {ok, Single};
-        Other -> 
-            Other
-    end,
-        
+              {ok, [Single]} -> 
+                  {ok, Single};
+              Other -> 
+                  Other
+          end,
+
     cmcore:update(Pid, result(C, Store, Res));
 
 effect_apply(#{ context := C,
@@ -32,7 +32,7 @@ effect_apply(#{ context := C,
                             id := Id,
                             event := Ev,
                             data := _ } = Event}, Pid) ->
-    
+
     case cmstore:write(Store, Event) of 
         ok ->
             pub([[K, Id], [K, Ev]], Event),
@@ -51,7 +51,7 @@ pub([T|Rem], Event) ->
             pub(Rem, Event)
     end.
 
-    
+
 result(C, S, ok) -> 
     #{ store => S,
        context => C,
@@ -59,9 +59,9 @@ result(C, S, ok) ->
 
 result(C, S, {ok, Data}) -> 
     #{ store => S,
-        context => C,
-        status => ok,
-        data => Data };
+       context => C,
+       status => ok,
+       data => Data };
 
 result(C, S, {error, E}) -> 
     #{ store => S,

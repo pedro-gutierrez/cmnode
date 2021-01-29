@@ -30,16 +30,16 @@ handle_call(restart, _, Data) ->
     {reply, ok, Data2};
 
 handle_call({put, Entries}, _, Data) ->
-    
+
     write_and_reply(distinct(Entries), Data);
 
 handle_call({delete, Specs}, _, #{ tree := Tree} = Data) ->
-    
+
     Entries = cmdb_util:read_all(Tree, Specs),
     write_and_reply([], [{S, P, O} || {S, P, O, _} <- Entries], Data);
 
 handle_call({insert, Entries}, _, #{ tree := Tree }=Data) ->
-    
+
     case cmdb_util:all_new(Tree, Entries) of 
         false ->
             {reply, conflict, Data};
@@ -48,7 +48,7 @@ handle_call({insert, Entries}, _, #{ tree := Tree }=Data) ->
     end;
 
 handle_call({merge, S, Decoder, Merge}, _, #{ tree := Tree }=Data) ->
-    
+
     Entries = unwind_merge(Tree, {S, Decoder}, Merge),
     write_and_reply(Entries, Data);
 
@@ -82,17 +82,17 @@ open(Name) ->
     Filename = filename:join([cmkit:data(), atom_to_list(Name) ++ ".cbt"]),
     {ok, Pid} = cbt_file:open(Filename, [create_if_missing]),
     R = case cbt_file:read_header(Pid) of
-        {ok, _Header, _} ->
-            {ok, Pid};
-        no_valid_header ->
-            {ok, T} = cbt_btree:open(nil, Pid),
-            case write_entries(Pid, T, [{{0, 0, 0},0}]) of 
-                {ok, _} ->
-                    {ok, Pid};
-                Other ->
-                    Other
-            end
-    end,
+            {ok, _Header, _} ->
+                {ok, Pid};
+            no_valid_header ->
+                {ok, T} = cbt_btree:open(nil, Pid),
+                case write_entries(Pid, T, [{{0, 0, 0},0}]) of 
+                    {ok, _} ->
+                        {ok, Pid};
+                    Other ->
+                        Other
+                end
+        end,
 
     case R of 
         {ok, Pid} ->
@@ -127,7 +127,7 @@ restart(#{ log := Log,
            name := Name,
            pid := Fd,
            ref := Ref} = Data, Opts) ->
-    
+
     erlang:demonitor(Ref),
     ok = cbt_file:close(Fd),
     Filename = filename:join([cmkit:data(), atom_to_list(Name) ++ ".cbt"]),
@@ -181,7 +181,7 @@ write_entries(Pid, Tree, ToAdd) ->
 write_entries(_, Tree, [], []) -> {ok, Tree};
 
 write_entries(Pid, Tree, ToAdd, ToRemove) -> 
-    
+
     {ok, Tree2} = cbt_btree:add_remove(Tree, ToAdd, ToRemove),
     Root = cbt_btree:get_state(Tree2),
     Header = {1, Root},

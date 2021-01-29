@@ -11,7 +11,7 @@ is_template(T) ->
 
 reload() ->   
     spawn(fun() ->
-        reload(cmconfig:templates())
+                  reload(cmconfig:templates())
           end).
 
 reload([]) -> ok;

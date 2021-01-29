@@ -8,7 +8,7 @@ start_link(Buckets) ->
 
 init([Buckets]) ->
 
-    
+
     Writers = [cmkit:child_spec(spec_id(B, writer),
                                 cmdb_writer,
                                 [B],

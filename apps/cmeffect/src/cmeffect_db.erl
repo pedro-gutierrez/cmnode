@@ -8,7 +8,7 @@ effect_info() -> db.
 effect_apply(#{ context := C,
                 bucket := B,
                 reset := _ }=Spec, Id) ->
-    
+
     R = reply_from(cmdb:reset(B), Spec),
     cmcore:update(Id, R#{ bucket => B,
                           context => C });
@@ -16,7 +16,7 @@ effect_apply(#{ context := C,
 effect_apply(#{ context := C,
                 buckets := Buckets,
                 restart := _ }, Id) ->
-    
+
     R = case restart(Buckets) of 
             ok ->
                 #{status => ok};
@@ -24,7 +24,7 @@ effect_apply(#{ context := C,
                 #{ status => error,
                    reason => E}
         end,
-            
+
     cmcore:update(Id, R#{ buckets => Buckets,
                           context => C });
 
@@ -124,11 +124,11 @@ effect_apply(#{ context := C,
 effect_apply(#{ context := C,
                 bucket := B,
                 get := #{ subjects := S }}=Spec, Id)  ->
-    
+
     R = lists:flatten(lists:map(fun(Subject) ->
-                                    cmdb:get(B, Subject)
+                                        cmdb:get(B, Subject)
                                 end, S)),
-    
+
     R2 = reply_from(R, Spec),
     cmcore:update(Id, R2#{ bucket => B,
                            context => C });
@@ -157,12 +157,12 @@ effect_apply(#{ context := C,
                            predicate := P1 },
                 with := #{ subject := S2,
                            predicate := P2 }} = Spec, Id) ->
-    
+
     R = reply_from(lists:flatten(lists:map(fun({_, _, O, V}) ->
-                                    lists:map(fun({S3, P3, O3, V2}) ->
-                                                      {S3, P3, O3, maps:merge(V2, V)}
-                                                      end, cmdb:get(B, S2, P2, O))
-                                 end, cmdb:get(B, S1, P1))), Spec),
+                                                   lists:map(fun({S3, P3, O3, V2}) ->
+                                                                     {S3, P3, O3, maps:merge(V2, V)}
+                                                             end, cmdb:get(B, S2, P2, O))
+                                           end, cmdb:get(B, S1, P1))), Spec),
     cmcore:update(Id, R#{ bucket => B,
                           context => C });
 
@@ -174,8 +174,8 @@ effect_apply(#{ context := C,
                            predicate := P2 }}=Spec, Id ) ->
 
     R = reply_from(lists:flatten(lists:map(fun({_, _, _, V}) ->
-                                    cmdb:get(B, S2, P2, V)
-                                 end, cmdb:get(B, S1, P1))), Spec),
+                                                   cmdb:get(B, S2, P2, V)
+                                           end, cmdb:get(B, S1, P1))), Spec),
     cmcore:update(Id, R#{ bucket => B,
                           context => C });
 

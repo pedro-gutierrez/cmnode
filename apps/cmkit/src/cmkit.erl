@@ -55,7 +55,7 @@ env(Key, Default) -> os:getenv(Key, Default).
 files(Dir, Ext) ->
     filelib:fold_files(Dir, Ext ++ "$", true, fun(Filename, All) ->
                                                       [Filename|All]
-                                              end, []).
+                       end, []).
 
 yaml_files() ->
     files(etc(), ".yml").
@@ -136,7 +136,7 @@ jsond(Bin) when is_binary(Bin) ->
                 {ok, Other}
         end
     catch
-      _:_ -> 
+        _:_ -> 
             {error, Bin}
     end;
 
@@ -152,10 +152,10 @@ jsone(Term, Opts) ->
 
 
 err(Reason) ->
-  {error, #{reason => Reason}}.
+    {error, #{reason => Reason}}.
 
 fmt(Format, Args) when is_list(Format) ->
-  erlang:iolist_to_binary(io_lib:format(xmerl_ucs:to_utf8(Format), Args ));
+    erlang:iolist_to_binary(io_lib:format(xmerl_ucs:to_utf8(Format), Args ));
 
 fmt(Format, Args) when is_binary(Format) ->
     fmt(binary_to_list(Format), Args).
@@ -182,7 +182,7 @@ fmt_named_replace([Other|Rem], Args, default, Tmp, Out) ->
 
 
 fmt_named_replace([], _, start_param, _, Out) ->
-     {ok, bin_join(lists:reverse(Out))};
+    {ok, bin_join(lists:reverse(Out))};
 
 fmt_named_replace([<<>>|Rem], Args, start_param, Tmp, Out) ->
     fmt_named_replace(Rem, Args, start_param, Tmp, Out);
@@ -228,7 +228,7 @@ now() ->
     erlang:system_time(millisecond).
 
 uuid() ->
-  list_to_binary(uuid:to_string(uuid:uuid4())).
+    list_to_binary(uuid:to_string(uuid:uuid4())).
 
 ret(R) -> R.
 
@@ -239,73 +239,73 @@ worker_child_spec(M) ->
     child_spec(M, worker).
 
 child_spec(M, Type) ->
-  child_spec(M, [], Type).
+    child_spec(M, [], Type).
 
 child_spec(M, Args, Type) ->
-  child_spec(M, M, Args, Type).
+    child_spec(M, M, Args, Type).
 
 child_spec(Id, M, Args, Type) ->
     child_spec(Id, M, Args, permanent, Type).
 
 child_spec(Id, M, Args, Restart, Type) ->
-  {Id, {M, start_link, Args}, Restart, 5000, Type, [M]}.
+    {Id, {M, start_link, Args}, Restart, 5000, Type, [M]}.
 
 parse(Spec, Json) ->
-  parse_input(Spec, #{}, Json).
+    parse_input(Spec, #{}, Json).
 
 parse_input([{Type, K} |Rest], SoFar, Json) ->
-  case parse_value(Type, K, Json) of
-    invalid -> {errors, #{invalid => K}};
-    missing -> {errors, #{missing => K}};
-    V -> parse_input(Rest, maps:put(K, V, SoFar), Json)
-  end;
+    case parse_value(Type, K, Json) of
+        invalid -> {errors, #{invalid => K}};
+        missing -> {errors, #{missing => K}};
+        V -> parse_input(Rest, maps:put(K, V, SoFar), Json)
+    end;
 
 parse_input([{Type, K, Default} |Rest], SoFar, Json) ->
-  case parse_value(Type, K, Json) of
-    invalid -> {errors, #{invalid => K}};
-    missing -> parse_input(Rest, maps:put(K, Default, SoFar), Json);
-    V -> parse_input(Rest, maps:put(K, V, SoFar), Json)
-  end;
-  
+    case parse_value(Type, K, Json) of
+        invalid -> {errors, #{invalid => K}};
+        missing -> parse_input(Rest, maps:put(K, Default, SoFar), Json);
+        V -> parse_input(Rest, maps:put(K, V, SoFar), Json)
+    end;
+
 parse_input([], SoFar, _) -> {ok, SoFar}.
 
 parse_value(Type, [K|Rest], Json) ->
-  case maps:is_key(K, Json) of
-    false -> missing; 
-    true -> 
-      parse_value(Type, Rest, maps:get(K, Json))
-  end;
+    case maps:is_key(K, Json) of
+        false -> missing; 
+        true -> 
+            parse_value(Type, Rest, maps:get(K, Json))
+    end;
 
 
 parse_value(Type, K, Json) ->
-  case maps:is_key(K, Json) of
-    false -> missing;
-    true ->
-      parse_actual(Type, K, Json)
-  end.
+    case maps:is_key(K, Json) of
+        false -> missing;
+        true ->
+            parse_actual(Type, K, Json)
+    end.
 
 parse_actual(text, K, Json) ->
-  case maps:get(K, Json) of
-    <<"">> -> invalid;
-    V when is_binary(V) -> V;
-    _ -> invalid
-  end;
+    case maps:get(K, Json) of
+        <<"">> -> invalid;
+        V when is_binary(V) -> V;
+        _ -> invalid
+    end;
 
 parse_actual(list, K, Json) ->
-  case maps:get(K, Json) of
-    V when is_list(V) -> V;
-    _ -> invalid
-  end.
+    case maps:get(K, Json) of
+        V when is_list(V) -> V;
+        _ -> invalid
+    end.
 
 mins_since(T) ->
-  diff_mins(T, calendar:universal_time()).
+    diff_mins(T, calendar:universal_time()).
 
 diff_mins(T1, T2) ->
-  {D, {H, M, _}} = calendar:time_difference(T1, T2),
-  M+60*H+24*60*D.
+    {D, {H, M, _}} = calendar:time_difference(T1, T2),
+    M+60*H+24*60*D.
 
 diff_secs(T1, T2) ->
-  60*diff_mins(T1, T2).
+    60*diff_mins(T1, T2).
 
 
 match_map([{K, V}|Rem], Map) when is_map(Map) ->
@@ -349,8 +349,8 @@ search_list(Pattern, [_|T]) ->
 implements(M, Callbacks) ->
     Exports = M:module_info(exports),
     Found = lists:filter(fun(Callback) ->
-                lists:member(Callback, Callbacks)
-            end, Exports),
+                                 lists:member(Callback, Callbacks)
+                         end, Exports),
     length(Found) == length(Callbacks).
 
 
@@ -419,7 +419,7 @@ distinct([H|T]) -> [H | [X || X <- distinct(T), X /= H]].
 
 intersection(List1, List2) ->
     sets:to_list(sets:intersection(sets:from_list(List1),
-                                  sets:from_list(List2))).
+                                   sets:from_list(List2))).
 
 ip_str(Ip) ->
     inet:ntoa(Ip).
@@ -478,7 +478,7 @@ node_for_host(H, Nodes) ->
 node_for_host(Name, H, Nodes) ->
     HostBin = to_bin(H),
     Match = lists:filter(fun(N) -> 
-                            node_host_short(N) =:= HostBin
+                                 node_host_short(N) =:= HostBin
                          end, Nodes),
     case Match of 
         [Node] -> {ok, Node};
@@ -512,11 +512,11 @@ hosts_to_nodes([H|Rem], Nodes, Found, NotFound) ->
 
 node_name(N, H) ->
     Name = case cmkit:bin_split(N, <<"@">>) of
-        [N] ->
-            <<N/binary, "@", H/binary>>;
-        [_, _] ->
-            N
-    end,
+               [N] ->
+                   <<N/binary, "@", H/binary>>;
+               [_, _] ->
+                   N
+           end,
     cmkit:to_atom(Name).
 
 node_names(Names, H) ->
@@ -538,13 +538,13 @@ uniconvert(String) when is_list(String) ->
 uniconvert(Bin) when is_binary(Bin) -> 
     unicode:characters_to_list(Bin).
 
-%  try xmerl_ucs:from_utf8(String) of
-%    _ ->
-%      list_to_binary(String)
-%  catch
-%    exit:{ucs,{bad_utf8_character_code}} ->
-%      list_to_binary(xmerl_ucs:to_utf8(String))
-%  end.
+                                                %  try xmerl_ucs:from_utf8(String) of
+                                                %    _ ->
+                                                %      list_to_binary(String)
+                                                %  catch
+                                                %    exit:{ucs,{bad_utf8_character_code}} ->
+                                                %      list_to_binary(xmerl_ucs:to_utf8(String))
+                                                %  end.
 
 map_join(Map, Sep1, Sep2) ->
     cmkit:bin_join(maps:fold(fun(K, V, Acc) ->
@@ -590,7 +590,7 @@ to_list(M) when is_map(M) ->
                  (K, V, Out) when is_list(V) ->
                       case is_string(V) of 
                           false -> 
-                            [{K, lists:map(fun to_list/1, V)}|Out];
+                              [{K, lists:map(fun to_list/1, V)}|Out];
                           true -> 
                               [{K, V}|Out]
                       end;
@@ -601,7 +601,7 @@ to_list(M) when is_map(M) ->
 to_list(Map, KeyTitle, ValueTitle) when is_map(Map) ->
     maps:fold(fun(K, V, Out) ->
                       [#{ KeyTitle => K, 
-                         ValueTitle => V }|Out]
+                          ValueTitle => V }|Out]
               end, [], Map).
 
 
@@ -634,7 +634,7 @@ format_date(Date) ->
     format_date(Date, iso8601).
 
 format_date(#{ year := Y, month := M, day := D,
-                hour := H, minute := Min, second := Secs }, iso8601) -> 
+               hour := H, minute := Min, second := Secs }, iso8601) -> 
     try 
         to_bin(iso8601:format({{Y, M, D}, {H, Min, Secs}}))
     catch 
@@ -698,21 +698,21 @@ value_at(Key, Map) when is_binary(Key) and is_map(Map) ->
 is_email(Email) ->
     case re:run(Email, [$^|email_re()]++"$", [extended]) of
         nomatch   -> false;
-        {match,_} -> true
-    end.
+                    {match,_} -> true
+               end.
 
 email_re() ->
     "(
             (\"[^\"\\f\\n\\r\\t\\v\\b]+\")
         |   ([\\w\\!\\#\\$\\%\\&\\'\\*\\+\\-\\~\\/\\^\\`\\|\\{\\}]+
-                (\\.[\\w\\!\\#\\$\\%\\&\\'\\*\\+\\-\\~\\/\\^\\`\\|\\{\\}]+)*
-            )
-    )
-    @
-    (
-        (
-            ([A-Za-z0-9\\-])+\\.
-        )+
+                    (\\.[\\w\\!\\#\\$\\%\\&\\'\\*\\+\\-\\~\\/\\^\\`\\|\\{\\}]+)*
+                        )
+                    )
+              @
+                  (
+            (
+                ([A-Za-z0-9\\-])+\\.
+)+
         [A-Za-z\\-]{2,}
     )".
 

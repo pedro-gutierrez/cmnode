@@ -27,21 +27,21 @@
 define_gauge(Name, Help) ->
     MetricName = to_bin(Name),
     prometheus_gauge:declare([{name, MetricName}, 
-                               {help, Help}]),
+                              {help, Help}]),
     {ok, MetricName}.
 
 define_counter(Name, Help) ->
     MetricName = to_bin(Name),
     prometheus_counter:declare([{name, MetricName}, 
-                            {help, Help}]),
+                                {help, Help}]),
     {ok, MetricName}.
 
 define_histogram(Name, Labels, Buckets, Help) ->
     MetricName = to_bin(Name), 
     prometheus_histogram:declare([{name, MetricName},
-                                   {labels, Labels},
-                                   {buckets, Buckets},
-                                   {help, Help}]),
+                                  {labels, Labels},
+                                  {buckets, Buckets},
+                                  {help, Help}]),
     {ok, MetricName}.
 
 define_http_duration(Name, Buckets) ->
@@ -52,7 +52,7 @@ define_http_duration(Name) ->
 
 define_ws_duration(Name, Buckets) ->
     define_histogram(Name, [termination], Buckets, "Websocket lifetime in seconds").
-    
+
 define_ws_duration(Name) ->
     define_ws_duration(Name, ws_duration_groups()).
 
@@ -82,8 +82,8 @@ record_duration(Name, Reason, Value) ->
 
 set(Name, Value) ->
     spawn(fun() ->        
-        prometheus_gauge:set(Name, Value)
-    end).
+                  prometheus_gauge:set(Name, Value)
+          end).
 
 increment(Name, Value) ->
     spawn(fun() -> 
@@ -92,8 +92,8 @@ increment(Name, Value) ->
 
 increment_ws_count(Name) ->
     spawn(fun() ->
-            prometheus_gauge:inc(Name)
-    end).
+                  prometheus_gauge:inc(Name)
+          end).
 
 decrement_ws_count(Name) ->
     spawn(fun() ->

@@ -31,15 +31,15 @@ open(#{ name := Name,
 open(_, _) -> ok.
 
 routes(PortName, PortNumber, Apps, Effects) ->
-    %AppDir = atom_to_list(PortName),
+                                                %AppDir = atom_to_list(PortName),
     lists:flatten(lists:map(fun (App) -> 
-                               port_routes(PortNumber, App, Effects)     
+                                    port_routes(PortNumber, App, Effects)     
                             end, Apps))
-    ++
-    [
-        %{"/", cowboy_static, {priv_file, cmweb, AppDir ++ "/index.html"}},
-        {"/[...]", cowboy_static, {dir, cmkit:asset(PortName)}}
-    ].
+        ++
+        [
+                                                %{"/", cowboy_static, {priv_file, cmweb, AppDir ++ "/index.html"}},
+         {"/[...]", cowboy_static, {dir, cmkit:asset(PortName)}}
+        ].
 
 port_routes(Port, #{ name := Name, mounts := Mounts }, Effects) ->
     port_routes_with_metrics( lists:map(fun(Mount) ->
@@ -52,7 +52,7 @@ mount_route(App, #{ path := Path, transport := Transport }, Port, Effects) ->
                                 transport => Transport,
                                 effects => Effects }),
     {Path, handler(Transport), State}.
-    
+
 handler(http) -> cmweb_http;
 handler(ws) -> cmweb_ws.
 

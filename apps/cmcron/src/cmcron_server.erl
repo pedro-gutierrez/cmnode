@@ -34,10 +34,10 @@ terminate(Reason, _) ->
 
 cancel_existing_jobs(Data) ->
     lists:foreach(fun(Refs) ->
-                       lists:foreach(fun(Ref) ->
-                            erlcron:cancel(Ref)
-                                      end, Refs)
-                   end, maps:values(Data)).
+                          lists:foreach(fun(Ref) ->
+                                                erlcron:cancel(Ref)
+                                        end, Refs)
+                  end, maps:values(Data)).
 
 
 load_crons(false) ->
@@ -57,7 +57,7 @@ load_crons([Cron|Rem], Data) ->
 load_cron(#{ name := Name,
              schedule := Schedule,
              jobs := Jobs}, Data) -> 
-    
+
     S = schedule(Schedule),
     Status = succeeded(attempted(Name, S, Jobs)),
     cmkit:log({cron, Name, length(Status)}),
@@ -118,7 +118,7 @@ schedule(#{ type := once,
 
 schedule(#{ type := every, 
             secs := Secs }) ->
-    
+
     {daily, {every, {Secs, sec}, {between, {0, am}, {11, 59, pm}}}};
 
 schedule(#{ type := daily, 
@@ -129,7 +129,7 @@ schedule(#{ type := daily,
 
 status(Data) ->
     maps:fold(fun(K, V, Out) ->
-                Out#{ K => length(V) }
+                      Out#{ K => length(V) }
               end, #{}, Data).
 
 schedule_job(Spec) ->

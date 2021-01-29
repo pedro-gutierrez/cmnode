@@ -239,7 +239,7 @@ term(#{ type := encoded, spec := Spec}, Settings) ->
         Other -> 
             Other
     end;
-    
+
 term(#{ type := list, spec := Spec}, Settings) -> 
     case term(Spec, Settings) of 
         {ok, Compiled} -> 
@@ -398,7 +398,7 @@ term(#{ type := char, spec := CharSpec, in := InSpec }, Settings) ->
     end;
 
 term(#{ type := list, size := Size}, _) -> 
-        {ok, #{ list => #{ size => Size }}};
+    {ok, #{ list => #{ size => Size }}};
 
 term(#{ type := object, spec := Spec}, Settings) -> 
     case compile_object(maps:keys(Spec), Spec, Settings, #{}) of 
@@ -416,7 +416,7 @@ term(#{ type := text, key := _, in := _}=Spec, Settings) ->
             Other
     end;
 
-    
+
 term(#{ type := text,
         spec := Spec }, Settings) -> 
     case term(Spec, Settings) of 
@@ -485,7 +485,7 @@ term(#{ type := uppercase,
     end;
 
 term(#{ type := format, 
-       params := ParamsSpec,
+        params := ParamsSpec,
         pattern := PatternSpec }, Settings) -> 
     case term(PatternSpec, Settings) of 
         {ok, Pattern} -> 
@@ -508,7 +508,7 @@ term(#{ type := format,
             case term(DateSpec, Settings) of 
                 {ok, Date} -> 
                     {ok, #{ format_date => #{ pattern => Pattern,
-                                         date => Date }}};
+                                              date => Date }}};
                 Other -> 
                     Other
             end;
@@ -1028,7 +1028,7 @@ term(#{ type := encode,
 
 term(#{ timestamp := #{ format := FormatSpec,
                         value := Spec }}, Settings) -> 
-    
+
     case term(FormatSpec, Settings) of 
         {ok, Format} -> 
             case term(Spec, Settings) of 
