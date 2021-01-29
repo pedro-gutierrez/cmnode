@@ -799,10 +799,6 @@ compile_terms(Specs, Index) ->
 
 is_key_path(<<"$", _/binary>>) ->
     false;
-
-
-
-
 is_key_path(Term) when is_binary(Term) ->
     case binary:match(Term, <<".">>) of
         nomatch ->
