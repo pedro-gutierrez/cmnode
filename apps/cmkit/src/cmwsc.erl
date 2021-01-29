@@ -41,7 +41,7 @@ init([Name, #{ debug := Debug,
                       buffer => queue:new(),
                       state => #{}}),
     {ok, connecting, Data, 
-        [{{timeout,connecting}, Timeout ,connecting}]}.
+     [{{timeout,connecting}, Timeout ,connecting}]}.
 
 disconnected(info, {gun_down, _, _}, Data) ->
     {keep_state, Data};
@@ -98,7 +98,7 @@ connected(From, stop, Data) ->
     handle_stop(From, Data);
 
 connected(info, {gun_down, _, _, closed, _, _}, Data) ->
-   apply_reconnection_strategy(connected, Data); 
+    apply_reconnection_strategy(connected, Data); 
 
 connected({call, _}, {out, Msg}, Data) ->
     Data2 = buffer(Msg, connected, Data),
@@ -129,7 +129,7 @@ upgrading(info, {gun_response, _, _, _, Status, Headers}, #{ log := Log,
             {keep_state, Data};
         _ ->
             Msg = #{ status => Status,
-                      headers => maps:from_list(Headers) },
+                     headers => maps:from_list(Headers) },
             Owner ! {ws, Name, msg, Msg},
             Log({cmwsc, Name, upgrading, Msg, will_stop}),
             {stop, normal}
@@ -142,7 +142,7 @@ upgrading(info, {gun_error, _, _, Reason}, #{ log := Log,
     {stop, Reason};
 
 upgrading(info, {gun_down, _, _, closed, _, _}, Data) ->
-   apply_reconnection_strategy(upgrading, Data); 
+    apply_reconnection_strategy(upgrading, Data); 
 
 upgrading(From, stop, Data) -> 
     handle_stop(From, Data);
@@ -168,19 +168,19 @@ ready(info, {gun_ws, _, _, {text, Raw}}, #{ log := Log,
                                             owner := Owner,
                                             name := Name }=Data) ->
     Msg = case cmkit:jsond(Raw) of 
-        {ok, Term} -> Term;
-        {error, E} -> E
-    end,
-    
+              {ok, Term} -> Term;
+              {error, E} -> E
+          end,
+
     Log({cmwsc, Name, in, Msg}),
-    
+
     apply_protocol(Msg, Data),
 
     Owner ! {ws, Name, msg, Msg},
     {keep_state, Data};
 
 ready(info, {gun_ws, _, _, {close, _, _}}, Data) ->
-   apply_reconnection_strategy(ready, Data); 
+    apply_reconnection_strategy(ready, Data); 
 
 ready({timeout, connecting}, _, Data) ->
     {keep_state, Data};
@@ -190,8 +190,8 @@ ready(From, stop, Data) ->
 
 
 ready(Event, Msg, #{ log := Log,
-                 name := Name,
-                 config := Config}=Data) ->
+                     name := Name,
+                     config := Config}=Data) ->
     Log({cmwsc, Name, ready, Config, ignored, Event, Msg}),
     {next_state, ready, Data}.
 
@@ -226,7 +226,7 @@ connect(#{ config := #{ host := Host,
 
 connect(#{ config := #{ host := Host,
                         port := Port}} = Data) ->
-    
+
     {ok, Conn} = gun:open(cmkit:to_list(Host), Port, #{protocols => [http]}),
     MRef = monitor(process, Conn),
     Data#{ conn => Conn,
@@ -271,7 +271,7 @@ apply_protocol(In, #{
                                                              update := Update,
                                                              encoders := Encoders }}},
                       state := State } = Data) ->
-    
+
     case try_decoders(Decoders, In) of 
         {ok, {Msg, Decoded}} ->
             case maps:get(Msg, Update, undef) of 

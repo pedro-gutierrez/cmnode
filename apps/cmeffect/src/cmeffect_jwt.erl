@@ -10,14 +10,14 @@ effect_apply(#{ context := C,
                 ttl := T}, Id) ->
 
     R = case cmjwt:sign(P, T, K) of 
-        error ->
-            #{ context => C,
-               status => error };
-        Signed -> 
-            #{ context => C,
-               status => ok,
-               jwt => Signed }
-    end,
+            error ->
+                #{ context => C,
+                   status => error };
+            Signed -> 
+                #{ context => C,
+                   status => ok,
+                   jwt => Signed }
+        end,
     cmcore:update(Id, R );
 
 effect_apply(#{ context := C,
@@ -25,16 +25,16 @@ effect_apply(#{ context := C,
                 key := K }, Id) ->
 
     R = case cmjwt:verify(P, K) of 
-        false ->
-            #{ context => C,
-               status => error };
-        expired ->
-            #{ context => C,
-               status => expired };
-        JWT -> 
-            #{ context => C,
-               status => ok,
-               jwt => JWT }
-    end,
+            false ->
+                #{ context => C,
+                   status => error };
+            expired ->
+                #{ context => C,
+                   status => expired };
+            JWT -> 
+                #{ context => C,
+                   status => ok,
+                   jwt => JWT }
+        end,
     cmcore:update(Id, R).
 

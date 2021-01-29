@@ -10,14 +10,14 @@ effect_apply(#{ context := Context,
                              user := _,
                              key := _ } = Config,
                 replace := #{ name := Name,
-                          type := Type,
-                          value := Value,
-                          ttl := TTL } }, Pid) ->
+                              type := Type,
+                              value := Value,
+                              ttl := TTL } }, Pid) ->
 
     Res = case cmcheap:replace(#{ 'Name' => Name,
-                                   'Address' => Value,
-                                   'Type' => Type,
-                                   'TTL' => TTL }, Config) of 
+                                  'Address' => Value,
+                                  'Type' => Type,
+                                  'TTL' => TTL }, Config) of 
               ok ->
                   #{ context => Context,
                      status => ok };
@@ -27,5 +27,5 @@ effect_apply(#{ context := Context,
                      status => error,
                      error => E }
           end,
-    
+
     cmcore:update(Pid, Res).

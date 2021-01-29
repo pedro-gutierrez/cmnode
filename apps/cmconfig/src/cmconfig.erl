@@ -67,11 +67,11 @@ services() ->
 
 service(N) -> 
     name_from(having_tag(service, app(N))).
-    
+
 effects() -> cmeffect:effects().
 
 effect(N) ->
-  cmeffect:effect(N).
+    cmeffect:effect(N).
 
 
 having_tag(T, Items) when is_list(Items) ->

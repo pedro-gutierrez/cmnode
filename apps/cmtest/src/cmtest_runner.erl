@@ -62,7 +62,7 @@ init([]) ->
 
 ready({call, From}, {scenarios, #{ name := TestName }=Test, Scenarios, #{ name := SettingsName,
                                                                           spec := SettingsSpec }}, Data) ->
-    
+
     cmkit:log({cmtest, TestName, SettingsName, length(Scenarios)}),
     Data2 = Data#{ report_to => From, 
                    settings => #{ name => SettingsName },
@@ -80,9 +80,9 @@ ready({call, From}, {scenarios, #{ name := TestName }=Test, Scenarios, #{ name :
                 {ok, Facts} ->
 
                     Data3 = Data2#{ 
-                              facts => Facts,
-                              settings => #{ name => SettingsName,
-                                             value => Settings }},
+                                    facts => Facts,
+                                    settings => #{ name => SettingsName,
+                                                   value => Settings }},
 
                     case start_scenario(Test, Scenarios, Data3) of 
                         {ok, Data4} ->
@@ -109,7 +109,7 @@ ready({call, From}, {stop, _}, #{ pid := Pid }=Data) ->
     {keep_state, Data#{ stats => null }, [{reply, From, ok}]};
 
 ready(cast, {progress, _, Scenario, Step, StepsRem, Elapsed}, #{ pid := Pid,
-                                                                    current := C }=Data) ->
+                                                                 current := C }=Data) ->
 
     Data2 = Data#{ current => [Step#{ status => success, failure => #{} }|C]},
     notify_progress(Scenario, StepsRem, Elapsed, Data2),
@@ -121,7 +121,7 @@ ready(cast, {success, TestTitle, Scenario, _, Elapsed }, #{ test := Test,
                                                             current := C,
                                                             success := Success,
                                                             result := R }=Data) ->
-    
+
     Data2 = stop_scenario(Data),
     ScenarioResult = #{ test => TestTitle,
                         scenario => Scenario,
@@ -150,7 +150,7 @@ ready(cast, {fail, TestTitle, Scenario, #{ failure := F} = Step, Elapsed }, #{ t
                                                                                result := R,
                                                                                fail := Fail }=Data) ->
 
-    
+
     Data2 = stop_scenario(Data),
     ScenarioResult = #{ test => TestTitle,
                         scenario => Scenario,
@@ -172,7 +172,7 @@ ready(cast, {fail, TestTitle, Scenario, #{ failure := F} = Step, Elapsed }, #{ t
             notify_error(E, Data3),
             {stop, normal}
     end.
-    
+
 terminate(_, _, _) ->
     ok.
 
@@ -213,10 +213,10 @@ start_scenario(#{ name := TestTitle }=Test, [#{title := ScenarioTitle}=S|Rem], #
         {ok, Pid} ->
 
             Data2 = Data#{ 
-                      pid => Pid,
-                      scenarios => Rem,
-                      started => cmkit:now()
-                     },
+                           pid => Pid,
+                           scenarios => Rem,
+                           started => cmkit:now()
+                         },
             cmtest_scenario:next(Pid),
             {ok, Data2};
         {error, E} ->
@@ -227,10 +227,10 @@ start_scenario(#{ name := TestTitle }=Test, [#{title := ScenarioTitle}=S|Rem], #
                                 elapsed => 0,
                                 failure => E,
                                 steps => [] },
-            
+
             Data2 = Data#{ current => [],
-                            result => [ScenarioResult|R],
-                            fail => Fail + 1 },
+                           result => [ScenarioResult|R],
+                           fail => Fail + 1 },
 
             start_scenario(Test, Rem, Data2)
     end;
@@ -256,14 +256,14 @@ report(#{ settings := #{ name := SettingsName }=Settings,
     Q = query(Data),
 
     Secs = lists:foldl(fun(#{ elapsed := Elapsed }, Acc) ->
-                            Acc + Elapsed
-                         end, 0, Result) div 1000,
-    
+                               Acc + Elapsed
+                       end, 0, Result) div 1000,
+
     Stats = #{ total => Total,
                success => Success,
                fail => Fail,
                seconds => Secs },
-        
+
     Report = #{ timestamp => cmkit:now(),
                 query => Q,
                 settings => SettingsName,
@@ -280,7 +280,7 @@ report(#{ settings := #{ name := SettingsName }=Settings,
     cmkit:S({cmtest, Q, SettingsName, Stats, Failures, Secs}),
     save_report(Report, Data),
     finish(Data),
-    
+
     Summary = #{ test => Q,
                  severity => S,
                  stats => Stats },
@@ -296,7 +296,7 @@ finish(#{ report_to := {From, _},
     cmkit:log({cmtest, Test, finished});
 
 finish(#{ test := #{ name := Test }}) ->
-    
+
     cmkit:log({cmtest, Test, finished}).
 
 notify_error(Reason, #{settings := Settings}=Data) ->
@@ -308,9 +308,9 @@ notify_error(Reason, #{settings := Settings}=Data) ->
                        severity => danger}).
 
 notify_progress(Scenario, _, _, #{ report_to := {From, _},
-                                settings := #{ name := Settings},
-                                test := #{ id := Id,
-                                           name := Name }}) ->
+                                   settings := #{ name := Settings},
+                                   test := #{ id := Id,
+                                              name := Name }}) ->
 
     gen_statem:cast(From, {info, Id, #{ test => Name,
                                         settings => Settings,
@@ -341,7 +341,7 @@ save_report(#{ query := Query } = R, _) ->
 
 webhook(#{ settings := #{ name := SettingsName,
                           value := Settings }}=Data, Summary) ->
-   
+
     Q = query(Data),
     case Settings of 
         #{ webhooks := #{ default := Url } } -> 
@@ -351,13 +351,13 @@ webhook(#{ settings := #{ name := SettingsName,
                 #{ enabled := false } ->
                     cmkit:log({cmtest, Q, SettingsName, webhook, skipped, disabled});
                 #{ enabled := true }  -> 
-                    
+
                     Headers = #{ 'content-type' => <<"application/json">>,
                                  'x-cm-event' => <<"test-summary">> },
-                    
+
                     Summary2 = Summary#{ test => Q,
                                          settings => SettingsName },
-                    
+
                     cmkit:log({cmtest, Q, webhook, enabled, Url, Headers, Summary2}),
                     cmhttp:post(Url, Headers, Summary2)
             end;
@@ -367,27 +367,27 @@ webhook(#{ settings := #{ name := SettingsName,
 
 slack(#{ name := Name,
          value := #{ 
-           slack := #{ 
-             tests := #{ 
-               enabled := true,
-               token := T,
-               channel := Ch
-              }
-            }
-          }}, #{ test := Q, 
-                 severity :=S }=Msg) ->
+                     slack := #{ 
+                                 tests := #{ 
+                                             enabled := true,
+                                             token := T,
+                                             channel := Ch
+                                           }
+                               }
+                   }}, #{ test := Q, 
+                          severity :=S }=Msg) ->
 
     Env = cmkit:to_bin(Name),
     Test = cmkit:to_bin(Q),
 
     { Subject, Text } = case Msg of 
                             #{ stats := #{ 
-                                 total := Total,
-                                 fail := Fail,
-                                 success := Success,
-                                 seconds := Secs }
+                                           total := Total,
+                                           fail := Fail,
+                                           success := Success,
+                                           seconds := Secs }
                              } ->
-                                
+
                                 TotalBin = cmkit:to_bin(Total),
                                 SuccessBin = cmkit:to_bin(Success),
                                 FailBin = cmkit:to_bin(Fail),
@@ -399,10 +399,10 @@ slack(#{ name := Name,
                                     FailBin/binary, " failed, in ", SecsBin/binary , " seconds">> };
 
                             _ -> 
-                                
+
                                 { <<"Test ", Test/binary, " failed to run on ", Env/binary>>,
                                   <<"Check the server logs for more detail">> }
-                                
+
                         end, 
 
     cmslack:S(#{ token => T,

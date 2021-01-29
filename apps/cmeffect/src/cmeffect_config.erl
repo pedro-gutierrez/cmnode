@@ -15,48 +15,48 @@ effect_apply(#{ query := buckets}, SessionId) ->
 
 effect_apply(#{ query := info, app := App}, SessionId) ->
     Res = case cmconfig:app(App) of 
-        {ok, #{ category := Cat,
-                debug := Debug,
-                name := AppName
-              }} ->
+              {ok, #{ category := Cat,
+                      debug := Debug,
+                      name := AppName
+                    }} ->
                   #{ app => AppName,
                      category => Cat, 
                      debug => Debug };
-        _ -> 
-            #{ error => not_found,
-               query => info,
-               app => App 
-             }
-    end,
+              _ -> 
+                  #{ error => not_found,
+                     query => info,
+                     app => App 
+                   }
+          end,
 
     cmcore:update(SessionId, Res);
 
 effect_apply(#{ query := config, app := App}, SessionId) ->
     Res = case cmconfig:app(App) of 
-        {ok, #{ config := Config }} ->
-            #{ config => Config };
-        _ -> 
-            #{ error => not_found,
-               query => config,
-               app => App 
-             }
-    end,
+              {ok, #{ config := Config }} ->
+                  #{ config => Config };
+              _ -> 
+                  #{ error => not_found,
+                     query => config,
+                     app => App 
+                   }
+          end,
 
     cmcore:update(SessionId, Res);
 
 
 effect_apply(#{ query := modules, scope := App}, SessionId) ->
     Res = case cmconfig:app(App) of 
-        {ok, #{ modules := Mods }} ->
+              {ok, #{ modules := Mods }} ->
                   #{ modules => Mods };
-        {ok, _} ->
+              {ok, _} ->
                   #{ modules => []};
-        _ -> 
-            #{ error => not_found,
-               query => modules,
-               app => App 
-             }
-    end,
+              _ -> 
+                  #{ error => not_found,
+                     query => modules,
+                     app => App 
+                   }
+          end,
 
     cmcore:update(SessionId, Res);
 
@@ -69,19 +69,19 @@ effect_apply(#{ query := module, module := Mod}, SessionId) ->
                      query => modules,
                      module => Mod 
                    }
-    end,
+          end,
     cmcore:update(SessionId, Res);
 
 effect_apply(#{ query := settings, settings := Name}, SessionId) ->
     Res = case cmconfig:settings(Name) of 
-        {ok, Spec} -> 
+              {ok, Spec} -> 
                   #{ settings => Spec };
-        {error, E} -> 
-            #{ error => E,
-               query => settings,
-               settings => Name
-             }
-    end,
+              {error, E} -> 
+                  #{ error => E,
+                     query => settings,
+                     settings => Name
+                   }
+          end,
 
     cmcore:update(SessionId, Res);
 

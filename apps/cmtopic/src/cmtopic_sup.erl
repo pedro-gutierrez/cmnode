@@ -13,7 +13,7 @@ init([]) ->
 
 child_spec(#{ name := Name }=T) ->
     Id = cmkit:to_atom(cmkit:bin_join([ cmkit:to_bin(Name),
-                                   cmkit:to_bin(topic) ], <<"_">>)),
+                                        cmkit:to_bin(topic) ], <<"_">>)),
     cmkit:child_spec(Id,
                      cmtopic_worker,
                      [Id, T],

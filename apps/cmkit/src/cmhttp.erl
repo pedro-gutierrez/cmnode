@@ -24,7 +24,7 @@ stream(#{ method := Method,
           headers := Headers,
           context := #{ data := Ctx,
                         callback := {M, F}}}) ->
-    
+
     cmkit:log({cmhttp, stream, Url, Headers, M, F, Ctx}),
     Url2 = encoded_url(Url),
     Headers2 = encoded_headers(Headers),
@@ -33,7 +33,7 @@ stream(#{ method := Method,
                   maps:merge(Ctx, #{ event => start,
                                      data => #{ status => 200,
                                                 headers => decoded_headers(H, #{})}});
-               ({_, stream, BinBodyPart}) -> 
+              ({_, stream, BinBodyPart}) -> 
                   maps:merge(Ctx, #{ event => data,
                                      data => BinBodyPart });
               ({_, stream_end, H}) -> 
@@ -49,14 +49,14 @@ stream(#{ method := Method,
           end,
 
     Recv = fun(Ev) ->
-                  case Map(Ev) of 
-                      ignore -> 
-                          cmkit:log({cmhttp, stream, ignored, Ev});
-                      Data ->
-                            spawn(M, F, [Data])
-                  end
-          end,
-    
+                   case Map(Ev) of 
+                       ignore -> 
+                           cmkit:log({cmhttp, stream, ignored, Ev});
+                       Data ->
+                           spawn(M, F, [Data])
+                   end
+           end,
+
     httpc:request(Method, {Url2, Headers2}, [], [{sync, false},
                                                  {stream, self}, 
                                                  {receiver, Recv}]);
@@ -64,7 +64,7 @@ stream(#{ method := Method,
 stream(#{ method := _,
           url := _,
           context := _} = Q) -> 
-    
+
     stream(Q#{ headers => #{} }).
 
 do(Req0) ->
@@ -171,7 +171,7 @@ post(Url, Headers) ->
 
 post(Url, #{ 'content-type' := _}=Headers, Data) ->
     post(Url, Headers, Data, ?EMPTY_OPTS);
-    
+
 post(Url, Headers, Data) ->
     post(Url, Headers#{ 'content-type' => <<"application/json">> }, Data, ?EMPTY_OPTS).
 
@@ -189,10 +189,10 @@ send_body(Method, Url, #{ 'content-type' := CT }=Headers, Data, Opts) ->
 
 debug(Method, Url, Headers, Mime, Encoded, #{ debug := true }) ->
     cmkit:log({http, #{ method => Method, 
-                          url => Url, 
-                          mime => Mime,
-                          headers => Headers,
-                          body_size => size(Encoded)}});
+                        url => Url, 
+                        mime => Mime,
+                        headers => Headers,
+                        body_size => size(Encoded)}});
 
 debug(_, _, _, _, _, _) ->
     ok.
@@ -210,20 +210,20 @@ handle({error,E}, _) ->
 handle({ok, {{_, Code, _}, Headers, Body}}, Opts) ->
     DecodedMime = decoded_mime(Headers),
     DecodedBody = case DecodedMime of
-        missing -> Body;
-        json ->
-            case cmkit:jsond(Body) of 
-                {ok, Term} -> Term;
-                _ -> Body
-            end;
-        xml ->
-            case cmkit:xmld(Body) of 
-                {ok, Term} -> Term;
-                _ -> 
-                    Body
-            end;
-        _ -> Body
-    end,
+                      missing -> Body;
+                      json ->
+                          case cmkit:jsond(Body) of 
+                              {ok, Term} -> Term;
+                              _ -> Body
+                          end;
+                      xml ->
+                          case cmkit:xmld(Body) of 
+                              {ok, Term} -> Term;
+                              _ -> 
+                                  Body
+                          end;
+                      _ -> Body
+                  end,
 
     {ok, with_raw_body(Body, #{ status => Code,
                                 headers => decoded_headers(Headers, #{}), 
@@ -268,14 +268,14 @@ encode_binary(Bin) when is_binary(Bin) -> Bin;
 encode_binary(List) when is_list(List) -> 
     cmkit:to_bin(List);
 
-    %%case cmkit:is_string(List) of 
-    %%    true -> 
-    %%        cmkit:warning({http, encode_binary, is_string}),
-    %%        cmkit:to_bin(List);
-    %%    false ->
-    %%        cmkit:warning({http, encode_binary, is_not_string}),
-    %%        erlang:term_to_binary(List)
-    %%end;
+%%case cmkit:is_string(List) of 
+%%    true -> 
+%%        cmkit:warning({http, encode_binary, is_string}),
+%%        cmkit:to_bin(List);
+%%    false ->
+%%        cmkit:warning({http, encode_binary, is_not_string}),
+%%        erlang:term_to_binary(List)
+%%end;
 encode_binary(Other) ->
     erlang:term_to_binary(Other).
 
@@ -294,13 +294,13 @@ withQs(Url, #{ query := Qs}) when map_size(Qs) > 0 ->
     <<Url/binary, EncodedQs/binary>>;
 
 withQs(Url, _) -> Url.
-    
+
 
 
 encodedQs(Map) when is_map(Map) ->
     Params = cmkit:bin_join(maps:fold(fun(K, V, Acc) ->
                                               add_to_qs(K, V, Acc)
-                                       end, [], Map), <<"&">>),
+                                      end, [], Map), <<"&">>),
     <<"?", Params/binary>>;
 
 encodedQs(Bin) when is_binary(Bin) ->

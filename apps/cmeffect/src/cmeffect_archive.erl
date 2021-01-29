@@ -9,9 +9,9 @@ effect_apply(#{ context := C,
                 dir := Dir }, SessionId) ->
 
     Res = case cmkit:tar(Archive, Dir) of
-            ok -> 
+              ok -> 
                   #{ status => success };
-            {error, E} ->
+              {error, E} ->
                   #{ status => error,
                      error => E }
           end,

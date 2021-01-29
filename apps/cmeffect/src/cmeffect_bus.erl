@@ -7,13 +7,13 @@ effect_info() -> bus.
 
 effect_apply(#{ context := Context,
                 sub := T } = Spec, Pid) ->
-    
+
     Res = case maps:get(create, Spec, false) of 
-        false ->
-            cmbus:sub(T, Pid);
-        true ->
-            cmbus:create_sub(T, Pid)
-    end,
+              false ->
+                  cmbus:sub(T, Pid);
+              true ->
+                  cmbus:create_sub(T, Pid)
+          end,
 
     cmcore:update(Pid, #{ topic => T,
                           context => Context,
@@ -21,14 +21,14 @@ effect_apply(#{ context := Context,
 
 effect_apply(#{ context := Context,
                 unsub := T } = Spec, Pid) ->
-    
+
     Res0 = cmbus:unsub(T, Pid),
     Res = case maps:get(delete, Spec, false) of 
-        false -> 
-            Res0;
-        true ->
-            cmbus:delete(T)
-    end,    
+              false -> 
+                  Res0;
+              true ->
+                  cmbus:delete(T)
+          end,    
     cmcore:update(Pid, #{ topic => T,
                           context => Context,
                           status => Res });
@@ -36,7 +36,7 @@ effect_apply(#{ context := Context,
 effect_apply(#{ context := Context,
                 topic := Topic,
                 data := Data }, Pid) ->
-    
+
     case cmbus:closest(Topic) of 
         {error, E} ->
             cmcore:update(Pid, #{ context => Context,

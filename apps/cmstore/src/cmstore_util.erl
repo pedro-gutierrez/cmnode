@@ -18,7 +18,7 @@ stores() ->
                    debug => cmkit:to_atom(maps:get(<<"debug">>, Spec, <<"false">>))
                  } || {ok, #{ <<"name">> := Name,
                               <<"spec">> := #{ 
-                                  <<"storage">> := Storage } = Spec}} <- cmkit:yamls(store)] ,
+                                               <<"storage">> := Storage } = Spec}} <- cmkit:yamls(store)] ,
     {ok, Buckets}.
 
 
@@ -123,58 +123,58 @@ entry(#{ app := _,
          event := _,
          data := _} = Spec, N, T) ->
     entry(Spec#{ 
-        rel => null, 
-        other => null}, N, T).
+                 rel => null, 
+                 other => null}, N, T).
 
 ref(Name, #{ app := A,
              kind := K,
              id := Id,
              event := Ev }) ->
     ?REF(Name, "SELECT app, kind, id, event, rel, other, timestamp, node, data "
-               "FROM log "
-               "WHERE app = ? "
-               "AND kind = ? "
-               "AND id = ? "
-               "AND event = ? " 
-               "ORDER by timestamp ASC", [A, K, Id, Ev]);
+         "FROM log "
+         "WHERE app = ? "
+         "AND kind = ? "
+         "AND id = ? "
+         "AND event = ? " 
+         "ORDER by timestamp ASC", [A, K, Id, Ev]);
 
 ref(Name, #{ app := A, 
              kind := K,
              id := Id }) ->
     ?REF(Name, "SELECT app, kind, id, event, rel, other, timestamp, node, data "
-               "FROM log "
-               "WHERE app = ? "
-               "AND kind = ? "
-               "AND id = ? "
-               "ORDER by timestamp ASC", [A, K, Id]);
-    
+         "FROM log "
+         "WHERE app = ? "
+         "AND kind = ? "
+         "AND id = ? "
+         "ORDER by timestamp ASC", [A, K, Id]);
+
 ref(Name, #{ app := A,
              kind := K,
              event := Ev }) ->
     ?REF(Name, "SELECT app, kind, id, event, rel, other, timestamp, node, data "
-               "FROM log "
-               "WHERE app = ? "
-               "AND kind = ? "
-               "AND event = ? "
-               "ORDER by timestamp ASC", [A, K, Ev]);
-    
+         "FROM log "
+         "WHERE app = ? "
+         "AND kind = ? "
+         "AND event = ? "
+         "ORDER by timestamp ASC", [A, K, Ev]);
+
 ref(Name, #{ app := A, 
              rel := R, 
              other := O }) ->
     ?REF(Name, "SELECT app, kind, id, event, rel, other, timestamp, node, data "
-               "FROM log "
-               "WHERE app = ? " 
-               "AND rel = ? "
-               "AND other = ? " 
-               "ORDER by timestamp ASC", [A, R, O]);
-               
+         "FROM log "
+         "WHERE app = ? " 
+         "AND rel = ? "
+         "AND other = ? " 
+         "ORDER by timestamp ASC", [A, R, O]);
+
 ref(Name, #{ app := A, 
              kind := K }) ->
     ?REF(Name, "SELECT app, kind, id, event, rel, other, timestamp, node, data "
-               "FROM log "
-               "WHERE app = ? " 
-               "AND kind = ? "
-               "ORDER by timestamp ASC", [A, K]).
+         "FROM log "
+         "WHERE app = ? " 
+         "AND kind = ? "
+         "ORDER by timestamp ASC", [A, K]).
 
 read(Name, Spec) ->
     {ok, Ref} = ref(Name, Spec),

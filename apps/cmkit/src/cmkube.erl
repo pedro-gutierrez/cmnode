@@ -8,7 +8,7 @@ do(#{ name := Name,
       server := #{ api := Url,
                    token := Token },
       state := absent }) -> 
-    
+
     Ctx = ctx:background(),
     Opts = opts(Url, Token),
     case kuberl_core_v1_api:delete_namespaced_service(Ctx, Name, Ns, Opts) of 
@@ -41,7 +41,7 @@ do(#{ name := Name,
                                     selector => Labels,
                                     ports => Ports } },
 
-            
+
             Ctx = ctx:background(),
             Opts = opts(Url, Token),
             case kuberl_core_v1_api:create_namespaced_service(Ctx, Ns, Service, Opts) of 
@@ -135,8 +135,8 @@ do(#{ name := Name,
                      spec => #{ replicas => Replicas,
                                 selector => #{ matchLabels => Labels },
                                 template =>
-                                #{ metadata => #{ labels => Labels },
-                                   spec => Spec } }},
+                                    #{ metadata => #{ labels => Labels },
+                                       spec => Spec } }},
 
             Ctx = ctx:background(),
             Opts = opts(Url, Token),
@@ -246,8 +246,8 @@ do(#{ name := Name,
                                 serviceName => ServiceName,
                                 selector => #{ matchLabels => Labels },
                                 template =>
-                                #{ metadata => #{ labels => Labels },
-                                   spec => Spec } }},
+                                    #{ metadata => #{ labels => Labels },
+                                       spec => Spec } }},
 
             Ctx = ctx:background(),
             Opts = opts(Url, Token),
@@ -281,7 +281,7 @@ do(#{ name := _,
                    token := Token },
       state := upgraded,
       props := Props } = Params) ->
-    
+
     case do(Params#{ state => scaled, replicas => 0 }) of 
         ok ->
             case await(#{ namespace => Ns,
@@ -312,7 +312,7 @@ do(#{ name := Name,
                   replicas := Replicas,
                   serviceName := ServiceName,
                   spec := Spec } = Props} = _Params) ->
-    
+
     Dep = #{ apiVersion => <<"apps/v1">>,
              kind => <<"StatefulSet">>,
              metadata => #{ name => Name,
@@ -322,8 +322,8 @@ do(#{ name := Name,
                         serviceName => ServiceName,
                         selector => #{ matchLabels => Labels },
                         template =>
-                        #{ metadata => #{ labels => Labels#{ date => cmkit:to_bin(cmkit:now()) } },
-                           spec => Spec } }},
+                            #{ metadata => #{ labels => Labels#{ date => cmkit:to_bin(cmkit:now()) } },
+                               spec => Spec } }},
 
     Ctx = ctx:background(),
     Opts = opts(Url, Token),
@@ -391,7 +391,7 @@ do(#{ namespace := Ns,
       server := #{ api := Url,
                    token := Token },
       state := absent }) ->
-    
+
     Ctx = ctx:background(),
     Opts = opts(Url, Token),
 
@@ -409,7 +409,7 @@ do(#{ namespace := Ns,
       state := present,
       props := #{ labels := Labels,
                   spec := Spec} = Props} = Params) ->
-    
+
     Yaml = #{ apiVersion => <<"batch/v1">>,
               kind => <<"Job">>,
               metadata => #{ name => Name,
@@ -417,11 +417,11 @@ do(#{ namespace := Ns,
                              labels => Labels },
               spec => #{ template => #{ metadata => #{ labels => Labels },
                                         spec => Spec } }},
-    
+
     cmkit:log({cmkube, Yaml}),
     Ctx = ctx:background(),
     Opts = opts(Url, Token),
-    
+
     do(Params#{ state => absent }), 
     case await(#{ namespace => Ns,
                   resource => job,
@@ -464,7 +464,7 @@ do(#{ host := Host,
       name := Name,
       data := Data
     }) ->
-    
+
     Ctx = ctx:background(),
     Cfg = kuberl:cfg_with_bearer_token(kuberl:cfg_with_host(cmkit:to_list(Host)), Token),
     kuberl_core_v1_api:delete_namespaced_config_map(Ctx, Name, Ns, #{}, #{ cfg => Cfg }),
@@ -533,13 +533,13 @@ do(Q) ->
 await(#{ retries := Retries,
          sleep := Millis, 
          exact := Exact }=Params) ->
-    
+
     FilterFun = case maps:get(state, Params, undef) of 
                     undef -> 
                         fun(_) -> true end;
                     State ->
                         fun(#{ status := #{ phase := Phase }}) ->
-                            Phase =:= State
+                                Phase =:= State
                         end
                 end,
 

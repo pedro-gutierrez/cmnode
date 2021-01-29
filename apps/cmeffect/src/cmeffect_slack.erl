@@ -7,13 +7,13 @@ effect_info() -> slack.
 effect_apply(#{ settings := Settings,
                 subject := Subject,
                 text := Text }, _) -> 
-    
+
     case cmconfig:settings(Settings) of 
         {ok, #{ spec := Spec}} -> 
             case cmencode:encode(Spec) of 
                 {ok, #{ slack := 
-                        #{ tests := #{
-                             enabled := Enabled } = Slack }}} -> 
+                            #{ tests := #{
+                                          enabled := Enabled } = Slack }}} -> 
 
                     case Enabled of 
                         true -> 
